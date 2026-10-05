@@ -565,7 +565,7 @@ export default {
 
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(JSON.stringify({
-        name: "FireAndSmoke Architecture",
+        name: "Aerie Discord bridge",
         version: "3.8.0",
         status: "online",
         endpoints: { claude: "/mcp", gpt: "/sse" }
@@ -594,7 +594,7 @@ async function handleMCP(request, env) {
       result: {
         protocolVersion: "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "FireAndSmoke", version: "3.8.0" }
+        serverInfo: { name: "aerie-discord", version: "3.8.0" }
       }
     };
   } else if (body.method === "tools/list") {
@@ -641,7 +641,7 @@ async function handleSSE(request, env) {
         result: {
           protocolVersion: "2024-11-05",
           capabilities: { tools: {} },
-          serverInfo: { name: "FireAndSmoke", version: "3.8.0" }
+          serverInfo: { name: "aerie-discord", version: "3.8.0" }
         }
       };
     } else if (body.method === "tools/list") {

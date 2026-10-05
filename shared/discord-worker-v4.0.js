@@ -2,6 +2,7 @@
 // Aerie Architecture - Discord MCP Bridge
 // Pure tool layer for companion agents.
 //
+// v4.1: Optional lock. Set MCP_SECRET and every call has to carry it.
 // v4.0: Added discord_edit_message, discord_send_image, discord_typing,
 //       discord_send_sticker, discord_send_voice tools.
 // v3.9: Added discord_delete_message tool for deleting bot messages.
@@ -870,6 +871,33 @@ async function handleToolCall(client, name, args, env = {}) {
   }
 }
 
+// ============ THE LOCK ============
+// Optional. With no MCP_SECRET set, the worker answers anyone who has its
+// address, the way it always has, and anyone who has the address can post,
+// edit and delete as the bot and spend ElevenLabs credit on voice notes. With
+// MCP_SECRET set as a worker secret, every call to /mcp or /sse has to carry
+// it: as an Authorization: Bearer header, which is what Aerie's API key field
+// sends, or as ?key= on the address, for apps that only take a URL. A
+// browser's preflight is let through so the real request can carry the header.
+
+function sameKey(given, expected) {
+  if (typeof given !== "string" || !given) return false;
+  const a = new TextEncoder().encode(given);
+  const b = new TextEncoder().encode(expected);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+function isUnlocked(request, url, env) {
+  const secret = env.MCP_SECRET;
+  if (!secret) return true;
+  if (request.method === "OPTIONS") return true;
+  const bearer = (request.headers.get("Authorization") || "").match(/^Bearer\s+(.+)$/i);
+  return sameKey(bearer ? bearer[1].trim() : "", secret) || sameKey(url.searchParams.get("key"), secret);
+}
+
 // ============ MAIN HANDLER ============
 
 export default {
@@ -878,12 +906,19 @@ export default {
 
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(JSON.stringify({
-        name: "FireAndSmoke Architecture",
-        version: "4.0.0",
+        name: "Aerie Discord bridge",
+        version: "4.1.0",
         status: "online",
         endpoints: { claude: "/mcp", gpt: "/sse" },
         tools: TOOLS.map(t => t.name),
       }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    if ((url.pathname === "/mcp" || url.pathname === "/sse") && !isUnlocked(request, url, env)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders() },
+      });
     }
 
     if (url.pathname === "/mcp") return handleMCP(request, env);
@@ -908,7 +943,7 @@ async function handleMCP(request, env) {
       result: {
         protocolVersion: "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "FireAndSmoke", version: "4.0.0" }
+        serverInfo: { name: "aerie-discord", version: "4.1.0" }
       }
     };
   } else if (body.method === "tools/list") {
@@ -932,9 +967,17 @@ async function handleSSE(request, env, ctx) {
     const sessionId = crypto.randomUUID();
     const send = (event, data) => writer.write(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
 
+    // The address the client posts its messages to. A key that came in on the
+    // address goes back out on it, or a locked worker would turn away the very
+    // next call from the client it just let in.
+    const messageUrl = new URL("/sse", request.url);
+    messageUrl.searchParams.set("session", sessionId);
+    const key = new URL(request.url).searchParams.get("key");
+    if (key) messageUrl.searchParams.set("key", key);
+
     ctx.waitUntil((async () => {
       try {
-        await send("endpoint", `${new URL(request.url).origin}/sse?session=${sessionId}`);
+        await send("endpoint", messageUrl.toString());
         const interval = setInterval(() => writer.write(encoder.encode(": ping\n\n")).catch(() => {}), 30000);
         await new Promise(r => setTimeout(r, 300000));
         clearInterval(interval);
@@ -959,7 +1002,7 @@ async function handleSSE(request, env, ctx) {
         result: {
           protocolVersion: "2024-11-05",
           capabilities: { tools: {} },
-          serverInfo: { name: "FireAndSmoke", version: "4.0.0" }
+          serverInfo: { name: "aerie-discord", version: "4.1.0" }
         }
       };
     } else if (body.method === "tools/list") {
@@ -981,6 +1024,6 @@ function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
   };
 }

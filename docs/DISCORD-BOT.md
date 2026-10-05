@@ -159,6 +159,29 @@ IDs from you, for the rules above. The **worker** does not — it discovers them
 Wiring this worker to ChatGPT instead is the other case that needs you to supply
 them by hand.)
 
+### 4. Lock it (optional)
+
+Out of the box the worker answers anyone who has its address, and whoever has
+it can post, edit and delete as your bot and spend your ElevenLabs credit on
+voice notes. If you would rather it only answered you, give it one more secret:
+
+```bash
+npx wrangler secret put MCP_SECRET
+```
+
+Then give the same value to whatever connects to it. In Aerie it goes in the
+managed server's **API key** field, which sends it as a bearer token. An app
+that only takes an address, such as a ChatGPT MCP app on `/sse`, can carry it
+on the end of the URL instead:
+
+```
+https://your-worker.your-subdomain.workers.dev/sse?key=YOUR_SECRET
+```
+
+The header is the better of the two where you have the choice, since an
+address tends to get pasted and logged. With no `MCP_SECRET` set nothing
+changes. With it set, a call without the key is turned away.
+
 ### What it gives your companion
 
 Reading: list servers, server info, read messages, search messages, list emojis
@@ -177,6 +200,9 @@ typing indicator, send images, stickers and voice notes.
 - **Worker returns zero tools.** `DISCORD_BOT_TOKEN` is not set on the worker.
   It is a separate secret from the one you gave Aerie, even though it is the
   same value.
+- **Worker turns everything away after you locked it.** The key is missing or
+  differs from `MCP_SECRET`. In Aerie, check the server's API key field; on an
+  address, check what follows `?key=`.
 - **Voice tool says a voice is not configured.** There is no `VOICE_ID_<NAME>`
   secret matching the name that was asked for.
 - **A tool asks for a channel ID and you only have a name.** Ask your companion
