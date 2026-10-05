@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Aerie</string>
+    <string name="title_activity_main">Aerie</string>
+    <string name="package_name">com.aerie.phone</string>
+    <string name="custom_url_scheme">com.aerie.phone</string>
+</resources>

@@ -1,0 +1,45 @@
+{
+  "name": "aerie",
+  "version": "1.2.0",
+  "private": true,
+  "description": "A self-hosted, multi-provider AI companion with a phone-OS interface and persistent memory.",
+  "workspaces": [
+    "packages/shared",
+    "packages/backend",
+    "packages/phone"
+  ],
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "npm run dev --workspace=packages/backend",
+    "dev:phone": "npm run dev --workspace=packages/phone",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:phone\"",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=packages/phone && npm run build --workspace=packages/backend",
+    "start": "npm run start --workspace=packages/backend",
+    "test": "node scripts/test.mjs",
+    "check": "npm run build --workspace=packages/shared && npm run check --workspaces --if-present",
+    "prepare": "npm run build --workspace=packages/shared"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/preset-react": "^7.29.7",
+    "lodash-es": "4.18.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "undici": "6.28.1"
+  },
+  "overrides": {
+    "lodash-es": "4.18.1",
+    "undici": "6.28.1",
+    "qs": "^6.16.0",
+    "nanoid": "^3.3.18",
+    "@capacitor/android": "8.5.1",
+    "@capacitor/core": "8.5.1"
+  }
+}

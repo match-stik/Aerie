@@ -1,0 +1,609 @@
+/* Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. */
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Self-hosted Geist Sans */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Self-hosted JetBrains Mono */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  /* Shape: the user's slider, applied at the root of the vocabulary. Every
+     rounded-* utility in the app references these tokens, so one runtime
+     --shape-scale (set from theme.shapeRadius / 16) slides every corner in
+     the phone while keeping the size hierarchy — small things stay smaller.
+     rounded-full is deliberately untouched: circles stay circles. */
+  --radius-sm: calc(4px * var(--shape-scale, 1));
+  --radius-md: calc(6px * var(--shape-scale, 1));
+  --radius-lg: calc(8px * var(--shape-scale, 1));
+  --radius-xl: calc(12px * var(--shape-scale, 1));
+  --radius-2xl: calc(16px * var(--shape-scale, 1));
+  --radius-3xl: calc(24px * var(--shape-scale, 1));
+}
+
+@layer utilities {
+  /* Tailwind v4 inlines the bare `rounded` utility as .25rem instead of
+     referencing a token, so it needs its own rule to follow the slider. */
+  .rounded {
+    border-radius: calc(4px * var(--shape-scale, 1));
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+  
+  /* Glassmorphism Utilities */
+  .glass {
+    @apply backdrop-blur-xl bg-white/5 border border-white/10;
+  }
+
+  .glass-dark {
+    @apply backdrop-blur-xl bg-black/20 border border-white/5;
+  }
+
+  /* Editorial Typography */
+  .editorial-title {
+    @apply font-serif italic tracking-tight;
+  }
+
+  .micro-label {
+    /* Unified section-header style — same size + tracking + weight as
+       the inline text-[11px] uppercase pattern used in Agent / Status /
+       MCP / IntegrationsToggles, so every section header across the
+       wrapper apps reads at the same visual rhythm. Color is left to
+       the caller (cn(..., colors.accentText) or cn(..., colors.textMuted)). */
+    @apply text-[11px] uppercase tracking-[0.12em] font-bold;
+  }
+
+  /* 3D Flip Utilities */
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 4px 1px var(--glow-color, currentColor); }
+  50% { box-shadow: 0 0 16px 4px var(--glow-color, currentColor); }
+}
+
+body {
+  @apply bg-[#0A0A0A] overflow-hidden font-sans antialiased select-none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Our selects are deliberately transparent so they sit in their panels, but a
+   desktop browser draws the dropdown list itself against the OS canvas — white
+   — while the options still inherit the widget's light text colour. The list
+   comes out white on white and is unreadable. Phones open their own picker
+   sheet, which is why this only bites on a laptop. Paint the options. */
+select option,
+select optgroup {
+  background-color: var(--aerie-page, #0a0a0a);
+  color: var(--aerie-text, rgba(255, 250, 245, 0.96));
+}
+
+/* PWA safe area — set early so input bar isn't clipped before JS runs */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --aerie-accent: #f97316;
+  --aerie-on-accent: #090807;
+  --aerie-page: #090807;
+  --aerie-header: #090807;
+  --aerie-panel-base: rgba(13, 11, 10, 0.9);
+  --aerie-border: rgba(255, 255, 255, 0.16);
+  --aerie-text: rgba(255, 250, 245, 0.96);
+  --aerie-text-muted: rgba(255, 247, 237, 0.62);
+  --aerie-user-bubble: rgba(82, 82, 91, 0.86);
+  --aerie-user-bubble-text: #fff;
+  --aerie-user-bubble-pole: #000;
+  --aerie-comp-bubble: rgba(24, 24, 27, 0.9);
+  --aerie-comp-bubble-text: #fff;
+  --aerie-comp-bubble-pole: #000;
+  --aerie-loose-shadow: rgba(0, 0, 0, 0.96);
+  --aerie-surface: rgba(13, 11, 10, 0.68);
+  --aerie-surface-strong: rgba(13, 11, 10, 0.86);
+  --aerie-hairline: rgba(255, 255, 255, 0.16);
+  --aerie-icon: rgba(255, 250, 245, 0.9);
+  --aerie-label: rgba(255, 247, 237, 0.82);
+}
+
+/* -------------------------------------------------------------------------
+   Aerie Glass
+
+   Shared chrome for the reskin. The accent is intentionally a CSS variable:
+   every existing palette remains useful and the interface wakes into the
+   selected color only on interaction. Wallpaper stays the visual hero.
+   ---------------------------------------------------------------------- */
+
+.aerie-root {
+  isolation: isolate;
+}
+
+.aerie-app-surface {
+  background:
+    radial-gradient(circle at 50% -20%, color-mix(in srgb, var(--aerie-accent) 8%, transparent), transparent 48%),
+    var(--aerie-page, #090909);
+}
+
+/* -------------------------------------------------------------------------
+   Theme surfaces
+
+   The existing palette remains the source of truth; these hooks add one
+   shared gradient language to every component already using panelBg,
+   userBubbleBg, or compBubbleBg. No universal cream/charcoal base is imposed,
+   so changing mood still changes the whole family of surfaces.
+   ---------------------------------------------------------------------- */
+
+.aerie-theme-panel {
+  background-image: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--aerie-accent) 8%, transparent) 0%,
+    transparent 56%,
+    color-mix(in srgb, var(--aerie-page) 4%, transparent) 100%
+  );
+}
+
+/* The gradient pulls each bubble toward a pole colour as it falls. That was
+   tuned when the bubbles also carried a blur behind them; with the glass gone
+   the dilution is the only thing washing them out, so both ends keep more of
+   the bubble's own colour now -- about seven points at the far end. The owner's call,
+   and deliberately small: enough to read as the theme colour, not enough to
+   flatten the gradient into a block. */
+/* PAINTED GLASS.
+   The bubbles used to carry backdrop-blur and it had to come out: a bubble is
+   ONE painted thing, and a live-blurred surface underneath the glyphs is a
+   second one that can come apart -- on a tall message the compositor drops the
+   lower half of the texture while the top still paints. Every theme resolves
+   its bubble to an opaque colour anyway, so the blur was blurring a backdrop
+   nothing could see.
+
+   What blur was BUYING was the look: a pane that catches light, like the panels
+   and sheets everywhere else in the app. So paint that instead of computing it.
+   Three cheap things, none of which read anything behind the element:
+     - the same diagonal accent wash the panels get, so a bubble belongs to the
+       same family of surfaces
+     - a hairline of light along the top edge and a soft one of shadow along the
+       bottom, which is what actually sells glass to the eye
+   A grain layer was tried here and taken out again -- the owner's call. Undo is
+   deleting the ::before rule and the box-shadow. */
+.aerie-theme-user-bubble,
+.aerie-theme-comp-bubble {
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 15%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #000000 12%, transparent);
+}
+
+.aerie-theme-user-bubble::before,
+.aerie-theme-comp-bubble::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--aerie-accent) 10%, transparent) 0%,
+    transparent 58%,
+    color-mix(in srgb, #ffffff 5%, transparent) 100%
+  );
+}
+
+.aerie-theme-user-bubble {
+  color: var(--aerie-user-bubble-text);
+  background: linear-gradient(
+    138deg,
+    var(--aerie-user-bubble) 0%,
+    color-mix(in srgb, var(--aerie-user-bubble) 94%, var(--aerie-user-bubble-pole) 6%) 52%,
+    color-mix(in srgb, var(--aerie-user-bubble) 80%, var(--aerie-user-bubble-pole) 20%) 100%
+  );
+}
+
+.aerie-theme-comp-bubble {
+  color: var(--aerie-comp-bubble-text);
+  background: linear-gradient(
+    138deg,
+    var(--aerie-comp-bubble) 0%,
+    color-mix(in srgb, var(--aerie-comp-bubble) 95%, var(--aerie-comp-bubble-pole) 5%) 52%,
+    color-mix(in srgb, var(--aerie-comp-bubble) 83%, var(--aerie-comp-bubble-pole) 17%) 100%
+  );
+}
+
+.aerie-theme-panel,
+.aerie-theme-user-bubble,
+.aerie-theme-comp-bubble,
+.aerie-no-text-shadow {
+  text-shadow: none;
+}
+
+.aerie-on-accent {
+  color: var(--aerie-on-accent) !important;
+}
+
+/* Wallpaper-facing copy gets a restrained halo in its own mode color. It
+   catches inherited/loose text without making every app author find and wrap
+   every stray label; cards and message bubbles reset the shadow above. */
+.aerie-app-body,
+.aerie-wallpaper-text {
+  text-shadow:
+    0 1px 1px var(--aerie-loose-shadow),
+    0 0 9px var(--aerie-loose-shadow);
+}
+
+/* Small wallpaper labels use a real theme-tinted surface instead of trying
+   to manufacture contrast with outlined or glowing type. The same surface is
+   used in every palette and both moods; only the palette variables change. */
+.aerie-app-label {
+  color: var(--aerie-text) !important;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--aerie-accent) 8%, transparent), transparent 64%),
+    color-mix(in srgb, var(--aerie-accent) 10%, var(--aerie-panel-base));
+  border: 1px solid color-mix(in srgb, var(--aerie-border) 76%, transparent);
+  text-shadow: none;
+}
+
+.aerie-app-label {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.125rem 0.35rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.aerie-message-time {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--aerie-border);
+  border-radius: 999px;
+  line-height: 1;
+  text-shadow: none;
+}
+
+.aerie-dock {
+  position: relative;
+  background: var(--aerie-surface);
+  border: 1px solid var(--aerie-hairline);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.18);
+  backdrop-filter: blur(14px) saturate(1.18);
+}
+
+.aerie-dock::after {
+  content: '';
+  position: absolute;
+  inset: auto 18px -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aerie-accent), transparent);
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+.aerie-dock-tile,
+.aerie-app-tile,
+.aerie-glass-button {
+  color: var(--aerie-icon);
+  /* No per-tile backdrop-filter: tiles sit on surfaces that are already
+     blurred (dock) or opaque (app drawer), so each tile's own blur was
+     pure GPU cost — dozens of independent blur layers per screen made
+     the whole phone feel slow. A slightly stronger fill keeps the look. */
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--aerie-accent) 7%, transparent), transparent 58%),
+    color-mix(in srgb, var(--aerie-accent) 11%, var(--aerie-surface-strong));
+  border: 1px solid var(--aerie-hairline);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms cubic-bezier(.2,.8,.2,1);
+}
+
+.aerie-dock-tile:active,
+.aerie-dock-tile[data-pressed='true'],
+.aerie-app-tile:active,
+.aerie-glass-button:active,
+.aerie-glass-button[aria-pressed='true'] {
+  color: var(--aerie-accent);
+  border-color: color-mix(in srgb, var(--aerie-accent) 72%, transparent);
+  background: color-mix(in srgb, var(--aerie-accent) 10%, var(--aerie-surface-strong));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--aerie-accent) 12%, transparent),
+    0 0 20px color-mix(in srgb, var(--aerie-accent) 22%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(1px) scale(0.96);
+}
+
+.aerie-dock-button[data-pressed='true'] .aerie-dock-label {
+  color: var(--aerie-accent);
+  opacity: 1;
+}
+
+.aerie-dock-label {
+  color: var(--aerie-label);
+  transition: color 150ms ease, opacity 150ms ease;
+}
+
+/* The chat header and composer keep their pre-reskin opaque theme
+   surfaces (classes still on the elements) — the glass band clashed
+   with the status-bar fill and the owner vetoed it. */
+
+/* Headers stay opaque. Daylight always resolves to clean white; midnight
+   keeps the selected mood's page color. This is intentionally independent
+   from whatever wallpaper happens to be underneath the app. */
+.aerie-shell-header {
+  color: var(--aerie-text);
+  background-color: var(--aerie-header) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--aerie-border) 72%, transparent);
+  text-shadow: none;
+}
+
+.aerie-app-body {}
+
+.aerie-field,
+.aerie-composer {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--aerie-accent) 5%, transparent), transparent 62%),
+    color-mix(in srgb, var(--aerie-surface-strong) 78%, transparent) !important;
+  border: 1px solid var(--aerie-hairline) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+
+.aerie-field:focus-within,
+.aerie-composer:focus {
+  border-color: color-mix(in srgb, var(--aerie-accent) 56%, transparent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--aerie-accent) 10%, transparent);
+}
+
+/* Anyone moving through the house on a keyboard had no way of telling where
+   they were — nothing anywhere showed focus. :focus-visible only fires for
+   keyboard and assistive navigation, so a finger or a mouse never sees this.
+   Carries the accent, so it follows the theme like everything else. */
+/* No border-radius here. Outlines already follow the element's own corners;
+   forcing `inherit` takes the PARENT's radius instead, which squared off both
+   the ring AND the focused element itself — the composer went from rounded to
+   a hard box the moment it took focus. */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--aerie-accent) 82%, transparent);
+  outline-offset: 2px;
+}
+
+/* Canvas games take focus so their keyboard controls work, but they draw
+   their own border and a ring on top of it just doubles the frame. */
+canvas:focus-visible {
+  outline-offset: -2px;
+}
+
+/* An outline follows the focused element's OWN corners — which is right until the
+   focused element has no corners. A bare input inside a shaped field (the app
+   drawer's Search apps pill, the note body) is transparent, border-less and square,
+   so the ring drew a RECTANGLE inside a rounded pill.
+   The field is the thing the user can see and it already announces focus through
+   :focus-within above, with the accent border and its own ring — so the indicator
+   belongs to the field, and the naked child should not draw a second, squarer one.
+   Buttons inside a field keep theirs: they are separate targets and a keyboard user
+   needs to know which one they are on. */
+.aerie-field :is(input, textarea):focus-visible,
+.aerie-composer :is(input, textarea):focus-visible {
+  outline: none;
+}
+
+/* And everywhere else with the same shape. Scanned all 824 interactive elements in
+   the app: 614 carry their own rounded class and are already correct — the ring
+   follows them. The remaining naked text fields sit inside a shaped container that
+   provides the visible surface (a search pill, a bordered panel, a filter box), and
+   an outline with nothing to follow draws a hard rectangle inside it.
+   Giving those a radius WHILE FOCUSED is the general fix: they are transparent, so
+   nothing else about them changes, and every ring in the house now has corners.
+   Not border-radius: inherit — that was tried and takes the parent's radius onto the
+   element itself, which squared off the composer the moment it took focus. */
+input:not([class*="rounded"]):focus-visible,
+textarea:not([class*="rounded"]):focus-visible,
+select:not([class*="rounded"]):focus-visible {
+  border-radius: 0.5rem;
+}
+
+.aerie-toolbar button,
+.aerie-icon-button {
+  border: 1px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.aerie-toolbar button:active,
+.aerie-icon-button:active {
+  color: var(--aerie-accent) !important;
+  border-color: color-mix(in srgb, var(--aerie-accent) 38%, transparent);
+  background: color-mix(in srgb, var(--aerie-accent) 9%, transparent);
+  transform: scale(0.93);
+}
+
+.aerie-send-button {
+  color: var(--aerie-accent) !important;
+  background: color-mix(in srgb, var(--aerie-accent) 9%, var(--aerie-surface-strong)) !important;
+  border: 1px solid color-mix(in srgb, var(--aerie-accent) 52%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--aerie-accent) 14%, transparent);
+}
+
+/* The grey-mush bubble, Android WebView only, since the APK shipped: a bubble
+   comes back with NO paint of its own — no background, not one glyph — and the
+   only thing still rendering is its backdrop blur, so what shows is softened
+   wallpaper in the shape of the message. Confirmed from the row behind one of
+   them: 316 characters of text, no attachment, nothing drawn.
+
+   Jul 30 pinned the backdrop root with `isolation: isolate` and promoted the
+   bubble with `transform: translateZ(0)`. It got rarer. It did not stop, and
+   the reason is that the blur is still arriving as its own thing rather
+   than as something the bubble does. That is exactly what the promotion bought
+   us — translateZ(0) forces the bubble onto its own compositing layer, so its
+   background and glyphs live in a GPU texture the compositor manages, and can
+   lose, independently of the blurred backdrop surface. Two textures can come
+   apart. That is the whole bug, and we were the ones asking for two.
+
+   So: the promotion is gone and the bubble paints back into its parent's layer,
+   where the blurred backdrop and the background are rastered together. The
+   backdrop root stays pinned — isolation implies no layer of its own.
+
+   One change, deliberately. A flat colour under the gradient was the obvious
+   second thing to add and it is not here: bubbles paint gradient-over-nothing
+   today, and giving them an opaque base would have made the glass less glassy
+   while we were still testing whether the layer was the problem. One variable,
+   or the test tells us nothing.
+
+   Nothing here changes how a bubble looks — the glass is deliberate and stays. If the
+   mush ever comes back, put `transform: translateZ(0)` back on this rule and
+   that is the whole undo. */
+.aerie-message-bubble {
+  isolation: isolate;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.aerie-message-bubble[data-user='true'] {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    inset -1px 0 0 color-mix(in srgb, var(--aerie-accent) 44%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aerie-dock-tile,
+  .aerie-app-tile,
+  .aerie-glass-button,
+  .aerie-toolbar button,
+  .aerie-icon-button {
+    transition-duration: 1ms;
+  }
+}
+
+/* Theme-aware scrollbars */
+:root {
+  --scrollbar-thumb: #7c3aed;
+  --scrollbar-track: rgba(0,0,0,0.3);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  filter: brightness(1.2);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Inline code wrapping — prevents long URLs/paths from overflowing bubbles */
+.prose code:not(pre code) {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+/* Flash highlight when a search result is jumped to. The ring fades out
+ * over ~1.6s so the target message stands out without staying loud. */
+@keyframes msg-flash {
+  0%   { box-shadow: 0 0 0 0 currentColor; }
+  20%  { box-shadow: 0 0 0 6px currentColor; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.msg-flash {
+  animation: msg-flash 1.6s ease-out;
+  border-radius: 1rem;
+}
+
+
+/* Chrome paints autofilled inputs with its own opaque background — white on
+   desktop, which turns a transparent field in a dark panel into a white box.
+   It ignores background-color, so the only reliable lever is an inset shadow
+   large enough to cover the field, plus text-fill-color for the value.
+   Mobile Chrome does not autofill the same way, which is why this only ever
+   showed up on a laptop. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: var(--aerie-text, currentColor) !important;
+  caret-color: var(--aerie-text, currentColor);
+  transition: background-color 100000s ease-in-out 0s;
+}

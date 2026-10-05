@@ -1,0 +1,49 @@
+node_modules/
+dist/
+build/
+.svelte-kit/
+*.js.map
+*.tsbuildinfo
+.env
+data/
+logs/
+*.db
+*.db-wal
+*.db-shm
+ecosystem.config.cjs
+aerie.yaml
+aerie.yml
+CLAUDE.md
+.mcp.json
+companions/
+.aerie-thread
+prompts/
+.DS_Store
+Thumbs.db
+screenshots/
+!docs/screenshots/
+
+# Claude Code memory
+.claude/
+
+# Personal infrastructure workers (not part of Aerie)
+shared/phone-worker*.js
+shared/cortex-brain*.js
+
+# Working notes and temp files
+shared/*.md
+*.tgz
+migrate*.sql
+/tmp/
+
+# Firebase client config — kept out of the repo so it can never travel to the
+# public archive. Canonical copy lives in data/private/google-services.json.
+packages/phone/android/app/google-services.json
+
+# wrangler dev leaves this behind
+.wrangler/
+
+# Scratch from ad-hoc media work (GIF frames, assemblers). Generated in the
+# repo root by a lane mid-turn, never source, and must not ride along into a
+# commit or the archive carry.
+output/

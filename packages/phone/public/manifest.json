@@ -1,0 +1,24 @@
+{
+  "id": "/",
+  "short_name": "Aerie",
+  "name": "Aerie",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "start_url": "/",
+  "background_color": "#130c11",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "window-controls-overlay"
+  ],
+  "orientation": "portrait",
+  "scope": "/",
+  "theme_color": "#130c11",
+  "description": "A texting PWA for communicating with AI companions.",
+  "categories": [
+    "social",
+    "productivity"
+  ]
+}

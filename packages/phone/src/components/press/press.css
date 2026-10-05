@@ -1,0 +1,228 @@
+/* Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. */
+.press-editor {
+  --press-workspace: color-mix(in srgb, #07070a 94%, var(--aerie-accent));
+  --press-panel: var(--aerie-surface-strong);
+  --press-panel-soft: color-mix(in srgb, var(--aerie-surface-strong) 90%, transparent);
+  --press-border: var(--aerie-hairline);
+  --press-text: var(--aerie-icon);
+  --press-muted: var(--aerie-label);
+  --press-on-accent: #fff;
+  background: var(--press-workspace);
+  color: var(--press-text);
+  isolation: isolate;
+  -webkit-touch-callout: none;
+}
+
+/* Excalidraw is the chassis, not a second visual system. These public theme
+   variables keep every island, menu, popup, and selected state inside the
+   active Aerie palette while the printable paper remains scene-owned. */
+.press-editor .excalidraw {
+  --color-primary: var(--aerie-accent);
+  --color-primary-darker: color-mix(in srgb, var(--aerie-accent) 82%, #000);
+  --color-primary-darkest: color-mix(in srgb, var(--aerie-accent) 64%, #000);
+  --color-primary-hover: color-mix(in srgb, var(--aerie-accent) 88%, #fff);
+  --color-primary-light: color-mix(in srgb, var(--aerie-accent) 18%, transparent);
+  --color-primary-light-darker: color-mix(in srgb, var(--aerie-accent) 28%, transparent);
+  --color-surface-primary-container: color-mix(in srgb, var(--aerie-accent) 22%, var(--press-panel));
+  --color-on-primary-container: var(--press-text);
+  --color-on-surface: var(--press-text);
+  --color-muted: var(--press-muted);
+  --color-muted-darker: color-mix(in srgb, var(--press-muted) 82%, transparent);
+  --color-muted-darkest: var(--press-text);
+  --color-muted-background: color-mix(in srgb, var(--aerie-accent) 8%, var(--press-panel));
+  --color-muted-background-darker: color-mix(in srgb, var(--aerie-accent) 13%, var(--press-panel));
+  --color-surface-lowest: var(--press-panel);
+  --color-surface-low: color-mix(in srgb, var(--press-panel) 94%, var(--aerie-accent) 6%);
+  --color-surface-mid: color-mix(in srgb, var(--press-panel) 88%, var(--aerie-accent) 12%);
+  --color-surface-high: color-mix(in srgb, var(--press-panel) 80%, var(--aerie-accent) 20%);
+  --color-border-outline: var(--press-border);
+  --color-border-outline-variant: color-mix(in srgb, var(--aerie-accent) 26%, var(--press-border));
+  --color-selection: color-mix(in srgb, var(--aerie-accent) 72%, #fff);
+  --color-brand-hover: color-mix(in srgb, var(--aerie-accent) 78%, #fff);
+  --color-brand-active: var(--aerie-accent);
+  --island-bg-color: var(--press-panel);
+  --popup-bg-color: var(--press-panel);
+  --popup-secondary-bg-color: color-mix(in srgb, var(--press-panel) 90%, var(--aerie-accent) 10%);
+  --popup-text-color: var(--press-text);
+  --popup-text-inverted-color: var(--aerie-page);
+  --sidebar-bg-color: var(--press-panel);
+  --sidebar-border-color: var(--press-border);
+  --button-bg: color-mix(in srgb, var(--press-panel) 92%, var(--aerie-accent) 8%);
+  --button-hover-bg: color-mix(in srgb, var(--press-panel) 82%, var(--aerie-accent) 18%);
+  --button-active-bg: color-mix(in srgb, var(--press-panel) 72%, var(--aerie-accent) 28%);
+  --button-selected-bg: color-mix(in srgb, var(--aerie-accent) 22%, var(--press-panel));
+  --button-selected-border: color-mix(in srgb, var(--aerie-accent) 62%, transparent);
+  --button-selected-hover-bg: color-mix(in srgb, var(--aerie-accent) 30%, var(--press-panel));
+  --button-color: var(--press-text);
+  --button-color-darker: var(--press-text);
+  --button-color-darkest: var(--press-text);
+  --input-border-color: var(--press-border);
+  --default-border-color: var(--press-border);
+  --dialog-border-color: var(--press-border);
+  --list-border-color: var(--press-border);
+  --shadow-island: 0 12px 34px rgba(0, 0, 0, 0.34);
+  --library-dropdown-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
+}
+
+/* The Press supplies touch-native guidance through its own notices. Hide the
+   stock hint strip on phones, where it otherwise asks for Enter/double-click. */
+.press-editor .excalidraw.excalidraw--mobile .HintViewer {
+  display: none;
+}
+
+.press-editor .excalidraw .Island,
+.press-editor .excalidraw .dropdown-menu,
+.press-editor .excalidraw .popover,
+.press-editor .excalidraw .sidebar,
+.press-editor .excalidraw .default-sidebar {
+  color: var(--press-text);
+  border-color: var(--press-border);
+  background-color: var(--press-panel);
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  backdrop-filter: blur(18px) saturate(1.12);
+}
+
+.press-editor .excalidraw .dropdown-menu-group-title,
+.press-editor .excalidraw .library-menu-items-container__header,
+.press-editor .excalidraw .sidebar__header {
+  color: var(--press-muted);
+}
+
+/* The stock menu is desktop-generous. On a phone it hid the lower groups
+   behind the toolbar, so The Press gives it a compact, independently
+   scrollable viewport without changing Excalidraw's menu behavior.
+
+   ONE SCROLLER ONLY. Excalidraw already scrolls the INNER element:
+     .excalidraw .dropdown-menu .dropdown-menu-container {
+       max-height: calc(100vh - 150px); overflow-y: auto;
+     }
+   Clamping the outer .dropdown-menu as well made two nested scrollers, and
+   on a phone the inner one is taller than the outer box — so the menu grew a
+   second, tiny scrollbar that had to be caught by hand to reach File and the
+   groups below it. The height belongs on the element that already scrolls. */
+.press-editor .excalidraw .dropdown-menu,
+.press-editor .excalidraw .dropdown-menu--mobile {
+  box-sizing: border-box;
+  overflow: visible;
+  padding: 0.35rem;
+}
+
+.press-editor .excalidraw .dropdown-menu .dropdown-menu-container,
+.press-editor .excalidraw .dropdown-menu--mobile .dropdown-menu-container {
+  max-height: min(72dvh, calc(100dvh - 8.25rem - var(--sab, 0px)));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.press-editor .excalidraw .dropdown-menu-item,
+.press-editor .excalidraw .dropdown-menu-item-base {
+  min-height: 2.15rem;
+  padding-block: 0.35rem;
+  padding-inline: 0.5rem;
+  font-size: 0.76rem;
+  line-height: 1.05;
+}
+
+.press-editor .excalidraw .dropdown-menu-item svg,
+.press-editor .excalidraw .dropdown-menu-item-base svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.press-editor .excalidraw .dropdown-menu-group-title {
+  margin: 0.3rem 0.45rem 0.15rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+}
+
+.press-editor .excalidraw .dropdown-menu-group + .dropdown-menu-group,
+.press-editor .excalidraw .dropdown-menu-separator {
+  margin-top: 0.2rem;
+}
+
+.press-editor .excalidraw .ToolIcon__icon,
+.press-editor .excalidraw button {
+  color: var(--press-text);
+}
+
+.press-editor .excalidraw .ToolIcon_type_radio:checked + .ToolIcon__icon,
+.press-editor .excalidraw .ToolIcon_type_checkbox:checked + .ToolIcon__icon,
+.press-editor .excalidraw button.active,
+.press-editor .excalidraw button[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--aerie-accent) 58%, transparent);
+}
+
+/* Mobile long-press used to open Excalidraw's enormous object menu while a
+   resize handle was still being dragged. The Press exposes those operations
+   in its deliberate menu/context bar instead. */
+.press-editor .excalidraw-contextMenuContainer {
+  display: none !important;
+}
+
+.press-float,
+.press-context-bar,
+.press-notice {
+  color: var(--press-text);
+  background: var(--press-panel);
+  border: 1px solid var(--press-border);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(16px) saturate(1.14);
+  backdrop-filter: blur(16px) saturate(1.14);
+}
+
+.press-context-action {
+  color: var(--press-muted);
+  transition: color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.press-context-action:active {
+  color: var(--aerie-accent);
+  background: color-mix(in srgb, var(--aerie-accent) 13%, transparent);
+  transform: scale(0.96);
+}
+
+.press-materials-button,
+.press-accent-button {
+  color: var(--press-on-accent);
+  background: var(--aerie-accent);
+  border: 1px solid color-mix(in srgb, var(--aerie-accent) 70%, #fff);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38), 0 0 22px color-mix(in srgb, var(--aerie-accent) 18%, transparent);
+}
+
+.press-materials-button {
+  line-height: 1;
+}
+
+.press-accent-text {
+  color: var(--aerie-accent);
+}
+
+.press-pack-library {
+  color: var(--press-text);
+  background: color-mix(in srgb, var(--aerie-accent) 12%, var(--press-panel));
+  border: 1px solid color-mix(in srgb, var(--aerie-accent) 34%, var(--press-border));
+}
+
+.press-pack-tile {
+  background:
+    linear-gradient(45deg, color-mix(in srgb, var(--press-panel) 84%, #777) 25%, transparent 25%) 0 0 / 14px 14px,
+    linear-gradient(-45deg, color-mix(in srgb, var(--press-panel) 84%, #777) 25%, transparent 25%) 0 7px / 14px 14px,
+    linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--press-panel) 84%, #777) 75%) 7px -7px / 14px 14px,
+    linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--press-panel) 84%, #777) 75%) -7px 0 / 14px 14px,
+    var(--press-panel-soft);
+  border: 1px solid var(--press-border);
+}
+
+.press-pack-tile:active {
+  border-color: var(--aerie-accent);
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press-context-action,
+  .press-pack-tile {
+    transition-duration: 1ms;
+  }
+}

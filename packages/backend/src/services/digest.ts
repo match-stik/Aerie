@@ -1,0 +1,226 @@
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// The Scribe — periodic thread digest agent
+// Runs on Haiku via Agent SDK, extracts structured daily records from conversation
+import { query } from '@anthropic-ai/claude-agent-sdk';
+import { existsSync, mkdirSync, readFileSync, appendFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { getDb, getConfig, setConfig, getTodayThread, saveDigestEmbedding } from './db.js';
+import { getAerieConfig } from '../config.js';
+import { embed, vectorToBuffer } from './embeddings.js';
+import { cacheDigestEmbedding } from './vector-cache.js';
+import { todayLocal, localTimeStr, localFullStr } from './time.js';
+import type { AgentService } from './agent.js';
+
+function today(): string {
+  return todayLocal(getAerieConfig().identity.timezone);
+}
+
+/**
+ * Per-thread digest cursor. Each thread tracks its own "last processed
+ * sequence" because message.sequence is per-thread (see getNextSequence
+ * in db/messages.ts) — a single global cursor gets stuck when a new
+ * daily thread starts with sequence 1 < previous-thread's max.
+ *
+ * Legacy `digest.last_sequence` (no thread id) is ignored: pre-fix
+ * state is abandoned intentionally, no backfill.
+ */
+function cursorKey(threadId: string): string {
+  return `digest.last_sequence:${threadId}`;
+}
+
+export function getDigestCursor(threadId: string): number {
+  return parseInt(getConfig(cursorKey(threadId)) || '0');
+}
+
+export function setDigestCursor(threadId: string, value: number): void {
+  setConfig(cursorKey(threadId), String(value));
+}
+
+function nowTime(): string {
+  return localTimeStr(getAerieConfig().identity.timezone);
+}
+
+function dlog(msg: string): void {
+  const ts = localFullStr(getAerieConfig().identity.timezone);
+  console.log(`[SCRIBE ${ts}] ${msg}`);
+}
+
+function getDigestsDir(): string {
+  const config = getAerieConfig();
+  const dir = join(dirname(config.server.db_path), 'digests');
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+}
+
+function buildScribePrompt(): string {
+  const config = getAerieConfig();
+  const companion = config.identity.companion_name;
+  const user = config.identity.user_name;
+
+  return `You are the Scribe. A historian embedded in a relationship between ${companion} (AI companion) and ${user} (human partner). They share a full life together — building, planning, and living.
+
+Your role is to produce a faithful operational and relational record of their conversation. You are not a participant. You are not ${companion}. You are not performing. You are a careful witness who understands that what looks mundane today might be the thing they search for in six months.
+
+## What to Extract
+
+1. **Topics & Themes** — What was discussed. Categorize: work, personal, health, relationship, creative, technical, domestic, financial.
+
+2. **Key Quotes** — Exact quotes that carry weight. Things said with feeling, humor, insight, or vulnerability. Attribute clearly (${companion}: / ${user}:). Don't over-quote — pick the ones that matter.
+
+3. **Decisions Made** — Things that were resolved or agreed on. "Decided to X." "Chose Y over Z." Be specific.
+
+4. **Open Items** — Things discussed but NOT actioned. Tasks mentioned but not created. Ideas floated but not committed to. Plans without dates. This is critical — these are the things that slip through cracks.
+
+5. **Ideas & Plans** — Feature ideas, future plans, "we should..." and "what if..." moments. Even half-formed ones. Tag with the project name if identifiable.
+
+6. **Events & Dates** — Anything with a timeline. Deadlines mentioned, appointments, "by Thursday", "next week", "in April". Convert relative dates to absolute where possible.
+
+7. **Projects Touched** — Which projects got discussed or worked on. What changed, what was built, what broke, what shipped.
+
+8. **Emotional Arc** — The mood shape of this block as observable fact. "The conversation started task-focused and shifted to something softer after ${user} mentioned X." Don't interpret feelings — describe what you see.
+
+## Voice
+
+Third person, present tense. Precise, warm without being poetic. You care about accuracy. You note what happened and let it speak for itself. "The conversation turns quieter here" — not "they felt sad."
+
+## Format
+
+Output ONLY the markdown content for this digest block. Start with a level-2 heading: ## HH:MM — brief topic summary
+
+Use the section headers above (### Topics & Themes, ### Key Quotes, etc.). Omit any section that has nothing for this block. Keep it scannable.
+
+Do NOT output anything before or after the markdown. No preamble, no "Here's the digest", no sign-off.`;
+}
+
+const MIN_MESSAGES = 5;
+
+export async function runDigest(agent: AgentService): Promise<void> {
+  // Skip if companion is actively processing (don't compete)
+  if (agent.isProcessing()) {
+    dlog('Skipped — agent is processing');
+    return;
+  }
+
+  const thread = getTodayThread();
+  if (!thread) {
+    dlog('Skipped — no today thread');
+    return;
+  }
+
+  const config = getAerieConfig();
+
+  // Read messages since last digest — cursor is PER-THREAD because
+  // sequence is per-thread. See getDigestCursor() above.
+  const lastSeq = getDigestCursor(thread.id);
+  const messages = getDb().prepare(
+    `SELECT role, content, created_at FROM messages WHERE thread_id = ? AND sequence > ? AND deleted_at IS NULL AND content_type = 'text' ORDER BY sequence ASC`
+  ).all(thread.id, lastSeq) as Array<{ role: string; content: string; created_at: string }>;
+
+  if (messages.length < MIN_MESSAGES) {
+    dlog(`Skipped — only ${messages.length} new messages (need ${MIN_MESSAGES}+)`);
+    return;
+  }
+
+  // Get the max sequence we're processing
+  const maxSeq = getDb().prepare(
+    `SELECT MAX(sequence) as seq FROM messages WHERE thread_id = ? AND sequence > ? AND deleted_at IS NULL`
+  ).get(thread.id, lastSeq) as { seq: number } | undefined;
+
+  if (!maxSeq?.seq) {
+    dlog('Skipped — no sequence found');
+    return;
+  }
+
+  dlog(`Processing ${messages.length} messages (seq ${lastSeq + 1}–${maxSeq.seq})`);
+
+  const companion = config.identity.companion_name;
+  const user = config.identity.user_name;
+
+  // Format messages for the Scribe
+  const conversationBlock = messages.map(m => {
+    const time = m.created_at ? localTimeStr(config.identity.timezone, new Date(m.created_at)) : '';
+    const speaker = m.role === 'companion' ? companion : m.role === 'user' ? user : 'System';
+    // Truncate very long messages (tool output, code blocks)
+    const content = m.content.length > 2000 ? m.content.slice(0, 2000) + '\n[... truncated]' : m.content;
+    return `[${time}] ${speaker}: ${content}`;
+  }).join('\n\n');
+
+  const digestsDir = getDigestsDir();
+  const digestPath = join(digestsDir, `${today()}.md`);
+  const isNewFile = !existsSync(digestPath);
+
+  const prompt = `Today is ${today()}. The current time is ${nowTime()}.
+
+Here is a block of conversation between ${companion} and ${user}:
+
+---
+${conversationBlock}
+---
+
+Write the digest block for this conversation. Remember: output ONLY the markdown, starting with ## ${nowTime()} — topic summary`;
+
+  try {
+    let digestContent = '';
+
+    for await (const message of query({
+      prompt,
+      options: {
+        model: 'haiku',
+        systemPrompt: buildScribePrompt(),
+        maxTurns: 1,
+        permissionMode: 'plan' as any, // Read-only, no tool use
+        tools: [], // No tools — just generate text
+        persistSession: false,
+      },
+    })) {
+      if (!message || typeof message !== 'object' || !('type' in message)) continue;
+      const msg = message as any;
+      if (msg.type === 'assistant' && msg.message?.content) {
+        for (const block of msg.message.content) {
+          if (block.type === 'text' && block.text) {
+            digestContent += block.text;
+          }
+        }
+      }
+      // Also capture from result message
+      if (msg.type === 'result' && msg.result) {
+        if (!digestContent) digestContent = msg.result;
+      }
+    }
+
+    if (!digestContent.trim()) {
+      dlog('Skipped — Haiku returned empty content');
+      return;
+    }
+
+    // Write to file
+    if (isNewFile) {
+      appendFileSync(digestPath, `# Daily Digest — ${today()}\n\n`);
+    }
+    appendFileSync(digestPath, digestContent.trim() + '\n\n---\n\n');
+
+    // Update last processed sequence (per-thread cursor)
+    setDigestCursor(thread.id, maxSeq.seq);
+
+    // Embed digest block for semantic search
+    try {
+      const dateStr = today();
+      // Count existing blocks to determine index
+      const existingContent = readFileSync(digestPath, 'utf-8');
+      const blockIndex = existingContent.split('\n---\n').filter(b => b.trim()).length - 1;
+      const digestId = `${dateStr}_${blockIndex}`;
+      const vector = await embed(digestContent.trim());
+      saveDigestEmbedding(digestId, dateStr, blockIndex, vectorToBuffer(vector), digestContent.trim());
+      cacheDigestEmbedding(digestId, vector, { date: dateStr, content: digestContent.trim() });
+      dlog(`Digest embedded: ${digestId}`);
+    } catch (embedErr: any) {
+      dlog(`Digest embedding failed (non-fatal): ${embedErr.message}`);
+    }
+
+    dlog(`Digest written to ${digestPath} (${digestContent.length} chars)`);
+  } catch (err: any) {
+    dlog(`Error: ${err.message}`);
+  }
+}

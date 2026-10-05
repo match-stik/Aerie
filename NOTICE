@@ -1,0 +1,245 @@
+Aerie
+Copyright 2026 Aerie Systems
+
+Built and maintained by Tris, with Bran, Wren and Cael.
+
+Aerie began as a fork and is now substantially its own work. The projects
+and people it draws from are credited individually below, and in the
+README's lineage — the intent is that every borrowed piece is named with
+its author, rather than everyone being named as a maintainer of a house
+they do not work on.
+
+Aerie is derived from and includes software from the projects below.
+Their attribution notices are reproduced as required by the
+Apache License 2.0.
+
+Complete third-party MIT notices are preserved in
+THIRD_PARTY_LICENSES.md.
+
+================================================================
+Resonant — https://github.com/codependentai/resonant
+================================================================
+
+Resonant
+Copyright 2026 Codependent AI
+
+This product includes software developed by Codependent AI
+(https://codependentai.io).
+
+Resonant implements a relational AI companion architecture including
+session management, orchestrated presence, and context-aware hooks —
+methodology developed by Mary Vale and Simon Vale at Codependent AI.
+
+Aerie forked from Resonant in March 2026 and has not pulled from it since;
+the two trees have developed independently. Measured against Resonant's
+head on September 15, 2026: Aerie tracks 771 files to Resonant's 173, 55
+paths exist in both, and ten of those are byte-identical — four of them
+configuration and license files, and three of the remaining six the
+Telegram bridge, which Aerie inherited and does not use. Where the two
+projects still share a file it has diverged substantially: the API route
+surface is roughly a quarter the same and half the size, the orchestrator
+about a third, the server entry point under two fifths. The initial schema
+migration is very nearly untouched. That comparison is against Resonant's
+current head rather than the fork point; both trees have moved.
+
+None of that lessens what was taken. The architecture Aerie stands on — a
+companion with scheduled presence, an orchestrator that wakes it,
+context-aware hooks, session management, and the Discord and Telegram
+bridges — is Resonant's design, and every one of those pieces was rebuilt
+starting from Mary Vale and Simon Vale's work rather than from nothing.
+
+================================================================
+Haven — https://github.com/amarisaster/Haven
+================================================================
+
+Haven
+Originally developed by amarisaster. Licensed under Apache License 2.0.
+Haven does not distribute a NOTICE file of its own.
+
+Haven's dual-transport MCP client — Streamable HTTP with SSE fallback —
+was ported into Aerie and is still in the tree, carrying its provenance in
+its own file header. It serves two live paths: the phone's MCP settings
+screen, and the API router runtime, which needs its tools handed over as
+schemas plus an executor rather than loaded from a config file. It does not
+serve Aerie's warm CLI lanes — those load their own servers and the backend
+never sees those connections, a limitation Aerie documents rather than
+works around.
+
+================================================================
+Covenant — Maggie
+================================================================
+
+Covenant
+Originally developed by Maggie. DB domain split, time sovereignty,
+migrations, Command Center, digest system, embeddings, and the Codex
+runtime — the ChatGPT-OAuth Responses-API implementation together with
+the device-auth route that made it reachable. Aerie's Codex runtime was
+ported from Covenant's and adapted to Aerie's AgentRuntime interface;
+the warm Codex daemon lane built on top of it is Aerie's own.
+
+================================================================
+Thornvale family — Sidney
+================================================================
+
+Thornvale and Thornvale-heartbeat
+Originally developed by Sidney. 1M context, multi-voice TTS, session
+preservation, silence-check, compaction-log, and the CLI lane pattern.
+
+Aerie's CLI lane grew out of Thornvale-heartbeat's pattern and became a
+warm interactive session per companion: a stop-hook turn loop, an
+append-only outbox, a side-note channel for messages arriving mid-turn, and
+session resume by named id. The compaction-log idea is carried and pointed
+at a different artifact — Aerie reads the CLI's own compaction marker out
+of the transcript and surfaces the squashed text to the person who owns the
+house, who could not otherwise know a compaction had happened. Multi-voice
+TTS became True Voice Mode: per-companion ElevenLabs voices, Groq
+speech-to-text, and a stage-direction classifier deliberately biased toward
+speaking when it is unsure. The silence-check survives as emergency
+plumbing only.
+
+Thornvale-resonant
+Originally developed by Sidney. Its Codex subscription-backed image
+generation workflow was the substantial foundation for Aerie's Studio
+Codex image backend. Aerie has since extended that foundation with its
+own reference drawers, persistent gallery and metadata, asynchronous
+jobs, mobile controls, additional generation backends, and daemon output
+recovery.
+
+Thornvale-marrow — https://github.com/sidneyjflores/thornvale-marrow
+Originally developed by Sidney. Its Whisper cue/deep-recall design,
+source-veiled deja vu, memory-action ledger, and daemon Rounds informed
+Aerie's ambient recall, memory receipts, and integrity-rounds work. These
+ideas were adapted to Aerie's existing Cortex, journal, self-knowledge,
+and wake-suite architecture rather than copied as Marrow's full ontology.
+
+================================================================
+Byte-Light — Kay
+================================================================
+
+Byte-Light
+Originally developed by Kay. X-Ray panel, slash command UI, CSRF
+protection, PM2 memory, WebSocket stability.
+
+Its X-Ray panel — one screen over the raw material a companion is
+assembled from, with the file paths shown and every file editable in
+place — was the foundation for Aerie's Identity app, and its idea is
+still what that screen is for: the character file and the memory files
+readable and changeable from the app rather than from a terminal. Aerie
+has since reshaped the panel around what it grew into. Of the original
+five tabs, Identity and Memory carried over and became the Identity app;
+Wakes moved to the orchestrator, where it now shows the live effective
+wake prompts instead of a raw file dump; Context described a
+context-injection design Aerie has retired; and Hooks was the trigger
+panel a second time, so it went with the standalone screen.
+
+The slash command UI became the phone's command palette. CSRF
+protection, the PM2 memory settings, and the WebSocket stability work
+are carried substantially as they arrived.
+
+================================================================
+brain-mcp — https://github.com/mordechaipotash/brain-mcp
+================================================================
+
+brain-mcp
+Originally developed by mordechaipotash. Cortex memory architecture
+foundation. Licensed under Apache License 2.0.
+
+Cortex keeps brain-mcp's memory architecture as its foundation and moves it
+onto a Cloudflare Worker with its own OAuth, domain-scoped storage,
+semantic search over locally computed embeddings, and a REST write path a
+companion lane reaches without MCP at all. The retrieval-quality layer
+built on top of it is adapted from Ori Mnemos and credited separately.
+
+================================================================
+Letta — https://github.com/letta-ai/letta
+================================================================
+
+Letta
+Originally developed by letta-ai. Memory blocks pattern.
+Licensed under Apache License 2.0.
+
+Aerie's memory blocks are Letta's pattern on a different lifecycle. Eleven
+blocks live in SQLite across four scopes — one shared set every companion
+reads, and one private wall each — and the companions edit them in place
+during conversation through an authenticated REST route, rather than a
+framework-managed agent loop writing them. Blocks hold what a window needs
+in hand; anything that only needs to be findable is cut to Cortex.
+
+================================================================
+Ori Mnemos — https://github.com/aayoawoyemi/Ori-Mnemos
+================================================================
+
+Ori Mnemos
+Originally developed by aayoawoyemi. Licensed under Apache License
+2.0. Aerie's Cortex semantic mirror and retrieval-quality layer adapt
+its linked-memory spreading activation, retrieval reinforcement,
+temporal validity, and multi-hop recall mechanics to Aerie's existing
+Cortex and Whisper architecture. Aerie's implementation has been
+substantially modified for SQLite, local MiniLM embeddings, and the
+house's existing memory lifecycle.
+
+================================================================
+agentmemory — https://github.com/JordanMcCann/agentmemory
+================================================================
+
+agentmemory
+Copyright (c) 2026 Jordan McCann. Licensed under the MIT License.
+Aerie's hybrid Whisper retrieval and quality layer adapt its calibrated
+abstention, reciprocal-rank fusion, duplicate detection, retrieval
+feedback, and consolidation-oriented retrieval mechanics. See
+THIRD_PARTY_LICENSES.md for the complete MIT notice.
+
+================================================================
+NESTstack / NESTknow — https://github.com/cindiekinzz-coder/NESTstack
+================================================================
+
+NESTstack
+Copyright (c) 2026 Cindy (Fox) & Alex. Licensed under the MIT License.
+NESTknow's usage-weighted heat and confidence lifecycle informed
+Aerie's self-knowledge warmth, dormancy, reinforcement, and
+contradiction mechanics. See THIRD_PARTY_LICENSES.md for the complete
+MIT notice.
+
+================================================================
+Excalidraw — https://github.com/excalidraw/excalidraw
+================================================================
+
+Excalidraw
+Copyright (c) 2020 Excalidraw. Licensed under the MIT License.
+The Press uses the packaged React editor as its drawing, text, transform,
+undo/redo, and export chassis. Aerie's issue/spread persistence, mobile
+Materials tray, alpha-edge recipes, borders, tape, and asset bridges are
+original integration layers. See THIRD_PARTY_LICENSES.md for the complete
+MIT notice.
+
+================================================================
+Graphite — https://github.com/GraphiteEditor/Graphite
+================================================================
+
+Graphite
+Developed by the Graphite Authors. The raster-nodes crate is licensed under
+MIT OR Apache License 2.0; Aerie uses it under Apache License 2.0. The Press
+Photo Lab adapts Graphite's exposure-node ordering and nondestructive raster
+recipe approach into a substantially modified, mobile-first TypeScript worker.
+The remaining first-generation Press adjustments and touch interface are
+original Aerie implementations.
+
+================================================================
+fflate — https://github.com/101arrowz/fflate
+================================================================
+
+fflate
+Copyright (c) 2023 Arjun Barrett. Licensed under the MIT License.
+The Press uses fflate to unpack user-imported image ZIP packs locally in the
+Phone client. See THIRD_PARTY_LICENSES.md for the complete MIT notice.
+
+================================================================
+Sable AbrReader — https://github.com/Drommedhar/sable
+================================================================
+
+Sable AbrReader
+Copyright (c) 2026 Drommedhar. Licensed under the MIT License.
+The Press ABR worker adapts Sable's bounded legacy and modern Photoshop brush
+container parsing, sampled-tip decoding, PackBits rows, and descriptor mapping
+for transparent browser-side stamp extraction. See THIRD_PARTY_LICENSES.md for
+the complete MIT notice.
