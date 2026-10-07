@@ -2205,7 +2205,12 @@ export default function App() {
             initialRows={dbCompanions}
             userAvatar={appSettings.userAvatar}
             userAvatarColor={appSettings.userAvatarColor}
-            onClose={() => setShowContactInfo(false)} 
+            onCompanionAvatar={(slug, avatarUrl) => {
+              setDbCompanions(prev => prev.map(c => (c.slug === slug ? { ...c, avatar_url: avatarUrl } : c)));
+              setThreadCompanions(prev => prev.map(c => (c.slug === slug ? { ...c, avatar_url: avatarUrl } : c)));
+            }}
+            onUpdateUserAvatar={(image) => updateAppSettings({ userAvatar: image })}
+            onClose={() => setShowContactInfo(false)}
           />
         )}
       </AnimatePresence>

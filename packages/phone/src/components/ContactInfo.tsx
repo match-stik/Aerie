@@ -7,7 +7,7 @@ import { ContactProfile, ThemeMode } from '../types';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
-import getCroppedImg from '../lib/cropImage';
+import getCroppedImg, { createImage } from '../lib/cropImage';
 
 interface ContactInfoProps {
   themeConfig: ThemeConfig;
@@ -23,12 +23,20 @@ interface ContactInfoProps {
       of going and asking from cold and having some first state to show meanwhile. */
   initialRows?: Array<Record<string, any>>;
   onUpdateContact: (id: string, updates: Partial<ContactProfile> | null) => void;
+  /** A picture changed on one of the companions' cards. The phone hands it straight
+      to the rosters it draws chat faces from, so the new face shows without a reload.
+      Keyed by slug: the thread's roster carries companion_id where the house
+      roster carries id, and the slug is the one name both of them share. */
+  onCompanionAvatar?: (slug: string, avatarUrl: string) => void;
+  /** A picture changed on the owner's own card: it becomes the owner's avatar,
+      the same one Settings sets. */
+  onUpdateUserAvatar?: (image: string) => void;
   onClose: () => void;
 }
 
 export const OWNER_CARD_ID = '__owner__';
 
-export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode, userAvatar, userAvatarColor, userName, contacts, initialRows, onUpdateContact, onClose }) => {
+export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode, userAvatar, userAvatarColor, userName, contacts, initialRows, onUpdateContact, onCompanionAvatar, onUpdateUserAvatar, onClose }) => {
   const contactIds = Object.keys(contacts);
   const [activeContact, setActiveContact] = useState<string>(contactIds[0] || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -87,8 +95,9 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
   // on this house it still held the factory placeholder — one contact called
   // "Companion" — because the real card has only ever existed on the owner's device.
   // So when the house knows who lives here, the house wins and the card is of
-  // US: our names, our bios, ours to keep current. The avatar crop stays local,
-  // keyed on the slug, because a base64 image does not belong in that row.
+  // US: our names, our bios, ours to keep current. The picture is the row's too,
+  // the same one the Companions app writes and every chat face reads; the local
+  // copy is only the fallback for when the house cannot be reached.
   const houseCards: Record<string, ContactProfile> = {};
   for (const r of rows) {
     const localTwin = contacts[r.slug] || Object.values(contacts).find(c => c.name?.toLowerCase() === r.display_name?.toLowerCase());
@@ -188,21 +197,74 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
+  // ONE FACE PER PERSON. A picture changed here is expected everywhere, so on a
+  // companion's card it goes to the house row (the field the Companions app
+  // writes and every chat face reads), and on the owner's card it becomes the
+  // owner's avatar. This button used to save only to the phone while the card
+  // kept showing the house copy, so a new picture never appeared to take. The
+  // card keeps the new face only if the house says it saved it.
+  const savePicture = async (image: string) => {
+    if (isOwnerCard) {
+      if (onUpdateUserAvatar) onUpdateUserAvatar(image);
+      else onUpdateContact(activeId, { image });
+      return;
+    }
+    if (!row) {
+      onUpdateContact(activeId, { image });
+      return;
+    }
+    const rowId = row.id;
+    const previous = row.avatar_url;
+    setRows(prev => prev.map(r => (r.id === rowId ? { ...r, avatar_url: image } : r)));
+    try {
+      const res = await apiFetch(`/api/companions/${rowId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: image }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      onCompanionAvatar?.(row.slug, image);
+    } catch (e) {
+      console.error('Failed to save picture:', e);
+      setRows(prev => prev.map(r => (r.id === rowId ? { ...r, avatar_url: previous } : r)));
+    }
+  };
+
   const handleSaveCrop = async () => {
     if (!cropImageSrc || !croppedAreaPixels) return;
     try {
       const croppedImage = await getCroppedImg(
-        cropImageSrc, 
-        croppedAreaPixels, 
-        0, 
+        cropImageSrc,
+        croppedAreaPixels,
+        0,
         { horizontal: false, vertical: false },
         1024
       );
-      onUpdateContact(activeId, { image: croppedImage });
       setCropImageSrc(null);
+      void savePicture(croppedImage);
     } catch (e) {
       console.error('Failed to crop image:', e);
     }
+  };
+
+  // Use Full Image keeps the whole picture. An animated GIF goes through untouched
+  // or it stops moving; a still photo straight off a phone is several megabytes,
+  // so it is brought down to a size a card can carry first.
+  const handleUseFullImage = async () => {
+    if (!cropImageSrc) return;
+    let image = cropImageSrc;
+    if (!cropImageSrc.startsWith('data:image/gif')) {
+      try {
+        const img = await createImage(cropImageSrc);
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+        image = await getCroppedImg(cropImageSrc, { x: 0, y: 0, width, height }, 0, { horizontal: false, vertical: false }, 1600);
+      } catch (e) {
+        console.error('Failed to scale image:', e);
+      }
+    }
+    setCropImageSrc(null);
+    void savePicture(image);
   };
 
   const startEditingBio = () => {
@@ -295,11 +357,8 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                 >
                   Cancel
                 </button>
-                <button 
-                  onClick={() => {
-                    onUpdateContact(activeId, { image: cropImageSrc });
-                    setCropImageSrc(null);
-                  }}
+                <button
+                  onClick={() => { void handleUseFullImage(); }}
                   className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest border border-white/20 text-white rounded-full transition-all active:scale-95 hover:bg-white/10"
                 >
                   {cropImageSrc?.startsWith('data:image/gif') ? 'Save Original (Animated)' : 'Use Full Image'}
