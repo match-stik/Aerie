@@ -41,6 +41,7 @@ import { createMessage } from '../db.js';
 import { registry } from '../ws/connection-registry.js';
 import * as cortex from '../cortex.js';
 import { ambientRecall, unfiledNoticings } from './whisper.js';
+import { roomVoicesBlock, type RoomVoices } from './room-voices.js';
 import { outageNotices } from './outage-notices.js';
 import { getAllBlocks } from '../memory-blocks.js';
 import { contextWindowFor } from '../usage-pricing.js';
@@ -467,6 +468,11 @@ export interface InteractiveCliOptions {
   threadId?: string;
   /** Claude lane keys that can serve this thread (`primary` plus its owners). */
   threadLaneKeys?: string[];
+  /**
+   * Who is in the room, when the shared lane is answering a room that holds
+   * only some of the house. See room-voices.ts.
+   */
+  roomVoices?: RoomVoices | null;
   historyLimit?: number;
   /** Test seam for exercising turn/ledger behavior without a real CLI. */
   sessionFactory?: (key: string) => HeartbeatSession;
@@ -1446,7 +1452,8 @@ export class InteractiveCliRuntime implements AgentRuntime {
       ...(timeLabel ? { time: timeLabel } : {}),
       channel: 'aerie',
       author: this.options.userName || 'user',
-      content: contextBlock + catchUpBlock + missedBlock + whisperBlock + unfiledBlock + sideNoteBlock + this.clampForInbox(input.prompt, 60_000),
+      content: contextBlock + catchUpBlock + missedBlock + whisperBlock + unfiledBlock + sideNoteBlock
+        + roomVoicesBlock(this.options.roomVoices) + this.clampForInbox(input.prompt, 60_000),
       turn: turnId,
       ...(images.length > 0 ? { images } : {}),
       // Read by the Stop hook into io/.turn-audience, where the tool gate

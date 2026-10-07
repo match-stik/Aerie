@@ -10,7 +10,8 @@ import { recordUsageEvent } from '../db/usage.js';
 import { registry } from '../ws/connection-registry.js';
 import { getAerieConfig } from '../../config.js';
 import { getRouterTools, executeRouterTool } from '../tools-bridge.js';
-import { getCompanion, getThreadCompanions } from '../db/companions.js';
+import { getCompanion, getThreadCompanions, listCompanions } from '../db/companions.js';
+import { roomVoicesFor, type RoomVoices } from '../heartbeat/room-voices.js';
 import { companionTurnEffort } from './companion-effort.js';
 import { buildSegments, type ThinkingInsertion } from './agent-segment-builder.js';
 import type { ToolInsertion } from '../hooks.js';
@@ -131,6 +132,23 @@ export async function processViaRouter(
       heartbeatThreadLaneKeys = undefined;
     }
   }
+  // The shared lane writes every voice in the house, so a room holding only
+  // some of them has to say so in the turn itself (heartbeat/room-voices.ts).
+  // A companion's own lane writes only that companion and needs no line.
+  let roomVoices: RoomVoices | null = null;
+  if (routing === 'cli' && !activeCompanionId) {
+    try {
+      roomVoices = roomVoicesFor(
+        getThreadCompanions(threadId).map((c) => ({
+          id: c.companion_id,
+          name: (c as { display_name?: string }).display_name || '',
+        })),
+        listCompanions().map((c) => ({ id: c.id, name: c.display_name })),
+      );
+    } catch {
+      roomVoices = null;
+    }
+  }
 
   const pinnedCodexHistory = Array.isArray(platformOpts?._codexHistorySnapshot)
     ? platformOpts._codexHistorySnapshot as Array<{ role: 'user' | 'assistant'; content: string }>
@@ -230,6 +248,7 @@ export async function processViaRouter(
       loadHistory: historyLoader,
       threadId,
       threadLaneKeys: heartbeatThreadLaneKeys,
+      roomVoices,
       historyLimit: 30,
     },
   });
