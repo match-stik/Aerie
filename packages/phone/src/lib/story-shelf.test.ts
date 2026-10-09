@@ -6,7 +6,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { STORY_LIMITS, type StoryBook, type StoryBookSummary, type StoryKeepsake, type StoryPage } from '@aerie/shared';
 import {
+  TABLE_WAIT_MS,
   bibleSections,
+  tableAwaiting,
   ORANGE_THREAD,
   RED_THREAD,
   SPINE_TITLE_MIN,
@@ -218,4 +220,15 @@ test('a bible with no headings stays whole and open, and a capital word inside a
   assert.deepEqual(plain.map((part) => [part.heading, part.open]), [[null, true]]);
   assert.match(plain[0].text, /second line/);
   assert.deepEqual(bibleSections('   ', 'Empty'), []);
+});
+
+test("the owner's line at the table is waiting while it is the newest there and younger than a page turn may run", () => {
+  const now = Date.parse('2026-03-03T20:00:00.000Z');
+  const line = (role: 'user' | 'companion', minutesAgo: number) => ({ role, createdAt: new Date(now - minutesAgo * 60_000).toISOString() });
+  assert.equal(tableAwaiting([], now), false, 'an empty table waits on nothing');
+  assert.equal(tableAwaiting([line('user', 1), line('companion', 0)], now), false, 'answered');
+  assert.equal(tableAwaiting([line('companion', 2), line('user', 1)], now), true, 'said and not yet answered');
+  assert.equal(tableAwaiting([line('user', 31)], now), false, 'a line older than a page turn may run has been given up on');
+  assert.equal(tableAwaiting([{ role: 'user', createdAt: 'not a date' }], now), false);
+  assert.equal(TABLE_WAIT_MS, 30 * 60_000);
 });

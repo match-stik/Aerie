@@ -86,7 +86,7 @@ test('the table talk is shown under the page, and reading it there counts as rea
 
 test('the table holds its height and scrolls, newest at the bottom, and both boxes keep what the owner was typing', () => {
   assert.match(app, /ref=\{talkBox\} className="[^"]*max-h-\[42vh\][^"]*overflow-y-auto/);
-  assert.match(app, /box\.scrollTop = box\.scrollHeight;\s*\}, \[latestId\]\)/);
+  assert.match(app, /box\.scrollTop = box\.scrollHeight;\s*\}, \[latestId, showTyping\]\)/);
   assert.match(app, /draftKey=\{`aerie_table_draft_\$\{bookId\}`\}/);
   assert.match(app, /draftKey=\{`aerie_move_draft_\$\{book\.id\}`\}/);
   assert.match(app, /if \(value\) localStorage\.setItem\(key, value\);\s*else localStorage\.removeItem\(key\);/);
@@ -103,6 +103,19 @@ test('the bible keeps its shape open and folds the rest, each part under its own
   assert.match(app, /part\.open \? \(/);
   assert.match(app, /<details key=\{index\}[^>]*>\s*<summary[^>]*>\{part\.heading\}<\/summary>/);
   assert.doesNotMatch(app, /<Words text=\{book\.bible\}/, 'the bible is never poured out whole any more');
+});
+
+test("the table shows typing dots while the owner's line waits, or while a reply is being written in the book's thread", () => {
+  const socket = read('../aerie/socket.ts');
+  assert.match(socket, /new CustomEvent\('aerie:thread-stream', \{ detail: \{ threadId, writing \} \}\)/);
+  assert.match(socket, /case 'stream_start':[^]*?threadWriting\(msg\.threadId, true\);/);
+  assert.match(socket, /threadWriting\(msg\.final\?\.thread_id \?\? writingThreadId, false\);/);
+  assert.match(socket, /case 'generation_stopped':[^]*?threadWriting\(writingThreadId, false\);/, 'a turn that ends without a reply still stops the dots');
+  assert.match(app, /addEventListener\('aerie:thread-stream'/);
+  assert.match(app, /removeEventListener\('aerie:thread-stream'/);
+  assert.match(app, /const showTyping = typing \|\| tableAwaiting\(lines\);/);
+  assert.match(app, /\{showTyping && <TableTyping colors=\{colors\} \/>\}/);
+  assert.doesNotMatch(app, /backdrop-blur/, 'the dots are painted like the rest of the room');
 });
 
 test('the bookmark ribbon comes out of the book from behind the cloth and hangs in front of the shelf', () => {

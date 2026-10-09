@@ -40,7 +40,7 @@ import { ImageLightbox } from './ImageLightbox';
 import { StoryWidgetFrame } from './StoryWidgetFrame';
 import type { ThemeColors, ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
-import { apiFetch, markRead } from '../aerie';
+import { apiFetch, markRead, usePresence } from '../aerie';
 import { useBackHandler } from '../lib/use-back-handler';
 import { thumbSrc } from '../lib/thumb';
 import { getOwnerAvatar, useHouseRoster, type HouseCompanion } from '../lib/house';
@@ -63,6 +63,7 @@ import {
   spineLook,
   spineTitle,
   stateCardHasContent,
+  tableAwaiting,
   threadColor,
   widgetMove,
   type BookStage,
@@ -208,6 +209,37 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
       if (timer !== null) window.clearTimeout(timer);
     };
   }, [loadShelf, loadBook]);
+
+  // The socket says when a reply starts and stops being written in a thread.
+  // Only the open book's own thread lights the table's writing dots, and a
+  // reply ending there reads the book again, so an answer sent in pieces
+  // lands a piece at a time instead of all at once at the end of the turn.
+  const [writingIn, setWritingIn] = useState<string | null>(null);
+  const bookThread = useRef<string | null>(null);
+  useEffect(() => {
+    bookThread.current = view?.threadId ?? null;
+  }, [view?.threadId]);
+  useEffect(() => {
+    const stream = (event: Event) => {
+      const detail = (event as CustomEvent<{ threadId?: string; writing?: boolean }>).detail;
+      const threadId = detail?.threadId;
+      if (!threadId) return;
+      if (detail.writing) {
+        setWritingIn(threadId);
+        return;
+      }
+      setWritingIn((now) => (now === threadId ? null : now));
+      const open = openIdRef.current;
+      if (open && threadId === bookThread.current) void loadBook(open);
+    };
+    window.addEventListener('aerie:thread-stream', stream);
+    return () => window.removeEventListener('aerie:thread-stream', stream);
+  }, [loadBook]);
+  // A lane that has gone to sleep is writing nothing, whatever it said last.
+  const presence = usePresence();
+  useEffect(() => {
+    if (presence === 'dormant' || presence === 'offline') setWritingIn(null);
+  }, [presence]);
 
   // A phone that slept heard nothing the socket said meanwhile.
   useEffect(() => {
@@ -384,6 +416,7 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
               titles={titles}
               companions={companions}
               ownerThread={ownerThread}
+              typing={writingIn !== null && writingIn === view.threadId}
               colors={colors}
               themeMode={themeMode}
               sending={sending}
@@ -765,6 +798,7 @@ function BookPages({
   titles,
   companions,
   ownerThread,
+  typing,
   colors,
   themeMode,
   sending,
@@ -781,6 +815,7 @@ function BookPages({
   titles: Map<string, string>;
   companions: HouseCompanion[];
   ownerThread: string | null;
+  typing: boolean;
   colors: ThemeColors;
   themeMode: 'light' | 'dark';
   sending: boolean;
@@ -842,7 +877,7 @@ function BookPages({
         onUnstage={onUnstage}
       />
       {(view.talk.length > 0 || book.sceneCount > 0) && (
-        <TableTalk bookId={book.id} lines={view.talk} threadId={view.threadId} companions={companions} colors={colors} sending={sending} onSend={onSend} />
+        <TableTalk bookId={book.id} lines={view.talk} threadId={view.threadId} typing={typing} companions={companions} colors={colors} sending={sending} onSend={onSend} />
       )}
     </article>
   );
@@ -1354,10 +1389,30 @@ function TableRail({ draftKey, sending, colors, onSend }: { draftKey: string; se
   );
 }
 
+// Three dots where the next voice will sit, painted like the cards around them.
+function TableTyping({ colors }: { colors: ThemeColors }) {
+  return (
+    <div className="flex items-start gap-2" role="status" aria-label="Somebody at the table is writing">
+      <span aria-hidden className="w-[22px] shrink-0" />
+      <div className="flex items-center gap-1 rounded-xl px-3 py-2.5" style={{ background: CARD }}>
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            aria-hidden
+            className={cn('h-1.5 w-1.5 rounded-full motion-safe:animate-bounce', colors.textMuted)}
+            style={{ background: 'currentColor', animationDelay: `${i * 150}ms` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TableTalk({
   bookId,
   lines,
   threadId,
+  typing,
   companions,
   colors,
   sending,
@@ -1366,6 +1421,7 @@ function TableTalk({
   bookId: string;
   lines: StoryTalkLine[];
   threadId: string | null;
+  typing: boolean;
   companions: HouseCompanion[];
   colors: ThemeColors;
   sending: boolean;
@@ -1384,10 +1440,14 @@ function TableTalk({
   // pushes the rail down the page.
   const talkBox = useRef<HTMLDivElement>(null);
   const ownerFace = useMemo(() => getOwnerAvatar(), []);
+  // The dots show while somebody is writing here, and while the owner's line
+  // is the newest at the table, because a line said during a page turn waits
+  // for the turn to finish before anybody starts on it.
+  const showTyping = typing || tableAwaiting(lines);
   useLayoutEffect(() => {
     const box = talkBox.current;
     if (box) box.scrollTop = box.scrollHeight;
-  }, [latestId]);
+  }, [latestId, showTyping]);
   return (
     <section className={cn('rounded-2xl border p-3', colors.panelBg, colors.panelBorder)}>
       <h3 className={cn(LABEL, colors.textMuted)}>At the table</h3>
@@ -1414,6 +1474,7 @@ function TableTalk({
             </div>
           )),
         )}
+        {showTyping && <TableTyping colors={colors} />}
       </div>
       <TableRail draftKey={`aerie_table_draft_${bookId}`} sending={sending} colors={colors} onSend={onSend} />
     </section>

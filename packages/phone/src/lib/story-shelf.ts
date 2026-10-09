@@ -15,6 +15,7 @@ import {
   type StoryKeepsake,
   type StoryShelfView,
   type StoryStateCard,
+  type StoryTalkLine,
 } from '@aerie/shared';
 import { STORY_MOVE_MESSAGE } from './sealed-frame';
 
@@ -386,4 +387,17 @@ export function rowsOf<T>(items: T[], perRow: number): T[][] {
   const rows: T[][] = [];
   for (let i = 0; i < items.length; i += perRow) rows.push(items.slice(i, i + perRow));
   return rows;
+}
+
+// A line said at the table waits for the lane for as long as a page turn may
+// run (TURN_LIMIT_MS in the backend's story-shelf service), so the table shows
+// it waiting for that long and no longer: past it the backend has stopped asking.
+export const TABLE_WAIT_MS = 30 * 60_000;
+
+/** Whether the newest line at the table is the owner's and still waiting for an answer. */
+export function tableAwaiting(lines: Pick<StoryTalkLine, 'role' | 'createdAt'>[], now = Date.now()): boolean {
+  const last = lines[lines.length - 1];
+  if (!last || last.role !== 'user') return false;
+  const at = Date.parse(last.createdAt);
+  return Number.isFinite(at) && now - at < TABLE_WAIT_MS;
 }

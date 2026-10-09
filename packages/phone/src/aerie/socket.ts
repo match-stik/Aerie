@@ -18,6 +18,9 @@ let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 let heartbeatTimeout: ReturnType<typeof setTimeout> | null = null;
 let compactionTimeout: ReturnType<typeof setTimeout> | null = null;
 let rateLimitTimeout: ReturnType<typeof setTimeout> | null = null;
+// The thread a reply is being written in. A turn can end with
+// generation_stopped, which names no thread, so the start's is kept to close it.
+let writingThreadId: string | null = null;
 let visibilityHandler: (() => void) | null = null;
 let onlineHandler: (() => void) | null = null;
 // A SOCKET CAN BE DEAD AND STILL REPORT OPEN. On a phone the radio drops, the
@@ -39,6 +42,13 @@ const CONNECT_TIMEOUT_MS = 8_000; // give a real handshake room, then stop waiti
 const CONNECT_TAP_MS = 2_000;     // they are looking at it: replace a slow one on tap
 
 /** True when the socket claims OPEN but has not answered a ping recently. */
+// Rooms that are not the chat (the Story Shelf's table) show their own
+// writing dots, so the start and end of a reply are said out loud for them.
+function threadWriting(threadId: string | null | undefined, writing: boolean): void {
+  if (!threadId || typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('aerie:thread-stream', { detail: { threadId, writing } }));
+}
+
 function socketIsStale(): boolean {
   if (ws?.readyState !== WebSocket.OPEN) return false;
   return lastPongAt > 0 && Date.now() - lastPongAt > PONG_STALE_MS;
@@ -259,6 +269,8 @@ function handleMessage(event: MessageEvent): void {
     case 'stream_start':
       setState({ streamingMessageId: msg.messageId, streamingTokens: '' });
       lastStreamActivity = Date.now();
+      writingThreadId = msg.threadId;
+      threadWriting(msg.threadId, true);
       break;
 
     case 'stream_token':
@@ -273,6 +285,8 @@ function handleMessage(event: MessageEvent): void {
       // Router lanes deliver the final reply only via stream_end (no
       // `message` broadcast) — advance the per-thread marker here too.
       if (msg.final) bumpSeen(msg.final.thread_id, msg.final.sequence);
+      threadWriting(msg.final?.thread_id ?? writingThreadId, false);
+      writingThreadId = null;
       setState((st) => {
         const next: Partial<typeof st> = { streamingMessageId: null, streamingTokens: '' };
         if (msg.final && msg.final.thread_id === st.activeThreadId) {
@@ -563,6 +577,8 @@ function handleMessage(event: MessageEvent): void {
 
     case 'generation_stopped':
       setState({ streamingMessageId: null, streamingTokens: '' });
+      threadWriting(writingThreadId, false);
+      writingThreadId = null;
       break;
 
     case 'rate_limit': {
