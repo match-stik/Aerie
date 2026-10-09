@@ -125,6 +125,12 @@ export function initDb(dbPath: string): Database.Database {
   const mediaSessionMigrationPath = join(__dirname, '../../../migrations/012_media_session.sql');
   db.exec(readFileSync(mediaSessionMigrationPath, 'utf-8'));
 
+  // The Story Shelf — choose-your-own-path books the companions write and run:
+  // the books, their pages in order, and the keepsakes woven between them
+  // (014 is fully IF NOT EXISTS — safe every boot).
+  const storyShelfMigrationPath = join(__dirname, '../../../migrations/014_story_shelf.sql');
+  db.exec(readFileSync(storyShelfMigrationPath, 'utf-8'));
+
 
   // 008 originally shipped before imported source archives/brush metadata were
   // retained at pack level. SQLite cannot add a column conditionally in SQL,
@@ -753,13 +759,14 @@ export function initDb(dbPath: string): Database.Database {
  * stopped existing when the process did, and no way out except editing the
  * database.
  *
- * Both rooms carry the same flag and the same fault. This runs on every boot
- * because the truth it asserts is only ever true at boot: nothing is mid-turn
- * in a process that has not started yet.
+ * Both rooms carry the same flag and the same fault, and so does the Story
+ * Shelf, whose books are "being written" while a page turn is queued or
+ * running. This runs on every boot because the truth it asserts is only ever
+ * true at boot: nothing is mid-turn in a process that has not started yet.
  */
 export function clearStalePendingTurns(db: Database.Database): number {
   let cleared = 0;
-  for (const table of ['card_tables', 'battleship_games']) {
+  for (const table of ['card_tables', 'battleship_games', 'story_books']) {
     try {
       const res = db.prepare(`UPDATE ${table} SET companion_pending = 0 WHERE companion_pending = 1`).run();
       cleared += res.changes;

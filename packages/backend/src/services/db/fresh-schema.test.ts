@@ -113,6 +113,49 @@ test('the tables a migration alters are created BEFORE it alters them', () => {
 
   assert.deepEqual(problems, [], `an ALTER runs before its own CREATE TABLE:\n  ${problems.join('\n  ')}`);
 });
+test('the story shelf tables land whole on a fresh install, and a second boot keeps what is in them', () => {
+  // 014 creates its three tables whole, so the ADD COLUMN sweep above never
+  // looks at them. Named column by column for that reason.
+  const dir = mkdtempSync(join(tmpdir(), 'aerie-fresh-story-'));
+  const path = join(dir, 'fresh.db');
+  let db = initDb(path);
+  try {
+    const columns = (table: string) =>
+      (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((c) => c.name);
+    assert.deepEqual(columns('story_books'), [
+      'id', 'title', 'genre', 'spicy', 'blurb', 'bible', 'cover_url', 'created_by', 'status', 'created_at',
+      'updated_at', 'finished_at', 'opened_at', 'companion_pending', 'companion_error',
+    ]);
+    assert.deepEqual(columns('story_pages'), [
+      'id', 'book_id', 'at', 'kind', 'author', 'text', 'image_url', 'state_json', 'choices_json', 'widget', 'choice_id',
+    ]);
+    assert.deepEqual(columns('story_keepsakes'), [
+      'id', 'item', 'note', 'from_book_id', 'to_book_id', 'maker', 'created_at', 'woven_at',
+    ]);
+    const keys = (table: string) =>
+      (db.prepare(`PRAGMA foreign_key_list(${table})`).all() as Array<{ from: string; table: string; to: string; on_delete: string }>)
+        .map((k) => [k.from, k.table, k.to, k.on_delete])
+        .sort();
+    assert.deepEqual(keys('story_pages'), [['book_id', 'story_books', 'id', 'CASCADE']]);
+    assert.deepEqual(keys('story_keepsakes'), [
+      ['from_book_id', 'story_books', 'id', 'CASCADE'],
+      ['to_book_id', 'story_books', 'id', 'SET NULL'],
+    ]);
+    const indexes = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_story_%' ORDER BY name").all() as Array<{ name: string }>)
+      .map((i) => i.name);
+    assert.deepEqual(indexes, ['idx_story_books_status', 'idx_story_keepsakes_from', 'idx_story_keepsakes_to', 'idx_story_pages_book']);
+
+    db.prepare(`INSERT INTO story_books (id, title, genre, bible, created_by, created_at, updated_at)
+                VALUES ('b1', 'A book', 'gothic', 'The bible.', 'example', 'now', 'now')`).run();
+    db.close();
+    db = initDb(path);
+    assert.equal((db.prepare('SELECT COUNT(*) AS n FROM story_books').get() as { n: number }).n, 1, 'a reboot re-runs 014 harmlessly');
+  } finally {
+    db.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 // The house this came from keeps a third test here, on a table that is held
 // back from this tree — so it is deliberately not carried. A test that asserts
 // a feature the kit does not ship is red on every machine but the one that

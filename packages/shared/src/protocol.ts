@@ -95,7 +95,11 @@ export type ServerMessage =
   | { type: 'pet_update'; pet: Record<string, unknown>; event: Record<string, unknown> }
   | { type: 'egg_update'; egg: Record<string, unknown> }
   | { type: 'battleship_update'; gameId: string }
-  | { type: 'card_table_update'; tableId: string };
+  | { type: 'card_table_update'; tableId: string }
+  // The Story Shelf changed: a book was shelved, a page was written or taken,
+  // a page turn started or ended, or a keepsake was tied. The phone re-reads
+  // GET /api/story-shelf, and the open book if it is the one named.
+  | { type: 'story_update'; bookId: string | null };
 
 // --- Message type guards ---
 

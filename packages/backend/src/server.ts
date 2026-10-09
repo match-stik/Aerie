@@ -305,6 +305,10 @@ app.use('/api/compactions', compactionRoutes);
 
 import thresholdRoutes from './routes/thresholds.js';
 app.use('/api/thresholds', thresholdRoutes);
+// The Story Shelf: the owner reads, walks into books and makes the moves here;
+// the companions write through /api/internal/story-shelf on the loopback port.
+import storyShelfRoutes from './routes/story-shelf.js';
+app.use('/api/story-shelf', storyShelfRoutes);
 import selfKnowledgeRoutes from './routes/self-knowledge.js';
 app.use('/api/self-knowledge', selfKnowledgeRoutes);
 import companionsRoutes from './routes/companions.js';

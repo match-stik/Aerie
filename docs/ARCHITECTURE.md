@@ -90,7 +90,7 @@ Every router module under `packages/backend/src/routes`:
 - `emojis.ts` — emoji-pack CRUD, emoji lookup/upload/update/delete.
 - `gif.ts` — GIF frame extraction, crop/cutout/chroma/text/speed/optimization/export, output, fonts, and session cleanup; mounted by `api.ts`.
 - `handoff.ts` — daily summaries, weekly seeds, seed compilation/injection, and Treehouse handoff.
-- `internal.ts` — direct-loopback CLI/agent operations for TTS, sharing, gateway sends, canvases, wakes, timers, triggers, letters, reactions, semantic search, notes, stickers, Treehouse, journal, self-knowledge, Familiar, games, memory proposals, and thresholds.
+- `internal.ts` — direct-loopback CLI/agent operations for TTS, sharing, gateway sends, canvases, wakes, timers, triggers, letters, reactions, semantic search, notes, stickers, Treehouse, journal, self-knowledge, Familiar, games, memory proposals, thresholds, and the Story Shelf.
 - `journal.ts` — authenticated journal list/read/recall/delete.
 - `letters.ts` — authenticated letter list/read/create/open.
 - `mcp-servers.ts` — managed MCP server CRUD, enable/disable, test, and discovery.
@@ -108,6 +108,16 @@ Every router module under `packages/backend/src/routes`:
   sticker's url is built from its filename, so every write picks a fresh one
   (`stickerFilenameFor` in `services/sticker-admin.ts`): new bytes at an
   unchanged address are invisible to every cache in between.
+- `story-shelf.ts` — The Story Shelf, the owner's door: `GET /api/story-shelf`
+  answers the shelf (every book and the keepsakes woven between them),
+  `GET /api/story-shelf/books/:id` one whole book with the table talk from its
+  newest page turn, `POST .../open`, `.../move` and `.../retry` hand the
+  companions' warm lane a page turn in the shelf's own archived thread, and
+  `POST .../talk` hands it a line said at the table, which waits behind a
+  running turn rather than being dropped. The companions write through
+  `/api/internal/story-shelf` in `internal.ts`; the rules live in
+  `services/db/story-shelf.ts`, and the page turns and gallery lookups in
+  `services/story-shelf.ts`. Every change is broadcast as `story_update`.
 - `studio.ts` — Studio backends/settings, drawers/folders, reference images, gallery metadata/files, generation, enhancement, and job status; mounted by `api.ts`.
 - `thresholds.ts` — place CRUD, proximity checks, visits, and place history.
 - `treehouse.ts` — Treehouse thread/messages and companion posting.
@@ -160,7 +170,7 @@ Database:
 - `services/db/index.ts` is the current barrel.
 - `services/db/init.ts` exports `initDb` and `getDb` and performs schema initialization and boot-time migrations.
 - Domain reads/writes live in `services/db/*.ts`: open `messages.ts` for `createMessage` and message queries, `threads.ts` for thread operations, `config.ts` for `getConfig`, `setConfig`, and typed config helpers, and the correspondingly named module for other tables.
-- SQLite migrations live in `packages/backend/migrations`. `initDb` directly executes `001_init.sql` and `006_command_center.sql` through `012_media_session.sql`, followed by additional guarded schema changes embedded in `services/db/init.ts`.
+- SQLite migrations live in `packages/backend/migrations`. `initDb` directly executes `001_init.sql` and `006_command_center.sql` through `012_media_session.sql`, and `014_story_shelf.sql`, followed by additional guarded schema changes embedded in `services/db/init.ts`.
 
 Discord:
 

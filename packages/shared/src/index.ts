@@ -4,3 +4,4 @@ export * from './protocol.js';
 export * from './message-preview.js';
 export * from './note-roles.js';
 export * from './press-tape.js';
+export * from './story-shelf.js';

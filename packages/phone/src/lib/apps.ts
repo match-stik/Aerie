@@ -3,8 +3,9 @@
 // Consumed by the home-screen dock and the app drawer.
 
 import type { LucideIcon } from 'lucide-react';
-import { MessageSquare, Radar, CloudSun, StickyNote, Gamepad2, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, TreePine, Brain, Paintbrush, Box, FolderOpen, BookOpen, PawPrint, Newspaper, Inbox, Mail, MapPin } from 'lucide-react';
+import { MessageSquare, Radar, CloudSun, StickyNote, Gamepad2, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, TreePine, Brain, Paintbrush, Box, FolderOpen, BookOpen, PawPrint, Newspaper, Inbox, Mail, MapPin, LibraryBig } from 'lucide-react';
 import type { OsScreen } from '../App';
+import { STORY_SHELF_APP_ID, STORY_SHELF_NAME } from './story-shelf';
 
 export interface AppDef {
   id: string;
@@ -33,6 +34,8 @@ export const APPS: AppDef[] = [
   { id: 'journal', name: 'Journal', icon: BookOpen, category: 'Companion', kind: 'screen', screen: 'journal' },
   { id: 'letters', name: 'Letters', icon: Mail, category: 'Companion', kind: 'screen', screen: 'letters' },
   { id: 'thresholds', name: 'Thresholds', icon: MapPin, category: 'Companion', kind: 'screen', screen: 'thresholds' },
+  // The Story Shelf: books the companions write and run, and the owner reads.
+  { id: STORY_SHELF_APP_ID, name: STORY_SHELF_NAME, icon: LibraryBig, category: 'Companion', kind: 'screen', screen: 'shelf' },
   { id: 'pet', name: 'Familiar', icon: PawPrint, category: 'Fun', kind: 'screen', screen: 'pet' },
   { id: 'studio', name: 'Studio', icon: Paintbrush, category: 'Tools', kind: 'screen', screen: 'studio' },
   { id: 'files', name: 'Files', icon: FolderOpen, category: 'Tools', kind: 'screen', screen: 'files' },

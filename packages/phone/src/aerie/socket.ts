@@ -337,6 +337,16 @@ function handleMessage(event: MessageEvent): void {
       }));
       break;
 
+    // The Story Shelf changed: a book was shelved, a page written or taken, a
+    // page turn started or ended, or a keepsake tied. An open Shelf app
+    // re-reads the shelf, and the open book when it is the one named (or when
+    // none is, which a keepsake does because it touches two books).
+    case 'story_update':
+      window.dispatchEvent(new CustomEvent('aerie:story-update', {
+        detail: { bookId: msg.bookId },
+      }));
+      break;
+
     case 'unread_update':
       setState((st) => {
         const next: Partial<typeof st> = {

@@ -6,7 +6,7 @@ import { resolveNoteColor } from '../services/note-color.js';
 // These are called by the companion via curl from inside Claude Code,
 // not by the phone UI. No auth required (localhost guard instead).
 
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import {
   listProposals,
   getProposal,
@@ -74,6 +74,22 @@ import {
   getSelfKnowledge,
 } from '../services/db.js';
 import { postToTreehouse, getTreehouseInfo, getTreehouseMessages } from '../services/treehouse.js';
+import {
+  StoryShelfError,
+  createStoryBook,
+  createStoryKeepsake,
+  finishStoryBook,
+  weaveStoryKeepsake,
+} from '../services/db/story-shelf.js';
+import {
+  hangStoryScenePicture,
+  notifyStory,
+  setStoryCoverFromGallery,
+  storyBookView,
+  storyShelfView,
+  summaryOf,
+  writeStoryScene,
+} from '../services/story-shelf.js';
 import type { TriggerCondition } from '../services/db.js';
 import { embed, cosineSimilarity, bufferToVector, vectorToBuffer } from '../services/embeddings.js';
 import { saveFileInternal, saveFile } from '../services/files.js';
@@ -1784,3 +1800,158 @@ function staleBlockText(lane: string): string {
     return '';
   }
 }
+
+// ─── The Story Shelf ───────────────────────────────────────
+// Choose-your-own-path books the companions write and run. They shelve books,
+// write scenes, hang pictures, finish books and tie keepsakes between them
+// here; the owner reads and makes the moves through /api/story-shelf
+// (routes/story-shelf.ts), which hands this lane a page turn. The rules live
+// in services/db/story-shelf.ts and the page turns and gallery lookups in
+// services/story-shelf.ts. Every write tells the phone with `story_update`.
+// A write answers with the book as the shelf lists it, not the whole book, so
+// a long book is not read back into the lane after every page.
+
+function answerStoryError(res: Response, error: unknown, what: string): void {
+  if (error instanceof StoryShelfError) {
+    res.status(error.status).json({ error: error.message });
+    return;
+  }
+  console.error(`[story-shelf] could not ${what}:`, error);
+  res.status(500).json({ error: `Something went wrong on the shelf while trying to ${what}; the server log has the details.` });
+}
+
+router.get('/internal/story-shelf', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  try {
+    res.json(storyShelfView());
+  } catch (error) {
+    answerStoryError(res, error, 'read the shelf');
+  }
+});
+
+/** One book, whole: its bible, every page, its keepsakes and the talk on its newest page turn. */
+router.get('/internal/story-shelf/books/:id', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  try {
+    const view = storyBookView(req.params.id);
+    if (!view) {
+      res.status(404).json({ error: 'There is no book with that id on the shelf.' });
+      return;
+    }
+    res.json(view);
+  } catch (error) {
+    answerStoryError(res, error, 'read the book');
+  }
+});
+
+/** Put a new book on the shelf. Its opening is asked for when the owner begins it. */
+router.post('/internal/story-shelf/books', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const { maker, title, genre, spicy, blurb, bible } = req.body ?? {};
+  try {
+    const book = createStoryBook({ maker, title, genre, spicy, blurb, bible });
+    notifyStory(book.id);
+    res.status(201).json({ book: summaryOf(book) });
+  } catch (error) {
+    answerStoryError(res, error, 'shelve the book');
+  }
+});
+
+/** Hang a cover from the Studio gallery. */
+router.post('/internal/story-shelf/books/:id/cover', async (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const { maker, filename } = req.body ?? {};
+  try {
+    res.json({ book: await setStoryCoverFromGallery({ maker, bookId: req.params.id, filename }) });
+  } catch (error) {
+    answerStoryError(res, error, 'hang the cover');
+  }
+});
+
+/** Write a scene: its words, and optionally choices, a state card, a widget and a picture from the gallery. */
+router.post('/internal/story-shelf/books/:id/pages', async (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const { maker, text, picture, state, choices, widget } = req.body ?? {};
+  try {
+    res.status(201).json(await writeStoryScene({ maker, bookId: req.params.id, text, picture, state, choices, widget }));
+  } catch (error) {
+    answerStoryError(res, error, 'write the scene');
+  }
+});
+
+/** Put a picture from the gallery on a scene already written. */
+router.post('/internal/story-shelf/pages/:id/picture', async (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const { maker, filename } = req.body ?? {};
+  try {
+    res.json(await hangStoryScenePicture({ maker, pageId: req.params.id, filename }));
+  } catch (error) {
+    answerStoryError(res, error, 'hang the picture');
+  }
+});
+
+/** Close a book. It stays on the shelf, finished. */
+router.post('/internal/story-shelf/books/:id/finish', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const { maker } = req.body ?? {};
+  try {
+    const book = finishStoryBook(req.params.id, { maker });
+    notifyStory(book.id);
+    res.json({ book: summaryOf(book) });
+  } catch (error) {
+    answerStoryError(res, error, 'finish the book');
+  }
+});
+
+/** Tie a keepsake found in one book; give toBookId to weave it into another at once. */
+router.post('/internal/story-shelf/keepsakes', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const { maker, fromBookId, item, note, toBookId } = req.body ?? {};
+  try {
+    const keepsake = createStoryKeepsake({ maker, fromBookId, item, note, toBookId });
+    notifyStory(null);
+    res.status(201).json({ keepsake });
+  } catch (error) {
+    answerStoryError(res, error, 'tie the keepsake');
+  }
+});
+
+/** The keepsake turns up in a second book. */
+router.post('/internal/story-shelf/keepsakes/:id/weave', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const { maker, toBookId, note } = req.body ?? {};
+  try {
+    const keepsake = weaveStoryKeepsake(req.params.id, { maker, toBookId, note });
+    notifyStory(null);
+    res.json({ keepsake });
+  } catch (error) {
+    answerStoryError(res, error, 'weave the keepsake');
+  }
+});

@@ -20,6 +20,7 @@ import { NotesApp } from './components/NotesApp';
 import { JournalApp } from './components/JournalApp';
 import { LettersApp } from './components/LettersApp';
 import { ThresholdsApp } from './components/ThresholdsApp';
+import { StoryShelfApp } from './components/StoryShelfApp';
 import { StudioApp } from './components/StudioApp';
 import { GamesApp } from './components/GamesApp';
 import { ThreadSwitcher } from './components/ThreadSwitcher';
@@ -188,6 +189,7 @@ export type OsScreen =
   | 'journal'
   | 'letters'
   | 'thresholds'
+  | 'shelf'
   | 'studio'
   | 'files'
   | 'artifacts'
@@ -1814,6 +1816,14 @@ export default function App() {
         {osState === 'thresholds' && (
           <ThresholdsApp
             key="thresholds"
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />
+        )}
+        {osState === 'shelf' && (
+          <StoryShelfApp
+            key="shelf"
             onClose={closeApp}
             themeConfig={activeTheme}
             themeMode={theme.mode}

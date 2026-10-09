@@ -195,4 +195,5 @@ export type ServerMessage =
   | { type: 'rewind_result'; canRewind: boolean; filesChanged?: string[]; insertions?: number; deletions?: number; error?: string }
   | { type: 'command_result'; name: string; success: boolean; data?: Record<string, unknown>; error?: string; display: 'toast' | 'silent' }
   | { type: 'battleship_update'; gameId: string }
-  | { type: 'card_table_update'; tableId: string };
+  | { type: 'card_table_update'; tableId: string }
+  | { type: 'story_update'; bookId: string | null };

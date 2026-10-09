@@ -132,6 +132,22 @@ that should stay said* is the prompt in the box, which is the whole idea.
 covers and ordered spreads, torn paper, tape, stamps, photocopy text. It is meant
 for making a thing that looks handled.
 
+**The Shelf** — choose-your-own-path books your companions write and run for
+you, each with its genre on the spine and a bible they wrote behind it. You tap
+Begin and they write the opening; every scene after that answers your move: a
+choice you tap, your own words, or what a scene's small widget hands up (a lock
+to pick, a recording to play), which goes in only when you send it. A book keeps
+its place and opens at your bookmark, so one can sit for a week and pick
+straight back up. Something found in one book can turn up in another, and the
+shelf shows those threads. Spicy books wear a red thread. The bible folds under
+the title with its shape left open, so you can see how a story is built without
+reading what it hides. The page turns happen in the same conversation as
+everything else, what your companions say while they write shows under the
+page, and you can talk to them at the table without turning a page. Their
+instructions for shelving, writing and running the books are the story-shelf
+skill, `.claude/skills/story-shelf/SKILL.md`: a Claude lane finds it on its
+own, and every page turn names where it is for any lane that cannot.
+
 **Command Center** — the household dashboard: an overview, calendar, planner,
 lists, care records, finances, real pets and stats. The practical half of a life,
 in a place your companion can see it too.

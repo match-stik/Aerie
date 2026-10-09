@@ -43,6 +43,18 @@ test('it touches nothing that was not stuck', () => {
   db.close();
 });
 
+test('a page turn left pending on the story shelf is cleared the same way', () => {
+  // The shelf's books carry the same column with the same meaning, so a restart
+  // mid-turn would otherwise leave a book "being written" for ever.
+  const db = new Database(':memory:');
+  db.exec('CREATE TABLE story_books (id TEXT PRIMARY KEY, companion_pending INTEGER NOT NULL DEFAULT 0)');
+  db.prepare('INSERT INTO story_books VALUES (?,?)').run('mid-page', 1);
+  db.prepare('INSERT INTO story_books VALUES (?,?)').run('idle', 0);
+  assert.equal(clearStalePendingTurns(db), 1);
+  assert.equal((db.prepare('SELECT companion_pending AS p FROM story_books WHERE id = ?').get('mid-page') as { p: number }).p, 0);
+  db.close();
+});
+
 test('a database without those tables boots rather than throwing', () => {
   // An older install, or a fresh one where a migration has not run yet. The
   // sweep must never be the reason a house fails to start.

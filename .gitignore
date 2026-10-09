@@ -24,7 +24,12 @@ screenshots/
 !docs/screenshots/
 
 # Claude Code memory
-.claude/
+.claude/*
+# The Story Shelf's instructions ship with the house, so a Claude lane finds
+# them on its own. Every other skill a house writes stays its own.
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/story-shelf/
 
 # Personal infrastructure workers (not part of Aerie)
 shared/phone-worker*.js
