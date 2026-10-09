@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn, withAlpha, stripMarkdown } from '../lib/utils';
+import { groupThreads, monthKey, previewText } from '../lib/thread-list';
 import {
   useThreads,
   useActiveThreadId,
@@ -31,11 +32,6 @@ interface ThreadSwitcherProps {
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
   companions?: CompanionOption[];
-}
-
-function monthKey(dateStr: string | null): string {
-  const d = dateStr ? new Date(dateStr) : new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function monthLabel(key: string): string {
@@ -71,36 +67,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
       return { filtered: source, pinned: [], today: [], months: [], named: [] };
     }
 
-    const pinned: ThreadSummary[] = [];
-    const today: ThreadSummary[] = [];
-    const named: ThreadSummary[] = [];
-    const monthMap = new Map<string, ThreadSummary[]>();
-    const pinnedIds = new Set<string>();
-
-    for (const t of source) {
-      if (t.pinned_at) {
-        pinned.push(t);
-        pinnedIds.add(t.id);
-      }
-    }
-    pinned.sort((a, b) => ((a.pinned_at || '') > (b.pinned_at || '') ? 1 : -1));
-
-    for (const t of source) {
-      if (pinnedIds.has(t.id)) continue;
-      if (t.type === 'daily') {
-        if (t.id === activeThreadId || today.length === 0) {
-          today.push(t);
-        } else {
-          const key = monthKey(t.last_activity_at);
-          if (!monthMap.has(key)) monthMap.set(key, []);
-          monthMap.get(key)!.push(t);
-        }
-      } else {
-        named.push(t);
-      }
-    }
-
-    const months = Array.from(monthMap.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+    const { pinned, today, months, named } = groupThreads(source, activeThreadId);
     return { filtered: null as ThreadSummary[] | null, pinned, today, months, named };
   }, [threads, filterQuery, activeThreadId]);
 
@@ -283,7 +250,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
             </div>
             {thread.last_message_preview && (
               <p className={cn('truncate text-xs mt-0.5 opacity-70', colors.textMuted)}>
-                {stripMarkdown(thread.last_message_preview)}
+                {stripMarkdown(previewText(thread.last_message_preview) ?? '')}
               </p>
             )}
           </div>

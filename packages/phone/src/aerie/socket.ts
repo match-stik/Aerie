@@ -3,11 +3,12 @@
 // Owns the single socket, heartbeat, reconnect, and the server-message handler.
 // Reactive state lives in store.ts; connection internals are module-local here.
 
-import type { ClientMessage, ServerMessage, Message } from './protocol';
+import type { ClientMessage, ServerMessage, Message, ThreadSummary } from './protocol';
 import { messagePreviewText } from '@aerie/shared';
 import { getState, setState } from './store';
 import { buildStreamingSegments } from './hooks';
 import { apiFetch } from './api';
+import { previewText } from '../lib/thread-list';
 
 // --- Connection internals (non-reactive) ---
 let ws: WebSocket | null = null;
@@ -952,7 +953,9 @@ export async function loadThreads(): Promise<void> {
     const res = await apiFetch('/api/threads');
     if (!res.ok) throw new Error('Failed to load threads');
     const data = await res.json();
-    setState({ threads: data.threads || [] });
+    // The REST list describes a preview as an object and the socket sends a
+    // string; the list in state is always the string (see previewText).
+    setState({ threads: (data.threads || []).map((t: ThreadSummary) => ({ ...t, last_message_preview: previewText(t.last_message_preview) })) });
   } catch (err) {
     console.error('Failed to load threads:', err);
   }
