@@ -793,38 +793,48 @@ export function writeStoryTableTalk(bookId: string, text: string): Message {
 }
 
 /**
- * What was said at the table during this book's newest page turn: the
- * companions, and the owner's own table talk for this book. The newest lines
- * are kept when there are more than the limit, oldest first.
+ * Everything said at the table during this book's page turns: the companions'
+ * lines in each of its turns, and the owner's own table talk for it, oldest
+ * first, the newest kept when there are more than the limit. A turn runs from
+ * its opener to the next opener of any book, so a line said during another
+ * book's turn stays with that book. It used to hold only the newest turn's
+ * talk, so every page turned wiped the table, and the owner read that as the
+ * talk being lost.
  */
-export function storyTalk(bookId: string, limit = 40): StoryTalkLine[] {
+export function storyTalk(bookId: string, limit = 200): StoryTalkLine[] {
   const threadId = storyShelfThreadId();
   if (!threadId) return [];
   const db = getDb();
-  const opener = db.prepare(`
-    SELECT sequence FROM messages
-    WHERE thread_id = ? AND ${STORY_TURN} IS NOT NULL AND ${STORY_BOOK} = ?
-    ORDER BY sequence DESC LIMIT 1
-  `).get(threadId, bookId) as { sequence: number } | undefined;
-  if (!opener) return [];
-  const next = db.prepare(`
-    SELECT MIN(sequence) AS sequence FROM messages
-    WHERE thread_id = ? AND sequence > ? AND ${STORY_TURN} IS NOT NULL
-  `).get(threadId, opener.sequence) as { sequence: number | null };
-  const rows = (db.prepare(`
-    SELECT id, role, content, companion_id, created_at FROM messages
-    WHERE thread_id = ? AND sequence > ? AND sequence < ? AND deleted_at IS NULL
+  const openers = db.prepare(`
+    SELECT sequence, ${STORY_BOOK} AS bookId FROM messages
+    WHERE thread_id = ? AND ${STORY_TURN} IS NOT NULL
+    ORDER BY sequence
+  `).all(threadId) as Array<{ sequence: number; bookId: string | null }>;
+  const spans: Array<[number, number]> = [];
+  openers.forEach((opener, index) => {
+    if (opener.bookId !== bookId) return;
+    const next = openers[index + 1];
+    spans.push([opener.sequence, next ? next.sequence : Number.MAX_SAFE_INTEGER]);
+  });
+  if (spans.length === 0) return [];
+  const rows = db.prepare(`
+    SELECT id, role, content, companion_id, created_at, sequence FROM messages
+    WHERE thread_id = ? AND sequence > ? AND deleted_at IS NULL
       AND (role = 'companion' OR (role = 'user' AND ${STORY_TABLE} = 1 AND ${STORY_BOOK} = ?))
-    ORDER BY sequence DESC LIMIT ?
-  `).all(threadId, opener.sequence, next.sequence ?? Number.MAX_SAFE_INTEGER, bookId, limit) as Array<{
+    ORDER BY sequence
+  `).all(threadId, spans[0][0], bookId) as Array<{
     id: string;
     role: 'companion' | 'user';
     content: string;
     companion_id: string | null;
     created_at: string;
-  }>).reverse();
+    sequence: number;
+  }>;
+  // The owner's own table lines name their book; a companion's line belongs to the
+  // turn it was said in.
+  const said = rows.filter((row) => row.role === 'user' || spans.some(([from, to]) => row.sequence > from && row.sequence < to));
   const slugs = new Map(listCompanions().map((companion) => [companion.id, companion.slug]));
-  return rows.map((row) => ({
+  return said.slice(-Math.max(1, limit)).map((row) => ({
     id: row.id,
     role: row.role,
     content: row.content,

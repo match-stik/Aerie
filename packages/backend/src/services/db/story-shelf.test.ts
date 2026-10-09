@@ -302,7 +302,7 @@ test("the shelf's thread is archived, holds every companion, and names nobody to
   assert.deepEqual(members.map((m) => m.role), ['participant', 'participant']);
 });
 
-test('the talk is what was said at the table after this book’s newest page turn began, and nothing from the next one', () => {
+test('the talk is everything said at the table during this book’s page turns, oldest first, and nothing from another book’s', () => {
   freshHouse();
   const market = book({ title: 'The Night Market' });
   const lighthouse = book({ title: 'The Lighthouse' });
@@ -325,12 +325,19 @@ test('the talk is what was said at the table after this book’s newest page tur
   say('Go on.');
   writeStoryTurnOpener({ bookId: lighthouse.id, pageId: null, kind: 'opening', moveText: null, title: lighthouse.title });
   say('Lamp lit.');
+  writeStoryTurnOpener({ bookId: market.id, pageId: null, kind: 'retry', moveText: null, title: market.title });
+  say('Back again.');
 
+  // A page turn used to wipe the table: only the newest turn's talk showed,
+  // and the owner read that as the talk being lost.
   assert.deepEqual(storyTalk(market.id).map((line) => [line.content, line.companionSlug, line.role]), [
+    ['Ready?', 'example', 'companion'],
     ['Ha.', 'example', 'companion'],
     ['Go on.', 'example', 'companion'],
+    ['Back again.', 'example', 'companion'],
   ]);
-  assert.deepEqual(storyTalk(lighthouse.id).map((line) => line.content), ['Lamp lit.']);
+  assert.deepEqual(storyTalk(lighthouse.id).map((line) => line.content), ['Lamp lit.'], 'another book’s turn keeps its own talk');
+  assert.deepEqual(storyTalk(market.id, 2).map((line) => line.content), ['Go on.', 'Back again.'], 'past the limit, the newest lines are kept');
   const system = getDb().prepare("SELECT role, content FROM messages WHERE thread_id = ? AND role = 'system' ORDER BY sequence").all(threadId) as Array<{ content: string }>;
   assert.ok(system.some((m) => m.content === 'Opened “The Lighthouse”.'), 'walking into a book is a line from the house, not words in the owner’s mouth');
 });
