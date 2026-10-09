@@ -34,6 +34,34 @@ export interface SdkExtraction {
 
 const DEFAULT_TIMEOUT_MS = 300_000;
 
+/**
+ * The lane's options, apart so a test can read them.
+ *
+ * DISABLE_AUTO_COMPACT: the SDK runs its own bundled CLI, which can be older
+ * than the model it is asked to run, and a CLI that does not know a model
+ * judges its window too small. The memory blocks plus the conversation can sit
+ * right at that edge, and a run that compacts squashes its whole reading pile
+ * to a short summary before reading a word, then proposes memories from the
+ * summary. A one-turn reading job must never compact what it was handed: if
+ * the pile is ever truly too long, the API refuses and the run fails where it
+ * can be seen.
+ */
+export function archivistSdkOptions(model: string, systemPrompt: string, abortController: AbortController): Options {
+  return {
+    model,
+    systemPrompt,
+    cwd: tmpdir(),
+    permissionMode: 'bypassPermissions',
+    maxTurns: 1,
+    // A text job. Handing it tools is how a memory sweep ends up editing files.
+    allowedTools: [],
+    mcpServers: {},
+    thinking: { type: 'disabled' },
+    env: { ...process.env, DISABLE_AUTO_COMPACT: '1' },
+    abortController,
+  };
+}
+
 export async function extractViaClaudeSdk(
   systemPrompt: string,
   prompt: string,
@@ -44,18 +72,7 @@ export async function extractViaClaudeSdk(
   const abortController = new AbortController();
   const timer = setTimeout(() => abortController.abort(), timeoutMs);
 
-  const options: Options = {
-    model,
-    systemPrompt,
-    cwd: tmpdir(),
-    permissionMode: 'bypassPermissions',
-    maxTurns: 1,
-    // A text job. Handing it tools is how a memory sweep ends up editing files.
-    allowedTools: [],
-    mcpServers: {},
-    thinking: { type: 'disabled' },
-    abortController,
-  };
+  const options = archivistSdkOptions(model, systemPrompt, abortController);
 
   let text = '';
   let costUsd: number | null = null;

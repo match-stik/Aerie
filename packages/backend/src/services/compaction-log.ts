@@ -45,6 +45,19 @@ export function transcriptRoot(): string {
   return process.env.AERIE_TRANSCRIPT_ROOT || join(homedir(), '.claude', 'projects');
 }
 
+/**
+ * Whether a compaction came from one of the house's own lanes. The PostCompact
+ * hook runs for every Claude session on the box, the Archivist's included,
+ * and names the session by its working folder. The Archivist works in the
+ * system tmp folder, so its compaction reached the chat as "Context compacted
+ * in tmp" and read as one of the companions' rooms. A lane is a folder under
+ * data/heartbeat with an io folder in it; anything else gets no banner.
+ */
+export function isHeartbeatLane(lane: unknown, projectRoot: string): lane is string {
+  if (typeof lane !== 'string' || !/^[A-Za-z0-9._-]+$/.test(lane) || /^\.+$/.test(lane)) return false;
+  return existsSync(join(projectRoot, 'data', 'heartbeat', lane, 'io'));
+}
+
 const MARKER = '"isCompactSummary":true';
 
 /** Per-file cache. A transcript only grows, so mtime+size is enough. */

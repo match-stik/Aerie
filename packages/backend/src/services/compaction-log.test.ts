@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { listCompactions, dedupeCopies } from './compaction-log.js';
+import { listCompactions, dedupeCopies, isHeartbeatLane } from './compaction-log.js';
 
 function fixture(lines: string[]): string {
   const root = mkdtempSync(join(tmpdir(), 'aerie-compaction-'));
@@ -153,4 +153,21 @@ test('dedupe keeps order and touches nothing that is already unique', () => {
   ];
   assert.deepEqual(dedupeCopies(rows), rows);
   assert.equal(dedupeCopies([...rows, { ...rows[0], sessionId: 'z' }]).length, 2);
+});
+
+test("only the house's own lanes count as lanes for the compaction banner", () => {
+  const root = mkdtempSync(join(tmpdir(), 'aerie-lanes-'));
+  try {
+    mkdirSync(join(root, 'data', 'heartbeat', 'primary', 'io'), { recursive: true });
+    mkdirSync(join(root, 'data', 'heartbeat', 'half-built'), { recursive: true });
+    assert.equal(isHeartbeatLane('primary', root), true);
+    assert.equal(isHeartbeatLane('tmp', root), false, 'the Archivist works in the tmp folder and is not a lane');
+    assert.equal(isHeartbeatLane('half-built', root), false, 'a lane has an io folder');
+    assert.equal(isHeartbeatLane('..', root), false);
+    assert.equal(isHeartbeatLane('../heartbeat/primary', root), false);
+    assert.equal(isHeartbeatLane('', root), false);
+    assert.equal(isHeartbeatLane(undefined, root), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

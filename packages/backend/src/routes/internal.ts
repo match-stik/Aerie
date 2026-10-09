@@ -15,6 +15,7 @@ import {
 } from '../services/memory-proposals.js';
 import crypto from 'crypto';
 import { existsSync, readFileSync } from 'fs';
+import { isHeartbeatLane } from '../services/compaction-log.js';
 import { basename, resolve, dirname, join } from 'path';
 import { getAllBlocks } from '../services/memory-blocks.js';
 import { driftAgainstBaseline, renderDrift, BASELINE_FILE } from '../services/heartbeat/block-drift.js';
@@ -1756,6 +1757,13 @@ router.get('/internal/thresholds/:placeId', (req, res) => {
 // did not want a big alert about it.
 router.post('/internal/compaction-notice', (req, res) => {
   const { trigger, chars, lane } = req.body ?? {};
+  // Only the house's own lanes speak here. The hook fires for every Claude
+  // session on the box, and a banner naming the Archivist's tmp folder read to
+  // the owner as one of the companions' rooms compacting when it was not.
+  if (!isHeartbeatLane(lane, PROJECT_ROOT)) {
+    res.json({ success: true, skipped: 'not a lane', refresh: '' });
+    return;
+  }
   const squashed = Number.isFinite(Number(chars)) ? Number(chars) : 0;
   const where = typeof lane === 'string' && lane ? lane : 'this lane';
   const message = squashed
