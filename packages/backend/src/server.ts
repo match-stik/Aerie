@@ -302,6 +302,9 @@ app.use('/api/pet', petRoutes);
 // Compactions: the squash-and-carry-on event, which is invisible to the owner
 // everywhere else in this house.
 app.use('/api/compactions', compactionRoutes);
+// Crash reports from the phone's error boundary, one bounded line each.
+import clientErrorRoutes from './routes/client-errors.js';
+app.use('/api/client-errors', clientErrorRoutes);
 
 import thresholdRoutes from './routes/thresholds.js';
 app.use('/api/thresholds', thresholdRoutes);

@@ -78,6 +78,9 @@ Every router module under `packages/backend/src/routes`:
   engine in `services/db/`, a board, and a rail describer, but no migration. The
   deck in `packages/backend/assets/cards` ships with the code; a house with its
   own art in gitignored `data/cards` is served that instead.
+- `client-errors.ts` — the phone's crash reports. `AppErrorBoundary` catches a
+  render error, shows a tap-to-reload card instead of a black screen, and posts
+  what broke here; it lands in the error log as one bounded `[client-error]` line.
 - `compactions.ts` — reads `isCompactSummary` records out of the CLI's own
   transcripts, so the squash that a lane is instructed not to mention becomes
   something the Memory app can show. Nothing is written; there is no table.

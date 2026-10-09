@@ -3,6 +3,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import {AerieProvider} from './aerie';
+import {AppErrorBoundary} from './components/AppErrorBoundary';
 import './index.css';
 
 // Excalidraw is lazy-loaded by The Press. Set its self-hosted font root before
@@ -11,8 +12,10 @@ import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AerieProvider>
-      <App />
-    </AerieProvider>
+    <AppErrorBoundary>
+      <AerieProvider>
+        <App />
+      </AerieProvider>
+    </AppErrorBoundary>
   </StrictMode>,
 );
