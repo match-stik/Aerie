@@ -253,3 +253,32 @@ test('a replay-only turn falls back to the replayed words, unstamped', () => {
     'That can wait for now, let us look at the settings page.',
   );
 });
+
+// Claude Code writes one API reply as one record per content block (thinking,
+// text, each tool call), and every record carries the reply's whole usage. The
+// sum used to add them all: one long room held 1,090 records for 619 replies,
+// so every total on its card ran about three quarters high.
+test('a reply written as several records is counted once', async () => {
+  const { mkdtempSync, writeFileSync, statSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { readSessionUsage } = await import('./session-list.js');
+
+  const usage = { input_tokens: 5, output_tokens: 300, cache_read_input_tokens: 40_000, cache_creation_input_tokens: 60 };
+  const record = (id: string, block: string) => JSON.stringify({
+    type: 'assistant',
+    requestId: `req_${id}`,
+    message: { id: `msg_${id}`, model: 'claude-opus-5-5', content: [{ type: block }], usage },
+  });
+  const lines = [record('a', 'thinking'), record('a', 'text'), record('a', 'tool_use'), record('b', 'text')];
+  const file = join(mkdtempSync(join(tmpdir(), 'aerie-blocks-')), 's.jsonl');
+  writeFileSync(file, lines.join('\n') + '\n');
+  const st = statSync(file);
+
+  const got = (await readSessionUsage(file, st.size, st.mtimeMs))!;
+  assert.equal(got.replies, 2);
+  assert.equal(got.cacheReadTokens, 80_000);
+  assert.equal(got.outputTokens, 600);
+  // The context is still the last reply's prompt: 5 + 40000 + 60.
+  assert.equal(got.contextTokens, 40_065);
+});

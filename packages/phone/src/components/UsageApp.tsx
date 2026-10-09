@@ -6,6 +6,7 @@ import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
 import { SubscriptionUsageMeters } from './SubscriptionUsageMeters';
+import { tokenCount } from '../lib/token-count';
 
 const POPOVER_WIDTH = 224;
 
@@ -103,11 +104,7 @@ function sinceFor(range: Range): string | undefined {
   return undefined;
 }
 
-function fmtNum(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-  return String(n);
-}
+const fmtNum = tokenCount;
 
 function fmtTime(iso: string): string {
   return new Date(iso).toLocaleString('en-GB', { hour12: false, dateStyle: 'short', timeStyle: 'short' });
@@ -379,10 +376,10 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
       {tab === 'dashboard' && (
         <>
           {/*
-            The number she actually opens this app for. Everything below counts
-            per-request TOKENS, which the interactive subscription lane does not
-            report — so on this house they are all honest zeros and always will
-            be. What IS readable is how much of the subscription itself is
+            The number the owner actually opens this app for. Everything below
+            counts per-request TOKENS, which the interactive subscription lane
+            only gets from its own transcript (services/heartbeat/turn-usage.ts),
+            and a row there is a whole turn, not one call. What IS readable is how much of the subscription itself is
             spent, and that has been live at /api/usage/claude and
             /api/usage/codex since July, rendered only over in Integrations.
             A screen called Status should lead with the meter that moves.

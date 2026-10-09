@@ -33,6 +33,7 @@ import type { ConversationMessage, HistoryLoader } from '../runtimes/api-router.
 import { getHeartbeatSession, type HeartbeatSession } from './supervisor.js';
 import { parseOutboxLine } from './outbox-line.js';
 import { projectKeyForDir, readSessionUsage } from '../agent/session-list.js';
+import { USAGE_WATERMARK_FILE, readUsageWatermark, usageSinceFile, writeUsageWatermark } from './turn-usage.js';
 import { isArchiveRecord } from '../archive-artifact.js';
 
 import { getAerieConfig, PROJECT_ROOT } from '../../config.js';
@@ -350,13 +351,6 @@ interface LaneState {
    */
   lastTurnAt?: string;
   /**
-   * Session-to-date token totals as of this lane's last recorded turn, so the
-   * next one can be filed as a DELTA. The transcript only ever gives running
-   * totals; a usage row wants what this turn added. Keyed with the transcript
-   * path because a recycle starts a new file and the totals drop to zero.
-   */
-  lastUsage?: { path: string; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number };
-  /**
    * The newest of the owner's messages this lane has been HANDED — as a prompt, or by
    * the safety net below. Distinct from lastTurnAt, which says when the lane
    * last spoke; a message can be stored, stamped delivered, and still have
@@ -649,13 +643,17 @@ export class InteractiveCliRuntime implements AgentRuntime {
    * own transcript, we have been reading them for the context meter since the
    * day it shipped, and then dropping them on the floor.
    *
-   * The transcript only ever gives running totals, so what goes on the row is
-   * the DELTA since this lane's last turn. Input and cache reads are the whole
-   * conversation re-sent — which is exactly what every API lane on that same
-   * dashboard already reports as Input, so this is the existing measure applied
-   * to the lane that was missing from it, not a new invention.
+   * The row gets the replies this turn added: every reply in the transcript
+   * newer than the lane's watermark, each counted once (see turn-usage.ts).
+   * The watermark used to be a running total held in memory, so the first turn
+   * after every restart had no baseline and filed the whole room's lifetime as
+   * one turn, and a resumed room's new transcript, which retypes the whole
+   * chain, did the same. It lives on disk now. Input and cache reads are the
+   * whole conversation re-sent — which is exactly what every API lane on that
+   * same dashboard already reports as Input, so this is the existing measure
+   * applied to the lane that was missing from it, not a new invention.
    */
-  private async *emitContextUsage(): AsyncGenerator<AgentRuntimeEvent> {
+  private async *emitContextUsage(turnStartedAt: number): AsyncGenerator<AgentRuntimeEvent> {
     const key = this.options.sessionKey || 'primary';
     const file = latestTranscriptFile(key);
     if (!file) return;
@@ -674,30 +672,30 @@ export class InteractiveCliRuntime implements AgentRuntime {
       model: usage.model,
     });
 
-    const state = laneStates.get(key);
-    if (!state) return;
-    // A recycle starts a new transcript, so totals drop back to zero. Same file
-    // and a smaller number means the same thing — treat it as a fresh baseline
-    // rather than filing a negative turn.
-    const prev = state.lastUsage;
-    const fresh = !prev || prev.path !== file.path || prev.outputTokens > usage.outputTokens;
-    const delta = {
-      inputTokens: fresh ? usage.inputTokens : usage.inputTokens - prev.inputTokens,
-      outputTokens: fresh ? usage.outputTokens : usage.outputTokens - prev.outputTokens,
-      cacheReadTokens: fresh ? usage.cacheReadTokens : usage.cacheReadTokens - prev.cacheReadTokens,
-      cacheWriteTokens: fresh ? usage.cacheWriteTokens : usage.cacheWriteTokens - prev.cacheWriteTokens,
-    };
-    state.lastUsage = { path: file.path, ...usage };
+    // No watermark yet (a lane's first turn after this shipped) floors at this
+    // turn's start, so history is never filed now. A watermark from the future
+    // means the clock moved, and trusting it would file nothing until it caught up.
+    const markPath = join(PROJECT_ROOT, 'data', 'heartbeat', key, 'io', USAGE_WATERMARK_FILE);
+    const mark = readUsageWatermark(markPath);
+    const since = mark !== undefined && mark <= Date.now() ? mark : turnStartedAt;
+    const turn = await usageSinceFile(file.path, since);
+    if (!turn) return;
+    if (turn.newest !== undefined) {
+      try { writeUsageWatermark(markPath, turn.newest); } catch { /* the next turn floors at its own start */ }
+    }
 
     yield {
       type: 'usage',
-      model: usage.model || 'claude-cli',
+      model: turn.model || usage.model || 'claude-cli',
       contextWindow,
-      // The deltas say what this turn added; this says where the conversation
+      // The turn's figures say what it added; this says where the conversation
       // ended up. Only the second one is a context, and it is the same number
       // the meter in the owner's header reads.
       contextTokens: usage.contextTokens,
-      ...delta,
+      inputTokens: turn.inputTokens,
+      outputTokens: turn.outputTokens,
+      cacheReadTokens: turn.cacheReadTokens,
+      cacheWriteTokens: turn.cacheWriteTokens,
     };
   }
 
@@ -1649,7 +1647,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
           state.consumedOffset = offset;
           state.silentTimeouts = 0;
           session.clearBusy();
-          yield* this.emitContextUsage();
+          yield* this.emitContextUsage(turnStartedAt);
           yield { type: 'done', finishReason: 'complete' };
           return;
         }
@@ -1702,7 +1700,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
         state.consumedOffset = offset;
         state.silentTimeouts = 0;
         session.clearBusy();
-        yield* this.emitContextUsage();
+        yield* this.emitContextUsage(turnStartedAt);
         // Deliberate silence, reported as such — the sentinel was filtered
         // above, so the reason is all the router gets to go on.
         yield { type: 'done', finishReason: 'silent' };
@@ -1714,7 +1712,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
           state.consumedOffset = offset;
           state.silentTimeouts = 0;
           session.clearBusy();
-          yield* this.emitContextUsage();
+          yield* this.emitContextUsage(turnStartedAt);
           yield { type: 'done', finishReason: 'silent' };
           return;
         }
@@ -1735,7 +1733,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
           state.consumedOffset = offset;
           state.silentTimeouts = 0;
           session.clearBusy();
-          yield* this.emitContextUsage();
+          yield* this.emitContextUsage(turnStartedAt);
           yield { type: 'done', finishReason: 'complete' };
           return;
         }
@@ -1766,7 +1764,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
         : `[${why} — any remaining chunks will arrive with the next message.]`;
       yield { type: 'thinking_delta', text: note };
       yield { type: 'thinking_end', fullText: note };
-      yield* this.emitContextUsage();
+      yield* this.emitContextUsage(turnStartedAt);
       yield { type: 'done', finishReason: 'complete' };
       return;
     }

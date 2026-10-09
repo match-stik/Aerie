@@ -115,6 +115,19 @@ function syntheticText(entry: any): string | undefined {
   return text?.trim().slice(0, ENDED_WITH_MAX) || undefined;
 }
 
+/** The id every record of one API reply shares. Claude Code writes a reply as
+ *  one record per content block (thinking, text, each tool call), and each of
+ *  those records carries the reply's whole usage, so anything summing usage has
+ *  to count a reply once, by this. Undefined means the record cannot be matched
+ *  to any other and counts on its own. A resumed room's transcript keeps these
+ *  ids, which is also what tells its retyped history apart. */
+export function replyKey(entry: any): string | undefined {
+  const id = entry?.message?.id;
+  if (typeof id === 'string' && id) return id;
+  const request = entry?.requestId;
+  return typeof request === 'string' && request ? request : undefined;
+}
+
 // A finished transcript never changes again, so its totals are computed once
 // and kept. Only the live session's file is ever re-read. Keyed on size+mtime
 // so a file that DOES grow is recounted rather than trusted.
@@ -131,6 +144,7 @@ export async function readSessionUsage(filePath: string, size: number, mtime: nu
     replies: 0, inputTokens: 0, outputTokens: 0,
     cacheReadTokens: 0, cacheWriteTokens: 0, contextTokens: 0,
   };
+  const counted = new Set<string>();
   try {
     const raw = await readFile(filePath, 'utf8');
     for (const line of raw.split('\n')) {
@@ -143,6 +157,12 @@ export async function readSessionUsage(filePath: string, size: number, mtime: nu
       if (entry.message?.model === SYNTHETIC_MODEL) {
         usage.endedWith = syntheticText(entry) ?? usage.endedWith;
         continue; // never a reply, never the model, never the context
+      }
+      // Its other records repeat the same usage; the first one already counted.
+      const key = replyKey(entry);
+      if (key) {
+        if (counted.has(key)) continue;
+        counted.add(key);
       }
       usage.replies += 1;
       usage.inputTokens += u.input_tokens || 0;
