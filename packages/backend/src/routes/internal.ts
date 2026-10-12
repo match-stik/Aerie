@@ -115,6 +115,7 @@ import {
   DEFAULT_LOOKBACK_MS,
 } from '../services/db/screening.js';
 import type { TelegramService } from '../services/telegram/index.js';
+import { getStickerByRef } from '../services/db/stickers.js';
 
 // Derive project root for path containment
 const __filename = fileURLToPath(import.meta.url);
@@ -985,7 +986,6 @@ router.post('/internal/sticker-send', (req, res) => {
   }
 
   try {
-    const { getStickerByRef } = require('../services/db/stickers.js');
     const sticker = getStickerByRef(pack, name);
     if (!sticker) {
       res.status(404).json({ error: `Sticker not found: ${pack}/${name}` });
