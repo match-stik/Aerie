@@ -117,6 +117,8 @@ Byte-Light — Kay
 ================================================================
 
 Byte-Light
+Copyright 2026 the Byte-Light project
+
 Originally developed by Kay. X-Ray panel, slash command UI, CSRF
 protection, PM2 memory, WebSocket stability.
 
