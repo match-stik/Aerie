@@ -40,6 +40,9 @@
     "qs": "^6.16.0",
     "nanoid": "^3.3.18",
     "@capacitor/android": "8.5.1",
-    "@capacitor/core": "8.5.1"
+    "@capacitor/core": "8.5.1",
+    "katex": "^0.18.2",
+    "postcss-selector-parser": "^7.1.6",
+    "sass": "^1.105.1"
   }
 }
