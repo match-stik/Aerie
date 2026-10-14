@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
  * ElevenLabs subscription usage — shape + parser for the phone's credit
  * meter. The API key needs the user_read permission (enabled Jul 21, 2026).

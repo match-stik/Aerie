@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // SOL WROTE "SUNDAY" ON A MONDAY, AND THE STAMP IS WHY.
 //
 // Reported by Rose and Sol, Sep 17 2026. Every message handed to a lane was

@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Sticker, Film, Camera, ImagePlus, Mic, PhoneCall, Square, X, FileText, Smile, Loader2, ChevronDown } from 'lucide-react';
 import { getSendIcon } from '../lib/sendIcons';

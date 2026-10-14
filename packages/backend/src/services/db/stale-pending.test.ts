@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // "THEY ARE ALREADY TALKING" ABOUT A CONVERSATION THAT NO LONGER EXISTS.
 //
 // Rose and Sol, Sep 17 2026. Restart the backend while a rail turn is in

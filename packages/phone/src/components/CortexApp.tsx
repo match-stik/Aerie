@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useState, useEffect, useCallback } from 'react';
 import { Brain, Search, Database, Activity, Trash2, Edit3, Check, X, RefreshCw, Zap, Shield, Archive, Wrench, Network, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
 import { AppShell } from './AppShell';

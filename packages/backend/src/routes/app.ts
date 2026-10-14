@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // App shell update lane — the house builds and serves its own APK.
 // The shell is a thin frame around the served phone app, so UI changes ship
 // with every vite build; these routes only matter when the native layer

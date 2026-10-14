@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Cross-browser app settings, served at /api/app-settings. NOT /api/settings
 // — that path belongs to api.ts's agent-config KV routes, which are mounted
 // first and shadowed this router's routes completely for two months (the

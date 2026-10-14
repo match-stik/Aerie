@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The room's roster, where the shared lane actually reads it: in the turn.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';

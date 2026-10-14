@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // A FILM IS A HOUSE FILE NOW. Films used to have to go out as zips because this
 // door had no video in it. These pin it open for mp4 and keep a .webm meaning
 // audio, which it already did.

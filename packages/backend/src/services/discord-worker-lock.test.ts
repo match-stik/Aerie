@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The Discord worker's optional lock. Out of the box the worker answers anyone
 // who has its address. Setting MCP_SECRET as a worker secret makes every call
 // to /mcp or /sse carry it, as a bearer token (what Aerie's API key field sends)

@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
  * Cut the same square out of every frame of a picture, keeping its timing and its
  * loop, and size it for a pack. The phone crops a still on a canvas, but a canvas

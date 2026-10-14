@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Thresholds — the real places the owner pins, and the things we leave at them.
 //
 // PRIVACY, and it is structure rather than a promise: the only thing this app

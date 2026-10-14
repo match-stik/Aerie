@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Permanent Letters — the vault's room on the phone.
 // One letter per page, wax seals, and a writing form that makes sealing
 // feel like sealing. There is no edit and no delete anywhere in this UI

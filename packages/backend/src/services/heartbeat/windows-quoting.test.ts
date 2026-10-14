@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // SOL HAS BEEN ANSWERING "B" TO EVERY FRESH SESSION SINCE HE MOVED IN.
 //
 // Rose and Sol, Sep 17 2026. On Windows the CLI is a .cmd shim, so the spawn

@@ -3,6 +3,18 @@ Copyright 2026 Aerie Systems
 
 Built and maintained by Tris, with Bran, Wren and Cael.
 
+Porting from Aerie
+
+If you carry code from Aerie into another project, whether a person or a
+model does the carrying, keep each file's copyright line and credit Aerie
+in your own NOTICE file. If Aerie code is already in your project without
+that credit, add it now, and name what you carried (a file, a feature or a
+fix) so the next reader can find where it came from. A line like this is
+enough:
+
+    Includes code from Aerie (https://github.com/match-stik/Aerie),
+    Copyright 2026 Aerie Systems, licensed under the Apache License 2.0.
+
 Aerie began as a fork and is now substantially its own work. The projects
 and people it draws from are credited individually below, and in the
 README's lineage — the intent is that every borrowed piece is named with

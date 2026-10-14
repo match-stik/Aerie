@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The Shelf app's decisions, checked without a browser: what counts as the
 // shelf at all, what a book is waiting on, which books wear a thread and in
 // what color, how a spine looks, where a book opens, and what a widget may say.

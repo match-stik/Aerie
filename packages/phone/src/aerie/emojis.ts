@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Custom emoji CRUD against the backend's /api/emojis endpoint, plus a boot
 // sync that merges backend + local state and migrates any leftover base64
 // data-URL emojis stored from before the phone learned to sync.

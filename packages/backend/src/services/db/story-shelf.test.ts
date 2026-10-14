@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The Story Shelf's rules, checked against a real database: what a book, a
 // scene and a move must carry, what a book is waiting on, the one-move guard,
 // the keepsakes between books, the shelf's own thread, and the table talk.

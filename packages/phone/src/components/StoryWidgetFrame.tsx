@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // A scene's own widget, written fresh by the companions for that scene: a
 // recovered recording, a lock to pick, a map. It runs in the sealed frame the
 // Artifacts app uses (lib/sealed-frame.ts), sealed further: its own policy

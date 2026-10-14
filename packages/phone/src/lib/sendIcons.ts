@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Options for the send-button icon in the chat composer. Curated set —
 // each option fits the "I'm pushing this message out" affordance from
 // a different angle. Add new ones by importing the lucide icon and

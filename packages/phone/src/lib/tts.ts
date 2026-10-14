@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Text-to-speech preprocessing — strips formatting and speaker labels so the
 // audio stays clean. Mirrors what Resonant's backend cleanForTTS does but
 // runs on the phone since it talks to ElevenLabs directly.

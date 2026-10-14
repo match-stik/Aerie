@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { useState, useRef, useEffect, useCallback, type ChangeEvent, type MouseEvent, type TouchEvent } from 'react';
 import { apiFetch } from '../../aerie';
 import { DRAW_CANVAS_BACKGROUND_BY_THEME, ANTIGRAVITY_DEFAULT_MODEL, clampDimension, PROMPT_DIRECTIVES } from './constants';

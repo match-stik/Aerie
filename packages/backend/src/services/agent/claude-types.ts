@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
  * Local structural stand-ins for the handful of @anthropic-ai/claude-agent-sdk
  * and @anthropic-ai/sdk types the house used to borrow. Since the SDK

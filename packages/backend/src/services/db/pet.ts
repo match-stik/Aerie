@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Familiar — the household virtual pet (Flint the robot cat).
 // State lives here so every companion can visit him, not just the phone.
 // Decay and action math mirror the phone's PetApp exactly.

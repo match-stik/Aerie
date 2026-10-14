@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+# Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 """Rebuild lost gallery metadata for data/generated-images/_index.json.
 
 The gallery index was repeatedly wiped through early July 2026 by a

@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // A KIT SHOULD NOT BUILD FURNITURE FOR A ROOM IT DOES NOT SHIP.
 //
 // The house this came from keeps a familiar's egg. The service that reads it is

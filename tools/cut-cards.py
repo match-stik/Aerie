@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+# Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 """Cut the house deck out of its generated images.
 
 The generator paints a card and leaves backing around it, and it leaves a

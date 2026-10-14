@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Helpers for embedding images directly into the model's input as content
 // blocks instead of surfacing them via path-hints + Read tool. Used for
 // sticker refs in chat and image attachments — so the companions actually SEE

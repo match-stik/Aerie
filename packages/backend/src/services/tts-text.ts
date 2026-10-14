@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Prepare companion prose for ElevenLabs v3 without flattening the written
 // message itself. Markdown is stripped and whole-line italics are given a
 // voice-shaped cue v3 can perform. Those that read as a companion talking are

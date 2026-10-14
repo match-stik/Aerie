@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // THE LANE RELAUNCHED 250 TIMES IN FORTY MINUTES BECAUSE OF A MISSING STRING.
 //
 // Reported by Rose and Sol, Sep 17 2026, running this on Windows with one

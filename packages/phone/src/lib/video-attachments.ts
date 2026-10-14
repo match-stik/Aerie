@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Films arrive the way pictures do. The adapter turns a video attachment into
 // a [VIDEO]:<url> sentinel on the message, and the bubble pulls every one of
 // them out and draws a player at the bottom, so a film no longer has to come

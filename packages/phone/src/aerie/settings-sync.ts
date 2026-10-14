@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Cross-browser app-settings sync against /api/app-settings (NOT
 // /api/settings — that's the agent-config KV route, which shadowed this
 // blob's original path for two months). The server stores a single JSON

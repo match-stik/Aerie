@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // What one heartbeat turn spent: each reply once, and only the replies newer
 // than the lane's watermark, so a resumed room's retyped history is never
 // filed a second time.

@@ -1,4 +1,4 @@
-// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0.
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Browser-side microphone capture shared by composer dictation and the
 // foreground voice-conversation loop. MediaRecorder sends encoded chunks
 // over the existing WebSocket; optional local VAD ends a conversation turn
