@@ -1,4 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { AppLabel } from './AppLabel';
 import React, { useRef, useState } from 'react';
 import { motion, useIsPresent } from 'motion/react';
 import { LayoutGrid, Lock } from 'lucide-react';
@@ -150,8 +151,8 @@ export function HomeScreen({
 
       {/* Dock — each button gets a fixed width so swapping the theme font
           (sans/serif/mono) can't make the labels widen the row and push
-          the dock past the viewport. Long labels truncate; the icon is
-          the primary affordance. */}
+          the dock past the viewport. A long label shrinks to fit its button
+          rather than being cut. */}
       <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-2 px-4">
         {quietLine && (
           <div className="w-full max-w-[380px]">
@@ -186,7 +187,7 @@ export function HomeScreen({
                   {messagesBadge}
                 </span>
               )}
-              <span className="aerie-dock-label w-full truncate text-center text-[9px] font-medium tracking-[0.12em] uppercase opacity-80">{app.name}</span>
+              <AppLabel basePx={9} className="aerie-dock-label uppercase tracking-[0.12em] opacity-80">{app.name}</AppLabel>
             </motion.button>
           ))}
 
@@ -204,7 +205,7 @@ export function HomeScreen({
             >
               <LayoutGrid className="h-6 w-6" />
             </div>
-            <span className="aerie-dock-label w-full truncate text-center text-[9px] font-medium tracking-[0.12em] uppercase opacity-80">Apps</span>
+            <AppLabel basePx={9} className="aerie-dock-label uppercase tracking-[0.12em] opacity-80">Apps</AppLabel>
           </motion.button>
         </div>
       </div>

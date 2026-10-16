@@ -12,13 +12,20 @@ const MIN_PX = 7;
  * won't fit is set a little smaller until it does, never clipped; names that fit
  * keep the usual size, and names of several words still wrap between them.
  */
-export function AppLabel({ children, className, plain = false }: { children: React.ReactNode; className?: string; plain?: boolean }) {
+export function AppLabel({ children, className, plain = false, basePx = BASE_PX, minPx = MIN_PX }: {
+  children: React.ReactNode;
+  className?: string;
+  plain?: boolean;
+  /** The usual size, and the smallest a name may shrink to (the dock's are 9). */
+  basePx?: number;
+  minPx?: number;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const fit = () => {
-      el.style.fontSize = `${BASE_PX}px`;
+      el.style.fontSize = `${basePx}px`;
       el.style.width = '';
       // A name that wraps (Command Center) would keep the whole cell's width
       // and sit off-centre; drawn as wide as its longest word instead, the
@@ -45,7 +52,7 @@ export function AppLabel({ children, className, plain = false }: { children: Rea
       const zoom = el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1;
       const need = lines.length ? Math.max(...lines.map((r) => r.width)) / (zoom || 1) : 0;
       if (need <= room - 1) return; // a pixel spare, so nothing grazes the edge
-      const size = Math.max(MIN_PX, Math.floor(BASE_PX * ((room - 1) / need) * 4) / 4);
+      const size = Math.max(minPx, Math.floor(basePx * ((room - 1) / need) * 4) / 4);
       el.style.fontSize = `${size}px`;
     };
     fit();
@@ -62,12 +69,12 @@ export function AppLabel({ children, className, plain = false }: { children: Rea
       watch.disconnect();
       fonts?.removeEventListener?.('loadingdone', fit);
     };
-  }, [children]);
+  }, [children, basePx, minPx]);
   return (
     // The card centres its words as a box rather than as a line of text: if a
     // word on some phone still comes out a hair wider than the fit allowed, it
     // spills evenly off both sides instead of off the right.
-    <span ref={ref} className={cn('aerie-app-label font-medium tracking-wide text-center', plain && 'aerie-app-label-plain', className)} style={{ fontSize: BASE_PX, display: 'inline-flex', justifyContent: 'center' }}>
+    <span ref={ref} className={cn('aerie-app-label font-medium tracking-wide text-center', plain && 'aerie-app-label-plain', className)} style={{ fontSize: basePx, display: 'inline-flex', justifyContent: 'center' }}>
       <span style={{ textAlign: 'center' }}>{children}</span>
     </span>
   );

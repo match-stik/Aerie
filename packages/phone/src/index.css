@@ -558,6 +558,20 @@ select optgroup {
   transition: color 150ms ease, opacity 150ms ease;
 }
 
+/* The dock's names use the drawer's fitting (AppLabel) to shrink rather than
+   be cut, without wearing the drawer's card. */
+.aerie-app-label.aerie-dock-label {
+  color: var(--aerie-label) !important;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-weight: 500;
+  text-shadow: none;
+}
+.aerie-dock-button[data-pressed='true'] .aerie-app-label.aerie-dock-label {
+  color: var(--aerie-accent) !important;
+}
+
 /* The chat header and composer keep their pre-reskin opaque theme
    surfaces (classes still on the elements) — the glass band clashed
    with the status-bar fill and the owner vetoed it. */
