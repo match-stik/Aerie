@@ -831,10 +831,10 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
     <div
       className={cn(
         "aerie-composer-wrap px-4 py-2 sm:px-6 sm:py-3 border-t relative z-10 transition-all duration-500",
-        // Daylight chrome is clean white (original Gemini-era design) so
-        // the footer fuses with the white status bar; the muted accent
-        // lives in the page behind the messages, not in the chrome.
-        themeMode === 'light' ? 'bg-white' : colors.pageBg,
+        // The frame: white in Daylight, black in Midnight, matching the
+        // header and the strip Android draws under it;
+        // the theme's color lives in the page behind the messages.
+        themeMode === 'light' ? 'bg-white' : 'bg-black',
         colors.panelBorder
       )}
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px), var(--sab, 0px))' }}
@@ -876,7 +876,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
           type="button"
           onClick={onStopGeneration}
           className={cn(
-            'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-xs font-semibold backdrop-blur-md shadow-lg',
+            'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 flex items-center gap-1.5 whitespace-nowrap rounded-[var(--shape-control)] border px-4 py-2 text-xs font-semibold backdrop-blur-md shadow-lg',
             colors.panelBg, colors.panelBorder, colors.textMain,
           )}
         >
@@ -1020,7 +1020,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
               setShowGifPicker(false);
             }}
             disabled={disabled}
-            className={cn("flex-shrink-0 p-2 rounded-full transition-all duration-300 disabled:opacity-50", colors.textMuted, "hover:bg-white/5")}
+            className={cn("flex-shrink-0 p-2 rounded-[var(--shape-control)] transition-all duration-300 disabled:opacity-50", colors.textMuted, "hover:bg-white/5")}
             style={{ color: showEmojiPicker ? colors.accent : undefined }}
             onMouseEnter={(e) => e.currentTarget.style.color = colors.accent}
             onMouseLeave={(e) => e.currentTarget.style.color = showEmojiPicker ? colors.accent : ''}
@@ -1165,7 +1165,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
                 <button
                   onClick={() => removeImage(img.id)}
                   className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full transition-colors opacity-90 hover:opacity-100"
-                  style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)' }}
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                   aria-label="Remove image"
                 >
                   <X size={12} />
@@ -1181,7 +1181,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
                 <button
                   onClick={() => removeDocument(doc.id)}
                   className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full transition-colors opacity-90 hover:opacity-100"
-                  style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)' }}
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                   aria-label="Remove document"
                 >
                   <X size={12} />
@@ -1235,7 +1235,9 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
               placeholder="Write a message..."
               className={cn(
                 "aerie-composer w-full pl-4 pr-16 py-3 focus:outline-none resize-none min-h-[48px] max-h-[150px] text-[15px] font-medium transition-all duration-300 scrollbar-hide overflow-y-auto rounded-[var(--shape-control)]",
-                colors.textMain,
+                // What the owner types is white at night and black by day, the
+                // same rule as the bubbles, not the theme's tinted text.
+                themeMode === 'dark' ? 'text-white' : 'text-[#0B0B0B]',
               )}
               style={{ caretColor: colors.accent }}
               rows={1}

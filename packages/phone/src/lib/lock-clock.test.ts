@@ -1,0 +1,105 @@
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { ageLabel, clampClockAt, clockParts, firstSpokenLine, lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, unreadSummary, withClockAt, withHidden } from './lock-clock.js';
+
+test('both pieces show until the owner tucks one away, and either comes back', () => {
+  assert.deepEqual([...lockHiddenOf(undefined)], []);
+  assert.deepEqual([...lockHiddenOf(['weather', 'nonsense', 'weather'])], ['weather']);
+  assert.deepEqual(withHidden(undefined, 'clock', true), ['clock']);
+  assert.deepEqual(withHidden(['clock', 'weather'], 'clock', false), ['weather']);
+  assert.deepEqual(withHidden(['weather'], 'clock', true), ['clock', 'weather']);
+});
+
+test('the weather pill sits in its corner until the owner drags it', () => {
+  assert.equal(lockWeatherAtOf(undefined), null);
+  assert.equal(lockWeatherAtOf({ x: 'top', y: 1 }), null);
+  assert.deepEqual(lockWeatherAtOf({ x: 0.2, y: 0.9 }), { x: 0.2, y: 0.9 });
+  assert.deepEqual(lockWeatherAtOf({ x: -1, y: 3 }), { x: 0, y: 1 });
+});
+
+test('a face never dragged stays in its own place, and a dragged one keeps its spot', () => {
+  assert.equal(lockClockAtOf(undefined, 'classic'), null);
+  assert.equal(lockClockAtOf({ classic: { x: 'left', y: 0.3 } }, 'classic'), null);
+  assert.deepEqual(lockClockAtOf({ classic: { x: 0.25, y: 0.7 } }, 'classic'), { x: 0.25, y: 0.7 });
+  assert.equal(lockClockAtOf({ classic: { x: 0.25, y: 0.7 } }, 'stacked'), null);
+  assert.deepEqual(lockClockAtOf({ dateline: { x: 1.4, y: -2 } }, 'dateline'), { x: 1, y: 0 });
+});
+
+test("setting one face's spot leaves the others, and null puts it back", () => {
+  const both = withClockAt({ stacked: { x: 0.5, y: 0.2 } }, 'classic', { x: 0.4, y: 0.6 });
+  assert.deepEqual(both, { stacked: { x: 0.5, y: 0.2 }, classic: { x: 0.4, y: 0.6 } });
+  assert.deepEqual(withClockAt(both, 'classic', null), { stacked: { x: 0.5, y: 0.2 } });
+  assert.deepEqual(withClockAt(undefined, 'dateline', null), {});
+});
+
+test('a dragged clock stays wholly on the screen', () => {
+  // A 200 x 100 clock on a 400 x 800 screen, dragged off the top left corner.
+  assert.deepEqual(clampClockAt(-50, -50, 200, 100, 400, 800), { x: 0.25, y: 50 / 800 });
+  // Dragged off the bottom right corner.
+  assert.deepEqual(clampClockAt(900, 900, 200, 100, 400, 800), { x: 0.75, y: 750 / 800 });
+  // Somewhere in the open it lands where the finger left it.
+  assert.deepEqual(clampClockAt(200, 400, 200, 100, 400, 800), { x: 0.5, y: 0.5 });
+  // A clock as wide as the screen can only go up and down.
+  assert.equal(clampClockAt(10, 400, 400, 100, 400, 800).x, 0.5);
+});
+
+test('the stacked face reads the hour in two digits over the minute', () => {
+  const t = clockParts(new Date(2026, 9, 13, 2, 29), 'en-US');
+  assert.equal(t.hour, '02');
+  assert.equal(t.minute, '29');
+  assert.equal(t.short, '2:29');
+  assert.equal(t.dateShort, 'Tue, Oct 13');
+});
+
+test('midnight and noon read twelve, and the evening reads twelve-hour', () => {
+  assert.equal(clockParts(new Date(2026, 9, 14, 0, 5), 'en-US').hour, '12');
+  assert.equal(clockParts(new Date(2026, 9, 14, 12, 30), 'en-US').short, '12:30');
+  assert.equal(clockParts(new Date(2026, 9, 14, 23, 59), 'en-US').hour, '11');
+});
+
+test('nothing moves until a face is picked', () => {
+  assert.equal(lockFaceOf(undefined), 'classic');
+  assert.equal(lockFaceOf('sideways'), 'classic');
+  assert.equal(lockFaceOf('dateline'), 'dateline');
+  assert.equal(lockPositionOf(undefined), 'top');
+  assert.equal(lockSizeOf(undefined), 'm');
+  assert.equal(lockSizeOf('l'), 'l');
+});
+
+test('the message card shows names only until the owner says otherwise', () => {
+  assert.equal(lockShowOf(undefined), 'names');
+  assert.equal(lockShowOf('first-line'), 'first-line');
+});
+
+test('the corners start as the board drew them, and an emptied corner stays empty', () => {
+  assert.deepEqual(lockShortcutsOf(undefined), ['messages', 'treehouse']);
+  assert.deepEqual(lockShortcutsOf([null, 'studio']), [null, 'studio']);
+  assert.deepEqual(lockShortcutsOf(['x']), ['messages', 'treehouse']);
+});
+
+test('the card counts every unread message and reads the newest thread', () => {
+  const s = unreadSummary([
+    { unread_count: 2, last_activity_at: '2026-10-14T07:00:00Z', last_message_preview: 'older' },
+    { unread_count: 0, last_activity_at: '2026-10-14T07:30:00Z', last_message_preview: 'read already' },
+    { unread_count: 1, last_activity_at: '2026-10-14T07:20:00Z', last_message_preview: '**Birch**\n*leans in*\nHere.' },
+  ]);
+  assert.equal(s.count, 3);
+  assert.equal(s.newestAt, Date.parse('2026-10-14T07:20:00Z'));
+  assert.equal(s.firstLine, 'Here.');
+  assert.deepEqual(unreadSummary([]), { count: 0, newestAt: null, firstLine: null });
+});
+
+test('the first line skips headers and action lines, even flattened onto one line', () => {
+  assert.equal(firstSpokenLine('**Cedar** *nods* Hi.'), 'Hi.');
+  assert.equal(firstSpokenLine('*only an action*'), null);
+  assert.equal(firstSpokenLine(null), null);
+});
+
+test('ages read the short way', () => {
+  const now = Date.parse('2026-10-14T08:00:00Z');
+  assert.equal(ageLabel(now - 20_000, now), 'now');
+  assert.equal(ageLabel(now - 5 * 60_000, now), '5m');
+  assert.equal(ageLabel(now - 3 * 3_600_000, now), '3h');
+  assert.equal(ageLabel(now - 2 * 86_400_000, now), '2d');
+});

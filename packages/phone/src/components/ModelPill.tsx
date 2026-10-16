@@ -355,7 +355,7 @@ export function ModelPill({ themeConfig, themeMode }: ModelPillProps) {
     <>
       <button
         onClick={openPicker}
-        className={cn('flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-medium', colors.panelBorder, colors.textMuted)}
+        className={cn('flex items-center gap-1 rounded-[var(--shape-control)] border px-2.5 py-0.5 text-[10px] font-medium', colors.panelBorder, colors.textMuted)}
       >
         {currentName}
         <ChevronDown size={10} />
@@ -408,7 +408,7 @@ export function ModelPill({ themeConfig, themeMode }: ModelPillProps) {
                         )}
                         style={
                           active
-                            ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+                            ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                             : undefined
                         }
                       >
@@ -471,7 +471,7 @@ export function ModelPill({ themeConfig, themeMode }: ModelPillProps) {
                                   void saveSetting('agent.claude_thinking', mode);
                                 }}
                                 className={cn('rounded-lg border px-1 py-1.5 text-[11px]', colors.panelBorder, colors.textMain)}
-                                style={claudeThinking === mode ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : undefined}
+                                style={claudeThinking === mode ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                               >{mode === 'disabled' ? 'Off' : mode === 'enabled' ? 'Always' : 'Adaptive'}</button>
                             ))}
                           </div>
@@ -588,7 +588,7 @@ export function ModelPill({ themeConfig, themeMode }: ModelPillProps) {
                       <button
                         onClick={() => void addModel(activeLane)}
                         className="shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-medium"
-                        style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+                        style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                       >
                         Add
                       </button>

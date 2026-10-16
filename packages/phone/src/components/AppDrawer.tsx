@@ -3,14 +3,20 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useIsPresent } from 'motion/react';
 import { X, Pencil, Search, ChevronLeft } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
+import { AppLabel } from './AppLabel';
+import { DEFAULT_DRAWER_LOOK, drawerIconPx, drawerTileStyle, type DrawerLook } from '../lib/drawer-look';
 import { cn, haptic } from '../lib/utils';
-import { APPS, applyAppLayout, loadAppLayout, saveAppLayout, type AppDef, type AppSlot } from '../lib/apps';
+import { APPS, applyAppLayout, loadAppLayout, saveAppLayout, trimTrailingEmpty, useAppName, type AppDef, type AppSlot, type DrawerColumns } from '../lib/apps';
 
 interface AppDrawerProps {
   onClose: () => void;
   onOpenApp: (app: AppDef) => void;
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
+  /** Apps per row, set in Look & feel; each row size keeps its own layout. */
+  columns?: DrawerColumns;
+  /** The owner's tile choices (lib/drawer-look.ts); unset is the drawer as it always looked. */
+  look?: DrawerLook;
 }
 
 // Sparse grid of launchable apps. Cells can be empty so the user can
@@ -18,13 +24,20 @@ interface AppDrawerProps {
 // odd count. Edit mode unlocks drag-to-move; dropping a tile onto an
 // empty slot moves it there (origin slot becomes empty), dropping onto
 // a filled slot swaps the two. Tap-to-open is suppressed while editing.
-export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDrawerProps) {
+export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns = 4, look = DEFAULT_DRAWER_LOOK }: AppDrawerProps) {
+  const tileStyle = drawerTileStyle(look) as React.CSSProperties;
+  const iconPx = drawerIconPx(look);
+  const label = (text: string) => look.labels === 'hidden'
+    ? null
+    : <AppLabel className={colors.textMain} plain={look.labels === 'plain'}>{text}</AppLabel>;
   const colors = themeConfig[themeMode];
   // False for the whole of the exit animation, while this is still mounted.
   const present = useIsPresent();
+  // The name under a tile (lib/apps.ts useAppName).
+  const nameOf = useAppName();
 
   const [slots, setSlots] = useState<Array<AppDef | null>>(() =>
-    applyAppLayout(APPS, loadAppLayout()),
+    applyAppLayout(APPS, loadAppLayout(columns)),
   );
   const [editing, setEditing] = useState(false);
   const [query, setQuery] = useState('');
@@ -51,12 +64,22 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
   // cols AND add two full empty rows on top, so the user has plenty of
   // room to shuffle and leave gaps wherever they want. (Earlier we
   // tried 0 then +1 row of slack — both turned out too tight in
-  // practice.) The pad stays in the saved layout (harmless —
-  // applyAppLayout iterates it on next load and the same logic
-  // re-applies on next edit).
+  // practice.) The pad is trimmed off again when edit mode ends; it
+  // used to stay in the saved layout, and grew by two rows every edit.
   useEffect(() => {
-    if (!editing) return;
-    const cols = 4;
+    if (!editing) {
+      // Leaving edit mode takes the shuffle room back off the bottom, and
+      // saves that, so the pad never outlives the edit that made it.
+      setSlots((current) => {
+        const trimmed = trimTrailingEmpty(current);
+        if (trimmed.length !== current.length) {
+          saveAppLayout(trimmed.map((a) => (a ? a.id : null)) as AppSlot[], columns);
+        }
+        return trimmed;
+      });
+      return;
+    }
+    const cols = columns;
     const trailing = (cols - (slots.length % cols)) % cols;
     const extras = trailing + cols * 2;
     setSlots((current) => [...current, ...Array(extras).fill(null)]);
@@ -111,7 +134,7 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
       setDragIdx(overIdx);
     }
     function up() {
-      saveAppLayout(slotsRef.current.map((a) => (a ? a.id : null)) as AppSlot[]);
+      saveAppLayout(slotsRef.current.map((a) => (a ? a.id : null)) as AppSlot[], columns);
       setDragIdx(null);
       setPointer(null);
     }
@@ -194,7 +217,7 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
 
       {!editing && (
         <div className="px-5 pb-2">
-          <div className={cn('aerie-field flex items-center gap-2 rounded-full px-3 py-2', colors.textMain)}>
+          <div className={cn('aerie-field flex items-center gap-2 rounded-[var(--shape-control)] px-3 py-2', colors.textMain)}>
             <Search size={14} className={colors.textMuted} />
             <input
               type="text"
@@ -217,7 +240,7 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
           filteredApps.length === 0 ? (
             <p className={cn('text-center py-12 text-xs', colors.textMuted)}>No apps match "{query}"</p>
           ) : (
-            <div className="grid grid-cols-4 gap-x-3 gap-y-5">
+            <div className="grid gap-x-3 gap-y-5" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
               {filteredApps.map((app) => (
                 <div
                   key={`search-${app.id}`}
@@ -225,17 +248,18 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
                   className="flex flex-col items-center gap-1.5 select-none cursor-pointer"
                 >
                   <div
-                    className="aerie-app-tile flex h-14 w-14 items-center justify-center rounded-2xl"
+                    className="aerie-app-tile flex items-center justify-center"
+                    style={tileStyle}
                   >
-                    <app.icon className="h-7 w-7" />
+                    <app.icon style={{ width: iconPx, height: iconPx }} />
                   </div>
-                  <span className={cn('aerie-app-label text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{app.name}</span>
+                  {label(nameOf(app))}
                 </div>
               ))}
             </div>
           )
         ) : (
-        <div className="grid grid-cols-4 gap-x-3 gap-y-5">
+        <div className="grid gap-x-3 gap-y-5" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
           {slots.map((app, idx) => {
             if (!app) {
               // Empty slot — renders as a same-size invisible target so
@@ -252,11 +276,12 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
                 >
                   <div
                     className={cn(
-                      'h-14 w-14 rounded-2xl border-2 border-dashed',
+                      'border-2 border-dashed',
                       editing ? colors.panelBorder : 'border-transparent',
                     )}
+                    style={{ width: tileStyle.width, aspectRatio: '1 / 1', borderRadius: tileStyle.borderRadius }}
                   />
-                  <span className="text-[10px] opacity-0 select-none">·</span>
+                  {look.labels !== 'hidden' && <span className="text-[10px] opacity-0 select-none">·</span>}
                 </div>
               );
             }
@@ -275,11 +300,12 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
                 style={editing ? { touchAction: 'none' } : undefined}
               >
                 <div
-                  className="aerie-app-tile flex h-14 w-14 items-center justify-center rounded-2xl"
+                  className="aerie-app-tile flex items-center justify-center"
+                    style={tileStyle}
                 >
-                  <app.icon className="h-7 w-7" />
+                  <app.icon style={{ width: iconPx, height: iconPx }} />
                 </div>
-                <span className={cn('aerie-app-label text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{app.name}</span>
+                {label(nameOf(app))}
               </div>
             );
           })}
@@ -300,11 +326,12 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode }: AppDra
           }}
         >
           <div
-            className="aerie-app-tile flex h-14 w-14 items-center justify-center rounded-2xl shadow-md"
+            className="aerie-app-tile flex items-center justify-center shadow-md"
+            style={tileStyle}
           >
-            <draggingApp.icon className="h-7 w-7" />
+            <draggingApp.icon style={{ width: iconPx, height: iconPx }} />
           </div>
-          <span className={cn('aerie-app-label text-[10px] font-medium tracking-wide text-center', colors.textMain)}>{draggingApp.name}</span>
+          {label(nameOf(draggingApp))}
         </div>
       )}
     </motion.div>

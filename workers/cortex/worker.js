@@ -178,6 +178,11 @@ export default {
           });
         }
 
+        // Every value below came in on the URL or the form, and the page is
+        // where the token gets typed, so each one is escaped before it lands
+        // in the HTML (an outside audit found that state or code_challenge
+        // carrying a quote could close the attribute and run a script here).
+        const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
         const page = (message) => new Response(`<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Cortex</title><style>
@@ -198,12 +203,12 @@ export default {
   <input type="password" name="cortex_token" autocomplete="current-password" autofocus
          placeholder="Access token" aria-label="Access token">
   <button type="submit">Connect</button>
-  ${message ? `<div class="err">${message}</div>` : ""}
-  <input type="hidden" name="client_id" value="${clientId}">
-  <input type="hidden" name="redirect_uri" value="${redirectUri}">
-  <input type="hidden" name="state" value="${state}">
-  <input type="hidden" name="code_challenge" value="${challenge}">
-  <input type="hidden" name="code_challenge_method" value="${challengeMethod}">
+  ${message ? `<div class="err">${esc(message)}</div>` : ""}
+  <input type="hidden" name="client_id" value="${esc(clientId)}">
+  <input type="hidden" name="redirect_uri" value="${esc(redirectUri)}">
+  <input type="hidden" name="state" value="${esc(state)}">
+  <input type="hidden" name="code_challenge" value="${esc(challenge)}">
+  <input type="hidden" name="code_challenge_method" value="${esc(challengeMethod)}">
 </form></body></html>`, { status: 200, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
 
         if (request.method === "GET") return page("");

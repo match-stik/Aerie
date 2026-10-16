@@ -14,9 +14,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { imageBackendClause } from './orchestrator.js';
+import { DEFAULT_CODEX_IMAGE_MODEL } from './image-gen.js';
 
-test('a codex house is told exactly what it was told before', () => {
-  assert.equal(imageBackendClause('codex'), 'backend:"codex", codexModel:"gpt-5.6-terra", ');
+test('a codex house is told to ask for the house default model', () => {
+  assert.equal(imageBackendClause('codex'), `backend:"codex", codexModel:"${DEFAULT_CODEX_IMAGE_MODEL}", `);
+});
+
+test('the bell asks for the same model Studio falls back to, and a fresh install draws on Terra', () => {
+  assert.equal(DEFAULT_CODEX_IMAGE_MODEL, 'gpt-5.6-terra');
+  assert.match(imageBackendClause('codex'), /codexModel:"gpt-5\.6-terra"/);
 });
 
 test('another backend is named, and the codex-only key does not ride along', () => {

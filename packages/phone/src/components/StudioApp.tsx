@@ -197,8 +197,8 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
         {viewMode === 'edit' && (
           <button
             onClick={applyEdits}
-            className="px-4 py-1.5 rounded-full text-sm font-medium"
-            style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+            className="px-4 py-1.5 rounded-[var(--shape-control)] text-sm font-medium"
+            style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
           >
             Apply
           </button>
@@ -454,7 +454,7 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
             <div className="space-y-3 border-t border-white/10 p-4 pb-[calc(var(--sab)+1rem)]">
               <p className="max-h-24 overflow-y-auto whitespace-pre-wrap text-sm">{viewingImage.prompt}</p>
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => { setViewingImage(null); usePrompt(viewingImage, false); }} className="rounded-xl py-2.5 text-xs font-semibold" style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}>Use prompt</button>
+                <button type="button" onClick={() => { setViewingImage(null); usePrompt(viewingImage, false); }} className="rounded-xl py-2.5 text-xs font-semibold" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>Use prompt</button>
                 <button type="button" onClick={() => { setViewingImage(null); usePrompt(viewingImage, true); }} className="rounded-xl bg-white/10 py-2.5 text-xs font-semibold">Reuse setup</button>
               </div>
             </div>
@@ -477,7 +477,7 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
                 <p className={colors.textMain}><strong>Gemini:</strong> Free image generation using your Google One AI subscription via Antigravity CLI.</p>
                 <p className={colors.textMain}><strong>OpenArt:</strong> Images and video against your OpenArt credits. Trained character models live here.</p>
               </div>
-              <button onClick={() => setShowSettings(false)} className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}>Done</button>
+              <button onClick={() => setShowSettings(false)} className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>Done</button>
             </motion.div>
           </motion.div>
         )}

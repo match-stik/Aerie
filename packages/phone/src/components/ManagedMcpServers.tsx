@@ -232,7 +232,7 @@ export function ManagedMcpServers({ themeConfig, themeMode }: ManagedMcpServersP
               onClick={add}
               disabled={adding || !draftName.trim() || !draftUrl.trim()}
               className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
-              style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
             >
               {adding ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
               Add server

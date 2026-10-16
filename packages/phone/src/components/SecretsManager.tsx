@@ -187,7 +187,7 @@ export function SecretsManager({ themeConfig, themeMode }: SecretsManagerProps) 
                         onClick={() => save(s.name)}
                         disabled={rowBusy}
                         className="rounded-md px-3 py-1.5 text-[11px] font-semibold disabled:opacity-50"
-                        style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+                        style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                       >
                         {rowBusy ? <Loader2 size={11} className="animate-spin inline" /> : 'Save'}
                       </button>

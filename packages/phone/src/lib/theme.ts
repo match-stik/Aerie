@@ -1,6 +1,11 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { PALETTES, type Palette } from './palettes';
+
 export type ThemeMode = 'light' | 'dark';
-export type ThemeId = 'burgundy' | 'crimson' | 'orange' | 'forest' | 'emerald' | 'teal' | 'ocean' | 'sky' | 'cobalt' | 'sapphire' | 'lavender' | 'plum' | 'blush' | 'rose' | 'magenta' | 'mocha' | 'monochrome' | 'custom';
+/** The 2026 multi-color palettes, kept in their own id space ('pal-sky' is
+ *  not the old 'sky') so a saved setting can never mean two themes. */
+export type PaletteThemeId = `pal-${string}`;
+export type ThemeId = PaletteThemeId | 'burgundy' | 'crimson' | 'orange' | 'forest' | 'emerald' | 'teal' | 'ocean' | 'sky' | 'cobalt' | 'sapphire' | 'lavender' | 'plum' | 'blush' | 'rose' | 'magenta' | 'mocha' | 'monochrome' | 'custom';
 
 export interface ThemeColors {
   pageBg: string;
@@ -49,9 +54,12 @@ export interface ThemeConfig {
   radius: string;
   light: ThemeColors;
   dark: ThemeColors;
+  /** Present on the multi-color palettes only. App.tsx reads it to set the
+   *  four-color variables, and index.css paints [data-palette] surfaces from them. */
+  palette?: Palette;
 }
 
-const BASE_THEMES: Record<ThemeId, ThemeConfig> = {
+const BASE_THEMES: Record<string, ThemeConfig> = {
   custom: {
     id: 'custom',
     name: 'Custom',
@@ -650,8 +658,24 @@ function applyOpacity(color: string, opacity?: string): string {
   return `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
 }
 
+// The live palette's real colors, so anything that resolves a theme color in
+// JS (bubbles, canvases, the status bar) gets hex rather than var(--pal-*),
+// which a canvas or a meta tag cannot use. App sets it at render, before any
+// child resolves.
+let LIVE_PALETTE: Record<string, string> = {};
+export function setLivePalette(p: Palette | undefined, mode: ThemeMode): void {
+  LIVE_PALETTE = p ? paletteVars(p, mode) : {};
+}
+function fillPaletteVars(value: string): string {
+  return value.replace(/var\((--pal-[a-z-]+)\)/g, (whole, name: string) => LIVE_PALETTE[name] ?? whole);
+}
+
 /** Resolve a theme utility (or a raw CSS color) to a value usable in CSS. */
 export function resolveThemeColor(value: string | undefined, fallback: string): string {
+  return fillPaletteVars(resolveThemeColorRaw(value, fallback));
+}
+
+function resolveThemeColorRaw(value: string | undefined, fallback: string): string {
   if (!value) return fallback;
   const trimmed = value.trim();
   if (trimmed.startsWith('#') || trimmed.startsWith('rgb') || trimmed.startsWith('hsl') || trimmed.startsWith('var(') || trimmed.startsWith('color-mix(')) {
@@ -705,6 +729,21 @@ function parseCssColor(color: string): Rgba | null {
   return { r: Number(rgbMatch[1]), g: Number(rgbMatch[2]), b: Number(rgbMatch[3]), a: rgbMatch[4] === undefined ? 1 : Number(rgbMatch[4]) };
 }
 
+/**
+ * Lay a possibly see-through color over a backdrop and hand back the solid
+ * result, so a surface shows its color and none of the wallpaper behind it.
+ * Anything it cannot parse
+ * comes back unchanged.
+ */
+export function flattenOver(color: string, backdrop: string): string {
+  const top = parseCssColor(color);
+  const under = parseCssColor(backdrop);
+  if (!top || !under) return color;
+  const a = top.a;
+  const ch = (t: number, u: number) => Math.round(t * a + u * (1 - a));
+  return `rgb(${ch(top.r, under.r)}, ${ch(top.g, under.g)}, ${ch(top.b, under.b)})`;
+}
+
 /** Pick the higher-contrast ink, compositing translucent fills when possible. */
 /**
  * The ink on anything filled with the theme accent: a selected tab, pill,
@@ -715,8 +754,42 @@ function parseCssColor(color: string): Rgba | null {
  * read softer this way (burgundy and plum at night, sky, blush and teal by day)
  * in exchange for selected states that never change with the color.
  */
-export function onAccentInk(mode: 'light' | 'dark'): '#090807' | '#ffffff' {
-  return mode === 'dark' ? '#090807' : '#ffffff';
+export function onAccentInk(_mode: 'light' | 'dark'): '#090807' | '#ffffff' {
+  // Light text on anything selected, every theme, both modes. The fill is
+  // fitted to it (selectedFill below), the way the bubbles are, rather than
+  // the ink flipping per color.
+  return '#ffffff';
+}
+
+function luminance(c: { r: number; g: number; b: number }): number {
+  const [r, g, b] = [c.r, c.g, c.b].map((v) => {
+    const x = v / 255;
+    return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Mix a color toward `toward` in 4% steps until white text on it reaches
+ *  4.6:1 (the doc's bubble fit, and over the 4.58 crossover this house
+ *  measured). Unparsable colors come back unchanged. */
+export function fitForWhite(color: string, toward = '#000000'): string {
+  const c = parseCssColor(color);
+  const t = parseCssColor(toward);
+  if (!c || !t) return color;
+  let k = 1;
+  let out = { r: c.r, g: c.g, b: c.b };
+  while (1.05 / (luminance(out) + 0.05) < 4.6 && k > 0.05) {
+    k -= 0.04;
+    out = { r: c.r * k + t.r * (1 - k), g: c.g * k + t.g * (1 - k), b: c.b * k + t.b * (1 - k) };
+  }
+  const h = (v: number) => Math.round(v).toString(16).padStart(2, '0');
+  return `#${h(out.r)}${h(out.g)}${h(out.b)}`;
+}
+
+/** What a selected pill, tab or button is filled with: two tones like the
+ *  user bubble so it isn't flat, both deep enough for white text. */
+export function selectedFill(from: string, to: string, page: string): string {
+  return `linear-gradient(135deg, ${fitForWhite(from, page)}, ${fitForWhite(to, page)})`;
 }
 
 export function contrastTextColor(color: string, fallback = '#ffffff', backdrop?: string): '#090807' | '#ffffff' {
@@ -765,9 +838,110 @@ function decorateTheme(config: ThemeConfig): ThemeConfig {
   };
 }
 
-export const THEMES = Object.fromEntries(
-  Object.entries(BASE_THEMES).map(([id, config]) => [id, decorateTheme(config)]),
-) as Record<ThemeId, ThemeConfig>;
+/**
+ * A palette as a ThemeConfig, so every screen that reads the old utility-class
+ * contract keeps working. The look itself (the two-color boxes and bubbles)
+ * comes from the CSS variables App.tsx sets off `palette`, not from these.
+ * Day uses soft paper by default, per the doc.
+ */
+function paletteTheme(p: Palette): ThemeConfig {
+  // Tailwind only generates classes it can read in source, so a class built
+  // from a palette's hex would never be painted. Every palette shares these
+  // literal var() classes instead, and App.tsx fills the --pal-* variables
+  // from whichever palette and mode are live.
+  const colors: ThemeColors = {
+    pageBg: 'bg-[var(--pal-page)]',
+    panelBg: 'bg-[var(--pal-panel)]',
+    panelBorder: 'border-[var(--pal-border)]',
+    textMain: 'text-[var(--pal-text)]',
+    textMuted: 'text-[var(--pal-muted)]',
+    userBubbleBg: 'bg-[var(--pal-user-bubble)]',
+    userBubbleText: 'text-[var(--pal-bubble-text)]',
+    compBubbleBg: 'bg-[var(--pal-surface)]',
+    compBubbleText: 'text-[var(--pal-bubble-text)]',
+    accent: 'var(--pal-primary)',
+    accentText: 'text-[var(--pal-accent-text)]',
+  };
+  return {
+    id: `pal-${p.id}`,
+    name: p.name,
+    fontFamily: 'font-sans',
+    messageFontFamily: 'font-sans',
+    radius: 'rounded-2xl',
+    palette: p,
+    dark: { ...colors },
+    light: { ...colors },
+  };
+}
+
+/** The doc's mix(c, n) and mix(c, n, base). */
+function mix(c: string, n: number, base = 'transparent'): string {
+  return `color-mix(in srgb, ${c} ${n}%, ${base})`;
+}
+
+/** The real colors behind the --pal-* variables for one palette and mode.
+ *  Day uses soft paper by default, per the doc. */
+export function paletteVars(p: Palette, mode: ThemeMode): Record<string, string> {
+  if (mode === 'dark') {
+    const n = p.night;
+    return {
+      '--pal-page': n.deep,
+      '--pal-surface': n.surface,
+      '--pal-panel': `color-mix(in srgb, ${n.surface} 90%, transparent)`,
+      '--pal-border': `color-mix(in srgb, ${n.primary} 32%, transparent)`,
+      '--pal-text': n.text,
+      '--pal-muted': n.muted,
+      '--pal-primary': n.primary,
+      '--pal-secondary': n.secondary,
+      '--pal-glow': n.glow,
+      '--pal-spark': n.spark,
+      '--pal-velvet': n.velvet || n.secondary,
+      '--pal-ink': n.ink,
+      '--pal-user-bubble': n.bubbleUser[0],
+      '--pal-user-bubble-to': n.bubbleUser[1],
+      '--pal-bubble-text': '#FFFFFF',
+      '--pal-accent-text': n.glow,
+      // The doc's night recipe (AERIE-THEMES §3), one value per piece.
+      '--pal-panel-wash': `linear-gradient(150deg, ${mix(n.primary, 18)} 0%, transparent 48%, ${mix(n.velvet || n.secondary, 46)} 100%)`,
+      '--pal-panel-shadow': `inset 0 1px 0 ${mix(n.glow, 22)}, 0 12px 28px rgba(0, 0, 0, 0.3)`,
+      '--pal-comp-bubble': `linear-gradient(160deg, ${mix(n.velvet || n.primary, n.velvet ? 34 : 18, n.surface)} 0%, ${mix(n.secondary, n.velvet ? 18 : 16, n.surface)} 100%)`,
+      '--pal-comp-border': mix(n.primary, 28),
+      '--pal-user-bubble-grad': `linear-gradient(135deg, ${n.bubbleUser[0]}, ${n.bubbleUser[1]})`,
+    };
+  }
+  const d = p.day;
+  return {
+    '--pal-page': d.soft.page,
+    '--pal-surface': d.soft.surface,
+    '--pal-panel': `color-mix(in srgb, ${d.soft.surface} 95%, transparent)`,
+    '--pal-border': `color-mix(in srgb, ${d.primary} 26%, transparent)`,
+    '--pal-text': d.text,
+    '--pal-muted': d.soft.muted,
+    '--pal-primary': d.primary,
+    '--pal-secondary': d.secondary,
+    '--pal-glow': d.soft.glow,
+    '--pal-spark': d.spark,
+    '--pal-velvet': d.wash,
+    '--pal-ink': d.ink,
+    '--pal-user-bubble': d.bubbleUser[0],
+    '--pal-user-bubble-to': d.bubbleUser[1],
+    '--pal-bubble-text': '#0B0B0B',
+    '--pal-accent-text': d.primary,
+    '--pal-panel-wash': `linear-gradient(150deg, ${mix(d.primary, 12)} 0%, transparent 50%, ${d.wash} 100%)`,
+    '--pal-panel-shadow': `inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 10px 26px ${mix(d.text, 10)}`,
+    '--pal-comp-bubble': `linear-gradient(160deg, ${mix(d.primary, 12, d.soft.surface)} 0%, ${mix(d.secondary, 12, d.soft.surface)} 100%)`,
+    '--pal-comp-border': mix(d.primary, 24),
+    '--pal-user-bubble-grad': `linear-gradient(135deg, ${d.bubbleUser[0]}, ${d.bubbleUser[1]})`,
+  };
+}
+
+/** The palettes in spectrum order, for the picker's second page. */
+export const PALETTE_THEME_IDS: PaletteThemeId[] = PALETTES.map((p) => `pal-${p.id}` as PaletteThemeId);
+
+export const THEMES = Object.fromEntries([
+  ...Object.entries(BASE_THEMES).map(([id, config]) => [id, decorateTheme(config)]),
+  ...PALETTES.map((p) => [`pal-${p.id}`, decorateTheme(paletteTheme(p))]),
+]) as Record<ThemeId, ThemeConfig>;
 
 // Shape. The radius token above is a Tailwind class, which cannot slide —
 // so the slider works in pixels: the theme's class supplies the default,

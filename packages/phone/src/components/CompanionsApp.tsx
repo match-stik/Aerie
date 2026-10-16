@@ -303,13 +303,13 @@ export function CompanionsApp({
                 </button>
                 <button
                   onClick={handleUseFullImage}
-                  className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest border border-white/20 text-white rounded-full hover:bg-white/10"
+                  className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest border border-white/20 text-white rounded-[var(--shape-control)] hover:bg-white/10"
                 >
                   Use Full
                 </button>
                 <button
                   onClick={handleSaveCrop}
-                  className="flex items-center gap-2 px-5 py-2 bg-white text-black text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-white/90"
+                  className="flex items-center gap-2 px-5 py-2 bg-white text-black text-[10px] font-bold uppercase tracking-widest rounded-[var(--shape-control)] hover:bg-white/90"
                 >
                   <Check size={16} /> Apply
                 </button>

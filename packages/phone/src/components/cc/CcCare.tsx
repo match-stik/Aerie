@@ -141,7 +141,7 @@ export function CcCare({ themeConfig, themeMode }: CcSubPageProps) {
                       key={cat}
                       onClick={() => upsert(cat, on ? 'false' : 'true')}
                       className={cn('flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs', colors.panelBorder)}
-                      style={on ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : { color: 'var(--aerie-text)' }}
+                      style={on ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : { color: 'var(--aerie-text)' }}
                     >
                       {on && <Check size={12} />}
                       {formatCategory(cat)}

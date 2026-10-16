@@ -128,3 +128,17 @@ test('a refusal says which check tripped', () => {
   assert.equal(v.ok, false);
   assert.match((v as { why: string }).why, /x-forwarded-for/);
 });
+
+const { sideNoteTarget } = await import('./supervisor.js');
+
+// A note from the owner's phone is handed into a busy turn only when that turn
+// answers at home; a turn answering on Discord makes it queue.
+test('a note from the owner\'s phone goes into the one busy turn only when it answers at home', () => {
+  const home = { turnActive: true, turnAnswersElsewhere: false };
+  const discord = { turnActive: true, turnAnswersElsewhere: true };
+  const idle = { turnActive: false, turnAnswersElsewhere: false };
+  assert.equal(sideNoteTarget([idle, home]), home);
+  assert.equal(sideNoteTarget([idle, discord]), null, 'a Discord turn would answer it in the channel');
+  assert.equal(sideNoteTarget([idle]), null, 'nobody busy: it queues');
+  assert.equal(sideNoteTarget([home, { ...home }]), null, 'two busy: no way to know which room');
+});

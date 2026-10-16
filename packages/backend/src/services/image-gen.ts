@@ -1237,6 +1237,61 @@ export function pairwiseDistinctions(
     .join('\n');
 }
 
+/** The Codex model a picture is drawn on when the request names none, and the
+ *  one every bell is told to ask for. Terra on purpose: which Codex model a
+ *  house draws on is a fact about its owner's own plan, and Astra needs Codex
+ *  CLI 0.153.0 or later and costs about two to three times Terra per picture.
+ *  The Studio picker still sends whatever the owner chose. */
+export const DEFAULT_CODEX_IMAGE_MODEL = 'gpt-5.6-terra';
+
+/** The file in a drawer that holds what its photos cannot. */
+export const BUILD_NOTE_FILE = 'build.txt';
+const BUILD_NOTE_MAX = 300;
+
+/**
+ * Height and build, for each subject in the frame whose drawer keeps a note.
+ *
+ * A reference photo carries a face and never a height: every photo in one
+ * house's drawers was somebody leaning back on a couch, so the renderer
+ * guessed, and subjects of different heights and builds came out
+ * interchangeable. One
+ * plain line in the drawer's build.txt, written by hand, says what the photo
+ * cannot. A drawer without one adds nothing, so a fresh install says nothing.
+ * Read per request, so an edit needs no restart.
+ */
+export function subjectBuildNotes(
+  subjects: string[] | undefined,
+  opts: { refsDir?: string; drawers?: ReadonlyArray<{ slug: string; label: string }> } = {},
+): string {
+  if (!subjects || subjects.length === 0) return '';
+  const refsDir = opts.refsDir ?? REFS_DIR;
+  const drawers = opts.drawers ?? listDrawers();
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of subjects) {
+    const name = String(raw).toLowerCase().trim();
+    const slug = sanitizeSlug(name);
+    const drawer = drawers.find(
+      (d) => d.slug === slug || d.label.toLowerCase() === name || slugifyDrawer(d.label) === slug,
+    );
+    if (!drawer || seen.has(drawer.slug)) continue;
+    seen.add(drawer.slug);
+    let note = '';
+    try {
+      note = readFileSync(join(refsDir, drawer.slug, BUILD_NOTE_FILE), 'utf8');
+    } catch {
+      continue;
+    }
+    note = note.replace(/\s+/g, ' ').trim().slice(0, BUILD_NOTE_MAX);
+    if (note) lines.push(`  - ${drawer.label}: ${note}`);
+  }
+  if (lines.length === 0) return '';
+  return (
+    'HEIGHT AND BUILD — no reference photo can show these, so keep them true, and keep them true relative to each other when people stand together:\n' +
+    lines.join('\n')
+  );
+}
+
 async function resolveSubjectRefs(
   subjects: string[] | undefined,
   maxPerSubject = MAX_REFS_PER_SUBJECT,
@@ -1379,18 +1434,20 @@ async function generateViaCodex(input: GenerateInput): Promise<GenerateResult> {
         (pairwiseDistinctions(input.subjects) ? `\n${pairwiseDistinctions(input.subjects)}` : '')
       : '';
 
+  const builds = subjectBuildNotes(input.subjects);
+
   const instruction =
     `Generate ONE image with your built-in image_gen tool.${sizeGuidance ? ' ' + sizeGuidance : ''}${qualityLine ? ' ' + qualityLine : ''}\n` +
-    `${refLine}\n` +
+    `${refLine}${builds ? `\n${builds}` : ''}\n` +
     `Use ONLY the built-in image_gen tool. Do NOT use any CLI, API, or OPENAI_API_KEY path.\n\n` +
     `--- PROMPT ---\n${input.prompt}\n--- END PROMPT ---\n\n` +
     `After it is saved, output as the final line exactly: RESULT_PATH=<absolute path>`;
 
-  // Use the requested model, or gpt-5.6-terra. This used to fall back to
-  // gpt-5.4, which left ChatGPT-signed Codex on Aug 31 2026, so a request
-  // naming no model failed here and was handed down the fallback chain with
-  // nobody told.
-  const codexModel = input.codexModel || 'gpt-5.6-terra';
+  // Use the requested model, or the house default (see DEFAULT_CODEX_IMAGE_MODEL).
+  // This used to fall back to gpt-5.4, which left ChatGPT-signed Codex on
+  // Aug 31 2026, so a request naming no model failed here and was handed down
+  // the fallback chain with nobody told.
+  const codexModel = input.codexModel || DEFAULT_CODEX_IMAGE_MODEL;
 
   const args = [
     'exec',

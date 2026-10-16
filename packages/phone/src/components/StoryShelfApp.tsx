@@ -104,7 +104,7 @@ const SPINE_SHADOW = 'inset -3px 0 6px oklch(0 0 0 / 0.3), inset 2px 0 2px oklch
 const cloth = (hue: number) => `oklch(0.42 0.085 ${hue})`;
 const clothInk = (hue: number) => `oklch(0.96 0.015 ${hue})`;
 /** An accent fill, with the house's one rule for the ink on it. */
-const ACCENT_FILL = { background: 'var(--aerie-accent)', color: 'var(--aerie-on-accent)' } as const;
+const ACCENT_FILL = { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } as const;
 
 /** How many spines stand in a row before the next ledge. */
 const SPINES_PER_ROW = 5;
@@ -1065,7 +1065,7 @@ function StateCard({ state, colors }: { state: StoryStateCard; colors: ThemeColo
   return (
     <div className="mt-3 rounded-xl border p-3" style={{ borderColor: HAIRLINE, background: CARD }}>
       {state.badge && (
-        <span className="inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold" style={{ background: ACCENT_WASH, color: 'var(--aerie-text)' }}>
+        <span className="inline-block rounded-[var(--shape-control)] px-2.5 py-0.5 text-[11px] font-semibold" style={{ background: ACCENT_WASH, color: 'var(--aerie-text)' }}>
           {state.badge}
         </span>
       )}

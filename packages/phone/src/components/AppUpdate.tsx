@@ -118,7 +118,7 @@ export function AppUpdate({ themeConfig, themeMode }: Props) {
             <a
               href="/api/app/download"
               className="flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold active:scale-[0.99]"
-              style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
             >
               <Download size={14} />
               {native ? 'Download update' : 'Download the app'}

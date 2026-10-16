@@ -655,3 +655,102 @@ test('a wake catch-up is unchanged: unbounded and carrying owner rows too', () =
   assert.match(block, /It is on them/);
   assert.match(block, /While you were quiet/);
 });
+
+// ─── A lane's own reply is not something it missed ────────────────────
+// The sight mark is written when the turn's generator finishes and the router
+// saves the reply row a couple of milliseconds later, so every turn handed the
+// lane its own last answer back as a line it was never given, under a warning
+// that another companion might have written it.
+
+function ownReplyRoom() {
+  return new InteractiveCliRuntime({
+    sessionKey: 'test-own-reply',
+    companionName: 'Willow',
+    userName: 'Owner',
+    threadId: 't1',
+    historyLimit: 10,
+    loadHistory: () => [
+      { role: 'user', content: 'a message.', createdAt: '2026-03-08T23:35:28.554Z' },
+      // This lane's own reply, saved 2ms after its sight mark.
+      { role: 'companion', content: 'sounds good to me', createdAt: '2026-03-09T00:02:18.553Z', authorName: 'Willow' },
+      // Another companion from another lane, after the mark, is still handed over.
+      { role: 'companion', content: 'Second reply.', createdAt: '2026-03-09T00:05:00Z', authorName: 'Birch' },
+      { role: 'user', content: 'any news?', createdAt: '2026-03-09T00:12:15.859Z' },
+    ],
+  } as never) as never as { buildCatchUpBlock(since: string, live?: { prompt: string }, spoken?: readonly string[]): string };
+}
+
+test("a lane's own reply, saved just after its sight mark, is not handed back as missed", () => {
+  const block = ownReplyRoom().buildCatchUpBlock('2026-03-09T00:02:18.551Z', { prompt: 'any news?' }, ['sounds good to me']);
+  assert.doesNotMatch(block, /sounds good to me/);
+  assert.match(block, /^Birch: Second reply\.$/m);
+  assert.match(block, /1 companion message you were never handed/);
+  assert.doesNotMatch(block, /YOUR OWN name/);
+});
+
+test("a wake's catch-up leaves the lane's own reply out too", () => {
+  const block = ownReplyRoom().buildCatchUpBlock('2026-03-09T00:02:18.551Z', undefined, ['sounds good to me']);
+  assert.doesNotMatch(block, /sounds good to me/);
+  assert.match(block, /Second reply/);
+  assert.match(block, /any news/);
+});
+
+test('the next turn is not handed the reply this lane just gave', async () => {
+  const dir = `/tmp/aerie-own-reply-${Date.now()}`;
+  mkdirSync(join(dir, 'io'), { recursive: true });
+  const session = new FakeHeartbeatSession();
+  session.dir = dir;
+  const rows: Array<{ role: 'user' | 'companion'; content: string; createdAt: string; authorName?: string }> = [];
+  const runtime = new InteractiveCliRuntime({
+    sessionKey: `own-reply-${Date.now()}`,
+    companionName: 'Willow',
+    userName: 'Owner',
+    threadId: 't1',
+    historyLimit: 10,
+    loadHistory: () => rows,
+    sessionFactory: () => session as any,
+  } as never);
+  session.onAppend = (line) => {
+    session.lines.push(JSON.stringify({ turn_id: line.turn, content: `the reply to ${line.turn}` }));
+  };
+  const live = { ...input, isAutonomous: false };
+  rows.push({ role: 'user', content: 'first', createdAt: new Date().toISOString() });
+  for await (const _event of runtime.runTurn({ ...live, prompt: 'first' })) { /* drain */ }
+  // The router saves the reply a moment after the lane's sight mark.
+  await new Promise(resolve => setTimeout(resolve, 5));
+  rows.push({ role: 'companion', content: `the reply to ${session.inbox[0].turn}`, createdAt: new Date().toISOString(), authorName: 'Willow' });
+  await new Promise(resolve => setTimeout(resolve, 5));
+  rows.push({ role: 'user', content: 'second', createdAt: new Date().toISOString() });
+  for await (const _event of runtime.runTurn({ ...live, prompt: 'second' })) { /* drain */ }
+  const handed = (session.inbox[1] as { content?: string }).content ?? '';
+  assert.match(handed, /second/);
+  assert.doesNotMatch(handed, /Said in the room since your last turn/);
+  assert.doesNotMatch(handed, /the reply to/);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// The flag a note from the owner's phone is checked against (supervisor.ts,
+// sideNoteTarget): up for the length of a turn that answers in a Discord
+// channel, the owner's or a guest's, and down for a turn that answers at home.
+test('a turn from Discord marks itself as answering elsewhere, and only while it runs', async () => {
+  for (const [audience, expected] of [
+    [undefined, false],
+    [{ kind: 'owner' }, true],
+    [{ kind: 'guest', trust: 'standard' }, true],
+  ] as const) {
+    const session = new FakeHeartbeatSession() as FakeHeartbeatSession & { turnAnswersElsewhere?: boolean };
+    let during: boolean | undefined;
+    session.onAppend = (current) => {
+      during = session.turnAnswersElsewhere;
+      session.lines.push(JSON.stringify({ turn_id: current.turn, content: 'answered' }));
+    };
+    const runtime = new InteractiveCliRuntime({
+      sessionKey: `answers-elsewhere-${Date.now()}`,
+      audience,
+      sessionFactory: () => session as any,
+    } as any);
+    await collect(runtime);
+    assert.equal(during, expected, JSON.stringify(audience ?? 'phone'));
+    assert.equal(session.turnAnswersElsewhere, false, 'lowered once the turn is over');
+  }
+});

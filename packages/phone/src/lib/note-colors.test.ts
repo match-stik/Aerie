@@ -167,3 +167,18 @@ test('a malformed pin is not treated as a colour', () => {
   const palette = noteColorsForAccent('#1e3a5f', 'dark');
   assert.strictEqual(resolveNoteColor('pin:not-a-colour', palette), null);
 });
+
+test('a multi-color palette gets its own five notes, not the fallback', async () => {
+  const { noteColorsForPalette } = await import('./note-colors.js');
+  const fire = { primary: '#B3263A', secondary: '#A4471F', glow: '#D08A4E', spark: '#E6D6BE' };
+  const tide = { primary: '#2AA198', secondary: '#268BD2', glow: '#9DA3E3', spark: '#CB4B16' };
+  for (const mode of ['dark', 'light'] as const) {
+    const a = noteColorsForPalette(fire, mode);
+    const b = noteColorsForPalette(tide, mode);
+    assert.equal(a.length, 5);
+    assert.ok(a.every((c) => /^#[0-9a-f]{6}$/.test(c)), a.join());
+    assert.equal(new Set(a).size, 5, 'five distinct notes');
+    assert.notDeepEqual(a, b, 'two palettes do not share notes');
+    assert.ok(!a.includes('#fef08a'));
+  }
+});

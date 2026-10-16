@@ -83,7 +83,7 @@ export function CcFinances({ themeConfig, themeMode }: CcSubPageProps) {
               key={p}
               onClick={() => { setPeriod(p); load(p); }}
               className={cn('rounded-lg px-3 py-1.5 text-xs font-medium capitalize border', colors.panelBorder, period !== p && colors.panelBg)}
-              style={period === p ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
+              style={period === p ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
             >
               {p}
             </button>

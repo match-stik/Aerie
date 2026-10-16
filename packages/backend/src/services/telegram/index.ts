@@ -423,7 +423,7 @@ export class TelegramService {
       threadId,
       content,
       { name: threadName, type: 'named' },
-      { platform: 'telegram', platformContext, inboundSequence: incomingMsg.sequence },
+      { platform: 'telegram', platformContext, inboundSequence: incomingMsg.sequence, messageId: incomingMsg.id },
     );
 
     if (!response || response.trim() === '' || response === '[No response]') {

@@ -345,7 +345,7 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
               key={r}
               onClick={() => setRange(r)}
               className={cn('flex-1 rounded-lg py-1.5 text-xs font-medium capitalize transition-colors border', colors.panelBorder)}
-              style={range === r ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : undefined}
+              style={range === r ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               {r}
             </button>
@@ -365,7 +365,7 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
                 colors.panelBorder,
                 tab !== t.id && colors.textMuted,
               )}
-              style={tab === t.id ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
+              style={tab === t.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
             >
               {t.label}
             </button>

@@ -1,5 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useState, useRef } from 'react';
+import { DEFAULT_LOOK, nameColor, type BubbleLook } from '../lib/bubble-look';
 import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -188,6 +189,11 @@ interface MessageBubbleProps {
   // The owner's avatar + ring color, mirrored on the right of their bubbles.
   userAvatar?: string;
   userAvatarColor?: string;
+  // The Bubbles switches (lib/bubble-look.ts): faces, names, edges in the
+  // companions' colors, quieter action lines. Absent is the bubbles as they always were.
+  look?: BubbleLook;
+  // The owner's name, for the label over their bubbles when it is turned on.
+  ownerName?: string;
   // Meta-only preamble bubbles (leading thinking/tool badges before the
   // first voice) render centered with no speech-bubble tail.
   centered?: boolean;
@@ -198,7 +204,7 @@ const EMOJIS = ['❤️', '👍', '🔥', '😂', '😮'];
 // ElevenLabs Voice IDs
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || "";
 
-export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, onReroll, rerollRemoves, onReply, onCopy, copyText, onJumpToReply, themeConfig, themeMode, elevenLabsApiKey, contacts, isPrivateTab, onMediaLoad, customEmojis, voice, groupPos = 'only', userAvatar, userAvatarColor, centered }: MessageBubbleProps) {
+export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, onReroll, rerollRemoves, onReply, onCopy, copyText, onJumpToReply, themeConfig, themeMode, elevenLabsApiKey, contacts, isPrivateTab, onMediaLoad, customEmojis, voice, groupPos = 'only', userAvatar, userAvatarColor, centered, look = DEFAULT_LOOK, ownerName }: MessageBubbleProps) {
   const [showReactions, setShowReactions] = useState(false);
   const [showCustomReactions, setShowCustomReactions] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -584,6 +590,178 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   // decides here, once, and everything downstream reads this.
   const isGuest = !isUser && !!message.sender && !!message.via;
   const isSystem = message.isSystem === true && !isGuest;
+  // A companion speaking in an ordinary bubble: the only bubbles the Bubbles
+  // switches touch.
+  const isCompanion = !isUser && !isPrivateTab && !isSystem && !!voice;
+  const companionNameColor = isCompanion ? nameColor(voice!.slug, voice!.color, themeMode, resolvedColors.pageBg) : null;
+  // The owner's bubbles, and their name in their own ring color lifted until it reads.
+  const isOwner = isUser && !isPrivateTab && !centered;
+  const ownerNameColor = isOwner && look.myName ? nameColor('', userAvatarColor || '#f97316', themeMode, resolvedColors.pageBg) : null;
+  // A face sits level with its bubble's tail: at the top, or at the bottom.
+  // A name sits by the face: over the bubble with a top tail, and with a
+  // bottom tail on one line under the bubble that it shares with the time,
+  // the name at the face's end and the time at the far end. A name is never
+  // cut short (a house can have a long one): it gets the room it needs and
+  // wraps only when the line runs out.
+  const sideTail = isUser ? look.tailMine : look.tailOurs;
+  const nameLabel = (extra: string) => ownerNameColor && ownerName ? (
+    <div
+      className={cn("min-w-0 break-words text-right mr-0.5 text-[10px] font-semibold uppercase", extra)}
+      style={{ letterSpacing: '0.16em', color: ownerNameColor }}
+    >
+      {ownerName}
+    </div>
+  ) : isCompanion && look.names ? (
+    <div
+      className={cn("min-w-0 break-words ml-0.5 text-[10px] font-semibold uppercase", extra)}
+      style={{ letterSpacing: '0.16em', color: companionNameColor! }}
+    >
+      {voice!.display_name}
+    </div>
+  ) : null;
+  const hasName = (!!ownerNameColor && !!ownerName) || (isCompanion && look.names);
+  // Everything under the bubble shares one line: with a bottom tail the name
+  // (when it shows) at the face's end, and on a turn's last bubble the time at
+  // the far end, name or no name.
+  // And the time always takes the far end, top tail or bottom: it reads better
+  // there, and the tray, which opens on the face's side under the bubble, no
+  // longer lands on it.
+  const underLine = !isPrivateTab && !isSystem && ((sideTail === 'bottom' && hasName) || isGroupLast);
+  // Each face is pinned to its own bubble's edge, level with the tail: the
+  // top corner, or the bottom one (with the tail at the bottom the face would
+  // otherwise sit low, lined up with the name under the bubble rather than the
+  // bubble). The rail keeps its width as an empty spacer, so nothing
+  // else moves; the face rides inside the bubble's box, out over the spacer.
+  const faceTail = isUser ? look.tailMine : look.tailOurs;
+  // The Rings choice: each face in its own house color, or all in the theme's.
+  const themeRing = look.rings === 'theme';
+  const facePin = cn("absolute w-9", isUser ? "-right-[44px]" : "-left-[44px]", faceTail === 'bottom' ? "bottom-0" : "top-0.5");
+  const pinnedFace = isGuest && !isPrivateTab && !voice ? (
+    <div className={facePin} title={`${message.sender} · ${message.via}`}>
+      {message.senderAvatar && !avatarFailed ? (
+        <img
+          src={message.senderAvatar}
+          alt={message.sender}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          decoding="async"
+          onError={() => setAvatarFailed(true)}
+          className="w-9 h-9 rounded-full object-cover border-2"
+          style={{ borderColor: colors.accent }}
+        />
+      ) : (
+        <div
+          className={cn("w-9 h-9 rounded-full flex items-center justify-center text-base font-bold border-2", colors.compBubbleBg)}
+          style={{ borderColor: colors.accent, color: themeMode === 'dark' ? '#fff' : '#000', opacity: 0.9 }}
+        >
+          {message.sender!.charAt(0).toUpperCase()}
+        </div>
+      )}
+    </div>
+  ) : !isUser && !isPrivateTab && !isSystem && voice && look.faces ? (
+    <div className={facePin} title={voice.display_name}>
+      {voice.avatar_url ? (
+        <img
+          src={voice.avatar_url}
+          alt={voice.display_name}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          decoding="async"
+          className={cn("w-9 h-9 rounded-full object-cover border-2", themeRing && "aerie-theme-ring")}
+          style={themeRing ? undefined : { borderColor: voice.color || 'transparent' }}
+        />
+      ) : (
+        <div
+          className={cn("w-9 h-9 rounded-full flex items-center justify-center text-base border-2", themeRing && "aerie-theme-ring")}
+          style={themeRing ? undefined : { borderColor: voice.color || 'transparent', background: 'rgba(127,127,127,0.15)' }}
+        >
+          {voice.emoji || voice.display_name.charAt(0)}
+        </div>
+      )}
+    </div>
+  ) : isUser && !isPrivateTab && userAvatar && look.faces ? (
+    <div className={facePin} title="You">
+      <img
+        src={userAvatar}
+        alt="You"
+        loading="lazy"
+        decoding="async"
+        className={cn("w-9 h-9 rounded-full object-cover border-2", themeRing && "aerie-theme-ring")}
+        style={themeRing ? undefined : { borderColor: userAvatarColor || 'transparent' }}
+      />
+    </div>
+  ) : null;
+  // A bubble with a line under it (the time, or a name beside the face) is
+  // never narrower than that line, so the date card sits under the bubble
+  // instead of hanging past its edge.
+  // A picture with no words keeps its own width, or the bubble would show
+  // round it as an empty frame.
+  const mediaOnly = (isGif || isImage || videoSources.length > 0) && !textContent;
+  // Reactions hang just under a turn's last bubble, so the line clears them.
+  const underGap = isGroupLast && message.reactions && message.reactions.length > 0 ? 'mt-4' : 'mt-1';
+
+  // One check when the house has the owner's message, two once a companion has read it.
+  const readChecks = (
+    <span className="flex items-center">
+      {message.status === 'read' || message.read === 1 ? (
+        <CheckCheck size={12} style={{ color: colors.accent }} />
+      ) : (
+        <Check size={12} />
+      )}
+    </span>
+  );
+  // Drawn only where it is shown: under a turn's last bubble, or on the
+  // name's line (inLine) when the tail is at the bottom.
+  const timeRow = (inLine = false) => (
+    <div
+      className={cn(
+        "flex items-center gap-1.5 text-[10px] font-bold",
+        inLine ? "shrink-0" : "mt-1.5",
+        themeMode === 'light' ? "text-black" : "text-white",
+        isUser && !isPrivateTab ? "flex-row-reverse" : "flex-row",
+        isPrivateTab ? "self-end" : ""
+      )}
+    >
+      {message.type === 'voice' && <span className="font-bold text-[9px] bg-black/10 dark:bg-white/10 px-1 rounded">VOICE</span>}
+      {isUser && message.prosody && Object.keys(message.prosody).length > 0 && (
+        <span
+          className="text-[9px] opacity-70 font-normal"
+          title={Object.entries(message.prosody).slice(0, 3).map(([k, v]) => `${k}: ${Math.round(v * 100)}%`).join(', ')}
+        >
+          {Object.entries(message.prosody).slice(0, 2).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(' · ')}
+        </span>
+      )}
+      {isUser && message.via && (
+        <span
+          className="font-bold text-[9px] px-1 rounded"
+          style={{ background: `color-mix(in srgb, ${colors.accent} 35%, transparent)`, color: themeMode === 'dark' ? '#fff' : '#000' }}
+          title={`Sent via ${message.via}`}
+        >
+          {message.via.toUpperCase()}
+        </span>
+      )}
+      {/* The owner's read checks sit just after the date. That row runs right
+          to left, so on it they come first in the markup. */}
+      {isUser && !isPrivateTab && readChecks}
+      <span
+        className={cn(
+          "aerie-message-time",
+          isUser && !isPrivateTab ? "aerie-theme-user-bubble" : "aerie-theme-comp-bubble",
+        )}
+      >
+        {format(new Date(message.timestamp), 'MMM d, h:mm a')}
+      </span>
+      {isUser && isPrivateTab && readChecks}
+      {message.editedAt && (
+        <span className="opacity-60 text-[9px] font-medium italic" title={`Edited ${format(new Date(message.editedAt), 'MMM d, h:mm a')}`}>
+          (edited)
+        </span>
+      )}
+      {message.isBookmarked && (
+        <Star size={10} fill="currentColor" style={{ color: colors.accent }} />
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -598,57 +776,18 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           or the owner. Their initial is the fallback, not the design: an older
           message predates us capturing the picture, and the picture can 404. */}
       {isGuest && !isPrivateTab && !voice && (
-        <div className="-ml-1.5 mr-2 mt-0.5 shrink-0 self-start" title={`${message.sender} · ${message.via}`}>
-          {message.senderAvatar && !avatarFailed ? (
-            <img
-              src={message.senderAvatar}
-              alt={message.sender}
-              referrerPolicy="no-referrer"
-              loading="lazy"
-              decoding="async"
-              onError={() => setAvatarFailed(true)}
-              className="w-9 h-9 rounded-full object-cover border-2"
-              style={{ borderColor: colors.accent }}
-            />
-          ) : (
-            <div
-              className={cn("w-9 h-9 rounded-full flex items-center justify-center text-base font-bold border-2", colors.compBubbleBg)}
-              style={{ borderColor: colors.accent, color: themeMode === 'dark' ? '#fff' : '#000', opacity: 0.9 }}
-            >
-              {message.sender!.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
+        <div className="-ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
       )}
       {/* Voice avatar rail — one face per speaking companion, treehouse-style */}
-      {!isUser && !isPrivateTab && !isSystem && voice && (
-        <div className="-ml-1.5 mr-2 mt-0.5 shrink-0 self-start" title={voice.display_name}>
-          {voice.avatar_url ? (
-            <img
-              src={voice.avatar_url}
-              alt={voice.display_name}
-              referrerPolicy="no-referrer"
-              loading="lazy"
-              decoding="async"
-              className="w-9 h-9 rounded-full object-cover border-2"
-              style={{ borderColor: voice.color || 'transparent' }}
-            />
-          ) : (
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-base border-2"
-              style={{ borderColor: voice.color || 'transparent', background: 'rgba(127,127,127,0.15)' }}
-            >
-              {voice.emoji || voice.display_name.charAt(0)}
-            </div>
-          )}
-        </div>
+      {!isUser && !isPrivateTab && !isSystem && voice && look.faces && (
+        <div className="-ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
       )}
       <div className={cn(
         "flex flex-col max-w-[85%] sm:max-w-[75%]",
         (isPrivateTab || isSystem) ? "items-center" : (isUser && !centered) ? "items-end" : "items-start",
         // Indent meta-only preamble bubbles by the avatar-rail width so
         // their left edge lines up with the voice bubbles below them.
-        centered && !isPrivateTab && !isSystem && "ml-[38px]"
+        centered && !isPrivateTab && !isSystem && look.faces && "ml-[38px]"
       )}>
         {/* Guest name label — who is speaking through the bridge.
             Bare text here sat straight on the wallpaper and had to compete with
@@ -677,7 +816,13 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
             </span>
           </div>
         )}
-        <div className="relative max-w-full min-w-0">
+        {/* Every companion bubble carries its name: within one reply each
+            voice is its own bubble, and a thinking card can sit first. A name
+            sits over its bubble when the tail is at the top, and under it when
+            the tail is at the bottom, so it is next to the face either way. */}
+        {hasName && sideTail === 'top' && nameLabel('mb-1')}
+        <div className={cn("relative max-w-full min-w-0", underLine && !mediaOnly && "self-stretch")}>
+          {pinnedFace}
           <div
             onClick={() => { if (isEditing) return; setShowActions(!showActions); }}
             data-user={isUser ? 'true' : 'false'}
@@ -702,12 +847,15 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                 : centered
                   ? `border ${colors.compBubbleBg} ${colors.compBubbleText} ${colors.panelBorder}`
                   : isUser
-                    ? `rounded-tr-none border ${colors.userBubbleBg} ${colors.userBubbleText} ${colors.panelBorder}`
-                    : `rounded-tl-none border ${colors.compBubbleBg} ${colors.compBubbleText} ${colors.panelBorder}`
+                    ? `${look.tailMine === 'bottom' ? 'rounded-br-none' : 'rounded-tr-none'} border ${colors.userBubbleBg} ${colors.userBubbleText} ${colors.panelBorder}`
+                    : `${look.tailOurs === 'bottom' ? 'rounded-bl-none' : 'rounded-tl-none'} border ${colors.compBubbleBg} ${colors.compBubbleText} ${colors.panelBorder}`
             )}
             style={isPrivateTab
               ? { color: (colors as any).noteText || (themeMode === 'light' ? '#000000' : '#ffffff') }
-              : undefined}
+              : isCompanion && look.edges
+                ? { borderColor: `color-mix(in srgb, ${companionNameColor} 45%, transparent)` }
+                : undefined}
+            data-quiet-actions={isCompanion && look.quietActions ? 'true' : undefined}
           >
             {message.replyToPreview && !isEditing && isGroupFirst && (
               <button
@@ -796,7 +944,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                       "w-7 h-7 rounded-full transition-colors flex-shrink-0 flex items-center justify-center",
                       !apiKey ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
                     )}
-                    style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)' }}
+                    style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                     title={!apiKey ? "ElevenLabs API key required" : (isPlaying ? "Stop" : "Play Voice Note")}
                   >
                     {isLoadingAudio ? <Loader2 size={14} className="animate-spin" /> : (isPlaying ? <Square size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" className="ml-0.5" />)}
@@ -1145,7 +1293,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           {/* Actions belong to the stored message, not each virtual
               companion bubble. Anchor one tray beneath the final voice. */}
           {isGroupLast && <div className={cn(
-            "absolute transition-all flex items-center gap-1 px-2 py-1 rounded-full border z-20",
+            "absolute transition-all flex items-center gap-1 px-2 py-1 rounded-[var(--shape-control)] border z-20",
             colors.panelBg,
             colors.panelBorder,
             isUser 
@@ -1405,7 +1553,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           {/* Displayed Reactions */}
           {message.reactions && message.reactions.length > 0 && isGroupLast && (
             <div className={cn(
-              "absolute -bottom-3 flex gap-0.5 border rounded-full px-1.5 py-0.5 z-10",
+              "absolute -bottom-3 flex gap-0.5 border rounded-[var(--shape-control)] px-1.5 py-0.5 z-10",
               colors.panelBg,
               colors.panelBorder,
               isUser ? "right-2" : "left-2"
@@ -1438,74 +1586,17 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
             </div>
           )}
         </div>
-
-        {isGroupLast && (
-        <div
-          className={cn(
-            "flex items-center gap-1.5 text-[10px] mt-1.5 font-bold",
-            themeMode === 'light' ? "text-black" : "text-white",
-            isUser && !isPrivateTab ? "flex-row-reverse" : "flex-row",
-            isPrivateTab ? "self-end" : ""
-          )}
-        >
-          {message.type === 'voice' && <span className="font-bold text-[9px] bg-black/10 dark:bg-white/10 px-1 rounded">VOICE</span>}
-          {isUser && message.prosody && Object.keys(message.prosody).length > 0 && (
-            <span
-              className="text-[9px] opacity-70 font-normal"
-              title={Object.entries(message.prosody).slice(0, 3).map(([k, v]) => `${k}: ${Math.round(v * 100)}%`).join(', ')}
-            >
-              {Object.entries(message.prosody).slice(0, 2).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(' · ')}
-            </span>
-          )}
-          {isUser && message.via && (
-            <span
-              className="font-bold text-[9px] px-1 rounded"
-              style={{ background: `color-mix(in srgb, ${colors.accent} 35%, transparent)`, color: themeMode === 'dark' ? '#fff' : '#000' }}
-              title={`Sent via ${message.via}`}
-            >
-              {message.via.toUpperCase()}
-            </span>
-          )}
-          <span
-            className={cn(
-              "aerie-message-time",
-              isUser && !isPrivateTab ? "aerie-theme-user-bubble" : "aerie-theme-comp-bubble",
-            )}
-          >
-            {format(new Date(message.timestamp), 'MMM d, h:mm a')}
-          </span>
-          {message.editedAt && (
-            <span className="opacity-60 text-[9px] font-medium italic" title={`Edited ${format(new Date(message.editedAt), 'MMM d, h:mm a')}`}>
-              (edited)
-            </span>
-          )}
-          {isUser && (
-            <span className="flex items-center">
-              {message.status === 'read' || message.read === 1 ? (
-                <CheckCheck size={12} style={{ color: colors.accent }} />
-              ) : (
-                <Check size={12} />
-              )}
-            </span>
-          )}
-          {message.isBookmarked && (
-            <Star size={10} fill="currentColor" style={{ color: colors.accent }} />
-          )}
-        </div>
+        {underLine && (
+          <div className={cn("flex w-full items-center justify-between gap-3", underGap, isUser ? "flex-row-reverse" : "flex-row")}>
+            {(sideTail === 'bottom' && nameLabel('')) || <span aria-hidden="true" />}
+            {isGroupLast && timeRow(true)}
+          </div>
         )}
+        {!underLine && isGroupLast && timeRow()}
       </div>
       {/* Owner avatar rail — mirrors the companion rail on the right */}
-      {isUser && !isPrivateTab && userAvatar && (
-        <div className="ml-2 -mr-1.5 mt-0.5 shrink-0 self-start" title="You">
-          <img
-            src={userAvatar}
-            alt="You"
-            loading="lazy"
-            decoding="async"
-            className="w-9 h-9 rounded-full object-cover border-2"
-            style={{ borderColor: userAvatarColor || 'transparent' }}
-          />
-        </div>
+      {isUser && !isPrivateTab && userAvatar && look.faces && (
+        <div className="ml-2 -mr-1.5 w-9 shrink-0" aria-hidden="true" />
       )}
       {lightboxState && (
         <ImageLightbox

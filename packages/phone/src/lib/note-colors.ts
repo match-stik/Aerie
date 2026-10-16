@@ -158,6 +158,28 @@ export function noteColorsForAccent(accentHex: string, mode: NoteMode): string[]
   });
 }
 
+/** The five note colours for a multi-color palette. A palette
+ *  has no single accent to fan from, and it already chose its own harmony, so
+ *  each role takes its hue and chroma from one of the palette's own colours and
+ *  only the note lightness comes from the recipe above: dominant from primary,
+ *  support from secondary, quiet from glow, accent from spark, and paper is the
+ *  primary washed nearly to paper. */
+export function noteColorsForPalette(
+  sources: { primary: string; secondary: string; glow: string; spark: string },
+  mode: NoteMode,
+): string[] {
+  const from = [sources.primary, sources.secondary, sources.glow, sources.spark, sources.primary];
+  const baseL = BASE_L[mode];
+  return ROLES.map(({ kc, dl, role }, i) => {
+    const src = hexToOklch(from[i]);
+    if (!src) return '';
+    const L = Math.min(0.96, Math.max(0.3, baseL + dl));
+    const base = Math.min(0.16, Math.max(0.018, src.c * (mode === 'light' ? 0.55 : 0.72)));
+    const C = role === 'paper' ? base * kc : base;
+    return oklchToHex(L, fitChroma(L, C, src.h), src.h);
+  });
+}
+
 /** The five roles, in the same order as noteColorsForAccent returns them. */
 /** Exported for the drift test: the tuning table must cover every role in the
  *  canonical list, in the same order, or resolveNoteColor picks the wrong swatch. */

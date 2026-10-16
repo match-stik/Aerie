@@ -29,6 +29,14 @@ export interface AgentMutableState {
    * queue behind it. Cleared in the same finally that releases the runtime.
    */
   activeCodexLanes: Set<string>;
+  /**
+   * The busy Codex lanes whose turn came from Discord, the owner's or a
+   * guest's, and answers there. A note from the owner's phone queues behind
+   * one of these instead of
+   * being handed in, the same rule as the Claude lane's turnAnswersElsewhere.
+   * Added and cleared beside activeCodexLanes.
+   */
+  codexLanesAnsweringElsewhere: Set<string>;
   /** How far into each lane's side-notes file has already been handed over. */
   codexSideNoteOffsets: Map<string, number>;
 }
@@ -99,6 +107,7 @@ export function createAgentMutableState(): AgentMutableState {
     codexDaemonSessions: new Map(),
     codexHandedSequences: new Map(),
     activeCodexLanes: new Set(),
+    codexLanesAnsweringElsewhere: new Set(),
     codexSideNoteOffsets: new Map(),
   };
 }

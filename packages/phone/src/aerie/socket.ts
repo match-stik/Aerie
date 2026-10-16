@@ -259,6 +259,16 @@ function handleMessage(event: MessageEvent): void {
       }));
       break;
 
+    case 'message_read':
+      // The owner's messages that a companion has now been handed: two checks
+      // (services/own-messages-read.ts in the backend).
+      setState((st) => ({
+        messages: st.messages.map((m) =>
+          msg.messageIds.includes(m.id) && !m.read_at ? { ...m, read_at: msg.readAt } : m,
+        ),
+      }));
+      break;
+
     case 'message_deleted':
       setState((st) => ({
         messages: st.messages.map((m) =>

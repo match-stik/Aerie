@@ -225,7 +225,7 @@ export function LettersApp({ onClose, themeConfig, themeMode, embedded }: Letter
       letter.seal === 'date' ? `sealed until ${formatDay(letter.open_at!)}` : 'sealed';
     return (
       <span
-        className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+        className="rounded-[var(--shape-control)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
         style={{ background: 'rgba(127,127,127,0.28)', color: colorOf(letter.author) }}
       >
         {label}
@@ -295,7 +295,7 @@ export function LettersApp({ onClose, themeConfig, themeMode, embedded }: Letter
                   <div className={cn('text-xs', colors.textMuted)}>This letter is waiting for you.</div>
                   <button
                     onClick={() => setConfirmOpen(true)}
-                    className="rounded-full px-5 py-2 text-sm font-semibold"
+                    className="rounded-[var(--shape-control)] px-5 py-2 text-sm font-semibold"
                     style={{ background: colorOf(letter.author), color: contrastTextColor(colorOf(letter.author)) }}
                   >
                     Break the seal
@@ -307,13 +307,13 @@ export function LettersApp({ onClose, themeConfig, themeMode, embedded }: Letter
                     Opening is forever. You cannot un-know a letter.
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setConfirmOpen(false)} className={cn('rounded-full border px-4 py-2 text-xs', colors.panelBorder, colors.textMuted)}>
+                    <button onClick={() => setConfirmOpen(false)} className={cn('rounded-[var(--shape-control)] border px-4 py-2 text-xs', colors.panelBorder, colors.textMuted)}>
                       Not yet
                     </button>
                     <button
                       onClick={() => breakSeal(letter)}
                       disabled={opening}
-                      className="rounded-full px-5 py-2 text-sm font-semibold"
+                      className="rounded-[var(--shape-control)] px-5 py-2 text-sm font-semibold"
                       style={{ background: colorOf(letter.author), color: contrastTextColor(colorOf(letter.author)) }}
                     >
                       {opening ? 'Breaking…' : 'Open it'}
@@ -352,7 +352,7 @@ export function LettersApp({ onClose, themeConfig, themeMode, embedded }: Letter
                   <button
                     key={slug}
                     onClick={() => setRecipients((prev) => (active ? prev.filter((r) => r !== slug) : [...prev, slug]))}
-                    className={cn('rounded-full border px-3 py-1 text-xs font-semibold', colors.panelBorder)}
+                    className={cn('rounded-[var(--shape-control)] border px-3 py-1 text-xs font-semibold', colors.panelBorder)}
                     style={active ? { background: accent, color: contrastTextColor(accent), borderColor: accent } : undefined}
                   >
                     {sigilOf(slug)} {displayName(slug)}
@@ -376,8 +376,8 @@ export function LettersApp({ onClose, themeConfig, themeMode, embedded }: Letter
                 <button
                   key={k}
                   onClick={() => setKind(k)}
-                  className={cn('rounded-full border px-3 py-1 text-xs font-semibold capitalize', colors.panelBorder)}
-                  style={kind === k ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
+                  className={cn('rounded-[var(--shape-control)] border px-3 py-1 text-xs font-semibold capitalize', colors.panelBorder)}
+                  style={kind === k ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
                 >
                   {k}
                 </button>
@@ -445,7 +445,7 @@ export function LettersApp({ onClose, themeConfig, themeMode, embedded }: Letter
             <button
               onClick={() => ready && setConfirmSeal(true)}
               disabled={!ready}
-              className="rounded-full px-5 py-2.5 text-sm font-semibold disabled:opacity-40"
+              className="rounded-[var(--shape-control)] px-5 py-2.5 text-sm font-semibold disabled:opacity-40"
               style={{ background: OWNER_COLOR, color: contrastTextColor(OWNER_COLOR) }}
             >
               Seal this letter
@@ -461,13 +461,13 @@ export function LettersApp({ onClose, themeConfig, themeMode, embedded }: Letter
                 {dark ? ' · dark' : ''}
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setConfirmSeal(false)} className={cn('rounded-full border px-4 py-2 text-xs', colors.panelBorder, colors.textMuted)}>
+                <button onClick={() => setConfirmSeal(false)} className={cn('rounded-[var(--shape-control)] border px-4 py-2 text-xs', colors.panelBorder, colors.textMuted)}>
                   Back
                 </button>
                 <button
                   onClick={sealIt}
                   disabled={sealing}
-                  className="rounded-full px-5 py-2 text-sm font-semibold"
+                  className="rounded-[var(--shape-control)] px-5 py-2 text-sm font-semibold"
                   style={{ background: OWNER_COLOR, color: contrastTextColor(OWNER_COLOR) }}
                 >
                   {sealing ? 'Sealing…' : 'Seal it — forever'}

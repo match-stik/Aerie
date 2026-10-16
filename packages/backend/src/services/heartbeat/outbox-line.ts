@@ -105,3 +105,20 @@ export function parseOutboxLine(
   }
   return parsed;
 }
+
+/**
+ * The card a reply carries above it on the owner's phone.
+ *
+ * The field used to be called `thinking`. It was renamed `card` on a guess
+ * rather than a finding: Opus 5.5's reasoning_extraction safeguard kept
+ * refusing rooms as they were reopened, and every reply in a reopened room
+ * carried a field named thinking. Old lines and any room still on the old
+ * instructions keep working, because the old name is read too; `card` wins when a
+ * line has both.
+ */
+export function outboxCard(parsed: { card?: unknown; thinking?: unknown }): string | null {
+  for (const value of [parsed.card, parsed.thinking]) {
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+  return null;
+}

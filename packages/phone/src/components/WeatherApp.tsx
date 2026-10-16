@@ -200,7 +200,7 @@ export function WeatherApp({ onClose, themeConfig, themeMode }: WeatherAppProps)
             <p className="mb-4">{error}</p>
             <button 
               onClick={fetchWeather}
-              className={cn("px-4 py-2 rounded-full text-sm font-medium", colors.panelBg, colors.panelBorder, "border")}
+              className={cn("px-4 py-2 rounded-[var(--shape-control)] text-sm font-medium", colors.panelBg, colors.panelBorder, "border")}
             >
               Try Again
             </button>

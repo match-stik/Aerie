@@ -275,7 +275,7 @@ export function DiscordRules({ themeConfig, themeMode }: DiscordRulesProps) {
                 key={t.id}
                 onClick={() => { setTab(t.id); setExpanded(null); }}
                 className={cn('flex-1 rounded-lg py-1.5 text-xs font-medium border', colors.panelBorder)}
-                style={tab === t.id ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : undefined}
+                style={tab === t.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
               >
                 {t.label}
               </button>

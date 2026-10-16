@@ -463,7 +463,7 @@ export function PacksApp({ onClose, themeConfig, themeMode, onEmojisChanged }: P
               key={k}
               onClick={() => setKind(k)}
               className={cn('flex-1 rounded-lg py-1.5 text-xs font-medium capitalize transition-colors border', colors.panelBorder)}
-              style={kind === k ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : undefined}
+              style={kind === k ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               {k}
             </button>
@@ -485,7 +485,7 @@ export function PacksApp({ onClose, themeConfig, themeMode, onEmojisChanged }: P
                 <button
                   onClick={() => setSelectedPack(null)}
                   className={cn('rounded-lg px-2.5 py-1 text-xs border italic', colors.panelBorder)}
-                  style={selectedPack === null ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : undefined}
+                  style={selectedPack === null ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                 >
                   Unpacked · {looseItems.length}
                 </button>
@@ -495,7 +495,7 @@ export function PacksApp({ onClose, themeConfig, themeMode, onEmojisChanged }: P
                   key={p.id}
                   onClick={() => setSelectedPack(p.id)}
                   className={cn('rounded-lg px-2.5 py-1 text-xs border', colors.panelBorder)}
-                  style={selectedPack === p.id ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : undefined}
+                  style={selectedPack === p.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                 >
                   {p.name}
                 </button>
@@ -910,7 +910,7 @@ function StickerCropDialog({
           <button
             onClick={save}
             disabled={!area || saving}
-            className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest bg-white text-black rounded-full disabled:opacity-50"
+            className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest bg-white text-black rounded-[var(--shape-control)] disabled:opacity-50"
           >
             {saving ? 'Saving' : 'Save'}
           </button>

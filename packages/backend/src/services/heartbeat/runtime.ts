@@ -31,7 +31,7 @@ import type {
 import { getFile, saveFile, ensureFilesDir } from '../files.js';
 import type { ConversationMessage, HistoryLoader } from '../runtimes/api-router.js';
 import { getHeartbeatSession, type HeartbeatSession } from './supervisor.js';
-import { parseOutboxLine } from './outbox-line.js';
+import { outboxCard, parseOutboxLine } from './outbox-line.js';
 import { projectKeyForDir, readSessionUsage } from '../agent/session-list.js';
 import { USAGE_WATERMARK_FILE, readUsageWatermark, usageSinceFile, writeUsageWatermark } from './turn-usage.js';
 import { isArchiveRecord } from '../archive-artifact.js';
@@ -40,6 +40,7 @@ import { getAerieConfig, PROJECT_ROOT } from '../../config.js';
 import { localClock12, localDateFull, localStamp } from '../time.js';
 import { createMessage } from '../db.js';
 import { registry } from '../ws/connection-registry.js';
+import { ownMessagesRead } from '../own-messages-read.js';
 import * as cortex from '../cortex.js';
 import { ambientRecall, unfiledNoticings } from './whisper.js';
 import { roomVoicesBlock, type RoomVoices } from './room-voices.js';
@@ -104,6 +105,10 @@ export function heartbeatTimezone(config: { identity?: { timezone?: string | nul
 
 /** Where a lane remembers how far its handover got. */
 export const HANDED_WATERMARK_FILE = '.last-handed-user';
+
+/** A handover mark that means nothing has been handed yet, so everything in
+ *  the window still counts as missed. An unset mark means the same thing. */
+export const HANDED_FROM_THE_BEGINNING = '1970-01-01T00:00:00.000Z';
 
 /**
  * Where a lane remembers when it last finished a turn.
@@ -358,6 +363,17 @@ interface LaneState {
    */
   lastHandedUserAt?: string;
   /**
+   * What this lane itself said in its last few turns, verbatim, one entry per
+   * delivered message. The sight mark (lastTurnAt) is written when the turn's
+   * generator finishes, and the router stores the reply row a couple of
+   * milliseconds AFTER that, so by the clock alone a lane's own answer sits
+   * just past its own mark, and every turn handed it back as a line it was
+   * never given, under a warning that another companion might have written it. The catch-up
+   * leaves these out. Kept in memory only, so after a restart the first
+   * catch-up can still carry the lane's last reply once.
+   */
+  spokenRecently?: string[];
+  /**
    * Where the watermark stood when THIS turn began, held so a turn that says
    * nothing at all can give the owner's message back to the net. See
    * rollbackHandedWatermark. Cleared by the rollback; meaningless between
@@ -370,6 +386,9 @@ interface LaneState {
   threadHandedAdvancedAt?: string;
 }
 const laneStates = new Map<string, LaneState>();
+
+/** How many of a lane's own recent messages the catch-up remembers to leave out. */
+const SPOKEN_RECENTLY_KEEP = 24;
 
 function laneStateFor(key: string, session: HeartbeatSession): LaneState {
   let state = laneStates.get(key);
@@ -470,6 +489,24 @@ export interface InteractiveCliOptions {
   historyLimit?: number;
   /** Test seam for exercising turn/ledger behavior without a real CLI. */
   sessionFactory?: (key: string) => HeartbeatSession;
+}
+
+/**
+ * Tick the owner's side notes read once the session's read mark covers them, and
+ * answer the mark that was applied, so an unchanged mark costs nothing next
+ * time. A read check is a courtesy: anything wrong here leaves the turn alone.
+ */
+function applySideNoteReceipts(session: HeartbeatSession, lastMark: string): string {
+  try {
+    const from = (session as { sideNoteReceiptsFrom?: number }).sideNoteReceiptsFrom ?? -1;
+    if (from < 0 || typeof session.sideNotesReadSince !== 'function' || typeof session.sideNotesReadMark !== 'function') return lastMark;
+    const mark = session.sideNotesReadMark();
+    if (!mark || mark === lastMark) return lastMark;
+    ownMessagesRead(session.sideNotesReadSince(from));
+    return mark;
+  } catch {
+    return lastMark;
+  }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -860,7 +897,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
    * re-primes with full history; this is the other half of the same problem,
    * for a session that is warm and simply wasn't there.
    */
-  private buildCatchUpBlock(since: string | undefined, live?: { prompt: string }): string {
+  private buildCatchUpBlock(since: string | undefined, live?: { prompt: string }, spoken?: readonly string[]): string {
     const { loadHistory, threadId, historyLimit, companionName, userName } = this.options;
     if (!loadHistory || !threadId) return '';
     let missed: ConversationMessage[];
@@ -887,6 +924,12 @@ export class InteractiveCliRuntime implements AgentRuntime {
       }
     } catch {
       return '';
+    }
+    // Never hand a lane its own words back. Its reply row lands a hair after
+    // its own sight mark, so the clock alone counts it as something it missed.
+    if (spoken?.length) {
+      const own = new Set(spoken.map(s => s.trim()));
+      missed = missed.filter(m => !(m.role === 'companion' && own.has(m.content.trim())));
     }
     if (missed.length === 0) return '';
     const lines = missed.map(m =>
@@ -951,6 +994,24 @@ export class InteractiveCliRuntime implements AgentRuntime {
     state.threadHandedBeforeTurn = undefined;
     state.threadHandedAdvancedAt = undefined;
     if (!loadHistory || !threadId) return '';
+
+    // A guest's turn is answered in the guest's room, and this block tells the
+    // lane to answer the owner's missed messages now. So on a guest's turn it
+    // hands none of them over and advances nothing, and they come with the
+    // owner's own next turn instead, late and never lost. One thing has to happen first: with
+    // no handover mark the net starts from the end of the lane's last turn,
+    // and this turn's end is about to move that past them. So the start it
+    // would have used is pinned as the mark, on disk too, before that happens.
+    if (this.options.audience?.kind === 'guest') {
+      if (!state.lastHandedUserAt) {
+        state.lastHandedUserAt = state.lastTurnAt || HANDED_FROM_THE_BEGINNING;
+        writeHandedWatermark(
+          join(PROJECT_ROOT, 'data', 'heartbeat', this.options.sessionKey || 'primary', 'io', HANDED_WATERMARK_FILE),
+          state.lastHandedUserAt,
+        );
+      }
+      return '';
+    }
 
     const since = state.lastHandedUserAt || state.lastTurnAt;
     // Read before anything below can move it: the end of the PREVIOUS turn is
@@ -1200,17 +1261,42 @@ export class InteractiveCliRuntime implements AgentRuntime {
     const session = this.options.sessionFactory?.(key) ?? getHeartbeatSession(key);
     session.turnActive = true;
     session.turnStartedAt = Date.now();
+    // A turn with an audience came from Discord and answers there, so a note
+    // from the owner's phone queues behind it rather than being handed in.
+    session.turnAnswersElsewhere = !!this.options.audience;
+    // Each delivered message, as the router will store it: text up to a
+    // message_break is one message.
+    const spoken: string[] = [];
+    let speaking = '';
     try {
-      yield* this.runTurnInner(input, key, session);
+      for await (const event of this.runTurnInner(input, key, session)) {
+        if (event.type === 'text_delta') speaking += event.text;
+        else if (event.type === 'message_break') {
+          if (speaking.trim()) spoken.push(speaking);
+          speaking = '';
+        }
+        yield event;
+      }
     } finally {
+      if (speaking.trim()) spoken.push(speaking);
+      // The session often marks its notes read in the same breath as its last
+      // line, so the mark is read once more on the way out.
+      applySideNoteReceipts(session, '');
+      session.sideNoteReceiptsFrom = -1;
       session.turnActive = false;
       session.turnStartedAt = 0;
+      session.turnAnswersElsewhere = false;
       // Mark where this lane's sight ends. Anything the room says after this is
       // something it did not see, and a later wake gets handed the difference.
       // Written to disk as well, because the map it lives in is empty after
       // every restart and a reopened room has no other way to date itself.
       const sightEndsAt = new Date().toISOString();
-      laneStateFor(key, session).lastTurnAt = sightEndsAt;
+      const ended = laneStateFor(key, session);
+      ended.lastTurnAt = sightEndsAt;
+      // Its own reply is saved just after this mark, so remember what it said.
+      if (spoken.length) {
+        ended.spokenRecently = [...(ended.spokenRecently || []), ...spoken].slice(-SPOKEN_RECENTLY_KEEP);
+      }
       writeHandedWatermark(join(session.dir, 'io', TURN_WATERMARK_FILE), sightEndsAt);
       const room = (session as any).currentSessionId as string | null | undefined;
       if (room) writeHandedWatermark(join(session.dir, 'io', ROOM_WATERMARK_FILE), room);
@@ -1301,7 +1387,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // as the handover watermark: too much, never nothing.
     const catchUpBlock = fresh
       ? ''
-      : this.buildCatchUpBlock(state.lastTurnAt, input.isAutonomous ? undefined : { prompt: input.prompt });
+      : this.buildCatchUpBlock(state.lastTurnAt, input.isAutonomous ? undefined : { prompt: input.prompt }, state.spokenRecently);
 
     // Runs on every turn, autonomous or not — the seam it closes is exactly
     // the one a wake opens, and a live turn is the next chance to notice.
@@ -1354,7 +1440,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
           if (isHeartbeatSilenceSentinel(content)) continue;
           late.push({
             content,
-            thinking: typeof parsed.thinking === 'string' && parsed.thinking.trim() ? parsed.thinking : null,
+            thinking: outboxCard(parsed),
             payload: parsed,
           });
         }
@@ -1403,19 +1489,33 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // Ambient recall (The Whisper): archived Cortex memories resembling this
     // message ride in ahead of it — recall without asking. Timeboxed and
     // fail-quiet; a slow Cortex never delays delivery past its budget.
-    const whisperBlock = await ambientRecall(input.prompt, key, fresh);
+    // The old-window lane is home-only. Those passages are the owner's private
+    // chats from earlier platforms, and a turn with an audience came from
+    // Discord, the owner's or a guest's, where the answer lands in a room other
+    // people read. The owner's phone and the house's own wakes carry no
+    // audience (turn-audience.ts). A guest's turn gets no recall at all: the
+    // guest's own words would choose which memories surfaced, into a room the
+    // guest reads.
+    const guestTurn = this.options.audience?.kind === 'guest';
+    const whisperBlock = guestTurn ? '' : await ambientRecall(input.prompt, key, fresh, { archive: !this.options.audience });
 
     // The Archivist's noticings, handed over rather than written onto the walls.
     // Same quiet channel as recall — deliberately not gated on Cortex, so the
     // companions still get them when ambient recall is off or unreachable.
+    // Not on a guest's turn either: the noticings are about the owner.
     let unfiledBlock = '';
-    try { unfiledBlock = unfiledNoticings(); } catch { /* never delay a turn */ }
+    if (!guestTurn) {
+      try { unfiledBlock = unfiledNoticings(); } catch { /* never delay a turn */ }
+    }
 
     // Side notes sent while the last turn was working. The session may read
     // them live from io/side-notes.jsonl, but nothing guarantees it looked —
     // so whatever is still unread is handed over here. Late, never lost.
     let sideNoteBlock = '';
-    try {
+    // The owner's notes are the owner's. On a guest's turn they stay unread and
+    // the offset does not move, so they come with the owner's next turn
+    // instead, and an answer to one never lands in a guest's room.
+    if (!guestTurn) try {
       const pending = session.readSideNotesFrom(state.sideNotesOffset);
       state.sideNotesOffset = pending.newOffset;
       if (pending.notes.length > 0) {
@@ -1442,8 +1542,14 @@ export class InteractiveCliRuntime implements AgentRuntime {
           ? '[Sent to you while you were working and not read at the time — answer these too:]'
           : '[Sent to you while you were working — you already picked these up live, so they are here for the record only:]';
         sideNoteBlock = `${header}\n${lines}\n\n`;
+        // Every note in this block is in the session's hands now, so each one
+        // gets its read checks on the owner's screen (services/own-messages-read.ts).
+        ownMessagesRead(pending.notes.map((note) => note.messageId));
       }
     } catch { /* a missing or unreadable file must never delay the turn */ }
+    // Notes the owner sends from here on are this turn's; the session's read mark is
+    // checked against them as the turn runs, and once more when it ends.
+    session.sideNoteReceiptsFrom = state.sideNotesOffset;
 
     session.appendInbox({
       ts: new Date().toISOString(),
@@ -1497,6 +1603,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
      */
     const launchGeneration = session.launchGeneration;
     let relaunchedMidTurn = false;
+    let receiptMark = '';
 
     while (Date.now() < deadline) {
       // Checked first: nothing this loop does afterwards can be answered by a
@@ -1517,6 +1624,10 @@ export class InteractiveCliRuntime implements AgentRuntime {
         yield { type: 'error', message: session.lastError || 'heartbeat session unavailable' };
         return;
       }
+
+      // A side note the session says it has read gets its read checks while
+      // the owner is still looking, not when the turn ends.
+      receiptMark = applySideNoteReceipts(session, receiptMark);
 
       // Tool-activity tail — surface the session's tool calls live, and treat
       // them as liveness: a session deep in tool work is not silent, so every
@@ -1611,9 +1722,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       for (const { parsed } of parsedLines) {
         const content = typeof parsed.content === 'string' ? parsed.content : null;
         if (!content) continue;
-        const thinking = typeof parsed.thinking === 'string' && parsed.thinking.trim()
-          ? parsed.thinking
-          : null;
+        const thinking = outboxCard(parsed);
         const tid = typeof parsed.turn_id === 'string' ? parsed.turn_id : null;
         const more = parsed.more === true;
         const silenceSentinel = isHeartbeatSilenceSentinel(content);

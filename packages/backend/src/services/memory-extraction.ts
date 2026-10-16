@@ -5,7 +5,7 @@
 // runs never rewrite whole blocks; companions do that themselves, live.
 
 import { getDb, getConfig, setConfig } from './db.js';
-import { streamInference, loadProviderConfig, type RouterMessage } from './router.js';
+import { streamInference, loadProviderConfig, describeEmptyAnswer, type RouterMessage, type StreamStop } from './router.js';
 import { getAerieConfig, type AerieConfig } from '../config.js';
 import { localTimeStr, localFullStr } from './time.js';
 import { getThreadCompanions, listCompanions } from './db/companions.js';
@@ -337,8 +337,16 @@ async function extractViaRouter(
     { role: 'user', content: prompt },
   ];
   let raw = '';
-  for await (const chunk of streamInference(routerMessages, model, provider, providerConfig)) {
+  let stop: StreamStop | null = null;
+  for await (const chunk of streamInference(routerMessages, model, provider, providerConfig, false, undefined, (s) => { stop = s; })) {
     raw += chunk;
+  }
+  // An answer with no words in it is said out loud with its reason, so the
+  // card reads why rather than 'raw:' and a blank. Only Anthropic reports a stop.
+  const said = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  const s = stop as StreamStop | null;
+  if (provider === 'anthropic' && (!said || s?.error)) {
+    throw new Error(describeEmptyAnswer(model, s));
   }
   return raw;
 }

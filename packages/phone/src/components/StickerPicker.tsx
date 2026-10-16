@@ -109,7 +109,7 @@ export function StickerPicker({ onSelect, onClose, themeConfig, themeMode }: Sti
                   // themes and black in the daylight ones, which is the whole requirement.
                   !active && colors.textMain,
                 )}
-                style={active ? { background: colors.accent, color: 'white', borderColor: colors.accent } : undefined}
+                style={active ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
                 title={pack.name}
               >
                 {pack.name.slice(0, 8)}

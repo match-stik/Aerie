@@ -30,7 +30,7 @@ import usageRoutes from './routes/usage.js';
 import stickerRoutes from './routes/stickers.js';
 import emojiRoutes from './routes/emojis.js';
 import modelsRoutes from './routes/models.js';
-import { directLocalCheck } from './middleware/internal-guard.js';
+import { directLocalCheck, requireDirectLocal } from './middleware/internal-guard.js';
 import { authMiddleware } from './middleware/auth.js';
 import { collapseDuplicateSlashes } from './middleware/normalize-path.js';
 import { startInternalServer } from './internal-server.js';
@@ -358,7 +358,11 @@ app.use('/api', handoffRoutes);
 
 // Command Center endpoints
 if (config.command_center.enabled) {
-  import('./routes/cc-mcp.js').then(m => app.use('/mcp/cc', m.default));
+  // Loopback only. It reads and writes the owner's care, cycle, expense and
+  // task data, and nothing in front of it asked who was calling: a caller
+  // through either public front got the whole tool list and could run any of
+  // them. An agent on this box still reaches it on localhost.
+  import('./routes/cc-mcp.js').then(m => app.use('/mcp/cc', requireDirectLocal, m.default));
   initCcRoutes();
 }
 

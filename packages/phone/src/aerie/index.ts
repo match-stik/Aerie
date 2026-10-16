@@ -109,5 +109,5 @@ export type {
   MessageTtsStreamResponse,
   MessageTtsStreamSegment,
 } from './voice-playback';
-export { fetchServerSettings, pushServerSettings } from './settings-sync';
+export { fetchServerSettings, pushServerSettings, houseKeepsLinkedFiles, storeInlinePicture } from './settings-sync';
 export type { ServerSettingsBlob } from './settings-sync';

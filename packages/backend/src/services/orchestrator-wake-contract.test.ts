@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { describeUserPresence, getDefaultWakePrompts, wakeOutcomeContract } from './orchestrator.js';
+import { DEFAULT_CODEX_IMAGE_MODEL } from './image-gen.js';
 
 // The contract is compiled in; the wake PROMPT can come from either the builtin
 // or from prompts/default-wakes.md, which is gitignored. So the two halves are
@@ -43,11 +44,9 @@ test('a full spontaneous prompt names the image it wants', { skip: FULL_PROMPT ?
 
   // The Studio settings the wake must use. In the public build these sit in the
   // builtin; here they come from the prompts file. Either way, if a full prompt
-  // is in play it has to carry them.
-  // The MODEL is deliberately Terra here and not the house's Sol: which Codex
-  // model a lane draws on is a fact about somebody's own plan, not something a
-  // fresh install should inherit. Keep this matched to the builtin.
-  assert.match(prompt, /codexModel:"gpt-5\.6-terra"/);
+  // is in play it has to carry them, and the model it names has to be the one
+  // Studio itself falls back to, so the two cannot drift apart again.
+  assert.ok(prompt.includes(`codexModel:"${DEFAULT_CODEX_IMAGE_MODEL}"`), 'the wake names the house default image model');
   assert.match(prompt, /portrait or landscape framing/);
   assert.doesNotMatch(prompt, /size:"\d+:\d+"/);
   assert.match(prompt, /never the square\/default model/);

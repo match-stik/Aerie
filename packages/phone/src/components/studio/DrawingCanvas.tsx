@@ -31,14 +31,14 @@ export function DrawingCanvas({
           <button
             onClick={() => setDrawTool('brush')}
             className={cn("p-2 rounded-lg transition-colors", drawTool === 'brush' ? '' : colors.textMuted)}
-            style={drawTool === 'brush' ? { backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] } : undefined}
+            style={drawTool === 'brush' ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
           >
             <PenTool className="w-4 h-4" />
           </button>
           <button
             onClick={() => setDrawTool('eraser')}
             className={cn("p-2 rounded-lg transition-colors", drawTool === 'eraser' ? '' : colors.textMuted)}
-            style={drawTool === 'eraser' ? { backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] } : undefined}
+            style={drawTool === 'eraser' ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
           >
             <Eraser className="w-4 h-4" />
           </button>

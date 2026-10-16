@@ -94,7 +94,7 @@ export function Paginator({
                the panel colour instead of the accent — so a row of pages reads as a
                row of pages whichever one the user is standing on. */
             className={cn(
-              'min-h-9 min-w-9 rounded-full border px-2.5 text-xs font-semibold backdrop-blur-md transition-colors',
+              'min-h-9 min-w-9 rounded-[var(--shape-control)] border px-2.5 text-xs font-semibold backdrop-blur-md transition-colors',
               colors.panelBorder,
               n === page ? 'aerie-on-accent' : cn(colors.panelBg, colors.textMuted),
             )}

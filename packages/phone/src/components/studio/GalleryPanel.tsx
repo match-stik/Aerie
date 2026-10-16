@@ -159,7 +159,7 @@ export function GalleryPanel({
                   <button
                     onClick={createFolder}
                     className="px-2 py-1 rounded text-xs"
-                    style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+                    style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                   >
                     <FolderPlus className="w-3.5 h-3.5" />
                   </button>
@@ -236,21 +236,21 @@ export function GalleryPanel({
                   <button
                     onClick={() => handleDownload(viewingImage)}
                     className="p-1.5 rounded-full"
-                    style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+                    style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                   >
                     <Download className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => { setCurrentImage(viewingImage); setViewMode('edit'); setViewingImage(null); }}
                     className="p-1.5 rounded-full"
-                    style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+                    style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setConfirmDelete(viewingImage)}
                     className="p-1.5 rounded-full"
-                    style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+                    style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -369,7 +369,7 @@ export function GalleryPanel({
                         }
                       }}
                       className="p-1.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+                      style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                       title="Copy prompt + settings"
                     >
                       <Copy className="w-3.5 h-3.5" />
@@ -419,7 +419,7 @@ export function GalleryPanel({
                     if (viewingImage?.id === confirmDelete.id) setViewingImage(null);
                   }}
                   className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
-                  style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)' }}
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 >
                   Delete
                 </button>

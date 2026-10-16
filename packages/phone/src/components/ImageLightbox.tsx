@@ -239,7 +239,7 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
 
       {/* Zoom indicator */}
       {scale !== 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-sm text-white backdrop-blur">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-[var(--shape-control)] bg-black/50 px-3 py-1 text-sm text-white backdrop-blur">
           {Math.round(scale * 100)}%
         </div>
       )}

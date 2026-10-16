@@ -125,8 +125,11 @@ export function formatCodexSideNoteHandover(notes: CodexSideNote[]): string {
 export function deliverSideNoteToBusyCodexLane(
   activeLanes: Set<string>,
   text: string,
+  answeringElsewhere: ReadonlySet<string> = new Set(),
 ): boolean {
   if (activeLanes.size !== 1) return false;
   const [laneKey] = activeLanes;
+  // Its turn came from Discord and answers there, so the owner's note queues instead.
+  if (answeringElsewhere.has(laneKey)) return false;
   return appendCodexSideNote(laneKey, text);
 }

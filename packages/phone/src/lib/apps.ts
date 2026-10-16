@@ -2,6 +2,7 @@
 // App registry — the single source of truth for the phone's launchable apps.
 // Consumed by the home-screen dock and the app drawer.
 
+import { useCallback } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { MessageSquare, Radar, CloudSun, StickyNote, Gamepad2, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, TreePine, Brain, Paintbrush, Box, FolderOpen, BookOpen, PawPrint, Newspaper, Inbox, Mail, MapPin, LibraryBig } from 'lucide-react';
 import type { OsScreen } from '../App';
@@ -48,6 +49,13 @@ export const APPS: AppDef[] = [
   { id: 'games', name: 'Games', icon: Gamepad2, category: 'Fun', kind: 'screen', screen: 'games' },
 ];
 
+/** The name an app shows under its icon. A house can rename an app it owns;
+ *  the kit ships every app under its own name, so this is the name as written
+ *  (the house's copy reads its renames here). */
+export function useAppName(): (app: AppDef) => string {
+  return useCallback((app: AppDef) => app.name, []);
+}
+
 export const DOCK_APPS = APPS.filter((a) => a.dock);
 
 export const CATEGORY_ORDER: AppDef['category'][] = ['Companion', 'Tools', 'Fun', 'System'];
@@ -71,6 +79,26 @@ const LAYOUT_STORAGE_KEY = 'aerie_app_layout_v1';
 const LEGACY_ORDER_STORAGE_KEY = 'aerie_app_order_v1';
 
 export type AppSlot = string | null;
+
+/** How many apps sit in a row of the drawer. Unset is four, the drawer as it
+ *  always was. */
+export type DrawerColumns = 4 | 5;
+export function drawerColumnsOf(value: unknown): DrawerColumns {
+  return value === 5 ? 5 : 4;
+}
+
+/** Each row size keeps its own arrangement, so moving apps about at five never
+ *  scrambles the layout at four. Four keeps the key it always had. */
+function layoutKey(columns: DrawerColumns): string {
+  return columns === 4 ? LAYOUT_STORAGE_KEY : `${LAYOUT_STORAGE_KEY}_c${columns}`;
+}
+
+/** A row size opened for the first time starts from the other one's order with
+ *  its gaps taken out: a gap placed to centre a row of four means nothing in a
+ *  row of five. */
+export function seedLayoutFrom(slots: AppSlot[]): AppSlot[] {
+  return slots.filter((slot): slot is string => Boolean(slot));
+}
 
 const APP_ID_ALIASES: Record<string, string> = {
   // GIF Lab became a first-class Studio section. Keep old saved dock/drawer
@@ -111,16 +139,32 @@ function migrateLayoutSlots(slots: AppSlot[]): AppSlot[] {
   });
 }
 
-export function loadAppLayout(): AppSlot[] | null {
+/**
+ * Drop the empty slots after the last app. Edit mode pads two whole empty rows
+ * onto the end for room to shuffle, and every drop saved them, so each
+ * rearrange left two more invisible rows under the apps and the drawer scrolled
+ * into nothing. Gaps BETWEEN apps were placed on purpose and stay.
+ */
+export function trimTrailingEmpty<T>(slots: Array<T | null>): Array<T | null> {
+  let end = slots.length;
+  while (end > 0 && !slots[end - 1]) end--;
+  return slots.slice(0, end);
+}
+
+export function loadAppLayout(columns: DrawerColumns = 4): AppSlot[] | null {
   try {
-    const raw = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    const raw = localStorage.getItem(layoutKey(columns));
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.every((v) => v === null || typeof v === 'string')) {
-        const migrated = migrateLayoutSlots(parsed as AppSlot[]);
-        if (JSON.stringify(migrated) !== JSON.stringify(parsed)) saveAppLayout(migrated);
+        const migrated = trimTrailingEmpty(migrateLayoutSlots(parsed as AppSlot[]));
+        if (JSON.stringify(migrated) !== JSON.stringify(parsed)) saveAppLayout(migrated, columns);
         return migrated;
       }
+    }
+    if (columns !== 4) {
+      const four = loadAppLayout(4);
+      return four ? seedLayoutFrom(four) : null;
     }
     // One-time migration from the older v1 ordered-list format. Empty
     // layout (no gaps), apps in saved order.
@@ -137,9 +181,9 @@ export function loadAppLayout(): AppSlot[] | null {
   }
 }
 
-export function saveAppLayout(slots: AppSlot[]): void {
+export function saveAppLayout(slots: AppSlot[], columns: DrawerColumns = 4): void {
   try {
-    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(slots));
+    localStorage.setItem(layoutKey(columns), JSON.stringify(slots));
   } catch {
     /* localStorage unavailable — ignore */
   }

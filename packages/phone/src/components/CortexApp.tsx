@@ -284,10 +284,10 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
               rows={5}
             />
             <div className="flex gap-2">
-              <button onClick={() => handleSaveEdit(m.id)} className="p-1.5 rounded" style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)' }}>
+              <button onClick={() => handleSaveEdit(m.id)} className="p-1.5 rounded" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>
                 <Check size={14} />
               </button>
-              <button onClick={() => setEditingId(null)} className="p-1.5 rounded opacity-60" style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)' }}>
+              <button onClick={() => setEditingId(null)} className="p-1.5 rounded opacity-60" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>
                 <X size={14} />
               </button>
             </div>
@@ -356,7 +356,7 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn('shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border flex items-center gap-1.5', colors.panelBorder, tab !== t.id && colors.panelBg)}
-              style={tab === t.id ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
+              style={tab === t.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
             >
               <t.icon size={14} />
               {t.label}
@@ -399,7 +399,7 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
                   <div className="text-xs opacity-70 mb-2">Domains</div>
                   <div className="flex flex-wrap gap-1">
                     {domains.map((d, i) => (
-                      <span key={i} className="px-2 py-0.5 text-xs rounded-full" style={{ background: colors.accent + '30' }}>
+                      <span key={i} className="px-2 py-0.5 text-xs rounded-[var(--shape-control)]" style={{ background: colors.accent + '30' }}>
                         {d.domain}
                       </span>
                     ))}
@@ -422,7 +422,7 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
                           setSearchQuery(concept);
                           setTab('vault');
                         }}
-                        className="px-2 py-0.5 text-xs rounded-full transition-colors hover:opacity-80 border"
+                        className="px-2 py-0.5 text-xs rounded-[var(--shape-control)] transition-colors hover:opacity-80 border"
                         style={{ borderColor: colors.accent + '50' }}
                       >
                         {concept}
@@ -481,7 +481,7 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
                   type="submit"
                   disabled={isSearching || (!searchQuery.trim() && !searchDomain.trim())}
                   className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                  style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 >
                   {isSearching ? '...' : 'Search'}
                 </button>
@@ -564,7 +564,7 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
                 finally { setRoundsRunning(false); }
               }}
               className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-50"
-              style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
             >{roundsRunning ? 'Walking…' : 'Run rounds'}</button>
           </div>
           {ledger.length === 0 ? <div className="text-center py-8 opacity-50">No receipts yet</div> : ledgerPage.visible.map(entry => (
@@ -618,7 +618,7 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
                 <Wrench size={12} />
                 <span>Available MCP Tools</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px]" style={{ background: colors.accent + '20', color: colors.accent }}>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-[var(--shape-control)] text-[10px]" style={{ background: colors.accent + '20', color: colors.accent }}>
                 <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: colors.accent }} />
                 System Active
               </div>

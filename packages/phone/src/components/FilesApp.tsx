@@ -299,7 +299,7 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
               onClick={bulkConfirm === 'orphans' ? cleanOrphans : deleteFiltered}
               disabled={bulkBusy}
               className="flex-1 rounded-md px-3 py-1.5 text-[11px] font-semibold disabled:opacity-50 flex items-center justify-center gap-1"
-              style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
             >
               {bulkBusy ? <Loader2 size={11} className="animate-spin" /> : <><Trash2 size={11} /> Yes, delete</>}
             </button>
@@ -319,7 +319,7 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
             key={f.id}
             onClick={() => setFilter(f.id)}
             className={cn('shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder, filter !== f.id && colors.panelBg)}
-            style={filter === f.id ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : undefined}
+            style={filter === f.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
           >
             {f.label}
           </button>

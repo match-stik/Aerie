@@ -1,21 +1,80 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useState, useEffect } from 'react';
 import { motion, useAnimation, PanInfo } from 'motion/react';
-import { Cloud, Sun, CloudRain, Snowflake } from 'lucide-react';
+import { LockClock } from './LockClock';
+import { useWeather } from './useWeather';
+import { ageLabel, type ClockAt, type LockFace, type LockPiece, type LockPosition, type LockShow, type LockSize, type UnreadSummary } from '../lib/lock-clock';
+import type { AppDef } from '../lib/apps';
+import { apiFetch } from '../aerie';
+import { NOTES_SEEN_KEY, unseenCompanionNote } from '../lib/home-widgets';
+
+interface LockFaceDot {
+  url: string | null;
+  color: string | null;
+  name: string;
+}
+
+interface LockWriter {
+  slug: string;
+  name: string;
+  color: string | null;
+  url: string | null;
+}
+
+interface NoteRow { id: string | number; text: string; color: string; timestamp: string; sender: string | null }
+
+/** When Notes was last opened. The first time the lock screen looks, it
+ *  starts the clock at now, so only notes left after that count as new. */
+function notesSeenAt(): number | null {
+  try {
+    const raw = localStorage.getItem(NOTES_SEEN_KEY);
+    if (raw === null) {
+      const now = Date.now();
+      localStorage.setItem(NOTES_SEEN_KEY, String(now));
+      return now;
+    }
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
 
 interface LockScreenProps {
   onUnlock: () => void;
   wallpaper?: string;
+  face: LockFace;
+  position: LockPosition;
+  size: LockSize;
+  /** Left and right corner shortcuts; a null corner is empty. */
+  shortcuts: (AppDef | null)[];
+  /** Opens an app straight from the lock screen, the way a phone's corners do. */
+  onOpenApp: (app: AppDef) => void;
+  show: LockShow;
+  unread: UnreadSummary;
+  faces: LockFaceDot[];
+  /** The Messages app, for the card's tap. */
+  messagesApp?: AppDef;
+  /** Who can leave a note on the fridge, and the Notes app the note card opens. */
+  writers?: LockWriter[];
+  notesApp?: AppDef;
+  /** Where this face's clock was dragged, and how a new spot is kept: hold
+   *  the clock, drag it, and let go. */
+  clockAt?: ClockAt | null;
+  onMoveClock?: (at: ClockAt) => void;
+  /** The weather pill moves the same way. */
+  weatherAt?: ClockAt | null;
+  onMoveWeather?: (at: ClockAt) => void;
+  /** Which pieces are showing, and how one is tucked away: dragged up into
+   *  the strip at the top. Settings brings it back. */
+  showClock?: boolean;
+  showWeather?: boolean;
+  onHide?: (piece: LockPiece) => void;
 }
 
-interface WeatherData {
-  temp: number;
-  code: number;
-}
-
-export function LockScreen({ onUnlock, wallpaper }: LockScreenProps) {
+export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcuts, onOpenApp, show, unread, faces, messagesApp, writers = [], notesApp, clockAt = null, onMoveClock, weatherAt = null, onMoveWeather, showClock = true, showWeather = true, onHide }: LockScreenProps) {
   const [time, setTime] = useState(new Date());
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const weather = useWeather();
   const controls = useAnimation();
 
   useEffect(() => {
@@ -23,30 +82,20 @@ export function LockScreen({ onUnlock, wallpaper }: LockScreenProps) {
     return () => clearInterval(timer);
   }, []);
 
+  // A note a companion left since Notes was last opened.
+  const [notes, setNotes] = useState<NoteRow[]>([]);
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            const { latitude, longitude } = position.coords;
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&temperature_unit=fahrenheit`);
-            const data = await res.json();
-            if (data.current_weather) {
-              setWeather({
-                temp: Math.round(data.current_weather.temperature),
-                code: data.current_weather.weathercode,
-              });
-            }
-          } catch (e) {
-            console.error('Failed to fetch weather', e);
-          }
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-        }
-      );
-    }
+    let gone = false;
+    const load = () => apiFetch('/api/notes').then((r) => (r.ok ? r.json() : [])).then((rows) => { if (!gone && Array.isArray(rows)) setNotes(rows); }).catch(() => {});
+    load();
+    const t = setInterval(load, 60_000);
+    return () => { gone = true; clearInterval(t); };
   }, []);
+  const [seenAt] = useState(notesSeenAt);
+  const note = show === 'nothing' ? null : unseenCompanionNote(notes, writers.map((w) => w.slug), seenAt);
+  const noteWriter = note ? writers.find((w) => w.slug.toLowerCase() === (note.sender || '').toLowerCase()) : undefined;
+  const messagesCardUp = show !== 'nothing' && unread.count > 0;
+  const cardBase = face === 'dateline' ? 184 : 124;
 
   const handleDragEnd = (event: any, info: PanInfo) => {
     if (info.offset.y < -100) {
@@ -56,16 +105,9 @@ export function LockScreen({ onUnlock, wallpaper }: LockScreenProps) {
     }
   };
 
-  const getWeatherIcon = (code: number) => {
-    if (code <= 3) return <Sun className="h-4 w-4 text-yellow-300" />;
-    if (code <= 48) return <Cloud className="h-4 w-4 text-white/80" />;
-    if (code <= 67 || code >= 80) return <CloudRain className="h-4 w-4 text-blue-300" />;
-    return <Snowflake className="h-4 w-4 text-white" />;
-  };
-
   return (
     <motion.div 
-      className="absolute inset-0 z-50 flex flex-col items-center justify-between overflow-hidden bg-black text-white"
+      className="absolute inset-0 z-50 flex flex-col items-center justify-end overflow-hidden bg-black text-white"
       initial={{ opacity: 1 }}
       animate={{ opacity: 1 }}
       exit={{ y: '-100%', opacity: 0, transition: { duration: 0.4, ease: 'easeInOut' } }}
@@ -81,28 +123,88 @@ export function LockScreen({ onUnlock, wallpaper }: LockScreenProps) {
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-900 to-black opacity-80" />
       )}
 
-      {/* Top Section: Time & Date */}
-      <div className="z-10 mt-6 flex flex-col items-center">
-        <h1 className="text-5xl font-light tracking-tight drop-shadow-lg">
-          {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </h1>
-        <p className="mt-1 text-sm font-medium text-white/80 drop-shadow-md">
-          {time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-      </div>
+      {/* The clock, in the chosen face (components/LockClock.tsx). Holding it, or
+          the weather pill, lifts it, and letting go leaves it there. */}
+      <LockClock face={face} position={position} size={size} now={time} weather={weather} at={clockAt} onMove={onMoveClock} weatherAt={weatherAt} onMoveWeather={onMoveWeather} showClock={showClock} showWeather={showWeather} onHide={onHide} />
 
-      {/* Weather Widget — top-right corner */}
-      {weather && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute top-12 right-4 z-10 flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1.5 backdrop-blur-md border border-white/10"
-          style={{ marginTop: 'var(--sat)' }}
+      {/* Who's written: names only unless the first line is chosen, and
+          nothing at all if nothing is chosen. Sits above the dateline row when
+          that face is up. */}
+      {show !== 'nothing' && unread.count > 0 && (
+        <button
+          type="button"
+          onClick={() => messagesApp && onOpenApp(messagesApp)}
+          className="absolute inset-x-5 z-20 flex items-center gap-3 rounded-2xl border border-white/15 bg-black/45 px-4 py-3 text-left"
+          style={{ bottom: face === 'dateline' ? 'calc(var(--sab, 0px) + 184px)' : 'calc(var(--sab, 0px) + 124px)' }}
         >
-          {getWeatherIcon(weather.code)}
-          <span className="text-xs font-medium">{weather.temp}°F</span>
-        </motion.div>
+          <span className="flex shrink-0 -space-x-2">
+            {faces.slice(0, 3).map((f, i) => (
+              <span
+                key={f.name + i}
+                className="h-[26px] w-[26px] overflow-hidden rounded-full border-2 bg-black"
+                style={{ borderColor: f.color || 'rgba(255,255,255,0.6)', zIndex: 3 - i }}
+              >
+                {f.url && <img src={f.url} alt="" className="h-full w-full object-cover" />}
+              </span>
+            ))}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">
+              {unread.count === 1 ? '1 new message' : `${unread.count} new messages`}
+              {unread.newestAt !== null && (
+                <span className="font-normal text-white/60"> · {ageLabel(unread.newestAt, time.getTime())}</span>
+              )}
+            </span>
+            {show === 'first-line' && unread.firstLine && (
+              <span className="block truncate text-xs text-white/75">{unread.firstLine}</span>
+            )}
+          </span>
+        </button>
       )}
+
+      {/* A note on the fridge: who left it and when, and its first line if
+          the first line is chosen. Sits above the messages card when that
+          one is up. Opening Notes is what puts it away. */}
+      {note && (
+        <button
+          type="button"
+          onClick={() => notesApp && onOpenApp(notesApp)}
+          className="absolute inset-x-5 z-20 flex items-center gap-3 rounded-2xl border border-white/15 bg-black/45 px-4 py-3 text-left"
+          style={{ bottom: `calc(var(--sab, 0px) + ${cardBase + (messagesCardUp ? (show === 'first-line' && unread.firstLine ? 76 : 60) : 0)}px)` }}
+        >
+          <span
+            className="h-[26px] w-[26px] shrink-0 overflow-hidden rounded-full border-2 bg-black"
+            style={{ borderColor: noteWriter?.color || 'rgba(255,255,255,0.6)' }}
+          >
+            {noteWriter?.url && <img src={noteWriter.url} alt="" className="h-full w-full object-cover" />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">
+              A note from {noteWriter?.name || note.sender}
+              {Number.isFinite(Date.parse(note.timestamp)) && (
+                <span className="font-normal text-white/60"> · {ageLabel(Date.parse(note.timestamp), time.getTime())}</span>
+              )}
+            </span>
+            {show === 'first-line' && note.text.trim() && (
+              <span className="block truncate text-xs text-white/75">{note.text.trim().split('\n')[0]}</span>
+            )}
+          </span>
+        </button>
+      )}
+
+      {/* The two corner shortcuts. Each opens its app straight away. */}
+      {shortcuts.map((app, i) => app && (
+        <button
+          key={(i === 0 ? 'left-' : 'right-') + app.id}
+          type="button"
+          onClick={() => onOpenApp(app)}
+          aria-label={app.name}
+          className="absolute z-20 flex h-[52px] w-[52px] items-center justify-center rounded-full border border-white/15 bg-black/40"
+          style={{ bottom: 'calc(var(--sab, 0px) + 36px)', [i === 0 ? 'left' : 'right']: 28 }}
+        >
+          <app.icon size={22} strokeWidth={1.6} className="text-white" />
+        </button>
+      ))}
 
       {/* Bottom Section: Swipe to Unlock */}
       <motion.div 

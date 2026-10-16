@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { platformFrameFor } from './agent-router-query.js';
+import { handsCodexSideNotes, platformFrameFor } from './agent-router-query.js';
 
 // The gateway has always assembled the channel frame; retiring the SDK lane cut
 // the only thing that read it. These pin the wire back in place — the first one
@@ -33,4 +33,20 @@ test('absent or empty context adds nothing at all', () => {
   assert.strictEqual(platformFrameFor('discord', ''), '');
   assert.strictEqual(platformFrameFor('discord', '   \n  '), '');
   assert.strictEqual(platformFrameFor('discord', { rules: 'x' }), '');
+});
+
+// The owner's Codex side notes go into the owner's own turns and a wake, and
+// never into a guest's, whose answer lands in a room the guest reads.
+test('the owner\'s codex side notes are handed over on the owner\'s turns and never on a guest\'s', () => {
+  assert.strictEqual(handsCodexSideNotes('codex-cli', undefined), true, 'the owner\'s phone and the wakes');
+  assert.strictEqual(handsCodexSideNotes('codex-cli', { kind: 'owner' }), true, 'the owner\'s own Discord turn');
+  for (const trust of ['full', 'standard', 'limited'] as const) {
+    assert.strictEqual(handsCodexSideNotes('codex-cli', { kind: 'guest', trust }), false, trust);
+  }
+});
+
+test('only a codex turn has codex side notes to hand over', () => {
+  for (const routing of ['cli', 'api', 'sdk', 'auto'] as const) {
+    assert.strictEqual(handsCodexSideNotes(routing, undefined), false, routing);
+  }
 });

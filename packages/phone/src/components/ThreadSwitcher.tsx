@@ -208,7 +208,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
             <button
               onClick={() => confirmDelete(thread.id)}
               className="rounded-lg px-3 py-1.5 text-xs font-semibold"
-              style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
             >
               Delete
             </button>
@@ -241,8 +241,8 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
               <span className={cn('truncate text-sm font-medium', colors.textMain)}>{thread.name}</span>
               {thread.unread_count > 0 && (
                 <span
-                  className="ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-                  style={{ background: accentHex, color: 'var(--aerie-on-accent)' }}
+                  className="ml-auto shrink-0 rounded-[var(--shape-control)] px-1.5 py-0.5 text-[10px] font-bold"
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 >
                   {thread.unread_count}
                 </span>
@@ -472,7 +472,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
                                 });
                               }}
                               className={cn(
-                                'relative flex items-center gap-2 rounded-full px-2 py-1.5 border transition-all',
+                                'relative flex items-center gap-2 rounded-[var(--shape-control)] px-2 py-1.5 border transition-all',
                                 isSelected ? 'border-current' : colors.panelBorder,
                                 'hover:opacity-80'
                               )}
@@ -515,7 +515,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
                       onClick={commitCreate}
                       disabled={!createValue.trim()}
                       className="flex-1 rounded-xl py-2 text-xs font-semibold disabled:opacity-50"
-                      style={{ backgroundColor: accentHex, color: 'var(--aerie-on-accent)' }}
+                      style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                     >
                       Create
                     </button>

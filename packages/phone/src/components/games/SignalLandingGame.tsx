@@ -380,7 +380,7 @@ export function SignalLandingGame({ colors, rawColors, onExit }: { colors: any, 
         
         {message && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-black/80 text-white px-4 py-2 rounded-full text-sm font-medium tracking-wider uppercase text-center">
+            <div className="bg-black/80 text-white px-4 py-2 rounded-[var(--shape-control)] text-sm font-medium tracking-wider uppercase text-center">
               {message}
             </div>
           </div>
@@ -424,7 +424,7 @@ export function SignalLandingGame({ colors, rawColors, onExit }: { colors: any, 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             onClick={() => initGame(false)}
-            className={cn("px-6 py-3 rounded-full font-medium text-sm flex items-center gap-2 hover:scale-105 transition-transform", "text-white")}
+            className={cn("px-6 py-3 rounded-[var(--shape-control)] font-medium text-sm flex items-center gap-2 hover:scale-105 transition-transform", "text-white")}
             style={{ backgroundColor: rawColors.accent, color: rawColors.accentText }}
           >
             <RotateCcw size={16} /> Restart Sequence

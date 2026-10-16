@@ -370,7 +370,7 @@ export function PetApp({ onClose, themeConfig, themeMode }: PetAppProps) {
           <div className="relative border-t border-black/5 px-5 py-4 text-center dark:border-white/5">
             <div className="flex items-center justify-center gap-2">
               <h2 className={cn('text-2xl font-semibold tracking-tight', colors.textMain)}>{pet.name}</h2>
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: PET_ACCENT, backgroundColor: `${PET_ACCENT}18` }}>
+              <span className="rounded-[var(--shape-control)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: PET_ACCENT, backgroundColor: `${PET_ACCENT}18` }}>
                 bond {pet.bond}
               </span>
             </div>
@@ -422,7 +422,7 @@ export function PetApp({ onClose, themeConfig, themeMode }: PetAppProps) {
         {editing && (
           <motion.div className="absolute inset-0 z-50 flex items-end bg-black/45" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditing(false)}>
             <motion.div
-              className={cn('w-full rounded-t-[2rem] border-t p-5 pb-[calc(var(--sab)+1.25rem)] shadow-2xl', colors.pageBg, colors.panelBorder, colors.textMain)}
+              className={cn('w-full rounded-t-[calc(32px*var(--shape-scale,1))] border-t p-5 pb-[calc(var(--sab)+1.25rem)] shadow-2xl', colors.pageBg, colors.panelBorder, colors.textMain)}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               onClick={(event) => event.stopPropagation()}
             >

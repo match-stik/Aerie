@@ -417,7 +417,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
                 <button
                   onClick={markFound}
                   className="w-full rounded-xl py-3 text-sm font-medium transition-opacity active:opacity-70"
-                  style={{ backgroundColor: colors.accent, color: onAccent }}
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 >
                   Mark these as found
                 </button>
@@ -483,7 +483,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
           onClick={locate}
           disabled={locating}
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium shadow-sm transition-opacity active:opacity-70 disabled:opacity-60"
-          style={{ backgroundColor: colors.accent, color: onAccent }}
+          style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
         >
           {locating ? <Loader2 size={16} className="animate-spin" /> : <Crosshair size={16} />}
           {locating ? 'Finding you…' : fix ? 'Check again' : 'Find where I am'}
@@ -604,7 +604,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
                 type="button"
                 onClick={() => { void openLocationSettings(); }}
                 className="mt-3 rounded-lg px-3 py-2 text-sm font-semibold"
-                style={{ backgroundColor: colors.accent, color: onAccent }}
+                style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
               >
                 Open location settings
               </button>

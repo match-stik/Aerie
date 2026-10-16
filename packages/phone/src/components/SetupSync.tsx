@@ -187,7 +187,7 @@ export function SetupSync({ themeConfig, themeMode }: Props) {
           onClick={send}
           disabled={busy !== null}
           className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50"
-          style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)' }}
+          style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
         >
           {busy === 'send' ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
           Send my setup to the house

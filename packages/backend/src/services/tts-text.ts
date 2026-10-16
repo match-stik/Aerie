@@ -280,6 +280,15 @@ export function prepareTextForTTS(text: string, options: TtsTextOptions = {}): s
     });
 
   const prepared = protectedText
+    // STICKERS AND EMOJI ARE PICTURES ON THE OWNER'S SCREEN, so their codes
+    // are not spoken (a reply read aloud used to spell them out). These run
+    // first, before the emphasis pass can take the
+    // underscores in two codes on one line for a pair of italics. The emoji
+    // code needs a letter in it and space on both sides, so a clock, a ratio
+    // or a link keeps its colons.
+    .replace(/::[A-Za-z0-9_-]+_[A-Za-z0-9_-]+::/g, '')           // ::pack_sticker::
+    .replace(/<a?:[A-Za-z0-9_~-]+:\d+>/g, '')                    // Discord <:name:id>
+    .replace(/(^|[ \t]):[A-Za-z0-9_+-]*[A-Za-z][A-Za-z0-9_+-]*:(?=[ \t]|$|[.,!?;)])/gm, '$1') // :emoji:
     .replace(/^---+$/gm, '')                    // horizontal dividers
     // WHISPER MARKERS, ALL OF THEM. A nested whisper (-# -# ...) had one
     // marker stripped and the other SPOKEN aloud, because a single replace

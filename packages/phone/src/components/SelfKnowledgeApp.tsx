@@ -136,7 +136,7 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
         onClick={() => setFilter(value)}
         className={cn('shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder, !active && colors.panelBg)}
         style={active
-          ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+          ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
           : { color: accent || undefined }}
       >
         {label}
@@ -167,7 +167,7 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
           )}
           <span className={cn('text-xs font-semibold', colors.textMain)}>{companion?.display_name || entry.companion_id}</span>
           <span
-            className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+            className="rounded-[var(--shape-control)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
             style={{ background: 'rgba(127,127,127,0.15)', color: accent }}
           >
             {CATEGORY_LABEL[entry.category] || entry.category}
@@ -179,7 +179,7 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
           )}
           {contradicted && (
             <span
-              className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+              className="rounded-[var(--shape-control)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
               style={{ background: 'rgba(127,127,127,0.15)', color: 'var(--aerie-text-muted)' }}
               title="Retired — this stopped holding true; it no longer surfaces, but you can restore it"
             >
@@ -210,7 +210,7 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
             <button
               onClick={() => review(entry, 'accepted')}
               disabled={busy === entry.id}
-              className="flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold transition-opacity disabled:opacity-50"
+              className="flex items-center gap-1 rounded-[var(--shape-control)] px-3 py-1 text-[11px] font-semibold transition-opacity disabled:opacity-50"
               style={{ background: accent, color: contrastTextColor(accent) }}
             >
               {busy === entry.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
@@ -219,7 +219,7 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
             <button
               onClick={() => review(entry, 'dismissed')}
               disabled={busy === entry.id}
-              className={cn('flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-semibold transition-opacity disabled:opacity-50', colors.panelBorder, colors.textMuted)}
+              className={cn('flex items-center gap-1 rounded-[var(--shape-control)] border px-3 py-1 text-[11px] font-semibold transition-opacity disabled:opacity-50', colors.panelBorder, colors.textMuted)}
             >
               <X size={12} />
               Dismiss
@@ -231,7 +231,7 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
               <button
                 onClick={() => review(entry, 'accepted')}
                 disabled={busy === entry.id}
-                className={cn('flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-opacity disabled:opacity-50', colors.panelBorder, colors.textMuted)}
+                className={cn('flex items-center gap-1 rounded-[var(--shape-control)] border px-2.5 py-0.5 text-[10px] font-semibold transition-opacity disabled:opacity-50', colors.panelBorder, colors.textMuted)}
                 title={contradicted ? 'Restore — bring it back to full warmth' : 'Restore'}
               >
                 <Check size={11} /> Restore

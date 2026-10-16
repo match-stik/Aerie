@@ -91,3 +91,10 @@ test('delivery only happens when exactly one lane is busy', () => {
   assert.equal(deliverSideNoteToBusyCodexLane(new Set([lane]), 'hello'), true);
   assert.deepEqual(readCodexSideNotesFrom(lane, 0).notes.map((n) => n.text), ['hello']);
 });
+
+test('a Codex lane answering in a Discord channel does not take a note from the owner\'s phone', () => {
+  const lane = freshLane();
+  assert.equal(deliverSideNoteToBusyCodexLane(new Set([lane]), 'hello', new Set([lane])), false);
+  assert.deepEqual(readCodexSideNotesFrom(lane, 0).notes, [], 'it queues instead');
+  assert.equal(deliverSideNoteToBusyCodexLane(new Set([lane]), 'hello', new Set(['some-other-lane'])), true);
+});

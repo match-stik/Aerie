@@ -149,7 +149,7 @@ export function StoryWidgetFrame({
         <button
           type="button"
           onClick={() => setTall((was) => !was)}
-          className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-black/10 dark:hover:bg-white/10', colors.textMuted)}
+          className={cn('rounded-[var(--shape-control)] px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-black/10 dark:hover:bg-white/10', colors.textMuted)}
         >
           {tall ? 'Make it smaller' : 'Make it taller'}
         </button>

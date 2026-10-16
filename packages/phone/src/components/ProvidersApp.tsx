@@ -211,7 +211,7 @@ export function ProvidersApp({ onClose, themeConfig, themeMode, embedded }: Prov
             <div className="flex items-center justify-between mb-2">
               <span className={cn('text-sm font-semibold', colors.textMain)}>Codex (ChatGPT)</span>
               <span
-                className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                className="rounded-[var(--shape-control)] px-2 py-0.5 text-[10px] font-semibold"
                 style={{
                   background: `${colors.accent}${codexLoggedIn || codexInFlight ? '26' : '00'}`,
                   color: codexLoggedIn || codexInFlight ? colors.accent : colors.textMuted,

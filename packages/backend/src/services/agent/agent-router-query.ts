@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import { isTurnAudience, guestToolRefusal } from '../turn-audience.js';
+import { isTurnAudience, guestToolRefusal, type TurnAudience } from '../turn-audience.js';
 import type { ImageBlockParam } from './claude-types.js';
 import { shouldReportRuntimeError } from './runtime-error-report.js';
 import crypto from 'crypto';
@@ -55,6 +55,18 @@ export function platformFrameFor(
   if (platform !== 'discord') return '';
   if (typeof platformContext !== 'string' || !platformContext.trim()) return '';
   return `${platformContext}\n\n=== MESSAGE ===\n`;
+}
+
+/**
+ * Whether the owner's Codex side notes are handed into this turn. Only on a
+ * Codex turn, and never on a guest's: the answer lands in a room the guest
+ * reads, so the notes wait for the owner's own next turn, the same as on the
+ * Claude lane.
+ * Today guests are answered by the gated Claude lane; this holds for the day
+ * one is answered here instead.
+ */
+export function handsCodexSideNotes(routing: AgentRouting, audience: TurnAudience | undefined): boolean {
+  return routing === 'codex-cli' && audience?.kind !== 'guest';
 }
 
 export async function processViaRouter(
@@ -184,6 +196,11 @@ export async function processViaRouter(
   let codexSideNoteHandoverOffset: number | undefined;
   if (routing === 'codex-cli') {
     runtimeContext.agentState.activeCodexLanes.add(codexSessionKey);
+    if (turnAudience) runtimeContext.agentState.codexLanesAnsweringElsewhere.add(codexSessionKey);
+  }
+  // On a guest's turn the offset stays where it is, so the owner's notes come
+  // with the owner's next turn rather than into the guest's room.
+  if (handsCodexSideNotes(routing, turnAudience)) {
     const priorOffset = runtimeContext.agentState.codexSideNoteOffsets.get(codexSessionKey) ?? 0;
     const pending = readCodexSideNotesFrom(codexSessionKey, priorOffset);
     if (pending.notes.length > 0) {
@@ -526,6 +543,7 @@ export async function processViaRouter(
     // reachable either, and leaving the key behind would send the owner's next note
     // into a file nobody is going to open.
     runtimeContext.agentState.activeCodexLanes.delete(codexSessionKey);
+    runtimeContext.agentState.codexLanesAnsweringElsewhere.delete(codexSessionKey);
     try {
       await runtime.dispose?.();
     } catch (disposeErr) {

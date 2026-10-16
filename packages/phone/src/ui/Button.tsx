@@ -32,7 +32,7 @@ export function Button({
     return (
       <button
         className={cn(baseClasses, sizeClasses[size], className)}
-        style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)', ...style }}
+        style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', ...style }}
         {...props}
       >
         {children}

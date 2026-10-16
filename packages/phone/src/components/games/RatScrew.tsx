@@ -183,7 +183,7 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
         {game.order.map((slug) => (
           <div
             key={slug}
-            className={cn('flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition', colors.panelBorder,
+            className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-2.5 py-1 text-[11px] font-semibold transition', colors.panelBorder,
                           game.turn === slug && game.phase === 'playing' ? '' : 'opacity-60')}
             style={game.turn === slug && game.phase === 'playing'
               ? { backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }
@@ -200,7 +200,7 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
           not a dent is live, so opening one never shoves the pile around. */}
       <div className="flex h-7 items-center justify-center">
         <div
-          className={cn('rounded-full border px-3 py-1 text-[11px] transition-opacity duration-200', colors.panelBorder,
+          className={cn('rounded-[var(--shape-control)] border px-3 py-1 text-[11px] transition-opacity duration-200', colors.panelBorder,
                         game.dent ? 'opacity-100' : 'opacity-0')}
           style={{ color: colors.accent }}
         >
@@ -241,7 +241,7 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
         {slapLive && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-            className="absolute top-1 left-1/2 -translate-x-1/2 rounded-full bg-red-600/90 px-4 py-1 text-[12px] font-bold uppercase tracking-widest text-white shadow-lg"
+            className="absolute top-1 left-1/2 -translate-x-1/2 rounded-[var(--shape-control)] bg-red-600/90 px-4 py-1 text-[12px] font-bold uppercase tracking-widest text-white shadow-lg"
           >
             {game.slap?.pattern}! slap!
           </motion.div>

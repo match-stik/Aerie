@@ -218,7 +218,7 @@ export function PingGame({ colors, rawColors, onExit }: { colors: any, rawColors
             <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
               <button
                 onClick={initGame}
-                className={cn("px-6 py-3 rounded-full font-medium text-sm hover:scale-105 transition-transform", "text-white")}
+                className={cn("px-6 py-3 rounded-[var(--shape-control)] font-medium text-sm hover:scale-105 transition-transform", "text-white")}
                 style={{ backgroundColor: rawColors.accent, color: rawColors.accentText }}
               >
                 Start Ping
@@ -248,7 +248,7 @@ export function PingGame({ colors, rawColors, onExit }: { colors: any, rawColors
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={initGame}
-              className={cn("px-6 py-3 rounded-full font-medium text-sm flex items-center gap-2 hover:scale-105 transition-transform", "text-white")}
+              className={cn("px-6 py-3 rounded-[var(--shape-control)] font-medium text-sm flex items-center gap-2 hover:scale-105 transition-transform", "text-white")}
               style={{ backgroundColor: rawColors.accent, color: rawColors.accentText }}
             >
               <RotateCcw size={16} /> Reconnect

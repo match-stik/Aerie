@@ -33,8 +33,8 @@ export function SegmentedControl<T extends string>({
           style={
             value === option.value
               ? {
-                  background: colors.accent,
-                  color: 'var(--aerie-on-accent)',
+                  background: 'var(--aerie-selected-fill)',
+                  color: '#ffffff',
                   borderColor: colors.accent,
                 }
               : undefined

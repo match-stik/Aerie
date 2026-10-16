@@ -179,7 +179,7 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
             return (
               <div
                 key={`recycle-${i}`}
-                className={cn('my-0.5 flex items-center gap-1.5 self-start rounded-full border px-2.5 py-1 text-[11px] opacity-75', colors.panelBorder)}
+                className={cn('my-0.5 flex items-center gap-1.5 self-start rounded-[var(--shape-control)] border px-2.5 py-1 text-[11px] opacity-75', colors.panelBorder)}
                 style={{ background: 'rgba(127,127,127,0.08)' }}
               >
                 <RefreshCw size={11} className="shrink-0" />
@@ -192,7 +192,7 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
             return (
               <div
                 key={`timeout-${i}`}
-                className={cn('my-0.5 flex items-center gap-1.5 self-start rounded-full border px-2.5 py-1 text-[11px] opacity-75', colors.panelBorder)}
+                className={cn('my-0.5 flex items-center gap-1.5 self-start rounded-[var(--shape-control)] border px-2.5 py-1 text-[11px] opacity-75', colors.panelBorder)}
                 style={{ background: 'rgba(127,127,127,0.08)' }}
               >
                 <RefreshCw size={11} className="shrink-0" />
@@ -245,7 +245,7 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
               <div
                 key="tool-summary"
                 className={cn(
-                  'my-0.5 flex items-center gap-1.5 self-start rounded-full border px-2.5 py-1 text-[11px] opacity-60',
+                  'my-0.5 flex items-center gap-1.5 self-start rounded-[var(--shape-control)] border px-2.5 py-1 text-[11px] opacity-60',
                   colors.panelBorder
                 )}
                 style={{ background: 'rgba(127,127,127,0.08)' }}

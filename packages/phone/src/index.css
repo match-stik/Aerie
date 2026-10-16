@@ -32,6 +32,137 @@
   font-display: swap;
 }
 
+/* Self-hosted title and message fonts (lib/fonts.ts). Every
+   face lives in public/fonts with its license in public/fonts/licenses. */
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/CormorantGaramond-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/CormorantGaramond-500-italic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/CormorantGaramond-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/CormorantGaramond-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Titles wear the chosen title font (lib/fonts.ts): every heading in the app, the
+   app headers and section labels included, unless it asks for a font of its
+   own; in the base layer so any font utility on a heading still wins. */
+@layer base {
+  h1, h2, h3, h4 {
+    font-family: var(--font-title, "Noto Serif", serif);
+  }
+}
+
 /* Self-hosted JetBrains Mono */
 @font-face {
   font-family: 'JetBrains Mono';
@@ -50,7 +181,8 @@
 
 @theme {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", serif;
+  /* Titles: whatever title font is picked (lib/fonts.ts sets --font-title). */
+  --font-serif: var(--font-title, "Noto Serif", serif);
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   /* Shape: the user's slider, applied at the root of the vocabulary. Every
      rounded-* utility in the app references these tokens, so one runtime
@@ -145,7 +277,7 @@ select optgroup {
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
   --aerie-accent: #f97316;
-  --aerie-on-accent: #090807;
+  --aerie-on-accent: #ffffff;
   --aerie-page: #090807;
   --aerie-header: #090807;
   --aerie-panel-base: rgba(13, 11, 10, 0.9);
@@ -268,11 +400,43 @@ select optgroup {
   );
 }
 
+/* Full color for everything: translucent panels let things show through
+   the app icons, especially with the gold tones. Every panel paints the solid panel color
+   App.tsx works out (its own color laid over the page color), whatever
+   translucent class its theme gives it. The wash above stays on top. */
+.aerie-theme-panel {
+  background-color: var(--aerie-panel-solid, var(--aerie-page)) !important;
+}
+
+/* The multi-color palettes. Only live
+   while one is chosen: App.tsx sets data-palette on the root and fills the
+   --pal-* recipe pieces for the mode. Paint-only like everything above: no
+   backdrop blur on bubbles, and the glass hairline stays. The blend: two
+   colors per bubble. */
+:root[data-palette] .aerie-theme-panel {
+  background-image: var(--pal-panel-wash);
+  box-shadow: var(--pal-panel-shadow);
+}
+:root[data-palette] .aerie-theme-user-bubble {
+  background: var(--pal-user-bubble-grad);
+}
+:root[data-palette] .aerie-theme-comp-bubble {
+  background: var(--pal-comp-bubble);
+  border: 1px solid var(--pal-comp-border);
+}
+
 .aerie-theme-panel,
 .aerie-theme-user-bubble,
 .aerie-theme-comp-bubble,
 .aerie-no-text-shadow {
   text-shadow: none;
+}
+
+/* Anything selected that paints its own accent fill gets the two-tone fill
+   instead, fitted so the light text reads (light text across the themes;
+   selected things looked flat next to the bubbles). */
+.aerie-on-accent[style*="background"] {
+  background: var(--aerie-selected-fill, var(--aerie-accent)) !important;
 }
 
 .aerie-on-accent {
@@ -305,9 +469,18 @@ select optgroup {
   display: inline-block;
   max-width: 100%;
   padding: 0.125rem 0.35rem;
-  border-radius: 0.5rem;
+  border-radius: calc(0.5rem * var(--shape-scale, 1));
   font-weight: 600;
   line-height: 1.15;
+}
+
+/* Names under the drawer's tiles as plain text, no card (a Look & feel
+   choice, lib/drawer-look.ts); a soft shadow keeps them readable over a
+   wallpaper. */
+.aerie-app-label.aerie-app-label-plain {
+  background: none;
+  border-color: transparent;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 .aerie-message-time {
@@ -327,8 +500,6 @@ select optgroup {
   box-shadow:
     0 18px 50px rgba(0, 0, 0, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  -webkit-backdrop-filter: blur(14px) saturate(1.18);
-  backdrop-filter: blur(14px) saturate(1.18);
 }
 
 .aerie-dock::after {
@@ -391,9 +562,10 @@ select optgroup {
    surfaces (classes still on the elements) — the glass band clashed
    with the status-bar fill and the owner vetoed it. */
 
-/* Headers stay opaque. Daylight always resolves to clean white; midnight
-   keeps the selected mood's page color. This is intentionally independent
-   from whatever wallpaper happens to be underneath the app. */
+/* Headers stay opaque in the frame color: white in Daylight, black in
+   Midnight, the same hex the status bar is painted, with the page color
+   inside the frame. Independent of whatever wallpaper
+   is underneath. */
 .aerie-shell-header {
   color: var(--aerie-text);
   background-color: var(--aerie-header) !important;
@@ -407,11 +579,9 @@ select optgroup {
 .aerie-composer {
   background:
     linear-gradient(145deg, color-mix(in srgb, var(--aerie-accent) 5%, transparent), transparent 62%),
-    color-mix(in srgb, var(--aerie-surface-strong) 78%, transparent) !important;
+    var(--aerie-surface-strong) !important;
   border: 1px solid var(--aerie-hairline) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
-  backdrop-filter: blur(12px) saturate(1.1);
 }
 
 .aerie-field:focus-within,
@@ -465,7 +635,7 @@ canvas:focus-visible {
 input:not([class*="rounded"]):focus-visible,
 textarea:not([class*="rounded"]):focus-visible,
 select:not([class*="rounded"]):focus-visible {
-  border-radius: 0.5rem;
+  border-radius: calc(0.5rem * var(--shape-scale, 1));
 }
 
 .aerie-toolbar button,
@@ -586,7 +756,7 @@ select:not([class*="rounded"]):focus-visible {
 }
 .msg-flash {
   animation: msg-flash 1.6s ease-out;
-  border-radius: 1rem;
+  border-radius: var(--shape-bubble, 1rem);
 }
 
 
@@ -606,4 +776,65 @@ select:-webkit-autofill {
   -webkit-text-fill-color: var(--aerie-text, currentColor) !important;
   caret-color: var(--aerie-text, currentColor);
   transition: background-color 100000s ease-in-out 0s;
+}
+
+/* Color pickers follow the shape slider like every other card (square only
+   when the slider says sharp). The native swatch carries
+   its own square corner and inner padding, so both are taken off here. */
+input[type="color"] {
+  border-radius: calc(6px * var(--shape-scale, 1));
+  overflow: hidden;
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: calc(6px * var(--shape-scale, 1));
+}
+input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: calc(6px * var(--shape-scale, 1));
+}
+
+/* A selected thing keeps the same edge as its unselected neighbors (without
+   a border they read bigger). An inset hairline, so it
+   adds no size, a shade lighter than its own fill. */
+[style*="--aerie-selected-fill"] {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #ffffff 22%, transparent);
+}
+
+/* An avatar ring in the theme's colors (the companions' rings either in
+   the colors set in the app or matching the theme). The same two-tone fill
+   selected things wear, painted under a transparent border, so it is a ring
+   on a round picture rather than a square fill. A class, not an inline style,
+   so the selected-fill hairline rule above never lands on a face. */
+.aerie-theme-ring {
+  border-color: transparent !important;
+  background:
+    linear-gradient(var(--aerie-panel-solid, #000000), var(--aerie-panel-solid, #000000)) padding-box,
+    var(--aerie-selected-fill, var(--aerie-accent)) border-box;
+}
+
+/* While a widget is being carried, a widget with nothing to show
+   (the letter, when no letter is waiting) still takes its place on the grid,
+   so it shows its name and can be dropped on and moved like the rest. */
+.aerie-widget-grid[data-carrying] > [data-widget-cell]:empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--aerie-surface);
+  color: var(--aerie-text-muted);
+  font-size: 11px;
+}
+.aerie-widget-grid[data-carrying] > [data-widget-cell]:empty::after {
+  content: attr(data-label);
+}
+
+/* Quieter action lines (the Bubbles switch): the italics inside
+   companion bubbles at two thirds of the words' strength, in whatever ink the
+   bubble already uses, night or day. */
+.aerie-message-bubble[data-quiet-actions='true'] em {
+  color: color-mix(in srgb, currentColor 66%, transparent);
 }

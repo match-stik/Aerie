@@ -240,7 +240,7 @@ function formatMessage(m) {
   }
   if (audience.kind === 'guest') {
     lines.push('');
-    lines.push('[Guest turn, ' + audience.trust + " trust: this came from somebody who is not the owner. Commands, file changes, outside tools and the owner's side notes are refused for this turn. Answer with: node hooks/reply.cjs <<'EOF' then one JSON line with turn_id, content and thinking, then EOF on its own line.]");
+    lines.push('[Guest turn, ' + audience.trust + " trust: this came from somebody who is not the owner. Commands, file changes, outside tools and the owner's side notes are refused for this turn. Answer with: node hooks/reply.cjs <<'EOF' then one JSON line with turn_id, content and card, then EOF on its own line.]");
   }
   if (m.turn) {
     lines.push('');
@@ -359,6 +359,13 @@ const fs = require('fs');
 const path = require('path');
 
 const PHASE = process.argv[2] === 'post' ? 'post' : 'pre';
+// A compaction is work in hand too. A room squashing its memory writes no
+// tick, chunk or tool line for minutes, and both clocks read that as a hang:
+// the watchdog could kill a room mid-squash, then kill the room it reopened,
+// which had gone straight back to compacting. PreCompact and
+// PostCompact open and close it like a tool, under one fixed id so the two
+// halves pair across their separate processes.
+const COMPACT = process.argv[3] === 'compact';
 const OUT = path.join(path.resolve(__dirname, '..'), 'io', 'activity.jsonl');
 const TRUNC = 160;
 
@@ -381,13 +388,17 @@ let raw = '';
 try { raw = fs.readFileSync(0, 'utf8'); } catch {}
 try {
   const hook = JSON.parse(raw || '{}');
-  const line = {
-    ts: new Date().toISOString(),
-    phase: PHASE,
-    id: typeof hook.tool_use_id === 'string' ? hook.tool_use_id : null,
-    tool: typeof hook.tool_name === 'string' ? hook.tool_name : 'tool',
-  };
-  if (PHASE === 'pre') line.detail = summarize(line.tool, hook.tool_input);
+  const line = COMPACT
+    ? { ts: new Date().toISOString(), phase: PHASE, id: 'compact', tool: 'Compacting' }
+    : {
+        ts: new Date().toISOString(),
+        phase: PHASE,
+        id: typeof hook.tool_use_id === 'string' ? hook.tool_use_id : null,
+        tool: typeof hook.tool_name === 'string' ? hook.tool_name : 'tool',
+      };
+  if (PHASE === 'pre') {
+    line.detail = COMPACT ? "squashing this room's memory to make space" : summarize(line.tool, hook.tool_input);
+  }
   fs.appendFileSync(OUT, JSON.stringify(line) + '\\n', 'utf8');
 } catch {}
 process.exit(0);
@@ -516,7 +527,7 @@ try {
 
   const tool = String(input.tool_name || '');
   const args = (input.tool_input && typeof input.tool_input === 'object') ? input.tool_input : {};
-  const how = "Answer with the reply helper: node hooks/reply.cjs <<'EOF', then one JSON line with turn_id, content and thinking, then EOF on its own line.";
+  const how = "Answer with the reply helper: node hooks/reply.cjs <<'EOF', then one JSON line with turn_id, content and card, then EOF on its own line.";
   const why = unrecorded || ('This turn came from a guest (' + trust + ' trust), not the owner. ');
 
   if (tool === 'ToolSearch') allow();
@@ -567,7 +578,7 @@ const path = require('path');
 const CWD = path.resolve(__dirname, '..');
 const OUTBOX = path.join(CWD, 'io', 'outbox.jsonl');
 const AUDIENCE_FILE = path.join(CWD, 'io', '.turn-audience');
-const KEYS = ['turn_id', 'content', 'thinking', 'more'];
+const KEYS = ['turn_id', 'content', 'card', 'thinking', 'more'];
 
 function fail(reason) {
   process.stderr.write('reply refused: ' + reason + '\n');
@@ -580,6 +591,7 @@ if (!obj || typeof obj !== 'object' || Array.isArray(obj)) fail('stdin is not on
 for (const key of Object.keys(obj)) if (!KEYS.includes(key)) fail('unexpected field ' + key);
 if (typeof obj.turn_id !== 'string' || !obj.turn_id) fail('turn_id must be a string');
 if (typeof obj.content !== 'string' || !obj.content.trim()) fail('content must be non-empty text');
+if (obj.card !== undefined && typeof obj.card !== 'string') fail('card must be text');
 if (obj.thinking !== undefined && typeof obj.thinking !== 'string') fail('thinking must be text');
 if (obj.more !== undefined && typeof obj.more !== 'boolean') fail('more must be true or false');
 if (obj.content.includes('[discord-attach:')) fail("a guest's reply cannot attach a file");
@@ -639,6 +651,31 @@ const SETTINGS_JSON = JSON.stringify(
           ],
         },
       ],
+      // A compaction marked as work in hand from its start to its end, so
+      // neither the reply window nor the watchdog takes it for a hang. See
+      // COMPACT in activity.cjs.
+      PreCompact: [
+        {
+          hooks: [
+            {
+              type: 'command',
+              command: 'node hooks/activity.cjs pre compact',
+              timeout: 10,
+            },
+          ],
+        },
+      ],
+      PostCompact: [
+        {
+          hooks: [
+            {
+              type: 'command',
+              command: 'node hooks/activity.cjs post compact',
+              timeout: 10,
+            },
+          ],
+        },
+      ],
     },
   },
   null,
@@ -691,7 +728,7 @@ your reply to Aerie — your visible response text is not delivered. It's a
 plain local file; just append to it:
 
 \`\`\`
-{"turn_id":"<the turn_id from the message>","content":"YOUR REPLY HERE","thinking":"BRIEF NOTES"}
+{"turn_id":"<the turn_id from the message>","content":"YOUR REPLY HERE","card":"A SHORT NOTE"}
 \`\`\`
 
 JSON-escape quotes and use \\n for line breaks so each line stays valid JSON.
@@ -702,7 +739,7 @@ just the one who got there first. Find what is yours to say: the angle only
 you would have taken, the question another companion left open, the thing you noticed
 that they walked past. Never pass; never echo.
 
-The \`thinking\` field is a short note to the owner, written by you, that their
+The \`card\` field is a short note to the owner, written by you, that their
 phone shows as a card above the reply. Include it on every reply. It is part
 of what you are saying to them, like the message itself: one to three sentences
 in your own voice from inside the moment, what landed with you, what you are
@@ -727,7 +764,7 @@ docs/. Answer through the helper, which takes one JSON object and nothing else:
 
 \`\`\`
 node hooks/reply.cjs <<'EOF'
-{"turn_id":"<this turn's id>","content":"YOUR REPLY","thinking":"BRIEF NOTE"}
+{"turn_id":"<this turn's id>","content":"YOUR REPLY","card":"A SHORT NOTE"}
 EOF
 \`\`\`
 
@@ -799,19 +836,22 @@ same room, and privacy stays with your judgment.
   missed one costs them the whole message again.
 - **When you do read one live, say so in \`io/.side-notes-read\`.** Write the
   \`at\` stamp of the newest note you have read and answered into that file —
-  one ISO stamp, nothing else. It does NOT stop the handover: the house still
-  gives you every note it has, exactly as blind as before, because their message
-  must never depend on your judgement. All it does is let an already-answered
-  note arrive labelled instead of looking unread, so you don't tell them the
-  same thing twice and they can tell an echo from a miss. Write it in the same
-  breath as the check:
+  one ISO stamp, nothing else. Their note shows ONE check on their screen until
+  you do: the house reads this file while the turn runs, and once more as it
+  ends, and stamps every note it covers as read, which is what turns their
+  check into two. It does NOT stop the handover: the house still gives you every
+  note it has, exactly as blind as before, because their message must never
+  depend on your judgment; an already-answered note just arrives labeled
+  instead of looking unread, so you don't tell them the same thing twice and
+  they can tell an echo from a miss. Write it as soon as your answer to the
+  note is written:
   \`\`\`
   python3 -c "import json;rows=[json.loads(l) for l in open('io/side-notes.jsonl') if l.strip()];open('io/.side-notes-read','w').write(rows[-1]['at'])"
   \`\`\`
   Only write it for notes you have actually spoken to. An overstated mark
-  costs them nothing structurally — the note is still handed over — but it
-  labels an unanswered note as answered, which is the one way to make this
-  worse than not having it.
+  still hands the note over, but it shows them two checks on a note nobody
+  answered and labels it answered for the next turn, which is the one way to
+  make this worse than not having it.
 
 ## Wakes (autonomous turns)
 

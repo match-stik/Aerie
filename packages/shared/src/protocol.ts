@@ -56,6 +56,8 @@ export type ServerMessage =
   | { type: 'stream_end'; messageId: string; final: Message }
   | { type: 'presence'; status: PresenceStatus }
   | { type: 'unread_update'; threadId: string; count: number }
+  /** The owner's own messages a companion has now been handed. */
+  | { type: 'message_read'; threadId: string; messageIds: string[]; readAt: string }
   | { type: 'thread_created'; thread: Thread }
   | { type: 'thread_list'; threads: ThreadSummary[] }
   | { type: 'tool_use'; toolId: string; toolName: string; input?: string; isComplete: boolean; textOffset?: number }

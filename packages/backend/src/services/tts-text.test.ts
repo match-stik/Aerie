@@ -120,3 +120,22 @@ test('an unrecognisable line is spoken rather than silently dropped', () => {
   // aside costs authored words, so anything the rules cannot place is heard.
   assert.equal(isStageDirection('the fail2ban half went with it — no door left to guard'), false);
 });
+
+// A reply read aloud used to spell its sticker codes out.
+test('a sticker is a picture on the owner\'s screen, so its code is not spoken', () => {
+  assert.equal(
+    prepareTextForTTS("Nice work.\n::birch_wave::"),
+    "Nice work.",
+  );
+  assert.equal(
+    prepareTextForTTS('Got it. I heard it. ::cedar_nod:: And ::willow_wink:: noted.'),
+    'Got it. I heard it. And noted.',
+  );
+});
+
+test('custom and Discord emoji codes are skipped and ordinary colons are kept', () => {
+  assert.equal(prepareTextForTTS('Nice work :sparkleheart: today'), 'Nice work today');
+  assert.equal(prepareTextForTTS('Nice work <:sparkleheart:1234567890123456789>'), 'Nice work');
+  assert.equal(prepareTextForTTS('Back at 10:30:45, ratio 3:2:1, see https://a.example/x.'), 'Back at 10:30:45, ratio 3:2:1, see https://a.example/x.');
+  assert.equal(prepareTextForTTS('Here is the list: apples, cider: hot.'), 'Here is the list: apples, cider: hot.');
+});

@@ -1,11 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useState, useEffect } from 'react';
+import { NOTES_SEEN_KEY } from '../lib/home-widgets';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Plus, Trash2, Edit2, Check, X, Flame, Feather, Pin } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { Paginator, usePaged } from './Paginator';
-import { blendOver, inkFor, noteColorsForAccent, NOTE_ROLES, noteRoleToken, resolveNoteColor, isNoteRole, isPinnedNoteColor, pinnedNoteColorToken, nearestSwatchIndex } from '../lib/note-colors';
+import { blendOver, inkFor, noteColorsForAccent, noteColorsForPalette, NOTE_ROLES, noteRoleToken, resolveNoteColor, isNoteRole, isPinnedNoteColor, pinnedNoteColorToken, nearestSwatchIndex } from '../lib/note-colors';
 
 interface NotesAppProps {
   onClose: () => void;
@@ -52,9 +53,12 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
   const derived = React.useMemo(() => {
     const raw = themeAccent || colors.accent;
     const accent = typeof raw === 'string' ? raw.trim() : '';
-    const generated = accent.startsWith('#') ? noteColorsForAccent(accent, themeMode) : [];
+    const pal = themeConfig.palette;
+    const generated = pal
+      ? noteColorsForPalette(themeMode === 'dark' ? pal.night : pal.day, themeMode)
+      : accent.startsWith('#') ? noteColorsForAccent(accent, themeMode) : [];
     return generated.length ? generated : FALLBACK_NOTE_COLORS;
-  }, [colors.accent, themeAccent, themeMode]);
+  }, [colors.accent, themeAccent, themeMode, themeConfig.palette]);
   const activeNoteColors = stickyNoteColors && stickyNoteColors.length ? stickyNoteColors : derived;
 
   // What sits behind a note, so a translucent one can be resolved to what it
@@ -81,6 +85,12 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
     if (!note.sender) return true;
     return !companionNames.includes(note.sender);
   };
+
+  // Opening Notes is reading the fridge: the lock screen's note card goes
+  // quiet until a companion leaves another (lib/home-widgets.ts).
+  useEffect(() => {
+    try { localStorage.setItem(NOTES_SEEN_KEY, String(Date.now())); } catch { /* storage unavailable */ }
+  }, []);
 
   // Save local notes to local storage whenever they change
   useEffect(() => {

@@ -264,7 +264,7 @@ export function PulseGlideGame({ colors, rawColors, onExit }: { colors: any, raw
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             onClick={initGame}
-            className={cn("px-6 py-3 rounded-full font-medium text-sm flex items-center gap-2 hover:scale-105 transition-transform", "text-white")}
+            className={cn("px-6 py-3 rounded-[var(--shape-control)] font-medium text-sm flex items-center gap-2 hover:scale-105 transition-transform", "text-white")}
             style={{ backgroundColor: rawColors.accent, color: rawColors.accentText }}
           >
             <RotateCcw size={16} /> Retransmit

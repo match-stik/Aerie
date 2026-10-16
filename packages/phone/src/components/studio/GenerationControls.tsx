@@ -180,7 +180,7 @@ export function GenerationControls({
             <button
               key={p.label}
               onClick={() => setSize(p.value)}
-              className={cn("px-2.5 py-1 rounded-full text-xs font-medium border transition-colors", size === p.value ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
+              className={cn("px-2.5 py-1 rounded-[var(--shape-control)] text-xs font-medium border transition-colors", size === p.value ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
               style={size === p.value ? { borderColor: colors.accent, color: colors.accent } : undefined}
               title={p.dims}
             >
@@ -225,7 +225,7 @@ export function GenerationControls({
                     <button
                       key={d.slug}
                       onClick={() => toggleSubject(d.slug)}
-                      className={cn("px-2 py-1 rounded-full text-xs border transition-colors flex items-center gap-1", selectedSubjects.includes(d.slug) ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
+                      className={cn("px-2 py-1 rounded-[var(--shape-control)] text-xs border transition-colors flex items-center gap-1", selectedSubjects.includes(d.slug) ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
                       style={selectedSubjects.includes(d.slug) ? { borderColor: colors.accent, color: colors.accent } : undefined}
                     >
                       {d.emoji && <span>{d.emoji}</span>}
@@ -245,8 +245,8 @@ export function GenerationControls({
                   <button
                     key={slug}
                     onClick={() => toggleSubject(slug)}
-                    className="px-2 py-0.5 rounded-full text-xs flex items-center gap-1"
-                    style={{ backgroundColor: colors.accent + '20', color: colors.accent }}
+                    className="px-2 py-0.5 rounded-[var(--shape-control)] text-xs flex items-center gap-1"
+                    style={{ background: colors.accent + '20', color: colors.accent }}
                     title={`Remove ${d.label} reference`}
                   >
                     {d.label}
@@ -267,7 +267,7 @@ export function GenerationControls({
             <button
               onClick={handleEnhance}
               disabled={!prompt.trim() || enhancing}
-              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border transition-colors disabled:opacity-50", colors.panelBorder, colors.textMuted)}
+              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-control)] border transition-colors disabled:opacity-50", colors.panelBorder, colors.textMuted)}
               title="Enhance prompt with AI"
             >
               {enhancing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
@@ -277,7 +277,7 @@ export function GenerationControls({
                 like, and both can be on at once. */}
             <button
               onClick={() => setShowDirectivePicker(!showDirectivePicker)}
-              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border transition-colors", selectedDirective ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
+              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-control)] border transition-colors", selectedDirective ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
               style={selectedDirective ? { borderColor: colors.accent, color: colors.accent } : undefined}
             >
               <Compass className="w-3 h-3" />
@@ -285,7 +285,7 @@ export function GenerationControls({
             </button>
             <button
               onClick={() => setShowStylePicker(!showStylePicker)}
-              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border transition-colors", selectedStyle ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
+              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-control)] border transition-colors", selectedStyle ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
               style={selectedStyle ? { borderColor: colors.accent, color: colors.accent } : undefined}
             >
               <Palette className="w-3 h-3" />
@@ -301,7 +301,7 @@ export function GenerationControls({
                   <button
                     key={d.name}
                     onClick={() => { setSelectedDirective(d.name === 'None' ? '' : d.name); setShowDirectivePicker(false); }}
-                    className={cn("px-2 py-0.5 rounded-full text-xs border transition-colors", (selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
+                    className={cn("px-2 py-0.5 rounded-[var(--shape-control)] text-xs border transition-colors", (selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
                     style={(selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? { borderColor: colors.accent, color: colors.accent } : undefined}
                   >
                     {d.name}
@@ -317,7 +317,7 @@ export function GenerationControls({
                   <button
                     key={s.name}
                     onClick={() => { setSelectedStyle(s.name === 'None' ? '' : s.name); setShowStylePicker(false); }}
-                    className={cn("px-2 py-0.5 rounded-full text-xs border transition-colors", (selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
+                    className={cn("px-2 py-0.5 rounded-[var(--shape-control)] text-xs border transition-colors", (selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
                     style={(selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? { borderColor: colors.accent, color: colors.accent } : undefined}
                   >
                     {s.name}
@@ -343,7 +343,7 @@ export function GenerationControls({
         onClick={handleGenerate}
         disabled={!prompt.trim()}
         className={cn("w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2")}
-        style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+        style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
       >
         {generating ? <><Loader2 className="w-4 h-4 animate-spin" />Queue another</> : <><Sparkles className="w-4 h-4" />Generate</>}
       </button>

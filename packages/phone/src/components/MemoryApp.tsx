@@ -40,7 +40,7 @@ export function MemoryApp({ onClose, themeConfig, themeMode }: MemoryAppProps) {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn('shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder, tab !== t.id && colors.panelBg)}
-              style={tab === t.id ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
+              style={tab === t.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
             >
               {t.label}
             </button>

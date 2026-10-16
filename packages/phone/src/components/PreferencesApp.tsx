@@ -238,7 +238,7 @@ export function PreferencesApp({ onClose, themeConfig, themeMode, embedded }: Pr
             key={o.id}
             onClick={() => onChange(o.id)}
             className={cn('rounded-lg border px-2.5 py-1.5 text-xs', colors.panelBorder)}
-            style={value === o.id ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : { color: 'var(--aerie-text)' }}
+            style={value === o.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : { color: 'var(--aerie-text)' }}
           >
             {o.label}
           </button>

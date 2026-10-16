@@ -277,7 +277,7 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
   const modal = (showCreate || renameTarget) && (
     <div className="absolute inset-0 z-[80] flex items-end bg-black/55 p-3 backdrop-blur-sm" onClick={() => { setShowCreate(false); setRenameTarget(null); }}>
       <div
-        className={cn('w-full rounded-[1.75rem] border p-4 shadow-2xl', colors.panelBg, colors.panelBorder)}
+        className={cn('w-full rounded-[calc(28px*var(--shape-scale,1))] border p-4 shadow-2xl', colors.panelBg, colors.panelBorder)}
         style={{ paddingBottom: 'calc(var(--sab) + 1rem)' }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -445,7 +445,7 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
             {visibleSaveState && (
               <span
                 className={cn(
-                  'shrink-0 rounded-full border px-2 py-1 text-[9px] font-bold',
+                  'shrink-0 rounded-[var(--shape-control)] border px-2 py-1 text-[9px] font-bold',
                   activeSaveStatus === 'error' ? 'border-red-400/35 bg-red-950/55 text-red-100' : colors.panelBorder,
                   activeSaveStatus !== 'error' && colors.textMuted,
                 )}
@@ -568,7 +568,7 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
       }
     >
       <section className="mb-4 px-1 pt-1">
-        <div className={cn('max-w-md rounded-[1.35rem] border px-4 py-3 shadow-xl backdrop-blur-xl', colors.panelBg, colors.panelBorder)}>
+        <div className={cn('max-w-md rounded-[calc(21.6px*var(--shape-scale,1))] border px-4 py-3 shadow-xl backdrop-blur-xl', colors.panelBg, colors.panelBorder)}>
           <div className={cn('text-[9px] font-bold uppercase tracking-[0.2em]', colors.textMuted)}>Aerie publishing house</div>
           <h2 className={cn('mt-1 font-serif text-[1.55rem] italic leading-[0.94]', colors.textMain)}>Cut it apart.<br />Make it mean something.</h2>
           <p className={cn('mt-2 text-[11px] leading-relaxed', colors.textMuted)}>
@@ -586,7 +586,7 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
       ) : issues.length === 0 ? (
         <button
           onClick={() => setShowCreate(true)}
-          className={cn('flex min-h-64 w-full flex-col items-center justify-center rounded-[2rem] border border-dashed p-6 text-center', colors.panelBorder, colors.panelBg)}
+          className={cn('flex min-h-64 w-full flex-col items-center justify-center rounded-[calc(32px*var(--shape-scale,1))] border border-dashed p-6 text-center', colors.panelBorder, colors.panelBg)}
         >
           <BookOpen size={34} style={{ color: colors.accent }} />
           <div className={cn('mt-4 font-serif text-xl italic', colors.textMain)}>The first issue is waiting.</div>
@@ -598,7 +598,7 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
           {issuesPage.visible.map((issue, index) => (
             <article
               key={issue.id}
-              className={cn('group relative aspect-[4/5] overflow-hidden rounded-[1.35rem] border shadow-lg', colors.panelBg, colors.panelBorder)}
+              className={cn('group relative aspect-[4/5] overflow-hidden rounded-[calc(21.6px*var(--shape-scale,1))] border shadow-lg', colors.panelBg, colors.panelBorder)}
             >
               {/* The spread itself, exported small when it was last saved. Asked for at
                   a thumbnail width so a shelf of issues is kilobytes, not megabytes. */}

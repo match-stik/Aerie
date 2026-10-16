@@ -178,18 +178,42 @@ export function softDeleteAfterSequence(threadId: string, afterSequence: number,
 }
 
 export function markMessagesRead(threadId: string, beforeId: string, readAt: string): void {
+  // The owner reading the room marks the companions' messages read. The
+  // owner's own messages are read by a companion, and markOwnMessagesRead
+  // says when, so they are left alone here (a side note's checks should mean
+  // a companion has read it, and reading the room used to tick the owner's
+  // messages off along with the companions').
   const stmt = getDb().prepare(`
     UPDATE messages
     SET read_at = ?
     WHERE thread_id = ?
     AND sequence <= (SELECT sequence FROM messages WHERE id = ?)
     AND read_at IS NULL
+    AND role != 'user'
   `);
   stmt.run(readAt, threadId, beforeId);
 
   // Reset unread count
   const resetStmt = getDb().prepare('UPDATE threads SET unread_count = 0 WHERE id = ?');
   resetStmt.run(threadId);
+}
+
+/**
+ * The owner's own messages, stamped read because a companion has now been handed them:
+ * a turn that starts on one, a side note handed over at the next turn, or a
+ * side note the lane says it read live. Only the owner's rows, only ones not stamped
+ * yet; answers the ones that changed, with their threads, for the broadcast.
+ */
+export function markOwnMessagesRead(ids: readonly string[], readAt: string): Array<{ id: string; thread_id: string }> {
+  const db = getDb();
+  const find = db.prepare(`SELECT id, thread_id FROM messages WHERE id = ? AND role = 'user' AND read_at IS NULL`);
+  const stamp = db.prepare(`UPDATE messages SET read_at = ? WHERE id = ? AND role = 'user' AND read_at IS NULL`);
+  const changed: Array<{ id: string; thread_id: string }> = [];
+  for (const id of new Set(ids)) {
+    const row = find.get(id) as { id: string; thread_id: string } | undefined;
+    if (row && stamp.run(readAt, id).changes > 0) changed.push(row);
+  }
+  return changed;
 }
 
 export function searchMessages(params: {

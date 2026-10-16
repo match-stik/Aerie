@@ -196,7 +196,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 scrollbar-hide">
         {messages.length === 0 && !pending && (
           <div
-            className="flex min-h-40 items-center justify-center rounded-[22px] border border-dashed px-6 text-center text-[14px] leading-6"
+            className="flex min-h-40 items-center justify-center rounded-[calc(22px*var(--shape-scale,1))] border border-dashed px-6 text-center text-[14px] leading-6"
             style={{ borderColor: PANEL_BORDER, color: PANEL_TEXT }}
           >
             They're at the table. Say something.
@@ -206,7 +206,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
           m.role === 'system' ? (
             <div
               key={m.id}
-              className="mx-auto max-w-[92%] rounded-full border px-4 py-2 text-center text-[13px] leading-5"
+              className="mx-auto max-w-[92%] rounded-[var(--shape-control)] border px-4 py-2 text-center text-[13px] leading-5"
               style={{ backgroundColor: PANEL_SURFACE_STRONG, borderColor: PANEL_BORDER, color: PANEL_TEXT }}
             >
               {m.content}
@@ -217,7 +217,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
             // first thing read rather than the last.
             <div key={m.id} className="flex items-start justify-end gap-2 pl-8">
               <div
-                className="max-w-[82%] rounded-[20px] rounded-tr-none border px-4 py-3 text-[14px]"
+                className="max-w-[82%] rounded-[calc(20px*var(--shape-scale,1))] rounded-tr-none border px-4 py-3 text-[14px]"
                 style={{
                   backgroundColor: `color-mix(in srgb, ${colors.accent} 18%, var(--aerie-surface-strong))`,
                   borderColor: `color-mix(in srgb, ${colors.accent} 42%, ${PANEL_BORDER})`,
@@ -236,7 +236,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
                   <div key={i} className="flex items-start gap-2 pr-6">
                     <RailAvatar companion={companion} className="mt-0.5" />
                     <div
-                      className="max-w-[84%] rounded-[20px] rounded-tl-none border px-4 py-3 text-[14px]"
+                      className="max-w-[84%] rounded-[calc(20px*var(--shape-scale,1))] rounded-tl-none border px-4 py-3 text-[14px]"
                       style={{
                         backgroundColor: PANEL_SURFACE,
                         borderColor: `color-mix(in srgb, ${companion?.color || PANEL_TEXT_MUTED} 28%, ${PANEL_BORDER})`,

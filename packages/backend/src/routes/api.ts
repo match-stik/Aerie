@@ -2,6 +2,8 @@
 import { parse as parseCookie } from 'cookie';
 import { Router, type Response as ExpressResponse } from 'express';
 import crypto from 'crypto';
+import { settingsForClient } from '../services/settings-view.js';
+import { fileIdsInUse } from '../services/file-references.js';
 import * as babel from '@babel/core';
 import multer from 'multer';
 import { readdirSync, readFileSync, writeFileSync, existsSync } from 'fs';
@@ -412,54 +414,9 @@ router.get('/files/list', authMiddleware, (req, res) => {
   try {
     const files = listFiles();
     const db = getDb();
-    const usedFileIds = new Set<string>();
-    const metaRows = db.prepare('SELECT metadata FROM messages WHERE metadata IS NOT NULL AND deleted_at IS NULL').all() as Array<{ metadata: string }>;
-    for (const row of metaRows) {
-      try {
-        const meta = JSON.parse(row.metadata);
-        if (meta.fileId) usedFileIds.add(meta.fileId);
-        if (Array.isArray(meta.attachments)) {
-          for (const att of meta.attachments) {
-            if (att && typeof att === 'object' && typeof att.fileId === 'string') usedFileIds.add(att.fileId);
-          }
-        }
-      } catch { /* skip */ }
-    }
-    const contentRows = db.prepare('SELECT content FROM messages WHERE content IS NOT NULL AND deleted_at IS NULL').all() as Array<{ content: string }>;
-    const fileIdPattern = /\/api\/files\/([a-f0-9-]{36})/gi;
-    for (const row of contentRows) {
-      let match;
-      while ((match = fileIdPattern.exec(row.content)) !== null) {
-        usedFileIds.add(match[1]);
-      }
-    }
-    // The Press keeps imported originals and replaceable rendered previews in
-    // its own asset ledger rather than message metadata.
-    const pressRows = db.prepare(`
-      SELECT source_file_id, rendered_file_id FROM press_assets
-    `).all() as Array<{ source_file_id: string; rendered_file_id: string | null }>;
-    for (const row of pressRows) {
-      usedFileIds.add(row.source_file_id);
-      if (row.rendered_file_id) usedFileIds.add(row.rendered_file_id);
-    }
-    const pressScenes = db.prepare('SELECT scene_json FROM press_spreads').all() as Array<{ scene_json: string }>;
-    for (const row of pressScenes) {
-      try {
-        const scene = JSON.parse(row.scene_json) as { files?: Record<string, { storageFileId?: string; sourceFileId?: string }> };
-        for (const ref of Object.values(scene.files || {})) {
-          if (typeof ref.storageFileId === 'string') usedFileIds.add(ref.storageFileId);
-          if (typeof ref.sourceFileId === 'string') usedFileIds.add(ref.sourceFileId);
-        }
-      } catch { /* skip malformed legacy scenes */ }
-    }
-    const pressPackRows = db.prepare(`
-      SELECT source_file_id FROM press_pack_items WHERE source_file_id IS NOT NULL
-    `).all() as Array<{ source_file_id: string }>;
-    for (const row of pressPackRows) usedFileIds.add(row.source_file_id);
-    const pressPackSources = db.prepare(`
-      SELECT source_file_id FROM press_packs WHERE source_file_id IS NOT NULL
-    `).all() as Array<{ source_file_id: string }>;
-    for (const row of pressPackSources) usedFileIds.add(row.source_file_id);
+    // One list for both the listing and Clean orphans, so they cannot disagree
+    // about what is in use (services/file-references.ts).
+    const usedFileIds = fileIdsInUse(db);
     const enriched = files.map(f => ({ ...f, inUse: usedFileIds.has(f.fileId) }));
     const totalSize = files.reduce((sum, f) => sum + f.size, 0);
     const orphanCount = enriched.filter(f => !f.inUse).length;
@@ -1681,64 +1638,13 @@ router.post('/files', uploadRateLimiter, upload.single('file'), (req, res) => {
 
 
 // Bulk delete: drop every file not referenced by any message's metadata or content.
-// Mirrors the orphan calculation in /api/files/list — anything whose
-// fileId isn't found anywhere in messages.metadata OR embedded in content gets nuked.
+// Anything fileIdsInUse() does not name gets deleted, the same list the
+// Files app's in-use badges read.
 router.post('/files/clean-orphans', (req, res) => {
   try {
     const files = listFiles();
     const db = getDb();
-    const usedFileIds = new Set<string>();
-
-    // Check metadata for fileId and attachments
-    const metaRows = db.prepare('SELECT metadata FROM messages WHERE metadata IS NOT NULL AND deleted_at IS NULL').all() as Array<{ metadata: string }>;
-    for (const row of metaRows) {
-      try {
-        const meta = JSON.parse(row.metadata);
-        if (meta.fileId) usedFileIds.add(meta.fileId);
-        if (Array.isArray(meta.attachments)) {
-          for (const att of meta.attachments) {
-            if (att && typeof att === 'object' && typeof att.fileId === 'string') usedFileIds.add(att.fileId);
-          }
-        }
-      } catch { /* skip malformed metadata */ }
-    }
-
-    // Also scan message content for /api/files/<id> links
-    const contentRows = db.prepare('SELECT content FROM messages WHERE content IS NOT NULL AND deleted_at IS NULL').all() as Array<{ content: string }>;
-    const fileIdPattern = /\/api\/files\/([a-f0-9-]{36})/gi;
-    for (const row of contentRows) {
-      let match;
-      while ((match = fileIdPattern.exec(row.content)) !== null) {
-        usedFileIds.add(match[1]);
-      }
-    }
-
-    // Preserve Press originals and the currently selected rendered previews.
-    const pressRows = db.prepare(`
-      SELECT source_file_id, rendered_file_id FROM press_assets
-    `).all() as Array<{ source_file_id: string; rendered_file_id: string | null }>;
-    for (const row of pressRows) {
-      usedFileIds.add(row.source_file_id);
-      if (row.rendered_file_id) usedFileIds.add(row.rendered_file_id);
-    }
-    const pressScenes = db.prepare('SELECT scene_json FROM press_spreads').all() as Array<{ scene_json: string }>;
-    for (const row of pressScenes) {
-      try {
-        const scene = JSON.parse(row.scene_json) as { files?: Record<string, { storageFileId?: string; sourceFileId?: string }> };
-        for (const ref of Object.values(scene.files || {})) {
-          if (typeof ref.storageFileId === 'string') usedFileIds.add(ref.storageFileId);
-          if (typeof ref.sourceFileId === 'string') usedFileIds.add(ref.sourceFileId);
-        }
-      } catch { /* skip malformed legacy scenes */ }
-    }
-    const pressPackRows = db.prepare(`
-      SELECT source_file_id FROM press_pack_items WHERE source_file_id IS NOT NULL
-    `).all() as Array<{ source_file_id: string }>;
-    for (const row of pressPackRows) usedFileIds.add(row.source_file_id);
-    const pressPackSources = db.prepare(`
-      SELECT source_file_id FROM press_packs WHERE source_file_id IS NOT NULL
-    `).all() as Array<{ source_file_id: string }>;
-    for (const row of pressPackSources) usedFileIds.add(row.source_file_id);
+    const usedFileIds = fileIdsInUse(db);
 
     let deleted = 0;
     for (const f of files) {
@@ -1921,7 +1827,7 @@ router.get('/settings', (req, res) => {
     config['agent.routing_autonomous'] = autonomousRoute;
     // Provider tracking for the model selector — stored in DB config
     if (!config['agent.provider']) config['agent.provider'] = 'anthropic';
-    res.json({ config });
+    res.json({ config: settingsForClient(config) });
   } catch (error) {
     console.error('Error fetching settings:', error);
     res.status(500).json({ error: 'Failed to fetch settings' });

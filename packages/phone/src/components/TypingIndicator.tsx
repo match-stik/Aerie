@@ -8,9 +8,12 @@ import { ThemeMode } from '../types';
 interface TypingIndicatorProps {
   themeConfig: ThemeConfig;
   themeMode: ThemeMode;
+  /** Which corner the companions' tails come from, so the dots match
+   *  companion bubbles (the Bubbles switches, lib/bubble-look.ts). */
+  tail?: 'top' | 'bottom';
 }
 
-export function TypingIndicator({ themeConfig, themeMode }: TypingIndicatorProps) {
+export function TypingIndicator({ themeConfig, themeMode, tail = 'top' }: TypingIndicatorProps) {
   const colors = themeConfig[themeMode];
   const reduceMotion = useReducedMotion();
 
@@ -23,7 +26,8 @@ export function TypingIndicator({ themeConfig, themeMode }: TypingIndicatorProps
       className="flex justify-start mb-6"
     >
       <div className={cn(
-        "px-5 py-3.5 rounded-[var(--shape-bubble)] rounded-tl-none border backdrop-blur-md",
+        "px-5 py-3.5 rounded-[var(--shape-bubble)] border backdrop-blur-md",
+        tail === 'bottom' ? "rounded-bl-none" : "rounded-tl-none",
         colors.compBubbleBg,
         colors.compBubbleText,
         colors.panelBorder

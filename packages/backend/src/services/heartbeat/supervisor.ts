@@ -1010,6 +1010,15 @@ export class HeartbeatSession {
   turnActive = false;
 
   /**
+   * True while the turn in flight came from Discord, the owner's or a guest's,
+   * so its answer lands in a channel rather than at home. A message from the
+   * owner's phone then waits its turn instead of being handed in as a side
+   * note, because an answer to it would land in the channel too.
+   * Set by the runtime beside `turnActive`.
+   */
+  turnAnswersElsewhere = false;
+
+  /**
    * Epoch ms when the in-flight turn began; 0 when idle. Set by the runtime
    * beside `turnActive`. The watchdog measures a live turn from HERE rather than
    * from the last file write, because the age of a file says nothing about when
@@ -1042,14 +1051,16 @@ export class HeartbeatSession {
    * read it whenever it comes up for air, and anything still unread is handed
    * over at the start of the next turn — so the worst case is late, never lost.
    */
-  sendSideNote(text: string): boolean {
+  sendSideNote(text: string, messageId?: string): boolean {
     const body = formatSideNote(text);
     if (!body) return false;
     if (!this.turnActive) return false;
     try {
+      // The stored message's id rides along, so the owner's note can be ticked read
+      // when the session reads it (services/own-messages-read.ts).
       appendFileSync(
         this.sideNotesPath,
-        JSON.stringify({ at: new Date().toISOString(), text: body }) + '\n',
+        JSON.stringify({ at: new Date().toISOString(), text: body, ...(messageId ? { messageId } : {}) }) + '\n',
         'utf8',
       );
       return true;
@@ -1059,18 +1070,39 @@ export class HeartbeatSession {
   }
 
   /** Unread side notes, oldest first, and the offset that consumes them. */
-  readSideNotesFrom(offset: number): { notes: Array<{ at: string; text: string }>; newOffset: number } {
+  readSideNotesFrom(offset: number): { notes: Array<{ at: string; text: string; messageId?: string }>; newOffset: number } {
     const { lines, newOffset } = this.readLinesFrom(this.sideNotesPath, offset);
-    const notes: Array<{ at: string; text: string }> = [];
+    const notes: Array<{ at: string; text: string; messageId?: string }> = [];
     for (const line of lines) {
       try {
         const parsed = JSON.parse(line);
         if (parsed && typeof parsed.text === 'string' && parsed.text) {
-          notes.push({ at: typeof parsed.at === 'string' ? parsed.at : '', text: parsed.text });
+          notes.push({
+            at: typeof parsed.at === 'string' ? parsed.at : '',
+            text: parsed.text,
+            ...(typeof parsed.messageId === 'string' && parsed.messageId ? { messageId: parsed.messageId } : {}),
+          });
         }
       } catch { /* a half-written line: the next read picks it up whole */ }
     }
     return { notes, newOffset };
+  }
+
+  /**
+   * Where this turn's side notes begin in the file, for read checks, or -1
+   * with no turn running. Set by the runtime once the turn's handover is done.
+   */
+  sideNoteReceiptsFrom = -1;
+
+  /**
+   * The stored messages behind side notes from `offset` on that the session's
+   * read mark covers: the ones it says it has read. Same comparison as the
+   * handover's label, ISO stamps compared as text; no mark, nothing covered.
+   */
+  sideNotesReadSince(offset: number): string[] {
+    const mark = this.sideNotesReadMark();
+    if (!mark || offset < 0) return [];
+    return sideNotesCoveredBy(this.readSideNotesFrom(offset).notes, mark);
   }
 
   sideNotesSize(): number {
@@ -1692,10 +1724,27 @@ export function getHeartbeatSession(key: string): HeartbeatSession {
  * text actually reached a live stdin — every caller must fall back to normal
  * delivery otherwise, so a message is never silently swallowed.
  */
-export function deliverSideNoteToBusySession(text: string): boolean {
-  const busy = [...sessions.values()].filter((s) => s.turnActive);
-  if (busy.length !== 1) return false;
-  return busy[0].sendSideNote(text);
+export function deliverSideNoteToBusySession(text: string, messageId?: string): boolean {
+  const target = sideNoteTarget(sessions.values());
+  return target ? target.sendSideNote(text, messageId) : false;
+}
+
+/** The message ids of the notes a read mark covers: stamped at or before it. */
+export function sideNotesCoveredBy(notes: ReadonlyArray<{ at: string; messageId?: string }>, mark: string): string[] {
+  if (!mark) return [];
+  return notes.filter((n) => n.messageId && n.at && n.at <= mark).map((n) => n.messageId as string);
+}
+
+/**
+ * The one busy session a note from the owner's phone may be handed into, or
+ * null when it should wait its turn: nobody busy, more than one busy, or the
+ * busy turn answering in a Discord channel, where an answer to the note would
+ * land too.
+ */
+export function sideNoteTarget<S extends { turnActive: boolean; turnAnswersElsewhere: boolean }>(all: Iterable<S>): S | null {
+  const busy = [...all].filter((s) => s.turnActive);
+  if (busy.length !== 1) return null;
+  return busy[0].turnAnswersElsewhere ? null : busy[0];
 }
 
 /**

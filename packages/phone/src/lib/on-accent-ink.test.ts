@@ -7,11 +7,26 @@ import { onAccentInk } from './theme.js';
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 // Orange put black on the selected check and pills and crimson put white, in
-// the same midnight mode. Selected states should read the same whatever the
-// accent.
+// the same midnight mode. Selected states read the same whatever the accent:
+// light text on anything selected, every theme, both modes; the fill is fitted
+// to the ink (fitForWhite) instead.
 test('the ink on anything selected is set by the mode, never by the accent', () => {
-  assert.equal(onAccentInk('dark'), '#090807');
+  assert.equal(onAccentInk('dark'), '#ffffff');
   assert.equal(onAccentInk('light'), '#ffffff');
+});
+
+test('a light accent is deepened until white reads on it', async () => {
+  const { fitForWhite } = await import('./theme.js');
+  const lum = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((x) => (x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  for (const accent of ['#FAFAFA', '#CBA6F7', '#88C0D0', '#E49B5D']) {
+    const fill = fitForWhite(accent);
+    assert.ok(1.05 / (lum(fill) + 0.05) >= 4.6, `${accent} -> ${fill}`);
+  }
+  assert.equal(fitForWhite('#1F2937'), '#1f2937');
 });
 
 test('every fill in the theme accent reads that one ink', () => {

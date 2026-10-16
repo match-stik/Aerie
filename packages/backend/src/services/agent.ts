@@ -18,6 +18,7 @@ import { dispatchAgentTurn } from './agent/agent-dispatch.js';
 import { listAgentSessions } from './agent/session-list.js';
 import { deliverSideNoteToBusySession, busyHeartbeatSessionCount } from './heartbeat/supervisor.js';
 import { deliverSideNoteToBusyCodexLane } from './runtimes/codex-side-notes.js';
+import { ownMessagesRead } from './own-messages-read.js';
 import type { AgentRouting } from './agent/agent-route-selection.js';
 
 // Lazy-init: config isn't available at import time — defer until first use
@@ -245,6 +246,9 @@ export class AgentService {
     inboundSequence?: number;
     /** Who is asking. Set by every path that can carry a non-owner. */
     audience?: TurnAudience;
+    /** The stored row of the owner's message, so it can be ticked read when
+     *  a companion is actually handed it (services/own-messages-read.ts). */
+    messageId?: string;
   }): Promise<string> {
     // Determine priority based on platform
     const platform = opts?.platform || 'web';
@@ -273,16 +277,27 @@ export class AgentService {
     // each look unambiguous from inside their own lane, and whichever is
     // checked first quietly wins — so a note meant for the room the user is standing
     // in can be delivered to the other one. With more than one turn anywhere,
-    // nobody takes it and the message goes the normal queued way.
+    // nobody takes it and the message goes the normal queued way. Nor does a
+    // turn that answers in a Discord channel: the owner's note from the phone would be
+    // answered there too, so it queues and gets a turn of its own at home.
     if (platform === 'web' && !opts?.imageBlocks?.length) {
       const busyLanes = busyHeartbeatSessionCount() + agentState.activeCodexLanes.size;
       if (busyLanes === 1) {
-        if (deliverSideNoteToBusySession(content)) return '';
-        if (deliverSideNoteToBusyCodexLane(agentState.activeCodexLanes, content)) return '';
+        // A side note on a warm Claude lane stays at one check until the lane
+        // reads it: it says so in io/.side-notes-read, or the next turn hands
+        // it over. A Codex lane has no such mark, so its note counts as read
+        // the moment it is taken, which is how every note counted before.
+        if (deliverSideNoteToBusySession(content, opts?.messageId)) return '';
+        if (deliverSideNoteToBusyCodexLane(agentState.activeCodexLanes, content, agentState.codexLanesAnsweringElsewhere)) {
+          ownMessagesRead([opts?.messageId]);
+          return '';
+        }
       }
     }
 
     return queryQueue.enqueue(priority, async () => {
+      // The owner's message is with the lane now: the turn on it is starting.
+      ownMessagesRead([opts?.messageId]);
       agentState.presenceStatus = 'waking';
       registry.broadcast({ type: 'presence', status: 'waking' });
       return this._processQuery(threadId, content, false, threadMeta, opts);

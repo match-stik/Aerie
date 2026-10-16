@@ -77,6 +77,31 @@ export type InferenceEvent =
   | { type: 'done'; content: string; toolResults: ToolResult[] };
 
 /** Real token usage reported by the provider (Anthropic path only for now). */
+/**
+ * How an Anthropic stream ended, which the text alone cannot say. The Archivist
+ * came back with an empty answer and the house had thrown away
+ * the only part that would have explained it: the stop reason, the size of the
+ * answer, and any error event sent partway through (an overloaded mid-stream
+ * error arrives as an SSE event and used to be skipped silently).
+ */
+export interface StreamStop {
+  stopReason: string | null;
+  outputTokens: number;
+  textChars: number;
+  error: string | null;
+}
+
+/** One plain sentence for an answer with no words in it, for the card the owner reads. */
+export function describeEmptyAnswer(model: string, stop: StreamStop | null): string {
+  if (!stop) return `${model} sent no answer and the stream ended without saying why`;
+  if (stop.error) return `${model} broke off mid-answer: ${stop.error}`;
+  const why = stop.stopReason === 'max_tokens' ? 'ran out of room before writing anything'
+    : stop.stopReason === 'refusal' ? 'declined to answer'
+    : stop.stopReason === 'end_turn' ? 'finished without writing anything'
+    : `stopped (${stop.stopReason ?? 'no stop reason given'})`;
+  return `${model} ${why}; ${stop.outputTokens} output tokens, thinking included`;
+}
+
 export interface ProviderUsage {
   inputTokens: number;
   outputTokens: number;
@@ -165,19 +190,23 @@ function buildAnthropicMessages(
 const CACHE_1H = { type: 'ephemeral', ttl: '1h' } as const;
 
 /**
- * Claude 4.7+ era models (Fable 5, Opus 4.7/4.8) reject temperature/top_p/
- * top_k and thinking budget_tokens with a 400. Fable 5 also rejects an
- * explicit thinking: {type: 'disabled'} — omit the field entirely.
+ * Claude 4.7+ era models (Fable 5, Opus 4.7/4.8, and every 5-era model:
+ * claude-haiku-5-5 answers '`temperature` is deprecated for this model') reject
+ * temperature/top_p/top_k and thinking budget_tokens with a 400. Fable 5 also
+ * rejects an explicit thinking: {type: 'disabled'} — omit the field entirely.
+ * The rule names the OLD families that still take sampling, because a list of
+ * new strict models is the one that falls behind (it did).
  */
 function isStrictClaude(model: string): boolean {
   const m = model.toLowerCase();
-  return m.includes('fable') || /opus-4-[789]/.test(m);
+  const takesSampling = /claude-3/.test(m) || /-4-[0-6](\b|-|$)/.test(m) || /-4(-\d{8})?$/.test(m);
+  return !takesSampling;
 }
 
-/** Models with adaptive thinking (Fable 5, Opus 4.6+, Sonnet 4.6+). */
+/** Models with adaptive thinking (Fable 5, Opus 4.6+, Sonnet 4.6+, every 5-era model). */
 function supportsAdaptiveThinking(model: string): boolean {
   const m = model.toLowerCase();
-  return m.includes('fable') || /opus-4-[6789]/.test(m) || /sonnet-4-[6789]/.test(m);
+  return m.includes('fable') || /opus-4-[6789]/.test(m) || /sonnet-4-[6789]/.test(m) || /-5(\b|-|$)/.test(m);
 }
 
 /** Models that expose the 1M context window via the context-1m beta header. */
@@ -197,7 +226,7 @@ function supports1mContext(model: string): boolean {
  * otherwise the tool loop would accumulate stale breakpoints across
  * iterations (max 4 per request, then the API rejects).
  */
-function buildAnthropicBody(
+export function buildAnthropicBody(
   messages: RouterMessage[],
   model: string,
   opts: { stream: boolean; thinking: boolean },
@@ -318,6 +347,7 @@ export async function* streamInference(
   config: ProviderConfig,
   thinking = false,
   onUsage?: (usage: ProviderUsage) => void,
+  onStop?: (stop: StreamStop) => void,
 ): AsyncGenerator<string> {
   const route = await resolveProvider(provider, model, config);
   const { url, headers, isAnthropic } = route;
@@ -365,13 +395,18 @@ export async function* streamInference(
   const decoder = new TextDecoder();
   let buffer = '';
   let anthropicInThinking = false;
+  const stop: StreamStop = { stopReason: null, outputTokens: 0, textChars: 0, error: null };
+  let stopReported = false;
+  const reportStop = () => {
+    if (isAnthropic && onStop && !stopReported) { stopReported = true; onStop(stop); }
+  };
   // Real usage off the SSE stream: message_start carries input + cache
   // counts, message_delta carries the final output count.
   const usage: ProviderUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
 
   while (true) {
     const { done, value } = await reader.read();
-    if (done) break;
+    if (done) { reportStop(); break; }
 
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split('\n');
@@ -402,15 +437,24 @@ export async function* streamInference(
             anthropicInThinking = false;
             yield '</think>\n';
           } else if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+            stop.textChars += parsed.delta.text.length;
             yield parsed.delta.text;
+          } else if (parsed.type === 'error') {
+            stop.error = `${parsed.error?.type ?? 'error'}: ${parsed.error?.message ?? 'no message'}`;
+            reportStop();
           } else if (parsed.type === 'message_start' && parsed.message?.usage) {
             const u = parsed.message.usage;
             usage.inputTokens = u.input_tokens ?? 0;
             usage.cacheReadTokens = u.cache_read_input_tokens ?? 0;
             usage.cacheWriteTokens = u.cache_creation_input_tokens ?? 0;
-          } else if (parsed.type === 'message_delta' && parsed.usage?.output_tokens != null) {
-            usage.outputTokens = parsed.usage.output_tokens;
+          } else if (parsed.type === 'message_delta') {
+            if (parsed.delta?.stop_reason) stop.stopReason = parsed.delta.stop_reason;
+            if (parsed.usage?.output_tokens != null) {
+              usage.outputTokens = parsed.usage.output_tokens;
+              stop.outputTokens = parsed.usage.output_tokens;
+            }
           } else if (parsed.type === 'message_stop') {
+            reportStop();
             if (onUsage && (usage.inputTokens > 0 || usage.cacheReadTokens > 0 || usage.cacheWriteTokens > 0)) {
               onUsage(usage);
             }

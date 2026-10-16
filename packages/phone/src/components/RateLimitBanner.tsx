@@ -27,7 +27,7 @@ export function RateLimitBanner({ themeConfig, themeMode }: RateLimitBannerProps
     <button
       type="button"
       onClick={() => setExpanded((value) => !value)}
-      className="flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight"
+      className="flex shrink-0 items-center gap-1 rounded-[var(--shape-control)] border px-2 py-0.5 text-[10px] font-semibold leading-tight"
       style={{
         background: withAlpha(accent, 0.10),
         borderColor: withAlpha(accent, 0.30),

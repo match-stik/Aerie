@@ -12,6 +12,10 @@
 // PUT — wallpaper slideshows can run a few MB of base64 per image and
 // we don't want to clamp them too aggressively. If size becomes a real
 // problem, wallpapers can be factored out to /api/files refs later.
+// Later came: the settings grew to megabytes, nearly all of it wallpapers,
+// and the phone pushes the whole blob a second after every change. The
+// phone now moves each wallpaper into the file store and keeps only its
+// link here.
 
 import { Router, json } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
@@ -27,17 +31,23 @@ router.use(authMiddleware);
 // wallpaper slideshows that push 15-20 MB.
 const settingsJson = json({ limit: '25mb' });
 
+// keepsLinkedFiles tells the phone this house's Clean orphans keeps any file
+// the settings link to (services/file-references.ts), so it is safe to move
+// a wallpaper out of the blob and into the file store. A house without it
+// would delete the moved pictures, so the phone leaves them inline there.
+const KEEPS = { keepsLinkedFiles: true } as const;
+
 router.get('/app-settings', (_req, res) => {
   const raw = getConfig(APP_SETTINGS_KEY);
   if (!raw) {
-    res.json({ settings: null });
+    res.json({ settings: null, ...KEEPS });
     return;
   }
   try {
-    res.json({ settings: JSON.parse(raw) });
+    res.json({ settings: JSON.parse(raw), ...KEEPS });
   } catch (err) {
     console.error('[Settings] Stored blob was not valid JSON:', err);
-    res.json({ settings: null });
+    res.json({ settings: null, ...KEEPS });
   }
 });
 

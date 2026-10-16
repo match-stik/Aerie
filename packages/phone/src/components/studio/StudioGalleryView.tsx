@@ -498,7 +498,7 @@ export function StudioGalleryView({
                 type="button"
                 key={entry.key}
                 onClick={() => setCollection(entry.collection)}
-                className={cn('shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== entry.key && colors.textMuted)}
+                className={cn('shrink-0 rounded-[var(--shape-control)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== entry.key && colors.textMuted)}
                 style={collectionKey === entry.key ? { borderColor: colors.accent, color: colors.accent } : undefined}
               >
                 {entry.label}
@@ -511,7 +511,7 @@ export function StudioGalleryView({
                   type="button"
                   key={key}
                   onClick={() => { setCastMode('exact'); setCollection({ kind: 'cast', cast: group.cast }); }}
-                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
+                  className={cn('shrink-0 rounded-[var(--shape-control)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
                   style={collectionKey === key ? { borderColor: colors.accent, color: colors.accent } : undefined}
                 >
                   {castCollectionLabel(group.cast, labelFor, houseGroups)} {group.count}
@@ -530,7 +530,7 @@ export function StudioGalleryView({
                     type="button"
                     key={person}
                     onClick={() => { setCastMode('includes'); setCollection({ kind: 'cast', cast: [person] }); }}
-                    className={cn('shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
+                    className={cn('shrink-0 rounded-[var(--shape-control)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
                     style={collectionKey === key ? { borderColor: colors.accent, color: colors.accent } : undefined}
                   >
                     {labelFor(person)} {count}
@@ -577,7 +577,7 @@ export function StudioGalleryView({
                 className={cn('min-w-0 flex-1 bg-transparent px-2 text-sm outline-none', colors.textMain)}
                 autoFocus
               />
-              <button type="button" onClick={createFolder} disabled={folderBusy || !folderName.trim()} className="rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40" style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}>
+              <button type="button" onClick={createFolder} disabled={folderBusy || !folderName.trim()} className="rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>
                 {folderBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
               </button>
             </div>
@@ -639,7 +639,7 @@ export function StudioGalleryView({
                   aria-pressed={selectionMode ? selected : undefined}
                   aria-label={selectionMode ? `${selected ? 'Deselect' : 'Select'} gallery image` : 'Open gallery image'}
                 >
-                  {mediaPreview(image, 'h-full w-full rounded-[9px] object-cover')}
+                  {mediaPreview(image, 'h-full w-full rounded-[calc(9px*var(--shape-scale,1))] object-cover')}
                   {selectionMode && (
                     <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border bg-black/65 text-white">
                       {selected && <Check className="h-4 w-4" />}
@@ -710,7 +710,7 @@ export function StudioGalleryView({
                   onClick={() => void createFolderAndMoveSelection()}
                   disabled={movingSelection || !bulkFolderName.trim()}
                   className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40"
-                  style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 >
                   Create + move
                 </button>
@@ -762,7 +762,7 @@ export function StudioGalleryView({
           <div className="space-y-3 border-t border-white/10 bg-black/85 p-4 pb-[calc(var(--sab)+1rem)]">
             <p className="max-h-24 overflow-y-auto whitespace-pre-wrap text-sm">{viewing.prompt || 'No prompt stored for this asset.'}</p>
             <div className="flex gap-2 overflow-x-auto">
-              <button type="button" onClick={() => onUsePrompt(viewing)} disabled={!viewing.prompt} className="shrink-0 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-40" style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}>Use prompt</button>
+              <button type="button" onClick={() => onUsePrompt(viewing)} disabled={!viewing.prompt} className="shrink-0 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-40" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>Use prompt</button>
               <button type="button" onClick={() => onReuseSetup(viewing)} disabled={!viewing.prompt} className="shrink-0 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold disabled:opacity-40">Reuse setup</button>
               <button type="button" onClick={() => void copyPrompt(viewing)} disabled={!viewing.prompt} className="shrink-0 rounded-xl bg-white/10 p-2.5 disabled:opacity-40" title="Copy prompt and settings"><Copy className="h-4 w-4" /></button>
               <button type="button" onClick={() => openCastEditor([viewing.id], viewing)} className="flex shrink-0 items-center gap-1 rounded-xl bg-white/10 px-3 py-2 text-xs"><Pencil className="h-3.5 w-3.5" /> People</button>
@@ -808,7 +808,7 @@ export function StudioGalleryView({
                     key={drawer.slug}
                     onClick={() => togglePersonTag(slug)}
                     aria-pressed={active}
-                    className={cn('flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
+                    className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
                     style={active ? { borderColor: colors.accent, color: colors.accent } : undefined}
                   >
                     {active && <Check className="h-3.5 w-3.5" />}
@@ -832,7 +832,7 @@ export function StudioGalleryView({
                         key={slug}
                         onClick={() => togglePersonTag(slug)}
                         aria-pressed={active}
-                        className={cn('flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
+                        className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
                         style={active ? { borderColor: colors.accent, color: colors.accent } : undefined}
                       >
                         {active && <Check className="h-3.5 w-3.5" />}
@@ -861,7 +861,7 @@ export function StudioGalleryView({
                   onClick={addPersonTag}
                   disabled={!newPersonName.trim() || editCast.length >= MAX_PERSON_TAGS}
                   className="flex shrink-0 items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40"
-                  style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 >
                   <Plus className="h-3.5 w-3.5" /> Add
                 </button>
@@ -872,7 +872,7 @@ export function StudioGalleryView({
               </p>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => void saveCast('manual')} disabled={savingCast || editCast.length === 0} className="rounded-xl py-3 text-sm font-semibold disabled:opacity-40" style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}>
+              <button type="button" onClick={() => void saveCast('manual')} disabled={savingCast || editCast.length === 0} className="rounded-xl py-3 text-sm font-semibold disabled:opacity-40" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>
                 {savingCast ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Save exact people'}
               </button>
               <button type="button" onClick={() => void saveCast('none')} disabled={savingCast} className={cn('rounded-xl border py-3 text-sm font-medium', colors.panelBorder, colors.textMain)}>No people</button>

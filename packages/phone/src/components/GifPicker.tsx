@@ -254,7 +254,7 @@ export function GifPicker({ onSelect, onClose, themeConfig, themeMode, apiKey: p
                       onClick={loadMore}
                       disabled={loadingMore}
                       className={cn(
-                        "px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 transition-all",
+                        "px-4 py-2 rounded-[var(--shape-control)] text-xs font-medium flex items-center gap-2 transition-all",
                         themeMode === 'dark' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-black/5 hover:bg-black/10 text-black'
                       )}
                     >

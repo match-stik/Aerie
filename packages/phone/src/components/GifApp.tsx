@@ -1983,7 +1983,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
               onClick={applyCrop}
               disabled={cropping}
               className={cn("w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50")}
-              style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)' }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
             >
               {cropping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crop className="w-4 h-4" />}
               {cropAllFrames ? 'Apply to all frames' : `Apply to frame ${previewFrame + 1}`}
@@ -2047,7 +2047,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                   <div ref={pickerRef} className="space-y-2">
                     <div
                       className="rounded-lg px-3 py-2 text-xs font-medium text-center"
-                      style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+                      style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                     >
                       Tap the colour you want gone — frame {previewFrame + 1}
                     </div>
@@ -2211,14 +2211,14 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                   <button
                     onClick={() => paint.setTool('restore')}
                     className={cn("flex-1 py-1.5 rounded-lg text-xs font-medium border flex items-center justify-center gap-1", colors.panelBorder)}
-                    style={paint.tool === 'restore' ? { backgroundColor: colors.accent, color: 'var(--gl-on-accent)' } : { color: colors.textMuted }}
+                    style={paint.tool === 'restore' ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : { color: colors.textMuted }}
                   >
                     <Brush className="w-3.5 h-3.5" /> Restore
                   </button>
                   <button
                     onClick={() => paint.setTool('erase')}
                     className={cn("flex-1 py-1.5 rounded-lg text-xs font-medium border flex items-center justify-center gap-1", colors.panelBorder)}
-                    style={paint.tool === 'erase' ? { backgroundColor: colors.accent, color: 'var(--gl-on-accent)' } : { color: colors.textMuted }}
+                    style={paint.tool === 'erase' ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : { color: colors.textMuted }}
                   >
                     <Eraser className="w-3.5 h-3.5" /> Erase
                   </button>
@@ -2242,7 +2242,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                     disabled={!ghostOk || !ghostUrl}
                     title="Show the un-cut frame underneath"
                     className={cn("px-3 py-1.5 rounded-lg text-xs border disabled:opacity-40", colors.panelBorder)}
-                    style={ghost && ghostOk ? { backgroundColor: colors.accent, color: 'var(--gl-on-accent)' } : { color: colors.textMuted }}
+                    style={ghost && ghostOk ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : { color: colors.textMuted }}
                   >
                     Ghost
                   </button>
@@ -2272,7 +2272,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                     onClick={() => void applyPaint()}
                     disabled={paint.strokes.length === 0 || removingBg}
                     className={cn("flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40")}
-                    style={{ backgroundColor: colors.accent, color: 'var(--gl-on-accent)' }}
+                    style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                   >
                     {removingBg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     Apply to frame {previewFrame + 1}
@@ -2328,7 +2328,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                     )}
                     style={
                       isSelected
-                        ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+                        ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                         : undefined
                     }
                   >
@@ -2418,7 +2418,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                         style={{
                           fontFamily: `"${gifFontFamily(f)}", sans-serif`,
                           ...(isSelected
-                            ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+                            ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                             : {}),
                         }}
                       >
@@ -2524,7 +2524,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                             !isSelected && cn(colors.panelBg, colors.textMain),
                           )}
                           style={isSelected
-                            ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+                            ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                             : undefined}
                         >
                           {pos}
@@ -2608,7 +2608,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                   !preserveColorPreset && cn(colors.panelBg, colors.textMain),
                 )}
                 style={preserveColorPreset
-                  ? { backgroundColor: colors.accent, borderColor: colors.accent, color: 'var(--aerie-on-accent)' }
+                  ? { background: 'var(--aerie-selected-fill)', borderColor: colors.accent, color: 'var(--aerie-on-accent)' }
                   : undefined}
               >
                 Preserve Color
@@ -2802,7 +2802,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
               onClick={createGif}
               disabled={loading || selectedFrames.size === 0}
               className={cn("w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50")}
-              style={{ backgroundColor: colors.accent, color: 'var(--aerie-on-accent)' }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
               {preserveColorPreset

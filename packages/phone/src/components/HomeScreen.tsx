@@ -1,10 +1,14 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, useIsPresent } from 'motion/react';
 import { LayoutGrid, Lock } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn, haptic } from '../lib/utils';
-import { type AppDef } from '../lib/apps';
+import { APPS, useAppName, type AppDef } from '../lib/apps';
+import type { AppTheme } from '../types';
+import { toggleWidget, type HomeWidget, type Layout } from '../lib/home-widgets';
+import { noteColorsForAccent, noteColorsForPalette } from '../lib/note-colors';
+import { HomeWidgets, QuietLine, WidgetSheet, type WidgetCompanion } from './HomeWidgets';
 
 interface HomeScreenProps {
   onOpenApp: (app: AppDef) => void;
@@ -17,6 +21,14 @@ interface HomeScreenProps {
   // Resolved AppDef list to show on the dock. App.tsx maps the user's
   // saved dockAppIds against the registry and passes the result here.
   dockApps: AppDef[];
+  // The owner's widgets and the quiet line (lib/home-widgets.ts).
+  widgets: HomeWidget[];
+  // Where each one sits, once any has been moved (lib/home-widgets.ts).
+  widgetSpots: Layout;
+  quietLine: boolean;
+  companions: WidgetCompanion[];
+  stickyNoteColors?: string[];
+  onThemeChange: (updates: Partial<AppTheme>) => void;
 }
 
 export function HomeScreen({
@@ -27,9 +39,44 @@ export function HomeScreen({
   themeMode,
   messagesBadge = 0,
   dockApps,
+  widgets,
+  widgetSpots,
+  quietLine,
+  companions,
+  stickyNoteColors,
+  onThemeChange,
 }: HomeScreenProps) {
   const colors = themeConfig[themeMode];
   const [pressedAppId, setPressedAppId] = useState<string | null>(null);
+  // A long press on the home screen opens the widget sheet, the way a phone's
+  // home screen does. Not from inside a text box, where a long press selects,
+  // and not on a widget, where a long press picks the widget up to move it.
+  const [sheet, setSheet] = useState(false);
+  const holdTimer = useRef<number | null>(null);
+  const cancelHold = () => { if (holdTimer.current) { window.clearTimeout(holdTimer.current); holdTimer.current = null; } };
+  const holdHandlers = {
+    onPointerDown: (e: React.PointerEvent) => {
+      // Holding a widget lifts that widget instead (HomeWidgets.tsx).
+      if ((e.target as HTMLElement).closest('input, textarea, [data-widget-cell]')) return;
+      cancelHold();
+      holdTimer.current = window.setTimeout(() => { haptic(55); setSheet(true); }, 550);
+    },
+    onPointerUp: cancelHold,
+    onPointerMove: (e: React.PointerEvent) => { if (Math.abs(e.movementX) + Math.abs(e.movementY) > 6) cancelHold(); },
+    onPointerCancel: cancelHold,
+    onPointerLeave: cancelHold,
+  };
+  const openById = (id: string) => { const app = APPS.find((a) => a.id === id); if (app) onOpenApp(app); };
+  // Notes wear the theme's own note colors, the way the Notes app paints them.
+  const notePalette = React.useMemo(() => {
+    if (stickyNoteColors && stickyNoteColors.length) return stickyNoteColors;
+    const pal = themeConfig.palette;
+    const accent = typeof colors.accent === 'string' ? colors.accent.trim() : '';
+    const generated = pal
+      ? noteColorsForPalette(themeMode === 'dark' ? pal.night : pal.day, themeMode)
+      : accent.startsWith('#') ? noteColorsForAccent(accent, themeMode) : [];
+    return generated.length ? generated : ['#FDE68A', '#FBCFE8', '#BFDBFE', '#BBF7D0'];
+  }, [stickyNoteColors, themeConfig.palette, colors.accent, themeMode]);
   // False for the whole of the exit animation, while this is still mounted.
   const present = useIsPresent();
 
@@ -83,15 +130,35 @@ export function HomeScreen({
         </button>
       </div>
 
-      {/* App Grid */}
-      <div className="flex-1 px-8 pt-8" />
+      {/* The middle: the widgets, sitting low so the wallpaper keeps the top,
+          and the long press that opens the widget sheet. */}
+      <div
+        className="flex flex-1 flex-col justify-end px-5"
+        style={{ paddingBottom: quietLine ? 168 : 124 }}
+        {...holdHandlers}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <HomeWidgets
+          widgets={widgets}
+          spots={widgetSpots}
+          companions={companions}
+          notePalette={notePalette}
+          onOpenAppId={openById}
+          onPlace={(layout) => onThemeChange({ homeWidgetSpots: layout })}
+        />
+      </div>
 
       {/* Dock — each button gets a fixed width so swapping the theme font
           (sans/serif/mono) can't make the labels widen the row and push
           the dock past the viewport. Long labels truncate; the icon is
           the primary affordance. */}
-      <div className="absolute bottom-4 left-0 right-0 flex justify-center px-4">
-        <div className="aerie-dock flex gap-3 rounded-[1.7rem] px-4 py-3.5 max-w-full overflow-hidden">
+      <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-2 px-4">
+        {quietLine && (
+          <div className="w-full max-w-[380px]">
+            <QuietLine companions={companions} onOpen={() => openById('messages')} />
+          </div>
+        )}
+        <div className="aerie-dock flex gap-3 rounded-[calc(27.2px*var(--shape-scale,1))] px-4 py-3.5 max-w-full overflow-hidden">
           {dockApps.map((app) => (
             <motion.button
               key={`dock-${app.id}`}
@@ -111,8 +178,8 @@ export function HomeScreen({
                 <span
                   className="absolute -top-1 right-1 min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center px-1 border-2"
                   style={{
-                    backgroundColor: colors.accent,
-                    color: '#090807',
+                    background: 'var(--aerie-selected-fill)',
+                    color: '#ffffff',
                     borderColor: 'var(--aerie-surface-strong)',
                   }}
                 >
@@ -141,6 +208,15 @@ export function HomeScreen({
           </motion.button>
         </div>
       </div>
+      {sheet && (
+        <WidgetSheet
+          widgets={widgets}
+          quietLine={quietLine}
+          onToggle={(id) => onThemeChange({ homeWidgets: toggleWidget(widgets, id) })}
+          onQuietLine={(on) => onThemeChange({ homeQuietLine: on })}
+          onClose={() => setSheet(false)}
+        />
+      )}
     </motion.div>
   );
 }

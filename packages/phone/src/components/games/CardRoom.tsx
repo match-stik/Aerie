@@ -169,26 +169,46 @@ export function CardRoom({ colors }: CardRoomProps) {
   const others = ownerSeat ? (table?.seats ?? []).filter((s) => s.slug !== ownerSeat) : [];
   const topOfPile = table?.pile.at(-1) ?? null;
 
-  // The tab row is its own floating card, the way every other app in the house
-  // does it, and the chosen tab is a card inside that card. Bare bordered pills
-  // over the wallpaper read as loose text rather than as controls.
+  // The server can restore the owner to a game that sits off the right-hand end
+  // of the strip, so the selected tab is brought into view whenever the mode
+  // changes. block:'nearest' on purpose — this must never scroll the page
+  // vertically.
+  const activeTabRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }, [mode]);
+
+  // The tab row matches every other tab strip in the app: same container
+  // (rounded-2xl panel, centred, blurred), same scroller (overflow-x-auto
+  // scrollbar-hide), and the same chips, the selected one filled with the
+  // accent. Nine tabs is far wider than a phone, and a centred row with no
+  // overflow does not clip at one end, it clips at BOTH, so the first games and
+  // the last games were equally unreachable. justify-center on the parent with
+  // the scroller as a shrinkable child centres when it fits.
+  //
+  // The gap under the rail is pb-4 on the WRAPPER rather than mb-4 on the panel
+  // — the panel's bottom margin would collapse straight through a wrapper with
+  // no bottom padding, and the rail was sitting flush against the table.
   const modeSwitch = (
-    <div className="flex justify-center px-4 pt-2">
-      <div className={cn('flex gap-1 rounded-full border p-1 shadow-[0_6px_18px_rgba(0,0,0,.28)]',
+    <div className="px-4 pt-2 pb-4">
+      <div className={cn('flex justify-center rounded-2xl border p-3 backdrop-blur-md',
                          colors.panelBg, colors.panelBorder)}>
-        {([['table', 'The table'], ['klondike', 'Solitaire'], ['ratscrew', 'Rat Screw'], ['golf', 'Golf'], ['eights', 'Eights'], ['president', 'President'], ['hearts', 'Hearts'], ['spades', 'Spades'], ['euchre', 'Euchre']] as const).map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => setMode(id)}
-            className={cn('rounded-full px-4 py-1 text-[11px] transition',
-                          mode === id ? 'font-semibold' : 'opacity-50')}
-            style={mode === id
-              ? { backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }
-              : undefined}
-          >
-            {label}
-          </button>
-        ))}
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+          {([['table', 'The table'], ['klondike', 'Solitaire'], ['ratscrew', 'Rat Screw'], ['golf', 'Golf'], ['eights', 'Eights'], ['president', 'President'], ['hearts', 'Hearts'], ['spades', 'Spades'], ['euchre', 'Euchre']] as const).map(([id, label]) => (
+            <button
+              key={id}
+              ref={mode === id ? activeTabRef : undefined}
+              onClick={() => setMode(id)}
+              className={cn('shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                            colors.panelBorder, mode !== id && colors.panelBg)}
+              style={mode === id
+                ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+                : undefined}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -247,8 +267,8 @@ export function CardRoom({ colors }: CardRoomProps) {
           className={cn(
             'flex flex-col border shadow-[0_24px_70px_rgba(0,0,0,.48)]',
             railExpanded
-              ? 'fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] top-[calc(env(safe-area-inset-top)+68px)] z-[100] rounded-[28px]'
-              : 'h-[340px] shrink-0 rounded-t-[24px] border-x-0 border-b-0',
+              ? 'fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] top-[calc(env(safe-area-inset-top)+68px)] z-[100] rounded-[calc(28px*var(--shape-scale,1))]'
+              : 'h-[340px] shrink-0 rounded-t-[calc(24px*var(--shape-scale,1))] border-x-0 border-b-0',
             colors.panelBg, colors.panelBorder,
           )}
         >
@@ -522,21 +542,21 @@ export function CardRoom({ colors }: CardRoomProps) {
 
       <div className="flex flex-wrap items-center justify-center gap-2">
         <button disabled={busy} onClick={() => act('/new')}
-                className={cn('flex items-center gap-2 rounded-full border px-4 py-2 text-xs disabled:opacity-40', colors.panelBg, colors.panelBorder)}>
+                className={cn('flex items-center gap-2 rounded-[var(--shape-control)] border px-4 py-2 text-xs disabled:opacity-40', colors.panelBg, colors.panelBorder)}>
           <Shuffle size={14} /> Fresh deck
         </button>
         <button disabled={busy || !table} onClick={() => act('/deal', { each: 5 })}
-                className={cn('flex items-center gap-2 rounded-full border px-4 py-2 text-xs disabled:opacity-40', colors.panelBg, colors.panelBorder)}>
+                className={cn('flex items-center gap-2 rounded-[var(--shape-control)] border px-4 py-2 text-xs disabled:opacity-40', colors.panelBg, colors.panelBorder)}>
           <Layers size={14} /> Deal 5
         </button>
         <button disabled={busy || !myHand.length} onClick={() => act('/play')}
-                className={cn('flex items-center gap-2 rounded-full border px-4 py-2 text-xs disabled:opacity-40', colors.panelBg, colors.panelBorder)}>
+                className={cn('flex items-center gap-2 rounded-[var(--shape-control)] border px-4 py-2 text-xs disabled:opacity-40', colors.panelBg, colors.panelBorder)}>
           {/* It plays from the owner's HAND, not off the deck — the Rat Screw motion.
               The old label said "turn one over", which reads as a deck flip. */}
           <Hand size={14} /> Play from hand
         </button>
         <button disabled={busy || !table?.pile.length} onClick={() => act('/gather')}
-                className={cn('flex items-center gap-2 rounded-full border px-4 py-2 text-xs disabled:opacity-40', colors.panelBg, colors.panelBorder)}>
+                className={cn('flex items-center gap-2 rounded-[var(--shape-control)] border px-4 py-2 text-xs disabled:opacity-40', colors.panelBg, colors.panelBorder)}>
           <RotateCcw size={14} /> Gather
         </button>
       </div>

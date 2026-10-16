@@ -249,7 +249,7 @@ function SeafloorLounge({ sunk, total }: { sunk: number; total: number }) {
           <div className="mt-1 text-[8px] uppercase tracking-[.18em]" style={{ color: PANEL_TEXT_MUTED }}>Reserved for the first hull down</div>
         </div>
         <div
-          className="rounded-full border px-3 py-1 text-xs tabular-nums"
+          className="rounded-[var(--shape-control)] border px-3 py-1 text-xs tabular-nums"
           style={{
             backgroundColor: PANEL_SURFACE,
             borderColor: PANEL_BORDER,
@@ -297,7 +297,7 @@ function OceanBoard({
 
   return (
     <section
-      className="rounded-[26px] border p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] backdrop-blur-md"
+      className="rounded-[calc(26px*var(--shape-scale,1))] border p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] backdrop-blur-md"
       style={{
         backgroundColor: PANEL_SURFACE,
         borderColor: PANEL_BORDER,
@@ -495,7 +495,7 @@ const RailConversation = React.memo(function RailConversation({
     <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 scrollbar-hide">
       {messages.length === 0 && !pending && (
         <div
-          className="flex min-h-40 items-center justify-center rounded-[22px] border border-dashed px-6 text-center text-[14px] leading-6"
+          className="flex min-h-40 items-center justify-center rounded-[calc(22px*var(--shape-scale,1))] border border-dashed px-6 text-center text-[14px] leading-6"
           style={{ borderColor: PANEL_BORDER, color: PANEL_TEXT }}
         >
           The chart table is suspiciously civilized. Say something and ruin that.
@@ -506,7 +506,7 @@ const RailConversation = React.memo(function RailConversation({
           return (
             <div
               key={message.id}
-              className="mx-auto max-w-[92%] rounded-full border px-4 py-2 text-center text-[13px] leading-5"
+              className="mx-auto max-w-[92%] rounded-[var(--shape-control)] border px-4 py-2 text-center text-[13px] leading-5"
               style={{
                 backgroundColor: PANEL_SURFACE_STRONG,
                 borderColor: PANEL_BORDER,
@@ -524,7 +524,7 @@ const RailConversation = React.memo(function RailConversation({
             // 14 — the messages app's shape, so both rails read the same way.
             <div key={message.id} className="flex items-start justify-end gap-2 pl-8">
               <div
-                className="max-w-[82%] rounded-[20px] rounded-tr-none border px-4 py-3 text-[14px]"
+                className="max-w-[82%] rounded-[calc(20px*var(--shape-scale,1))] rounded-tr-none border px-4 py-3 text-[14px]"
                 style={{
                   backgroundColor: `color-mix(in srgb, ${accent} 18%, var(--aerie-surface-strong))`,
                   borderColor: `color-mix(in srgb, ${accent} 42%, ${PANEL_BORDER})`,
@@ -562,7 +562,7 @@ const RailConversation = React.memo(function RailConversation({
                 <div key={`${message.id}-${index}`} className="flex items-start gap-2 pr-6">
                   <RailAvatar companion={voice} className="mt-0.5" />
                   <div
-                    className="max-w-[84%] rounded-[20px] rounded-tl-none border px-4 py-3 text-[14px]"
+                    className="max-w-[84%] rounded-[calc(20px*var(--shape-scale,1))] rounded-tl-none border px-4 py-3 text-[14px]"
                     style={{
                       backgroundColor: PANEL_SURFACE,
                       borderColor: `color-mix(in srgb, ${voice?.color || PANEL_TEXT_MUTED} 28%, ${PANEL_BORDER})`,
@@ -797,7 +797,7 @@ export function BattleshipGame({
     return (
       <div className="h-full overflow-y-auto px-4 pb-24 pt-5 scrollbar-hide">
         <div
-          className="overflow-hidden rounded-[30px] border shadow-2xl backdrop-blur-md"
+          className="overflow-hidden rounded-[calc(30px*var(--shape-scale,1))] border shadow-2xl backdrop-blur-md"
           style={{
             backgroundColor: PANEL_SURFACE,
             borderColor: PANEL_BORDER,
@@ -832,7 +832,7 @@ export function BattleshipGame({
     return (
       <div className="h-full overflow-y-auto px-3 pb-24 pt-4 scrollbar-hide">
         <div
-          className="mb-4 rounded-[26px] border p-5 backdrop-blur-md"
+          className="mb-4 rounded-[calc(26px*var(--shape-scale,1))] border p-5 backdrop-blur-md"
           style={{
             background: `linear-gradient(145deg, color-mix(in srgb, ${rawColors.accent} 10%, var(--aerie-surface)), var(--aerie-surface))`,
             borderColor: PANEL_BORDER,
@@ -935,7 +935,7 @@ export function BattleshipGame({
   return (
     <div className="h-full overflow-y-auto px-3 pb-28 pt-3 scrollbar-hide">
       <header
-        className="relative mb-3 overflow-hidden rounded-[26px] border backdrop-blur-md"
+        className="relative mb-3 overflow-hidden rounded-[calc(26px*var(--shape-scale,1))] border backdrop-blur-md"
         style={{
           backgroundColor: PANEL_SURFACE,
           borderColor: PANEL_BORDER,
@@ -953,7 +953,7 @@ export function BattleshipGame({
               : game.turn === 'owner' ? 'Your shot.' : 'The companions are plotting.'}
           </h2>
           <div
-            className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-wider"
+            className="mt-3 inline-flex items-center gap-2 rounded-[var(--shape-control)] border px-3 py-1.5 text-[10px] uppercase tracking-wider"
             style={{ backgroundColor: PANEL_SURFACE, borderColor: PANEL_BORDER }}
           >
             <span
@@ -1017,7 +1017,7 @@ export function BattleshipGame({
         />
 
         <section
-          className="rounded-[24px] border p-4 backdrop-blur-md"
+          className="rounded-[calc(24px*var(--shape-scale,1))] border p-4 backdrop-blur-md"
           style={{
             backgroundColor: PANEL_SURFACE_STRONG,
             borderColor: PANEL_BORDER,
@@ -1050,8 +1050,8 @@ export function BattleshipGame({
           className={cn(
             'flex flex-col border shadow-[0_24px_70px_rgba(0,0,0,.48)]',
             railExpanded
-              ? 'fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] top-[calc(env(safe-area-inset-top)+68px)] z-[100] rounded-[28px] p-4'
-              : 'h-[420px] rounded-[24px] p-4',
+              ? 'fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] top-[calc(env(safe-area-inset-top)+68px)] z-[100] rounded-[calc(28px*var(--shape-scale,1))] p-4'
+              : 'h-[420px] rounded-[calc(24px*var(--shape-scale,1))] p-4',
           )}
           style={{
             backgroundColor: PANEL_SURFACE_STRONG,

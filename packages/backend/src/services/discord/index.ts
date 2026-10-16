@@ -514,6 +514,8 @@ export class DiscordService {
           imageBlocks: imageBlocks.length > 0 ? imageBlocks : undefined,
           discordAuthor: displayNameOf(firstMessage),
           inboundSequence: incomingMsg.sequence,
+          // Read checks on the owner's own messages (a guest's are never ticked).
+          messageId: incomingMsg.id,
           // Who is asking, so the lane's tool gate can tell a guest's turn
           // from the owner's. A batch is one author (the debouncer keys on
           // channel and author), so one audience covers the whole turn.

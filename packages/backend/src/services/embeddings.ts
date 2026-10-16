@@ -149,4 +149,4 @@ export function bufferToVector(b: Buffer): Float32Array {
   return new Float32Array(arrayBuffer);
 }
 
-export { EMBEDDING_DIM };
+export { EMBEDDING_DIM, MODEL_ID };

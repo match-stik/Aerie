@@ -51,14 +51,18 @@ import { PetApp } from './components/PetApp';
 import { InboxApp } from './components/InboxApp';
 import { VoiceModeOverlay } from './components/VoiceModeOverlay';
 import { StudioJobTray } from './components/StudioJobTray';
-import { APPS, DOCK_APPS, migrateAppIds, type AppDef } from './lib/apps';
+import { APPS, DOCK_APPS, drawerColumnsOf, migrateAppIds, type AppDef } from './lib/apps';
 
 import { Share } from '@capacitor/share';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
-import { THEMES, contrastTextColor, onAccentInk, resolveThemeColors, themeRadiusPx, shapeVarsFor } from './lib/theme';
+import { THEMES, contrastTextColor, onAccentInk, resolveThemeColors, themeRadiusPx, shapeVarsFor, setLivePalette, paletteVars, flattenOver, selectedFill, fitForWhite } from './lib/theme';
+import { PALETTES } from './lib/palettes';
+import { guardTheme } from './lib/theme-guard';
+import { applyThemeUpdate } from './lib/wallpaper-mode';
+const KNOWN_THEME_IDS: ReadonlySet<string> = new Set(Object.keys(THEMES));
 import {
   AerieLoginGate,
   useMessages,
@@ -89,6 +93,8 @@ import {
   loadOlderMessages,
   fetchServerSettings,
   pushServerSettings,
+  houseKeepsLinkedFiles,
+  storeInlinePicture,
   useAerie,
   markRead,
   unlockVoicePlayback,
@@ -106,10 +112,18 @@ import { splitMessageVoices } from './lib/voices';
 import { deliverLastCrashReport } from './aerie/pocket-voice';
 import { syncArmedPlaces } from './aerie/threshold-geofence';
 import { startMediaReporter } from './aerie/media-reporter';
+import { paintSystemBars } from './aerie/system-chrome';
+import { barColorsFor } from './lib/system-bar-colors';
+import { lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, unreadSummary, withClockAt, withHidden } from './lib/lock-clock';
+import { homeSpotsOf, homeWidgetsOf } from './lib/home-widgets';
+import { bubbleLookOf } from './lib/bubble-look';
+import { drawerLookOf } from './lib/drawer-look';
+import { bodyStack, fontsOf, titleStack } from './lib/fonts';
+import { inlineWallpapers, swapWallpapers } from './lib/wallpaper-files';
 
 const DEFAULT_THEME: AppTheme = {
   mode: 'dark',
-  id: 'cobalt',
+  id: 'pal-smoke',
 };
 
 const DEFAULT_CONTACTS: Record<string, ContactProfile> = {
@@ -239,6 +253,8 @@ export default function App() {
   const ksActiveThreadId = useActiveThreadId();
   const ksIsViewingAround = useAerie((s) => s.isViewingAround);
   const totalUnread = useTotalUnread();
+  // The lock screen's message card reads the thread list itself.
+  const lockThreads = useAerie((s) => s.threads);
 
   const activeThread = useMemo(
     () => ksThreads.find((t) => t.id === ksActiveThreadId) || null,
@@ -308,7 +324,7 @@ export default function App() {
         const parsed = JSON.parse(saved);
         // Handle legacy theme migration
         if (parsed.accentColor) {
-          return { mode: parsed.mode || 'dark', id: 'monochrome' };
+          return { mode: parsed.mode || 'dark', id: 'pal-obsidian' };
         }
         
         // Handle theme name migrations
@@ -321,7 +337,8 @@ export default function App() {
         delete parsed.wallpaper;
         delete parsed.lockScreenWallpaper;
         delete parsed.wallpapers;
-        return parsed;
+        delete parsed.modeWallpapers;
+        return guardTheme(parsed, KNOWN_THEME_IDS);
       } catch (e) {}
     }
     return DEFAULT_THEME;
@@ -331,24 +348,22 @@ export default function App() {
   useEffect(() => {
     const activeTheme = THEMES[theme.id] || THEMES['monochrome'];
     const colors = activeTheme[theme.mode];
+    setLivePalette(activeTheme.palette, theme.mode);
     const resolved = resolveThemeColors(colors);
     const pageBgColor = theme.id === 'custom'
       ? (theme.customColors?.[theme.mode]?.pageBg || (theme.mode === 'light' ? '#FFFFFF' : '#000000'))
       : resolved.pageBg;
 
-    // Use black for lock screen and home screen (when wallpaper is active),
-    // otherwise use pageBgColor so status bar matches opaque headers.
-    // When Settings is open (showSettings), always use pageBgColor since
-    // Settings has an opaque header that needs the status bar to match.
-    let themeColor = pageBgColor;
-    if (!showSettings && (osState === 'locked' || (osState === 'home' && theme.wallpaper))) {
-      themeColor = '#000000';
-    } else if (theme.mode === 'light') {
-      // Daylight status bar stays clean white (owner's call) —
-      // tinted light pageBg hexes read as off-colors up there (teal's
-      // mint came out bluish against the status icons).
-      themeColor = '#FFFFFF';
-    }
+    // The frame: white in Daylight, black in Midnight, top
+    // and bottom, with the page color living inside it. Which screen wears
+    // what is decided in lib/system-bar-colors.ts.
+    const { bars: themeColor, body: bodyColor } = barColorsFor({
+      mode: theme.mode,
+      osState,
+      hasWallpaper: !!theme.wallpaper,
+      showSettings,
+      pageBg: pageBgColor,
+    });
 
     // Replace the meta node instead of mutating it — Chrome-on-Android
     // PWAs often skip repainting the status bar when only the content
@@ -360,28 +375,19 @@ export default function App() {
     metaThemeColor.setAttribute('content', themeColor);
     document.head.appendChild(metaThemeColor);
     
-    // Set the body color so iOS overscroll and safe-areas match perfectly
-    document.body.style.backgroundColor = themeColor;
-    document.documentElement.style.backgroundColor = themeColor;
+    // The body keeps the page color, so nothing behind the apps changes with
+    // the frame.
+    document.body.style.backgroundColor = bodyColor;
+    document.documentElement.style.backgroundColor = bodyColor;
 
     // Update Native Capacitor / Cordova properties
     const cap = (window as any).Capacitor;
     if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
       const syncNativeBars = async () => {
-        try {
-          if (cap.Plugins && cap.Plugins.StatusBar) {
-            await cap.Plugins.StatusBar.setBackgroundColor({ color: themeColor });
-            await cap.Plugins.StatusBar.setStyle({
-              style: theme.mode === 'dark' ? 'DARK' : 'LIGHT'
-            });
-          }
-        } catch (e) {}
-        
-        try {
-          if ((window as any).NavigationBar) {
-            (window as any).NavigationBar.backgroundColorByHexString(themeColor, theme.mode !== 'dark');
-          }
-        } catch (e) {}
+        // The APK's bars belong to the native window, so the meta above never
+        // reaches them; the app's own SystemChrome plugin paints both, the
+        // strip under the footer the same color as the one over the header.
+        await paintSystemBars(themeColor);
       };
       syncNativeBars();
     }
@@ -572,6 +578,8 @@ export default function App() {
   // initial fetch and risk overwriting newer server state with stale
   // localStorage from a different browser.
   const serverSettingsHydrated = useRef(false);
+  // The same moment as state, so an effect can wait on it.
+  const [settingsHydrated, setSettingsHydrated] = useState(false);
 
   // Load from localforage on mount (for large data like base64 images)
   useEffect(() => {
@@ -579,7 +587,7 @@ export default function App() {
       try {
         const savedTheme = await localforage.getItem<AppTheme>('aerie_theme');
         if (savedTheme) {
-          setTheme(savedTheme);
+          setTheme(guardTheme(savedTheme, KNOWN_THEME_IDS));
         }
 
         const savedContacts = await localforage.getItem<any>('aerie_contacts');
@@ -631,7 +639,7 @@ export default function App() {
         const blob = await fetchServerSettings();
         if (cancelled) return;
         if (blob) {
-          if (blob.theme) setTheme((prev) => ({ ...prev, ...blob.theme! }));
+          if (blob.theme) setTheme((prev) => guardTheme({ ...prev, ...blob.theme! }, KNOWN_THEME_IDS));
           if (blob.contacts) setContacts((prev) => ({ ...prev, ...blob.contacts! }));
           if (blob.appSettings) {
             const serverAppSettings = {
@@ -651,6 +659,7 @@ export default function App() {
         // push effect stays blocked and CAN'T overwrite the real
         // server-side data with local defaults.
         serverSettingsHydrated.current = true;
+        setSettingsHydrated(true);
       } catch (err) {
         console.warn('[Settings] sync failed, will retry once:', err);
         if (cancelled || retryTimer) return;
@@ -891,6 +900,7 @@ export default function App() {
       delete themeForLocalStorage.wallpaper;
       delete themeForLocalStorage.lockScreenWallpaper;
       delete themeForLocalStorage.wallpapers;
+      delete themeForLocalStorage.modeWallpapers;
       localStorage.setItem('aerie_theme', JSON.stringify(themeForLocalStorage));
     } catch (e) {}
   }, [theme, isLoaded]);
@@ -930,6 +940,28 @@ export default function App() {
     }, 1000);
     return () => clearTimeout(t);
   }, [theme, contacts, appSettings, isLoaded, authenticated]);
+
+  // Wallpapers move out of the settings blob into the house's file store,
+  // once per open, and only after the house has said it keeps the files its
+  // settings link to (lib/wallpaper-files.ts). Each picture is swapped for
+  // its link only once the house has confirmed it; anything that fails stays
+  // inline and is tried again next time the app opens.
+  const wallpaperMoveRan = useRef(false);
+  useEffect(() => {
+    if (!settingsHydrated || !authenticated || wallpaperMoveRan.current) return;
+    if (!houseKeepsLinkedFiles()) return;
+    const pending = inlineWallpapers(theme);
+    if (pending.length === 0) return;
+    wallpaperMoveRan.current = true;
+    void (async () => {
+      const links = new Map<string, string>();
+      for (const picture of pending) {
+        const link = await storeInlinePicture(picture);
+        if (link) links.set(picture, link);
+      }
+      if (links.size > 0) setTheme((prev) => swapWallpapers(prev, links));
+    })();
+  }, [settingsHydrated, authenticated, theme]);
 
   // Reconcile custom emojis with the backend on first successful connect:
   // upload any legacy base64 entries, pull anything new, and write the
@@ -1037,7 +1069,7 @@ export default function App() {
   }, [isLoaded, ksConnection]);
 
   const updateTheme = (updates: Partial<AppTheme>) => {
-    setTheme(prev => ({ ...prev, ...updates }));
+    setTheme(prev => applyThemeUpdate(prev, updates));
   };
 
   const updateContact = (id: string, updates: Partial<ContactProfile> | null) => {
@@ -1422,7 +1454,9 @@ export default function App() {
 
   const activeTheme = THEMES[theme.id] || THEMES['monochrome'];
   const colors = activeTheme[theme.mode];
-  const activeFontFamily = appSettings.fontFamily || activeTheme.fontFamily;
+  // The faces at the top of a conversation follow the Rings choice too.
+  const headerThemeRings = bubbleLookOf(theme).rings === 'theme';
+  setLivePalette(activeTheme.palette, theme.mode);
 
   // Bubble handlers read through a ref at call time so the memoized bubble
   // list below never holds stale closures (handleReact closes over messages,
@@ -1457,6 +1491,7 @@ export default function App() {
       // speaking companion, each with its avatar. Headerless
       // messages (and all user messages) render as one bubble.
       const voiceSections = splitMessageVoices(msg, voiceRoster);
+      const bubbleLook = bubbleLookOf(theme);
       // Segment-backed replies keep their rendered speech in text segments
       // rather than message.content. Copy the complete spoken reply while
       // deliberately excluding thought cards, tool pills, and recycle seams.
@@ -1508,6 +1543,8 @@ export default function App() {
           isPrivateTab={false}
           onMediaLoad={() => bubbleHandlersRef.current.scrollToBottom(true)}
           customEmojis={appSettings.customEmojis}
+          look={bubbleLook}
+          ownerName={ownerName}
           userAvatar={appSettings.userAvatar}
           userAvatarColor={appSettings.userAvatarColor}
         />
@@ -1561,15 +1598,28 @@ export default function App() {
     appSettings.customEmojis,
     appSettings.userAvatar,
     appSettings.userAvatarColor,
+    // The Bubbles switches redraw every bubble the moment one is flipped.
+    theme.bubbleFaces,
+    theme.bubbleNames,
+    theme.bubbleEdges,
+    theme.bubbleQuietActions,
+    theme.bubbleMyName,
+    theme.bubbleTailMine,
+    theme.bubbleTailOurs,
+    theme.bubbleRings,
+    ownerName,
   ]);
 
+  // The fonts (lib/fonts.ts): a title font, a message font, and a size. Root
+  // font size drives every rem-based size in the UI; 16px is what Tailwind is
+  // designed against and the slider multiplies it.
+  const houseFonts = fontsOf(appSettings, activeTheme.fontFamily);
   useEffect(() => {
-    // Root font size drives every rem-based size in the UI. 16px is the
-    // browser default Tailwind is designed against; the font-size setting
-    // nudges it. Forcing 14px shrank the whole UI ~13% on every device.
-    const sizeMap: Record<string, string> = { small: '14px', medium: '16px', large: '18px' };
-    document.documentElement.style.fontSize = sizeMap[appSettings.fontSize || 'medium'] || '16px';
-  }, [appSettings.fontSize]);
+    const root = document.documentElement.style;
+    root.fontSize = `${Math.round(16 * houseFonts.scale * 100) / 100}px`;
+    root.setProperty('--font-title', titleStack(houseFonts.title));
+    root.setProperty('--font-body', bodyStack(houseFonts.body));
+  }, [houseFonts.scale, houseFonts.title, houseFonts.body]);
 
   // One semantic palette feeds every screen. Components still consume the
   // legacy utility-class contract, while shared surfaces/bubbles and loose
@@ -1607,7 +1657,7 @@ export default function App() {
     root.style.setProperty('--aerie-accent', solid(resolved.accent, customMode?.accent));
     root.style.setProperty('--aerie-on-accent', onAccentInk(theme.mode));
     root.style.setProperty('--aerie-page', solid(resolved.pageBg, customMode?.pageBg));
-    root.style.setProperty('--aerie-header', theme.mode === 'light' ? '#ffffff' : solid(resolved.pageBg, customMode?.pageBg));
+    root.style.setProperty('--aerie-header', theme.mode === 'light' ? '#ffffff' : '#000000');
     root.style.setProperty('--aerie-panel-base', solid(resolved.panelBg, customMode?.panelBg));
     root.style.setProperty('--aerie-border', solid(resolved.panelBorder, customMode?.panelBorder));
     root.style.setProperty('--aerie-text', resolved.textMain);
@@ -1624,11 +1674,47 @@ export default function App() {
       theme.id === 'custom' ? customCompInk : compBubbleText,
       customCompInk,
     ));
-    root.style.setProperty('--aerie-surface', `color-mix(in srgb, ${resolved.panelBg} 72%, transparent)`);
-    root.style.setProperty('--aerie-surface-strong', `color-mix(in srgb, ${resolved.panelBg} 90%, transparent)`);
+    // Full color for everything: every surface is the
+    // panel color laid over the page color, solid, so nothing of the
+    // wallpaper shows through a card, a tile or the dock.
+    const livePal = (THEMES[theme.id] || THEMES.monochrome).palette;
+    const pageSolid = solid(resolved.pageBg, customMode?.pageBg);
+    const panelSolid = livePal
+      ? (theme.mode === 'dark' ? livePal.night.surface : livePal.day.soft.surface)
+      : flattenOver(solid(resolved.panelBg, customMode?.panelBg), pageSolid);
+    root.style.setProperty('--aerie-panel-solid', panelSolid);
+    // Selected things: light text on a two-tone fill deep enough to carry it.
+    // A palette runs primary into secondary; a one-color theme leans its far
+    // end toward black for the same depth.
+    const accentSolid = solid(resolved.accent, customMode?.accent);
+    if (livePal) {
+      const side = theme.mode === 'dark' ? livePal.night : livePal.day;
+      root.style.setProperty('--aerie-selected-fill', selectedFill(side.primary, side.secondary, '#000000'));
+    } else {
+      const from = fitForWhite(accentSolid);
+      root.style.setProperty('--aerie-selected-fill',
+        `linear-gradient(135deg, ${from}, color-mix(in srgb, ${from} 78%, #000000))`);
+    }
+    root.style.setProperty('--aerie-surface', panelSolid);
+    root.style.setProperty('--aerie-surface-strong', panelSolid);
     root.style.setProperty('--aerie-hairline', resolved.panelBorder);
     root.style.setProperty('--aerie-icon', `color-mix(in srgb, ${resolved.textMain} 90%, transparent)`);
     root.style.setProperty('--aerie-label', `color-mix(in srgb, ${resolved.textMain} 82%, transparent)`);
+    // The multi-color palettes: real colors behind the --pal-* classes, and the
+    // [data-palette] hook index.css paints the two-color boxes and bubbles from.
+    const livePalette = (THEMES[theme.id] || THEMES.monochrome).palette;
+    for (const name of Object.keys(paletteVars(PALETTES[0], 'dark'))) root.style.removeProperty(name);
+    if (livePalette) {
+      for (const [k, v] of Object.entries(paletteVars(livePalette, theme.mode))) root.style.setProperty(k, v);
+      root.dataset.palette = livePalette.id;
+      // House rule for these: bubble text is white at night and black by day,
+      // whatever the theme. The bubbles were fitted to it, not the other way.
+      const ink = theme.mode === 'dark' ? '#FFFFFF' : '#0B0B0B';
+      root.style.setProperty('--aerie-user-bubble-text', ink);
+      root.style.setProperty('--aerie-comp-bubble-text', ink);
+    } else {
+      delete root.dataset.palette;
+    }
     root.style.setProperty('--aerie-loose-shadow', theme.mode === 'dark' ? 'rgba(0, 0, 0, 0.96)' : 'rgba(255, 255, 255, 0.96)');
     // Shape: the theme's radius class is the default, the user's slider overrides.
     // --shape-scale drives every rounded-* utility via the @theme tokens in
@@ -1641,13 +1727,16 @@ export default function App() {
   return (
     <div
       className={cn(
-        "aerie-root relative flex flex-col h-[100svh] overflow-hidden transition-colors duration-500",
+        // Pinned to the screen's edges rather than sized in viewport units:
+        // after the keyboard closed, a 100svh height could hold the keyboard-up
+        // height for a couple of seconds and leave a block of page color under
+        // the message box. Edges follow the window the moment it changes.
+        "aerie-root fixed inset-0 flex flex-col overflow-hidden transition-colors duration-500",
         colors.pageBg,
         colors.textMain,
-        activeFontFamily
       )}
       data-theme-mode={theme.mode}
-      style={{ paddingBottom: 'var(--sab)' }}
+      style={{ paddingBottom: 'var(--sab)', fontFamily: 'var(--font-body)' }}
     >
       {customThemeStyles && <style>{customThemeStyles}</style>}
       {/* Global Wallpaper Layer */}
@@ -1668,6 +1757,24 @@ export default function App() {
             key="locked" 
             onUnlock={() => setOsState('home')} 
             wallpaper={theme.lockScreenWallpaper || theme.wallpaper} 
+            face={lockFaceOf(theme.lockFace)}
+            position={lockPositionOf(theme.lockClockPosition)}
+            size={lockSizeOf(theme.lockClockSize)}
+            shortcuts={lockShortcutsOf(theme.lockShortcuts).map((id) => (id ? APPS.find((a) => a.id === id) ?? null : null))}
+            onOpenApp={(app) => { setOsState('home'); openApp(app); }}
+            show={lockShowOf(theme.lockShow)}
+            unread={unreadSummary(lockThreads)}
+            faces={dbCompanions.slice(0, 3).map((c) => ({ url: c.avatar_url, color: c.color, name: c.display_name }))}
+            messagesApp={APPS.find((a) => a.id === 'messages')}
+            writers={dbCompanions.map((c) => ({ slug: c.slug, name: c.display_name, color: c.color, url: c.avatar_url }))}
+            notesApp={APPS.find((a) => a.id === 'notes')}
+            clockAt={lockClockAtOf(theme.lockClockAt, lockFaceOf(theme.lockFace))}
+            onMoveClock={(at) => setTheme((prev) => applyThemeUpdate(prev, { lockClockAt: withClockAt(prev.lockClockAt, lockFaceOf(prev.lockFace), at) }))}
+            weatherAt={lockWeatherAtOf(theme.lockWeatherAt)}
+            onMoveWeather={(at) => updateTheme({ lockWeatherAt: at })}
+            showClock={!lockHiddenOf(theme.lockHidden).has('clock')}
+            showWeather={!lockHiddenOf(theme.lockHidden).has('weather')}
+            onHide={(piece) => setTheme((prev) => applyThemeUpdate(prev, { lockHidden: withHidden(prev.lockHidden, piece, true) }))}
           />
         )}
         {osState === 'home' && !showSettings && (
@@ -1681,6 +1788,12 @@ export default function App() {
             themeMode={theme.mode}
             messagesBadge={totalUnread}
             dockApps={dockApps}
+            widgets={homeWidgetsOf(theme.homeWidgets)}
+            widgetSpots={homeSpotsOf(theme.homeWidgetSpots)}
+            quietLine={!!theme.homeQuietLine}
+            companions={dbCompanions.map((c) => ({ slug: c.slug, name: c.display_name, avatar: c.avatar_url, color: c.color }))}
+            stickyNoteColors={theme.stickyNoteColors}
+            onThemeChange={updateTheme}
           />
         )}
         {osState === 'appdrawer' && (
@@ -1690,6 +1803,8 @@ export default function App() {
             onOpenApp={openApp}
             themeConfig={activeTheme}
             themeMode={theme.mode}
+            columns={drawerColumnsOf(theme.drawerColumns)}
+            look={drawerLookOf(theme)}
           />
         )}
         {osState === 'status' && (
@@ -1900,10 +2015,10 @@ export default function App() {
         <header
           className={cn(
             "aerie-shell-header relative flex flex-col z-10 transition-all duration-500",
-            // Daylight chrome is clean white so the header fuses with the
-            // white status bar (original design); midnight keeps pageBg,
-            // which matches the theme-color meta exactly.
-            theme.mode === 'light' ? 'bg-white' : colors.pageBg
+            // The frame color, white or black, which is exactly the
+            // theme-color the status bar is painted, so the two fuse with no
+            // seam (.aerie-shell-header paints it through --aerie-header).
+            theme.mode === 'light' ? 'bg-white' : 'bg-black'
           )}
           style={{ paddingTop: 'var(--sat)' }}
         >
@@ -1929,10 +2044,9 @@ export default function App() {
                 {(threadCompanions.length > 0 ? threadCompanions : dbCompanions.length > 0 ? dbCompanions : Object.values(contacts)).map((c: any, index: number) => (
                   <div 
                     key={c.id || c.slug || index}
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:scale-110 border-2"
+                    className={cn("w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:scale-110 border-2", headerThemeRings && "aerie-theme-ring")}
                     style={{ 
-                      backgroundColor: (c.color || colors.accent) + '22',
-                      borderColor: c.color || colors.accent,
+                      ...(headerThemeRings ? {} : { backgroundColor: (c.color || colors.accent) + '22', borderColor: c.color || colors.accent }),
                       zIndex: 10 - index,
                       transform: `rotate(${index % 2 === 0 ? 3 : -3}deg)`
                     }}
@@ -1974,7 +2088,7 @@ export default function App() {
                   initial={{ width: 0, opacity: 0 }} 
                   animate={{ width: 'auto', opacity: 1 }}
                   className={cn(
-                    "flex items-center rounded-full px-4 py-2 border transition-all duration-300",
+                    "flex items-center rounded-[var(--shape-control)] px-4 py-2 border transition-all duration-300",
                     colors.panelBg,
                     colors.panelBorder
                   )}
@@ -2024,7 +2138,7 @@ export default function App() {
                     <button
                       onClick={() => proveAliveOrReconnect()}
                       className={cn(
-                        'flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-opacity active:opacity-60',
+                        'flex items-center gap-1 rounded-[var(--shape-control)] border px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-opacity active:opacity-60',
                         colors.panelBorder,
                       )}
                       style={{ color: colors.accent }}
@@ -2112,6 +2226,7 @@ export default function App() {
                     key="typing-indicator"
                     themeConfig={activeTheme}
                     themeMode={theme.mode}
+                    tail={bubbleLookOf(theme).tailOurs}
                   />
                 )}
               </AnimatePresence>
@@ -2123,7 +2238,7 @@ export default function App() {
       {/* Error Toast */}
       {error && (
         <div 
-          className={cn("fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-medium z-50 backdrop-blur-sm opacity-90", colors.userBubbleText)}
+          className={cn("fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-[var(--shape-control)] text-xs font-medium z-50 backdrop-blur-sm opacity-90", colors.userBubbleText)}
           style={{ backgroundColor: colors.accent }}
         >
           {error}
@@ -2200,6 +2315,7 @@ export default function App() {
           <SettingsDashboard
             theme={theme}
             appSettings={appSettings}
+            ownerName={ownerName}
             onThemeChange={updateTheme}
             onSettingsChange={updateAppSettings}
             onClose={() => {

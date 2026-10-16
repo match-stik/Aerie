@@ -483,7 +483,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
           <span
             className="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
             style={entry.source === 'file'
-              ? { background: colors.accent, color: 'var(--aerie-on-accent)' }
+              ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }
               : { background: 'rgba(127,127,127,0.15)', color: 'var(--aerie-text)' }}
           >
             {entry.source === 'file' ? 'Custom' : 'Default'}
@@ -579,7 +579,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
       <button
         key={label}
         onClick={onClick}
-        className={cn('rounded-full border px-2 py-0.5 text-[11px] transition-colors', colors.panelBorder)}
+        className={cn('rounded-[var(--shape-control)] border px-2 py-0.5 text-[11px] transition-colors', colors.panelBorder)}
         style={active
           ? { background: colors.accent, borderColor: colors.accent }
           : undefined}
@@ -897,7 +897,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                     onClick={() => setNewTrigger((s) => ({ ...s, kind: k }))}
                     className="rounded-md border px-2 py-1 text-xs"
                     style={newTrigger.kind === k
-                      ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+                      ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                       : { color: 'var(--aerie-text)' }}
                   >
                     {k === 'impulse' ? 'Impulse (one-shot)' : 'Watcher (recurring)'}
@@ -925,7 +925,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                     onClick={() => setNewTrigger((s) => ({ ...s, conditionType: c }))}
                     className="rounded-md border px-1 py-1 text-[10px]"
                     style={newTrigger.conditionType === c
-                      ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+                      ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                       : { color: 'var(--aerie-text)' }}
                   >
                     {c === 'presence_state' ? 'Presence' : c === 'time_window' ? 'Time' : 'Free'}
@@ -940,7 +940,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                       onClick={() => setNewTrigger((s) => ({ ...s, presenceState: p }))}
                       className="rounded-md border px-1 py-1 text-[10px] capitalize"
                       style={newTrigger.presenceState === p
-                        ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+                        ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                         : { color: 'var(--aerie-text)' }}
                     >
                       {p}
@@ -983,7 +983,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                 onClick={createTrigger}
                 disabled={creating || !newTrigger.label.trim()}
                 className="w-full rounded-md px-3 py-1.5 text-[11px] font-semibold disabled:opacity-50"
-                style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}
+                style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
               >
                 {creating ? <Loader2 size={11} className="animate-spin inline" /> : 'Create trigger'}
               </button>
@@ -1009,7 +1009,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] uppercase', colors.textMuted)} style={{ background: 'rgba(127,127,127,0.15)' }}>
+                  <span className={cn('rounded-[var(--shape-control)] px-1.5 py-0.5 text-[10px] uppercase', colors.textMuted)} style={{ background: 'rgba(127,127,127,0.15)' }}>
                     {trigger.status}
                   </span>
                   {(trigger.status === 'pending' || trigger.status === 'waiting') && (

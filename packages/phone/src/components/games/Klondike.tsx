@@ -204,7 +204,7 @@ export function KlondikeBoard({ tableId, colors, onTableId }: KlondikeProps) {
           <span className="opacity-60">draw</span>
           {([1, 3] as const).map((n) => (
             <button key={n} onClick={() => setDrawCount(n)}
-                    className={cn('rounded-full border px-3 py-1', colors.panelBorder,
+                    className={cn('rounded-[var(--shape-control)] border px-3 py-1', colors.panelBorder,
                                   drawCount === n ? 'opacity-100' : 'opacity-40')}>
               {n}
             </button>
@@ -212,7 +212,7 @@ export function KlondikeBoard({ tableId, colors, onTableId }: KlondikeProps) {
         </div>
         <button
           onClick={() => { setDealing(false); void post('/new', { drawCount }); }}
-          className={cn('rounded-full border px-6 py-3 text-sm', colors.panelBg, colors.panelBorder)}
+          className={cn('rounded-[var(--shape-control)] border px-6 py-3 text-sm', colors.panelBg, colors.panelBorder)}
         >
           Deal
         </button>
@@ -242,7 +242,7 @@ export function KlondikeBoard({ tableId, colors, onTableId }: KlondikeProps) {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: [0, 1, 0.45, 1, 0], y: 0 }}
             transition={{ duration: 1.6, times: [0, 0.15, 0.4, 0.6, 1] }}
-            className={cn('rounded-full border px-3 py-1 text-[11px] shadow-lg', colors.panelBg, colors.panelBorder)}
+            className={cn('rounded-[var(--shape-control)] border px-3 py-1 text-[11px] shadow-lg', colors.panelBg, colors.panelBorder)}
           >
             {error}
           </motion.div>
@@ -348,7 +348,7 @@ export function KlondikeBoard({ tableId, colors, onTableId }: KlondikeProps) {
 
       <div className="flex items-center justify-center gap-2 pb-1">
         <button onClick={() => post('/undo')} disabled={!game.history.length}
-                className={cn('flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] disabled:opacity-30',
+                className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-3 py-1.5 text-[11px] disabled:opacity-30',
                               colors.panelBg, colors.panelBorder)}>
           <Undo2 size={12} /> Undo
         </button>
@@ -356,14 +356,14 @@ export function KlondikeBoard({ tableId, colors, onTableId }: KlondikeProps) {
           <motion.button
             initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
             onClick={() => post('/finish')}
-            className={cn('flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[11px]',
+            className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-4 py-1.5 text-[11px]',
                           colors.panelBg, colors.panelBorder)}
           >
             <Sparkles size={12} /> Finish it
           </motion.button>
         )}
         <button onClick={() => { setDrawCount(game.drawCount); setDealing(true); }}
-                className={cn('flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px]',
+                className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-3 py-1.5 text-[11px]',
                               colors.panelBg, colors.panelBorder)}>
           <RotateCcw size={12} /> New
         </button>

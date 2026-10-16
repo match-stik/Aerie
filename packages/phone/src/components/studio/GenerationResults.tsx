@@ -26,7 +26,7 @@ export function GenerationResults({
               <button
                 onClick={() => setViewingImage(currentImage)}
                 className="p-1.5 rounded-full transition-colors"
-                style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+                style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 title="Fullscreen"
               >
                 <Maximize2 className="w-4 h-4" />
@@ -36,7 +36,7 @@ export function GenerationResults({
               <button
                 onClick={() => setViewMode('edit')}
                 className="p-1.5 rounded-full transition-colors"
-                style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+                style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 title="Edit"
               >
                 <Edit3 className="w-4 h-4" />
@@ -45,7 +45,7 @@ export function GenerationResults({
             <button
               onClick={() => handleDownload(currentImage)}
               className="p-1.5 rounded-full transition-colors"
-              style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
               title="Download"
             >
               <Download className="w-4 h-4" />
@@ -53,7 +53,7 @@ export function GenerationResults({
             <button
               onClick={() => setPrompt(currentImage.prompt || '')}
               className="p-1.5 rounded-full transition-colors"
-              style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
               title="Reuse prompt"
             >
               <Copy className="w-4 h-4" />

@@ -46,7 +46,7 @@ import { postBrotherCheckIn, initializeTreehouse } from './treehouse-triggers.js
 import { getTreehouseThread } from './treehouse.js';
 import { fetchLifeStatus } from './hooks.js';
 import { getAerieConfig, updateConfigValue } from '../config.js';
-import { probeStudioBackends } from './image-gen.js';
+import { probeStudioBackends, DEFAULT_CODEX_IMAGE_MODEL } from './image-gen.js';
 import type { OrchestratorTaskStatus } from '@aerie/shared';
 
 // --- Orchestrator log ---
@@ -132,7 +132,7 @@ function configuredImageBackend(): string {
   try { return (getConfig('image_gen.backend') as string) || 'codex'; } catch { return 'codex'; }
 }
 
-export function imageBackendClause(backend: string, codexModel = 'gpt-5.6-terra'): string {
+export function imageBackendClause(backend: string, codexModel = DEFAULT_CODEX_IMAGE_MODEL): string {
   const b = (backend || '').trim();
   if (!b) return '';
   if (b === 'codex') return `backend:"codex", codexModel:"${codexModel}", `;

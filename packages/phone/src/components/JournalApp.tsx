@@ -113,7 +113,7 @@ export function JournalApp({ onClose, themeConfig, themeMode, embedded }: Journa
         onClick={() => setFilter(value)}
         className={cn('shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors', colors.panelBorder, !active && colors.panelBg)}
         style={active
-          ? { background: colors.accent, color: 'var(--aerie-on-accent)', borderColor: colors.accent }
+          ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
           : { color: accent || undefined }}
       >
         {label}
@@ -157,7 +157,7 @@ export function JournalApp({ onClose, themeConfig, themeMode, embedded }: Journa
           <span className={cn('text-xs font-semibold', colors.textMain)}>{companion?.display_name || entry.companion_id}</span>
           {isDream && (
             <span
-              className="flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+              className="flex items-center gap-1 rounded-[var(--shape-control)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
               style={{ background: 'rgba(127,127,127,0.15)', color: accent }}
             >
               <Moon size={9} />

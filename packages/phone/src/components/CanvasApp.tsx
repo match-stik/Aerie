@@ -145,7 +145,7 @@ export function CanvasApp({ onClose, themeConfig, themeMode }: CanvasAppProps) {
               placeholder="Title"
             />
             <div className="mt-2 flex items-center gap-2">
-              <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide', colors.panelBorder, colors.textMuted)}>
+              <span className={cn('rounded-[var(--shape-control)] border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide', colors.panelBorder, colors.textMuted)}>
                 {active.content_type}
               </span>
               {active.language && (

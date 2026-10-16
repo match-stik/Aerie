@@ -462,10 +462,11 @@ async function handleMessageSend(
     createdAt: now,
   });
 
-  // Mark as delivered + read (companion's system received it and will process it)
-  getDb().prepare('UPDATE messages SET delivered_at = ?, read_at = ? WHERE id = ?').run(now, now, userMessage.id);
+  // Delivered now: the house has it. Read waits until a companion is actually
+  // handed it (services/own-messages-read.ts): the turn that starts on it, or
+  // for a side note, the lane reading it.
+  getDb().prepare('UPDATE messages SET delivered_at = ? WHERE id = ?').run(now, userMessage.id);
   userMessage.delivered_at = now;
-  userMessage.read_at = now;
 
   updateThreadActivity(thread.id, now, false);
 
@@ -681,6 +682,7 @@ async function handleMessageSend(
       {
         imageBlocks: imageBlocksForAgent.length > 0 ? imageBlocksForAgent : undefined,
         inboundSequence: userMessage.sequence,
+        messageId: userMessage.id,
       }
     );
     updateThreadActivity(thread.id, new Date().toISOString(), true);

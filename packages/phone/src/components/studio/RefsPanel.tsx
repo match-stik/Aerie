@@ -188,7 +188,7 @@ export function RefsPanel({
             onClick={createDrawer}
             disabled={!newDrawerName.trim() || creatingDrawer}
             className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1"
-            style={{ backgroundColor: colors.accent, color: ACCENT_TEXT_COLOR_BY_THEME[themeMode] }}
+            style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
           >
             {creatingDrawer ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Create

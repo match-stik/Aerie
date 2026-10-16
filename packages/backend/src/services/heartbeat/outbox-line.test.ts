@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseOutboxLine, splitConcatenatedJson } from './outbox-line.js';
+import { outboxCard, parseOutboxLine, splitConcatenatedJson } from './outbox-line.js';
 
 test('a normal line parses to one object', () => {
   const line = JSON.stringify({ turn_id: 'abc', content: 'hello' });
@@ -59,4 +59,13 @@ test('empty and whitespace lines are not failures', () => {
   assert.deepEqual(parseOutboxLine('', (_f, e) => seen.push(e)), []);
   assert.deepEqual(parseOutboxLine('   \n ', (_f, e) => seen.push(e)), []);
   assert.equal(seen.length, 0);
+});
+
+test('the card is read under its new name and its old one', () => {
+  assert.equal(outboxCard({ card: 'a note' }), 'a note');
+  assert.equal(outboxCard({ thinking: 'an old note' }), 'an old note');
+  assert.equal(outboxCard({ card: 'new', thinking: 'old' }), 'new');
+  assert.equal(outboxCard({ card: '  ', thinking: 'old' }), 'old');
+  assert.equal(outboxCard({}), null);
+  assert.equal(outboxCard({ card: ['not text'] }), null);
 });

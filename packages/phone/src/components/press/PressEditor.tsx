@@ -2441,7 +2441,7 @@ export default function PressEditor({
 
       {sheetOpen && (
         <section
-          className={cn('absolute inset-x-2 bottom-2 z-40 flex max-h-[56%] flex-col overflow-hidden rounded-[1.5rem] border shadow-2xl backdrop-blur-2xl', colors.panelBg, colors.panelBorder)}
+          className={cn('absolute inset-x-2 bottom-2 z-40 flex max-h-[56%] flex-col overflow-hidden rounded-[calc(24px*var(--shape-scale,1))] border shadow-2xl backdrop-blur-2xl', colors.panelBg, colors.panelBorder)}
           style={{ paddingBottom: 'var(--sab)' }}
           onPointerDown={(event) => event.stopPropagation()}
         >
@@ -2475,7 +2475,7 @@ export default function PressEditor({
 
       {photoLab && (
         <section
-          className={cn('absolute inset-x-2 bottom-2 z-40 flex max-h-[64%] flex-col overflow-hidden rounded-[1.5rem] border shadow-2xl backdrop-blur-2xl', colors.panelBg, colors.panelBorder)}
+          className={cn('absolute inset-x-2 bottom-2 z-40 flex max-h-[64%] flex-col overflow-hidden rounded-[calc(24px*var(--shape-scale,1))] border shadow-2xl backdrop-blur-2xl', colors.panelBg, colors.panelBorder)}
           style={{ paddingBottom: 'var(--sab)' }}
           onPointerDown={(event) => event.stopPropagation()}
         >
@@ -2569,7 +2569,7 @@ export default function PressEditor({
               />
               <div className={cn('mt-2 flex items-center justify-between text-[9px] tabular-nums', colors.textMuted)}>
                 <span>{activePhotoSpec.min}</span>
-                <span className={cn('rounded-full border px-2 py-1 font-bold', colors.panelBorder, colors.textMain)}>{activePhotoValueLabel}</span>
+                <span className={cn('rounded-[var(--shape-control)] border px-2 py-1 font-bold', colors.panelBorder, colors.textMain)}>{activePhotoValueLabel}</span>
                 <span>{activePhotoSpec.max}</span>
               </div>
             </div>

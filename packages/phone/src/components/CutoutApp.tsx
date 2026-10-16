@@ -1149,7 +1149,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
         <button
           onClick={() => fileInput.current?.click()}
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold"
-          style={{ backgroundColor: colors.accent, color: themeMode === 'dark' ? '#0b0b0d' : '#fff' }}
+          style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
         >
           <ImageUp size={15} /> {imageUrl ? 'Choose another' : 'Choose an image'}
         </button>
@@ -1451,7 +1451,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
             onClick={() => void (mode === 'subject' ? subjectBatch() : keyBatch())}
             disabled={!!batchBusy || (mode === 'colour' && !cut) || batch.every((b) => b.cut)}
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
-            style={{ backgroundColor: colors.accent, color: themeMode === 'dark' ? '#0b0b0d' : '#fff' }}
+            style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
           >
             {batchBusy ? <Loader2 size={15} className="animate-spin" /> : mode === 'subject' ? <Wand2 size={15} /> : <Pipette size={15} />}
             {batchBusy || (batch.every((b) => b.cut)
@@ -1516,7 +1516,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
                       title="Put this one back"
                       onClick={(e) => { e.stopPropagation(); if (!batchBusy) void revertItem(item); }}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); void revertItem(item); } }}
-                      className="absolute bottom-1 left-1 rounded-full bg-black/55 p-1 text-white backdrop-blur"
+                      className="absolute bottom-1 left-1 rounded-[var(--shape-control)] bg-black/55 p-1 text-white backdrop-blur"
                     >
                       <RotateCcw size={11} />
                     </span>
@@ -1618,7 +1618,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
               onClick={() => void (mode === 'colour' ? keyColourOut() : removeBackground())}
               disabled={!!busy || (mode === 'subject' && !engine?.ready)}
               className="flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold disabled:opacity-40"
-              style={{ backgroundColor: colors.accent, color: themeMode === 'dark' ? '#0b0b0d' : '#fff' }}
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
             >
               {busy ? <Loader2 size={15} className="animate-spin" /> : <Eraser size={15} />}
               {cut ? 'Try again' : mode === 'colour' ? 'Key this colour' : 'Find the subject'}
@@ -1655,7 +1655,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
             <div className={label}>Fix by hand</div>
             <button
               onClick={() => { setPainting((p) => !p); setPicking(false); }}
-              className={cn('flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px]', colors.panelBorder, colors.textMain)}
+              className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-3 py-1 text-[11px]', colors.panelBorder, colors.textMain)}
               style={painting ? { borderColor: colors.accent } : undefined}
             >
               {painting ? <><X size={12} /> Done</> : <><Brush size={12} /> Paint</>}
@@ -1695,7 +1695,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
                   </span>
                   <button
                     onClick={() => setGhost((g) => !g)}
-                    className={cn('rounded-full border px-3 py-1 text-[11px]', colors.panelBorder, colors.textMain)}
+                    className={cn('rounded-[var(--shape-control)] border px-3 py-1 text-[11px]', colors.panelBorder, colors.textMain)}
                     style={ghost ? { borderColor: colors.accent } : undefined}
                   >
                     {ghost ? <><Eye size={12} className="mr-1 inline" /> On</> : <><EyeOff size={12} className="mr-1 inline" /> Off</>}
@@ -1716,7 +1716,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
                   onClick={() => void applyPaint()}
                   disabled={!!busy || strokes.length === 0}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold disabled:opacity-40"
-                  style={{ backgroundColor: colors.accent, color: themeMode === 'dark' ? '#0b0b0d' : '#fff' }}
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 >
                   {busy === 'Painting…' ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
                   Apply {strokes.length > 0 ? `(${strokes.length})` : ''}

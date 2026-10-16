@@ -359,13 +359,13 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                 </button>
                 <button
                   onClick={() => { void handleUseFullImage(); }}
-                  className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest border border-white/20 text-white rounded-full transition-all active:scale-95 hover:bg-white/10"
+                  className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest border border-white/20 text-white rounded-[var(--shape-control)] transition-all active:scale-95 hover:bg-white/10"
                 >
                   {cropImageSrc?.startsWith('data:image/gif') ? 'Save Original (Animated)' : 'Use Full Image'}
                 </button>
                 <button 
                   onClick={handleSaveCrop} 
-                  className="flex items-center gap-2 px-5 py-2 bg-white text-black text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-white/90 transition-colors"
+                  className="flex items-center gap-2 px-5 py-2 bg-white text-black text-[10px] font-bold uppercase tracking-widest rounded-[var(--shape-control)] hover:bg-white/90 transition-colors"
                 >
                   <Check size={16} /> Apply Crop
                 </button>
@@ -473,9 +473,9 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                 key={id}
                 onClick={() => { setActiveContact(id); setIsEditingBio(false); setIsEditingName(false); setIsEditingPhone(false); }}
                 className={cn(
-                  "px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap",
+                  "px-4 py-1.5 rounded-[var(--shape-control)] text-[9px] font-bold uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap",
                   activeId === id 
-                    ? 'aerie-on-accent scale-105'
+                    ? 'aerie-on-accent'
                     : `${colors.panelBg} ${colors.textMuted} hover:opacity-80`
                 )}
                 style={{ backgroundColor: activeId === id ? colors.accent : undefined }}
@@ -491,9 +491,9 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                   key={id}
                   onClick={() => { setActiveContact(id); setIsEditingBio(false); setIsEditingName(false); setIsEditingPhone(false); }}
                   className={cn(
-                    "px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap",
+                    "px-4 py-1.5 rounded-[var(--shape-control)] text-[9px] font-bold uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap",
                     activeId === id 
-                      ? 'aerie-on-accent scale-105'
+                      ? 'aerie-on-accent'
                       : `${colors.panelBg} ${colors.textMuted} hover:opacity-80`
                   )}
                   style={{ backgroundColor: activeId === id ? colors.accent : undefined }}
