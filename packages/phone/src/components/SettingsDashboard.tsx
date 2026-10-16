@@ -649,6 +649,68 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                 ];
                 return (<>
                   <section className={cn("space-y-4 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
+                    <h3 className={cn("micro-label", colors.accentText)}>Wallpaper</h3>
+                    {/* Its own picture, which falls back to the home wallpaper when unset. */}
+                    <div className="flex gap-6 items-center">
+                      <div
+                        className={cn(
+                          "w-24 h-32 shrink-0 rounded-[calc(24px*var(--shape-scale,1))] border-2 border-dashed flex items-center justify-center overflow-hidden relative group transition-all duration-500",
+                          colors.panelBg,
+                          colors.panelBorder,
+                          "hover:border-opacity-50",
+                        )}
+                      >
+                        <label className="absolute inset-0 cursor-pointer z-10">
+                          <input
+                            type="file"
+                            onChange={(e) => handleImageUpload(e, "lockscreen")}
+                            className="hidden"
+                            accept="image/*"
+                          />
+                        </label>
+                        {theme.lockScreenWallpaper ? (
+                          <>
+                            <img
+                              src={theme.lockScreenWallpaper}
+                              className="w-full h-full object-cover opacity-60"
+                              alt="Lock Screen Wallpaper"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Upload size={24} className="text-white" />
+                            </div>
+                          </>
+                        ) : (
+                          <ImageIcon
+                            size={28}
+                            className={colors.textMuted}
+                            strokeWidth={1.5}
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <p
+                          className={cn(
+                            "text-xs leading-relaxed font-medium text-left",
+                            colors.textMuted,
+                          )}
+                        >
+                          Lock Screen Background
+                        </p>
+                        {theme.lockScreenWallpaper && (
+                          <button
+                            onClick={() =>
+                              onThemeChange({ lockScreenWallpaper: undefined })
+                            }
+                            className="text-[10px] font-bold uppercase tracking-widest transition-colors opacity-80 hover:opacity-100"
+                            style={{ color: colors.accent }}
+                          >
+                            Reset Lock Screen
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                  <section className={cn("space-y-4 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
                     <h3 className={cn("micro-label", colors.accentText)}>Clock face</h3>
                     <div className="grid grid-cols-3 gap-3">
                       {FACES.map((f) => (
@@ -1606,68 +1668,6 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-6">
-                  {/* Lock Screen Background (Always visible) */}
-                  <div className="flex gap-6 items-center">
-                    <div
-                      className={cn(
-                        "w-24 h-32 shrink-0 rounded-[calc(24px*var(--shape-scale,1))] border-2 border-dashed flex items-center justify-center overflow-hidden relative group transition-all duration-500",
-                        colors.panelBg,
-                        colors.panelBorder,
-                        "hover:border-opacity-50",
-                      )}
-                    >
-                      <label className="absolute inset-0 cursor-pointer z-10">
-                        <input
-                          type="file"
-                          onChange={(e) => handleImageUpload(e, "lockscreen")}
-                          className="hidden"
-                          accept="image/*"
-                        />
-                      </label>
-                      {theme.lockScreenWallpaper ? (
-                        <>
-                          <img
-                            src={theme.lockScreenWallpaper}
-                            className="w-full h-full object-cover opacity-60"
-                            alt="Lock Screen Wallpaper"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Upload size={24} className="text-white" />
-                          </div>
-                        </>
-                      ) : (
-                        <ImageIcon
-                          size={28}
-                          className={colors.textMuted}
-                          strokeWidth={1.5}
-                        />
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-3">
-                      <p
-                        className={cn(
-                          "text-xs leading-relaxed font-medium text-left",
-                          colors.textMuted,
-                        )}
-                      >
-                        Lock Screen Background
-                      </p>
-                      {theme.lockScreenWallpaper && (
-                        <button
-                          onClick={() =>
-                            onThemeChange({ lockScreenWallpaper: undefined })
-                          }
-                          className="text-[10px] font-bold uppercase tracking-widest transition-colors opacity-80 hover:opacity-100"
-                          style={{ color: colors.accent }}
-                        >
-                          Reset Lock Screen
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="opacity-20" />
-
                   {!theme.slideshowEnabled ? (
                     <div className="flex gap-6 items-center">
                       <div
