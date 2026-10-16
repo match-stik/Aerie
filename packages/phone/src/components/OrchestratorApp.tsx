@@ -1,4 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { clockFromWindow, hourLabel, windowFromClock, windowSentence } from '../lib/visit-window';
 import React, { useEffect, useState } from 'react';
 import { CalendarClock, RefreshCw, Loader2, X, Plus } from 'lucide-react';
 import { AppShell } from './AppShell';
@@ -782,41 +783,32 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                         className={cn('rounded-md border px-1.5 py-1 text-xs bg-transparent w-full', colors.panelBorder, colors.textMain)}
                       />
                     </label>
-                    <label className="flex flex-col gap-1">
-                      <span className={cn('text-[10px] uppercase tracking-wide', colors.textMuted)}>From (hr)</span>
-                      <input
-                        type="number"
-                        defaultValue={spontaneous.windowStart}
-                        min={0}
-                        max={23}
-                        onBlur={(e) => {
-                          const num = parseInt(e.target.value, 10);
-                          if (!isNaN(num) && num !== spontaneous.windowStart) {
-                            patchSpontaneous({ windowStart: num });
-                          }
-                        }}
-                        className={cn('rounded-md border px-1.5 py-1 text-xs bg-transparent w-full', colors.panelBorder, colors.textMain)}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className={cn('text-[10px] uppercase tracking-wide', colors.textMuted)}>To (hr)</span>
-                      <input
-                        type="number"
-                        defaultValue={spontaneous.windowEnd}
-                        min={1}
-                        max={30}
-                        onBlur={(e) => {
-                          const num = parseInt(e.target.value, 10);
-                          if (!isNaN(num) && num !== spontaneous.windowEnd) {
-                            patchSpontaneous({ windowEnd: num });
-                          }
-                        }}
-                        className={cn('rounded-md border px-1.5 py-1 text-xs bg-transparent w-full', colors.panelBorder, colors.textMain)}
-                      />
-                    </label>
+                    {/* Clock times, not hour numbers: an Until earlier than
+                        From is the next morning (lib/visit-window.ts). */}
+                    {(['from', 'until'] as const).map((which) => {
+                      const clock = clockFromWindow(spontaneous.windowStart, spontaneous.windowEnd);
+                      return (
+                        <label key={which} className="flex flex-col gap-1">
+                          <span className={cn('text-[10px] uppercase tracking-wide', colors.textMuted)}>{which === 'from' ? 'From' : 'Until'}</span>
+                          <select
+                            value={clock[which]}
+                            onChange={(e) => {
+                              const hour = Number(e.target.value);
+                              const next = windowFromClock(which === 'from' ? hour : clock.from, which === 'until' ? hour : clock.until);
+                              if (next.start !== spontaneous.windowStart || next.end !== spontaneous.windowEnd) {
+                                patchSpontaneous({ windowStart: next.start, windowEnd: next.end });
+                              }
+                            }}
+                            className={cn('rounded-md border px-1.5 py-1 text-xs bg-transparent w-full', colors.panelBorder, colors.textMain)}
+                          >
+                            {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+                          </select>
+                        </label>
+                      );
+                    })}
                   </div>
                   <p className={cn('text-[10px] mt-2', colors.textMuted)}>
-                    0 to Max wakes land at random times in the window (hours past 24 = after midnight). The dice roll daily; nobody sees the times.
+                    {windowSentence(spontaneous.windowStart, spontaneous.windowEnd)}, between none and Max a day at random times. The dice roll daily; nobody sees the times.
                   </p>
                 </>
               )}
