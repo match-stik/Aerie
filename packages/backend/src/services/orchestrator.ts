@@ -965,7 +965,7 @@ export class Orchestrator {
       enabled: getConfigBool('spontaneous.enabled', false),
       maxPerDay: getConfigNumber('spontaneous.max_per_day', 2),
       windowStart: getConfigNumber('spontaneous.window_start', 10),
-      windowEnd: getConfigNumber('spontaneous.window_end', 26),
+      windowEnd: getConfigNumber('spontaneous.window_end', 22),
       pendingToday: this.spontaneousTimers.length,
     };
   }
@@ -1064,7 +1064,7 @@ export class Orchestrator {
     const maxPerDay = Math.max(0, getConfigNumber('spontaneous.max_per_day', 2));
     // Window in hours-of-day; end may run past midnight (26 = 2 AM next day)
     const windowStart = getConfigNumber('spontaneous.window_start', 10);
-    const windowEnd = getConfigNumber('spontaneous.window_end', 26);
+    const windowEnd = getConfigNumber('spontaneous.window_end', 22);
 
     const count = Math.floor(Math.random() * (maxPerDay + 1)); // 0..max inclusive
     if (count === 0) {
