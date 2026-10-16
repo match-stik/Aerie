@@ -67,12 +67,14 @@ class FakeSession {
   orphanedRepliesPath = join(dir, 'orphans.jsonl');
   lines: string[] = [];
   inbox: InboxLine[] = [];
+  fresh = false;
+  silent = false;
   notes = [{ at: '2026-03-12T21:00:00.000Z', text: 'A PRIVATE SIDE NOTE OF THE OWNER' }];
   ensure() { return false; }
   sideNotesSize() { return 0; }
   sideNotesReadMark() { return ''; }
   readSideNotesFrom(offset: number) { return { notes: this.notes.slice(offset), newOffset: this.notes.length }; }
-  consumeFreshFlag() { return false; }
+  consumeFreshFlag() { const f = this.fresh; this.fresh = false; return f; }
   outboxSize() { return this.lines.length; }
   activitySize() { return 0; }
   readActivityFrom() { return { lines: [], newOffset: 0 }; }
@@ -82,7 +84,7 @@ class FakeSession {
   interruptTurn() { return false; }
   appendInbox(line: InboxLine) {
     this.inbox.push(line);
-    this.lines.push(JSON.stringify({ turn_id: line.turn, content: 'heard', thinking: 'here' }));
+    if (!this.silent) this.lines.push(JSON.stringify({ turn_id: line.turn, content: 'heard', thinking: 'here' }));
   }
   readOutboxFrom(offset: number) {
     return { lines: this.lines.slice(offset), newOffset: this.lines.length };
@@ -178,4 +180,60 @@ test("a guest's turn does not move the starting point past a message nobody hand
   );
   assert.doesNotMatch(guest, /PRIVATE MISSED MESSAGE/);
   assert.match(owners, /PRIVATE MISSED MESSAGE OF THE OWNER/);
+});
+
+// One turn on a given session, returning what reached the inbox and the text
+// the turn delivered to its room.
+async function oneTurn(session: FakeSession, sessionKey: string, audience: TurnAudience | undefined, extra: Record<string, unknown> = {}) {
+  const runtime = new InteractiveCliRuntime({ sessionKey, audience, sessionFactory: () => session as any, ...extra } as any);
+  let said = '';
+  for await (const ev of runtime.runTurn({
+    prompt: PROMPT, model: 'claude-opus-4-5', systemPrompt: 'test', cwd: dir,
+    thinking: 'adaptive' as const, maxTurns: 1, isAutonomous: false,
+  }) as AsyncIterable<any>) {
+    if (ev.type === 'text_delta') said += ev.text;
+  }
+  return { inbox: session.inbox[session.inbox.length - 1].content, said };
+}
+
+test("a late reply meant for the owner is not posted in a guest's room, and reaches the owner's next turn", async () => {
+  const session = new FakeSession();
+  const key = 'guest-ctx-late';
+  // The owner's turn outruns its window and is owed.
+  session.silent = true;
+  await oneTurn(session, key, undefined);
+  const owedTurn = session.inbox[session.inbox.length - 1].turn;
+  session.silent = false;
+  session.lines.push(JSON.stringify({ turn_id: owedTurn, content: 'A LATE ANSWER TO THE OWNER', thinking: 'late' }));
+  const guest = await oneTurn(session, key, { kind: 'guest', trust: 'standard' });
+  assert.doesNotMatch(guest.said, /A LATE ANSWER TO THE OWNER/);
+  const owners = await oneTurn(session, key, undefined);
+  assert.match(owners.said, /A LATE ANSWER TO THE OWNER/, 'held, not lost');
+});
+
+test("a guest's turn into a fresh room gets none of the owner's history, and the owner's next turn still does", async () => {
+  const session = new FakeSession();
+  session.fresh = true;
+  const history = { threadId: 't-home', userName: 'Owner', historyLimit: 30,
+    loadHistory: () => [{ role: 'user', content: 'A PRIVATE LINE FROM THE OWNER THREAD', createdAt: '2026-10-12T20:00:00.000Z' }] };
+  const guest = await oneTurn(session, 'guest-ctx-fresh', { kind: 'guest', trust: 'full' }, history);
+  assert.doesNotMatch(guest.inbox, /PRIVATE LINE FROM THE OWNER THREAD/);
+  const owners = await oneTurn(session, 'guest-ctx-fresh', undefined, history);
+  assert.match(owners.inbox, /PRIVATE LINE FROM THE OWNER THREAD/, 'the seed is owed to the owner\'s turn');
+});
+
+test("companion replies to the owner since the lane last spoke are not handed into a guest's turn", async () => {
+  const session = new FakeSession();
+  const key = 'guest-ctx-catchup';
+  const rows: any[] = [];
+  const history = { threadId: 't-home', userName: 'Owner', historyLimit: 30, loadHistory: () => rows };
+  await oneTurn(session, key, undefined, history);
+  await new Promise(r => setTimeout(r, 5));
+  rows.push({ role: 'companion', content: 'A COMPANION BELL TO THE OWNER', createdAt: new Date().toISOString(), authorName: 'Birch' });
+  await new Promise(r => setTimeout(r, 5));
+  const guest = await oneTurn(session, key, { kind: 'guest', trust: 'standard' }, history);
+  assert.doesNotMatch(guest.inbox, /A COMPANION BELL TO THE OWNER/);
+  rows.push({ role: 'user', content: PROMPT, createdAt: new Date(Date.now() + 1000).toISOString() });
+  const owners = await oneTurn(session, key, undefined, history);
+  assert.match(owners.inbox, /A COMPANION BELL TO THE OWNER/, 'still handed to the owner\'s own next turn');
 });

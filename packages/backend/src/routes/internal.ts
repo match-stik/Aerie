@@ -22,6 +22,7 @@ import { driftAgainstBaseline, renderDrift, BASELINE_FILE } from '../services/he
 import { readPlayRequest, spotify } from '../services/spotify.js';
 import { wakeAndPlay } from '../services/spotify-wake.js';
 import { getPushService } from '../services/push.js';
+import { commandFromLane, describeToyCommand, relayToyCommand, toyRemoteStatus } from '../services/toy-remote.js';
 import { fileURLToPath } from 'url';
 import {
   listThreads,
@@ -2046,4 +2047,35 @@ router.post('/internal/spotify/wake-play', async (req, res) => {
   });
   console.log(`[Spotify] ${companion} wake-play: ${answer.ok ? (answer.woke ? `woke ${answer.device} after ${answer.waitedMs} ms and played` : 'played, nothing to wake') : `${answer.reason} (${answer.error})`}`);
   res.json(answer);
+});
+
+// ---- the owner's toys ----
+//
+// A lane reaches the owner's toys through the owner's phone: the ask is shaped here, handed
+// to the phone over the socket, and the answer is the phone's. Read GET first
+// (is the remote handed over, which toys, which motors, is anything playing),
+// and write about a toy only what the answer says it is doing.
+
+router.get('/internal/toys', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  res.json(toyRemoteStatus());
+});
+
+router.post('/internal/toys', async (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const shaped = commandFromLane(req.body);
+  if (!shaped.ok) {
+    res.status(400).json({ ok: false, error: shaped.error });
+    return;
+  }
+  const said = describeToyCommand(shaped.command);
+  const ack = await relayToyCommand(shaped.command);
+  console.log(`[Toys] ${shaped.command.companion}: ${said} -> ${ack.ok ? 'taken' : ack.reason}`);
+  res.json({ ...ack, said });
 });

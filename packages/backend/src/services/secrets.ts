@@ -131,6 +131,16 @@ export const SECRETS: SecretDef[] = [
     envVar: 'OPENSUBTITLES_API_KEY',
     hint: 'opensubtitles.com → account → API consumers. Free tier is enough',
   },
+  // The phone app talks to Lovense toys over Bluetooth itself, through
+  // Lovense's Android SDK, with no Lovense Remote in between. The SDK will not
+  // start without the owner's developer token, and the phone asks the house for
+  // it rather than carrying it inside the app file.
+  {
+    name: 'lovense_developer_token',
+    label: 'Lovense developer token',
+    category: 'integration',
+    hint: 'lovense.com → Developer Dashboard → Developer Token. Lets the phone app reach your toys over Bluetooth directly.',
+  },
   // This box reaches GitHub over SSH, which can clone and push but cannot ask
   // a question — Dependabot alerts, and everything else about a repository's
   // state, live behind the REST API and need a token. Read-only is the whole

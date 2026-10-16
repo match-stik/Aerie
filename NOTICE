@@ -257,3 +257,21 @@ The Press ABR worker adapts Sable's bounded legacy and modern Photoshop brush
 container parsing, sampled-tip decoding, PackBits rows, and descriptor mapping
 for transparent browser-side stamp extraction. See THIRD_PARTY_LICENSES.md for
 the complete MIT notice.
+
+================================================================
+Lovense Android SDK — not included
+================================================================
+
+Aerie's Android app can use Lovense's Android SDK to reach toys over
+Bluetooth. The SDK is Lovense's software: it is not part of this repository
+and not covered by Aerie's license. Each house downloads its own copy from
+Lovense's developer portal, under Lovense's terms, and uses its own
+developer token (packages/phone/android/LOVENSE.md). Aerie is independent
+and is not endorsed by or affiliated with Lovense. Aerie's Apache License
+2.0 covers Aerie's own code only, and grants no rights in Lovense's
+developer materials, trademarks, patents or other intellectual property.
+
+Nothing about Aerie's arrangements with Lovense travels with the code. A
+project that ports the toy code needs its own Lovense developer account, its
+own agreement with Lovense, and whatever approval Lovense asks of it, before
+it ships.

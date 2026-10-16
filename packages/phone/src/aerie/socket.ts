@@ -10,6 +10,7 @@ import { getState, setState } from './store';
 import { buildStreamingSegments } from './hooks';
 import { apiFetch } from './api';
 import { previewText } from '../lib/thread-list';
+import { isRedWord } from '../lib/safeword';
 
 // --- Connection internals (non-reactive) ---
 let ws: WebSocket | null = null;
@@ -197,6 +198,8 @@ function handleMessage(event: MessageEvent): void {
       break;
 
     case 'connected': {
+      // The house may have restarted and forgotten what this phone told it.
+      window.dispatchEvent(new CustomEvent('aerie:socket-connected'));
       const unread: Record<string, number> = {};
       for (const t of msg.threads) unread[t.id] = t.unread_count;
       setState({
@@ -380,6 +383,12 @@ function handleMessage(event: MessageEvent): void {
       window.dispatchEvent(new CustomEvent('aerie:story-update', {
         detail: { bookId: msg.bookId },
       }));
+      break;
+
+    // A companion's lane asked for the owner's toys. aerie/toy-remote.ts decides,
+    // and only on a phone that can reach toys; everywhere else it is ignored.
+    case 'toy_command':
+      window.dispatchEvent(new CustomEvent('aerie:toy-command', { detail: msg.command }));
       break;
 
     case 'unread_update':
@@ -1048,12 +1057,19 @@ export function sendUserMessage(
   metadata?: Record<string, unknown>,
   replyToId?: string,
 ): void {
+  heardRed(content, contentType);
   const threadId = getState().activeThreadId;
   if (!threadId) {
     console.warn('Cannot send message: no active thread');
     return;
   }
   send({ type: 'message', threadId, content, contentType, metadata, replyToId });
+}
+
+/** The owner's safeword stops the toys on this phone the moment it is sent, before
+ *  any lane has read it (aerie/toy-remote.ts listens). */
+function heardRed(content: string, contentType: string): void {
+  if (contentType === 'text' && isRedWord(content)) window.dispatchEvent(new CustomEvent('aerie:toys-red'));
 }
 
 /**
@@ -1068,6 +1084,7 @@ export function sendUserMessageToThread(
   metadata?: Record<string, unknown>,
   replyToId?: string,
 ): void {
+  heardRed(content, contentType);
   send({ type: 'message', threadId, content, contentType, metadata, replyToId });
 }
 

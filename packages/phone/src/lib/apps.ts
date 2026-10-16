@@ -4,7 +4,7 @@
 
 import { useCallback } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { MessageSquare, Radar, CloudSun, StickyNote, Gamepad2, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, TreePine, Brain, Paintbrush, Box, FolderOpen, BookOpen, PawPrint, Newspaper, Inbox, Mail, MapPin, LibraryBig, Music, Telescope } from 'lucide-react';
+import { MessageSquare, Radar, CloudSun, StickyNote, Gamepad2, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, TreePine, Brain, Paintbrush, Box, FolderOpen, BookOpen, PawPrint, Newspaper, Inbox, Mail, MapPin, LibraryBig, Music, Telescope, Waves } from 'lucide-react';
 import type { OsScreen } from '../App';
 import { STORY_SHELF_APP_ID, STORY_SHELF_NAME } from './story-shelf';
 import { SPOTIFY_APP_ID } from './spotify';
@@ -38,6 +38,7 @@ export const APPS: AppDef[] = [
   { id: 'fieldnotes', name: 'Field Notes', icon: Telescope, category: 'Companion', kind: 'screen', screen: 'fieldnotes' },
   { id: 'letters', name: 'Letters', icon: Mail, category: 'Companion', kind: 'screen', screen: 'letters' },
   { id: 'thresholds', name: 'Thresholds', icon: MapPin, category: 'Companion', kind: 'screen', screen: 'thresholds' },
+  { id: 'toys', name: 'Toys', icon: Waves, category: 'Companion', kind: 'screen', screen: 'toys' },
   // The Story Shelf: books the companions write and run, and the owner reads.
   { id: STORY_SHELF_APP_ID, name: STORY_SHELF_NAME, icon: LibraryBig, category: 'Companion', kind: 'screen', screen: 'shelf' },
   { id: 'pet', name: 'Familiar', icon: PawPrint, category: 'Fun', kind: 'screen', screen: 'pet' },

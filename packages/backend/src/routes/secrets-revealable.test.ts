@@ -10,7 +10,9 @@ import { isRevealableSecret } from './secrets.js';
 // write-only from a client.
 
 test('the browser-needed secrets are revealable', () => {
-  for (const name of ['elevenlabs_api_key', 'giphy_api_key', 'cortex_mcp_url', 'cortex_auth_token']) {
+  // lovense_developer_token: the phone's toy bridge hands it to Lovense's SDK
+  // on the device, so the app file never has to carry it.
+  for (const name of ['elevenlabs_api_key', 'giphy_api_key', 'cortex_mcp_url', 'cortex_auth_token', 'lovense_developer_token']) {
     assert.ok(isRevealableSecret(name), `${name} should be revealable`);
   }
   // Per-companion voice ids, whatever the slug.

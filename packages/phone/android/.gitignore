@@ -104,3 +104,7 @@ app/src/main/res/xml/config.xml
 app/src/main/assets/
 capacitor-cordova-android-plugins/
 .gradle/
+
+# Lovense's Android SDK is Lovense's software and is not redistributed with the
+# kit. Each house downloads it and drops it in app/libs (see LOVENSE.md).
+app/libs/lovense-*.aar

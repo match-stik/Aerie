@@ -22,6 +22,7 @@ import { JournalApp } from './components/JournalApp';
 import { FieldNotesApp } from './components/FieldNotesApp';
 import { LettersApp } from './components/LettersApp';
 import { ThresholdsApp } from './components/ThresholdsApp';
+import { ToysApp } from './components/ToysApp';
 import { StoryShelfApp } from './components/StoryShelfApp';
 import { SpotifyApp } from './components/SpotifyApp';
 import { StudioApp } from './components/StudioApp';
@@ -128,6 +129,8 @@ import { drawerLookOf } from './lib/drawer-look';
 import { bodyStack, fontsOf, titleStack } from './lib/fonts';
 import { layoutGap, summarizeKeyboardChange, type LayoutFrame, frameTiming, type LongTaskEntry } from './lib/layout-gap';
 import { inlineWallpapers, swapWallpapers } from './lib/wallpaper-files';
+import { startToyRemote } from './aerie/toy-remote';
+import { ToyRemotePill } from './components/ToyRemotePill';
 
 const DEFAULT_THEME: AppTheme = {
   mode: 'dark',
@@ -212,6 +215,7 @@ export type OsScreen =
   | 'fieldnotes'
   | 'letters'
   | 'thresholds'
+  | 'toys'
   | 'shelf'
   | 'spotify'
   | 'studio'
@@ -479,6 +483,9 @@ export default function App() {
   // the point is to stay in the conversation rather than go and read a number
   // off another screen, so this never appears anywhere.
   useEffect(() => startMediaReporter(), []);
+  // The road from a lane to the owner's toys listens from the start, so a stop or a
+  // typed red works on every screen, not only once the Toys page has opened.
+  useEffect(() => { startToyRemote(); }, []);
 
   // Bumped when the Companions app saves a row, so a face, a name or a color
   // set there reaches the chat, home and the cards at once instead of on the
@@ -1769,10 +1776,16 @@ export default function App() {
     if (livePal) {
       const side = theme.mode === 'dark' ? livePal.night : livePal.day;
       root.style.setProperty('--aerie-selected-fill', selectedFill(side.primary, side.secondary, '#000000'));
+      // The theme's two colors on their own, for surfaces that build their
+      // own gradient from them (the Toys page cards).
+      root.style.setProperty('--aerie-theme-a', side.primary);
+      root.style.setProperty('--aerie-theme-b', side.secondary);
     } else {
       const from = fitForWhite(accentSolid);
       root.style.setProperty('--aerie-selected-fill',
         `linear-gradient(135deg, ${from}, color-mix(in srgb, ${from} 78%, #000000))`);
+      root.style.setProperty('--aerie-theme-a', from);
+      root.style.setProperty('--aerie-theme-b', `color-mix(in srgb, ${from} 78%, #000000)`);
     }
     root.style.setProperty('--aerie-surface', panelSolid);
     root.style.setProperty('--aerie-surface-strong', panelSolid);
@@ -1936,6 +1949,10 @@ export default function App() {
           call, after an uncapped one covered the app drawer AND a thread AND
           the composer under it. */}
       <StudioJobTray onOpen={() => setOsState('studio')} inStudio={osState === 'studio'} />
+
+      {/* While the owner has handed the companions the remote, the stop follows
+          them everywhere but the Toys page, which carries its own. */}
+      <ToyRemotePill hidden={osState === 'toys'} />
 
       <AnimatePresence initial={false}>
         {osState === 'locked' && (
@@ -2129,6 +2146,14 @@ export default function App() {
         {osState === 'thresholds' && (
           <ThresholdsApp
             key="thresholds"
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />
+        )}
+        {osState === 'toys' && (
+          <ToysApp
+            key="toys"
             onClose={closeApp}
             themeConfig={activeTheme}
             themeMode={theme.mode}

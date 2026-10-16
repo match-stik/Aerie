@@ -2,6 +2,7 @@
 // WebSocket message protocol — the contract between frontend and backend
 
 import type { Message, Thread, Canvas, PresenceStatus, ThreadSummary, SystemStatus } from './types.js';
+import type { ToyRemoteCommand } from './toy-remote.js';
 
 // --- Command registry (shared between frontend palette + backend dispatch) ---
 
@@ -103,7 +104,11 @@ export type ServerMessage =
   // GET /api/story-shelf, and the open book if it is the one named.
   | { type: 'story_update'; bookId: string | null }
   /** The word beside the dot under the faces, while a bell that has one is running (services/bell-status.ts); null is Home. `companions` names whose cards show it, or is empty for every companion's. */
-  | { type: 'status_word'; word: string | null; companions: string[] };
+  | { type: 'status_word'; word: string | null; companions: string[] }
+  // A companion's lane asked for the owner's toys. Only a phone that can reach toys
+  // acts on it, and only that phone answers (POST /api/toys/ack), so a laptop
+  // with the app open never answers for the owner.
+  | { type: 'toy_command'; command: ToyRemoteCommand };
 
 // --- Message type guards ---
 

@@ -21,6 +21,12 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // One library the Lovense SDK needs (RetrofitUrlManager) is published
+        // only on JitPack, so JitPack is asked for that group and nothing else.
+        maven {
+            url 'https://jitpack.io'
+            content { includeGroup 'com.github.JessYanCoding' }
+        }
     }
 }
 

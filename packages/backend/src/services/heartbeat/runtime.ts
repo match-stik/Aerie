@@ -385,6 +385,25 @@ interface LaneState {
   threadHandedBeforeTurn?: string;
   /** Exact value written this turn, used to make rollback race-safe. */
   threadHandedAdvancedAt?: string;
+  /**
+   * Late replies that came due on a guest's turn. A reply that outran its
+   * window is normally delivered with whatever turn comes next, and when that
+   * turn is a guest's the delivery is the guest's Discord channel: the owner's
+   * answer, posted word for word in somebody else's room (found in an outside
+   * audit).
+   * So a guest turn sets them aside here and the next turn that is not a
+   * guest's delivers them first. In memory only, like the rest of this state.
+   */
+  heldLate?: Array<{ content: string; thinking: string | null; payload: any }>;
+  /**
+   * A guest's turn gets neither the recycle seed (the owner's recent memories
+   * and the last thirty messages of the owner's thread) nor the catch-up (the
+   * companions' replies to the owner since the lane last spoke). Both are owed
+   * to the owner's next turn instead, so a room that met a guest first is not
+   * left unprimed and a companion's reply is not skipped over. These hold the debt across the guest turn.
+   */
+  owesRecycleSeed?: boolean;
+  catchUpSince?: string;
 }
 const laneStates = new Map<string, LaneState>();
 
@@ -1404,7 +1423,14 @@ export class InteractiveCliRuntime implements AgentRuntime {
       state.consumedOffset = Math.min(state.consumedOffset, session.outboxSize());
       state.activityOffset = Math.min(state.activityOffset, session.activitySize());
     }
-    const contextBlock = fresh ? await this.buildRecycleContext() : '';
+    const guestTurn = this.options.audience?.kind === 'guest';
+    let contextBlock = '';
+    if (guestTurn) {
+      if (fresh) state.owesRecycleSeed = true;
+    } else if (fresh || state.owesRecycleSeed) {
+      state.owesRecycleSeed = false;
+      contextBlock = await this.buildRecycleContext();
+    }
     // A wake into a warm-but-absent lane: hand it what the room said while it
     // was quiet. A live turn gets the same, bounded at the owner's arriving
     // message — it used to get nothing, so a wake that rang in ANOTHER lane
@@ -1417,9 +1443,14 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // stale by construction. Handing it the bounded window may duplicate what
     // it already holds; handing it nothing is the hole. Same one-way doctrine
     // as the handover watermark: too much, never nothing.
-    const catchUpBlock = fresh
-      ? ''
-      : this.buildCatchUpBlock(state.lastTurnAt, input.isAutonomous ? undefined : { prompt: input.prompt }, state.spokenRecently);
+    let catchUpBlock = '';
+    if (guestTurn) {
+      if (!fresh && state.catchUpSince === undefined) state.catchUpSince = state.lastTurnAt ?? '';
+    } else {
+      const since = state.catchUpSince !== undefined ? (state.catchUpSince || undefined) : state.lastTurnAt;
+      state.catchUpSince = undefined;
+      if (!fresh) catchUpBlock = this.buildCatchUpBlock(since, input.isAutonomous ? undefined : { prompt: input.prompt }, state.spokenRecently);
+    }
 
     // Runs on every turn, autonomous or not — the seam it closes is exactly
     // the one a wake opens, and a live turn is the next chance to notice.
@@ -1485,6 +1516,13 @@ export class InteractiveCliRuntime implements AgentRuntime {
       if (late.length > 0 && matchedTurnIds.size === 0 && state.unresolved.length > 0) {
         state.unresolved.shift();
       }
+      if (this.options.audience?.kind === 'guest') {
+        if (late.length > 0) state.heldLate = [...(state.heldLate || []), ...late];
+        late.length = 0;
+      } else if (state.heldLate?.length) {
+        late.unshift(...state.heldLate);
+        state.heldLate = undefined;
+      }
       if (late.length > 0) {
         const note = `[Late repl${late.length === 1 ? 'y' : 'ies'} from an earlier turn that outran its window — delivered now, ahead of the current reply.]`;
         yield { type: 'thinking_delta', text: note };
@@ -1528,7 +1566,6 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // audience (turn-audience.ts). A guest's turn gets no recall at all: the
     // guest's own words would choose which memories surfaced, into a room the
     // guest reads.
-    const guestTurn = this.options.audience?.kind === 'guest';
     const whisperBlock = guestTurn ? '' : await ambientRecall(input.prompt, key, fresh, { archive: !this.options.audience });
 
     // The Archivist's noticings, handed over rather than written onto the walls.
@@ -1823,6 +1860,11 @@ export class InteractiveCliRuntime implements AgentRuntime {
             // A late deliberate silence pays the unresolved ledger without
             // becoming text or donating its thought card to the next turn.
             if (silenceSentinel) continue;
+            // Held for the owner's next turn rather than posted in a guest's room.
+            if (this.options.audience?.kind === 'guest') {
+              state.heldLate = [...(state.heldLate || []), { content, thinking: thinking || null, payload: parsed }];
+              continue;
+            }
             if (thinking) {
               yield { type: 'thinking_delta', text: thinking };
               yield { type: 'thinking_end', fullText: thinking };

@@ -16,6 +16,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.Plugin;
 import com.getcapacitor.WebViewListener;
 
 public class MainActivity extends BridgeActivity {
@@ -31,6 +32,13 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(MediaSessionPlugin.class);
         registerPlugin(SystemChromePlugin.class);
         registerPlugin(SpotifyRemotePlugin.class);
+        // The toy bridge exists only in a build made with Lovense's SDK in
+        // app/libs (see app/build.gradle), so it is looked up by name.
+        try {
+            registerPlugin(Class.forName("com.aerie.phone.LovenseToysPlugin").asSubclass(Plugin.class));
+        } catch (ClassNotFoundException ignored) {
+            // Built without the SDK: the Toys page reports no toy bridge.
+        }
         AerieCrashReporter.install(this);
         super.onCreate(savedInstanceState);
         guardRenderProcess();

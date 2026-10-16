@@ -143,6 +143,13 @@ Every router module under `packages/backend/src/routes`:
 - `studio.ts` — Studio backends/settings, drawers/folders, reference images, gallery metadata/files, generation, enhancement, and job status; mounted by `api.ts`.
 - `thresholds.ts` — place CRUD, proximity checks, visits, and place history.
 - `treehouse.ts` — Treehouse thread/messages and companion posting.
+- `toys.ts` — the owner's phone's side of the road from a lane to the toys:
+  `POST /api/toys/state` (what the phone says about its toys, whether the
+  remote is handed over, the screen, the orbs) and `POST /api/toys/ack` (its
+  answer to each command). A lane asks on the loopback door, `GET`/`POST
+  /api/internal/toys`; the relay is `services/toy-remote.ts`, the command
+  goes out as `toy_command`, and every rule that protects the owner is
+  enforced on the phone in `packages/phone/src/aerie/toy-remote.ts`.
 - `usage.ts` — usage events, aggregates, and tool usage. Subscription
   allowances are a separate read (`services/subscription-usage.ts`, served at
   `/api/usage/claude` and `/api/usage/codex`). An interactive CLI lane reports

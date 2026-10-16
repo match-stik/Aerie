@@ -3,7 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clientErrorLine } from './client-errors.js';
+import { REPORT_CEILINGS, clientErrorLine, createReportCeiling } from './client-errors.js';
 
 test('a crash report is one bounded line with what broke and where', () => {
   const line = clientErrorLine(
@@ -25,4 +25,28 @@ test('a report with nothing to say is refused', () => {
   assert.equal(clientErrorLine({ message: '   ' }), null);
   assert.equal(clientErrorLine(null), null);
   assert.equal(clientErrorLine({ message: 42 }), null);
+});
+
+test('the connection log has a ceiling of its own, and nothing else is held back', () => {
+  let clock = 0;
+  const admit = createReportCeiling(REPORT_CEILINGS, () => clock);
+  const verdicts = Array.from({ length: 35 }, () => admit('toy-connect'));
+  assert.equal(verdicts.filter((v) => v.write).length, 30);
+  assert.equal(verdicts.filter((v) => !v.write).length, 5);
+  for (let i = 0; i < 100; i++) assert.equal(admit('keyboard-close').write, true, 'other recorders are written as before');
+  assert.equal(admit('/#chat').write, true);
+  assert.equal(admit(undefined).write, true);
+  assert.equal(admit('constructor').write, true, 'a kind is looked up as a name, never off the object prototype');
+  clock += 10 * 60_000;
+  assert.deepEqual(admit('toy-connect'), { write: true, heldBack: 5 });
+  assert.deepEqual(admit('toy-connect'), { write: true, heldBack: 0 });
+});
+
+test('a line says how many of its kind were held back before it', () => {
+  const line = clientErrorLine({ where: 'toy-connect', message: '{"kind":"attempt"}' }, new Date('2026-10-21T13:33:00.000Z'), 5);
+  assert.ok(line);
+  assert.equal(JSON.parse(line).heldBack, 5);
+  const plain = clientErrorLine({ where: 'toy-connect', message: 'x' });
+  assert.ok(plain);
+  assert.equal('heldBack' in JSON.parse(plain), false);
 });

@@ -25,6 +25,8 @@ const REVEALABLE_SECRETS = new Set([
   'giphy_api_key',
   'cortex_mcp_url',
   'cortex_auth_token',
+  // The phone's toy bridge hands this to Lovense's SDK on the device.
+  'lovense_developer_token',
 ]);
 export function isRevealableSecret(name: string): boolean {
   return REVEALABLE_SECRETS.has(name) || name.startsWith('elevenlabs_voice_id:');

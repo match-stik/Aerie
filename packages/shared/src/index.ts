@@ -6,3 +6,4 @@ export * from './note-roles.js';
 export * from './press-tape.js';
 export * from './story-shelf.js';
 export * from './spotify.js';
+export * from './toy-remote.js';

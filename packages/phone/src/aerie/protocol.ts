@@ -1,7 +1,10 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Aerie protocol types — mirrors packages/shared/src/{types,protocol}.ts.
 // Copied (not imported) so the phone package stays build-independent of the
-// shared workspace. Keep in sync with the backend contract.
+// shared workspace. Keep in sync with the backend contract. The toy road's
+// command is the one type taken from shared rather than copied: the phone's
+// toy-remote.ts already takes its shapes from there, so a copy could only drift.
+import type { ToyRemoteCommand } from '@aerie/shared';
 
 export type Platform = 'web' | 'discord' | 'telegram' | 'api';
 export type PresenceStatus = 'active' | 'dormant' | 'waking' | 'offline';
@@ -200,4 +203,5 @@ export type ServerMessage =
   | { type: 'card_table_update'; tableId: string }
   | { type: 'story_update'; bookId: string | null }
   /** The word beside the dot under the faces while a bell that has one is running; null is Home. `companions` names whose cards show it, or is empty for every companion's. */
-  | { type: 'status_word'; word: string | null; companions: string[] };
+  | { type: 'status_word'; word: string | null; companions: string[] }
+  | { type: 'toy_command'; command: ToyRemoteCommand };

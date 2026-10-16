@@ -308,6 +308,8 @@ app.use('/api/field-notes', fieldNotesRoutes);
 // Crash reports from the phone's error boundary, one bounded line each.
 import clientErrorRoutes from './routes/client-errors.js';
 app.use('/api/client-errors', clientErrorRoutes);
+import toyRoutes from './routes/toys.js';
+app.use('/api/toys', toyRoutes);
 
 import thresholdRoutes from './routes/thresholds.js';
 app.use('/api/thresholds', thresholdRoutes);
