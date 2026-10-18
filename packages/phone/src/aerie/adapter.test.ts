@@ -91,3 +91,10 @@ test('a film becomes a player, a picture stays a picture, a zip stays a file', (
   assert.match(m.content, /\[IMG\]:\/api\/files\/p/);
   assert.match(m.content, /\[FILE:willow-in-paper\.zip\]:\/api\/files\/z/);
 });
+
+test("a timer's reminder sits in the middle like a system line, and a companion's reply does not", () => {
+  const reminder = toPhoneMessage(row({ role: 'companion', platform: 'web', content: '**Reminder: done**', metadata: { source: 'timer', timerId: 't' } as never }));
+  assert.equal(reminder.isSystem, true);
+  const reply = toPhoneMessage(row({ role: 'companion', platform: 'web', content: 'hi', metadata: null }));
+  assert.equal(reply.isSystem, false);
+});

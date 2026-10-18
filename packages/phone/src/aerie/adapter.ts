@@ -90,7 +90,9 @@ export function toPhoneMessage(km: AerieMessage): PhoneMessage {
     content: `${synthesizeContent(km)} ${attachmentTail}`.trim(),
     attachmentTail: attachmentTail || undefined,
     read: km.read_at ? 1 : 0,
-    isSystem: km.role === 'system',
+    // A timer's reminder is the house speaking, not a companion, so it sits in
+    // the middle like any other system line.
+    isSystem: km.role === 'system' || (km.metadata as { source?: unknown } | null)?.source === 'timer',
     type,
     reactions: reactionsToEmojiList(km.metadata),
     status: isOwnMessage ? 'read' : km.read_at ? 'read' : 'delivered',

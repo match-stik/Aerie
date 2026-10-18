@@ -245,7 +245,7 @@ test('the lane is launched with the gate in front of every tool call', () => {
   try {
     const settings = JSON.parse(readFileSync(join(lane, '.claude', 'settings.json'), 'utf8'));
     const commands = settings.hooks.PreToolUse.flatMap((m: { hooks: Array<{ command: string }> }) => m.hooks.map((h) => h.command));
-    assert.ok(commands.includes('node hooks/gate.cjs'));
+    assert.ok(commands.includes(`node "${join(lane, 'hooks', 'gate.cjs')}"`));
     assert.ok(existsSync(join(lane, 'hooks', 'gate.cjs')));
     assert.ok(existsSync(join(lane, 'hooks', 'reply.cjs')));
   } finally { rmSync(root, { recursive: true, force: true }); }

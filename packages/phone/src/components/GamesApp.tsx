@@ -5,6 +5,7 @@ import { ChevronLeft, Gamepad2, RotateCcw, BrainCircuit, Zap, Cpu, Wifi, Battery
 import { AppShell } from './AppShell';
 import { ThemeConfig, contrastTextColor } from '../lib/theme';
 import { cn } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 import { SystemSweeper } from './games/SystemSweeper';
 import { PasscodeGame } from './games/PasscodeGame';
 import { PingGame } from './games/PingGame';
@@ -303,15 +304,17 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
   const extractColor = (twClass: string) => {
     if (twClass.startsWith('#')) return twClass;
     
-    const varMatch = twClass.match(/var\(--custom-(.*?)\)/);
+    // A custom theme and every palette name their colors as CSS variables,
+    // bare (var(--pal-primary)) or inside a Tailwind class
+    // (bg-[var(--pal-surface)]). Read the live value: the games mix and pastel
+    // these, and a palette class that fell through to the white fallback below
+    // is what turned every game white when the palettes came in.
+    const varMatch = twClass.match(/var\((--[A-Za-z0-9-]+)\)/);
     if (varMatch) {
-      const varName = `--custom-${varMatch[1]}`;
-      const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+      const val = getComputedStyle(document.documentElement).getPropertyValue(varMatch[1]).trim();
       if (val) return val;
-      return `var(${varName})`;
+      return `var(${varMatch[1]})`;
     }
-    
-    if (twClass.startsWith('var(')) return twClass;
     
     const match = twClass.match(/\[(#[0-9A-Fa-f]{6})\]/);
     if (match) return match[1];
@@ -395,8 +398,19 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
     return `#${toHex(rNew)}${toHex(gNew)}${toHex(bNew)}`;
   };
 
-  const gameAccent = toPastel(extractColor(colors.accent));
   const fleetAccent = extractColor(colors.accent);
+  // One accent for every game card, halfway between the theme's own color and
+  // the old pastel: on a dark palette the pastel was harsh on the eyes and the
+  // raw color dim. The Fleet Room and Card Room keep their own colors
+  // inside; only their cards on this menu take the shared one.
+  const mixHex = (a: string, b: string, t: number) => {
+    const pa = /^#([0-9a-f]{6})$/i.exec(a.trim()), pb = /^#([0-9a-f]{6})$/i.exec(b.trim());
+    if (!pa || !pb) return b;
+    const ca = [0, 2, 4].map((i) => parseInt(pa[1].slice(i, i + 2), 16));
+    const cb = [0, 2, 4].map((i) => parseInt(pb[1].slice(i, i + 2), 16));
+    return '#' + ca.map((v, i) => Math.round(v + (cb[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  };
+  const gameAccent = mixHex(fleetAccent, toPastel(fleetAccent), 0.5);
   const rawColors = {
     pageBg: extractColor(colors.pageBg),
     panelBg: extractColor(colors.panelBg),
@@ -445,6 +459,9 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
   }, [activeGame]);
 
   const handleBack = () => (activeGame === 'menu' ? onClose() : setActiveGame('menu'));
+  // The phone's back gesture goes to this menu from inside a game, the same
+  // place the header's arrow goes, rather than out to the app drawer.
+  useBackHandler(activeGame !== 'menu', () => setActiveGame('menu'));
 
   return (
     <AppShell
@@ -477,16 +494,16 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                     <div
                       className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
                       style={{
-                        backgroundColor: `color-mix(in srgb, ${fleetAccent} 16%, var(--aerie-surface))`,
-                        borderColor: `color-mix(in srgb, ${fleetAccent} 30%, var(--custom-panelBorder, var(--aerie-border)))`,
-                        color: fleetAccent,
+                        backgroundColor: `color-mix(in srgb, ${gameAccent} 16%, var(--aerie-surface))`,
+                        borderColor: `color-mix(in srgb, ${gameAccent} 30%, var(--custom-panelBorder, var(--aerie-border)))`,
+                        color: gameAccent,
                       }}
                     >
                       <Anchor size={24} />
                     </div>
                     <div>
                       <div className="text-[9px] font-semibold uppercase tracking-[.24em] opacity-60">House waters</div>
-                      <h3 className="mt-1 font-serif text-xl" style={{ color: fleetAccent }}>The Fleet Room</h3>
+                      <h3 className="mt-1 font-serif text-xl" style={{ color: gameAccent }}>The Fleet Room</h3>
                       <p className="mt-1 text-xs" style={{ color: 'var(--aerie-text)' }}>Sealed boards, saved battles, permanent trash talk.</p>
                     </div>
                   </div>
@@ -503,16 +520,16 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                     <div
                       className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
                       style={{
-                        backgroundColor: `color-mix(in srgb, ${fleetAccent} 16%, var(--aerie-surface))`,
-                        borderColor: `color-mix(in srgb, ${fleetAccent} 30%, var(--custom-panelBorder, var(--aerie-border)))`,
-                        color: fleetAccent,
+                        backgroundColor: `color-mix(in srgb, ${gameAccent} 16%, var(--aerie-surface))`,
+                        borderColor: `color-mix(in srgb, ${gameAccent} 30%, var(--custom-panelBorder, var(--aerie-border)))`,
+                        color: gameAccent,
                       }}
                     >
                       <Spade size={24} />
                     </div>
                     <div>
                       <div className="text-[9px] font-semibold uppercase tracking-[.24em] opacity-60">House deck</div>
-                      <h3 className="mt-1 font-serif text-xl" style={{ color: fleetAccent }}>The Card Room</h3>
+                      <h3 className="mt-1 font-serif text-xl" style={{ color: gameAccent }}>The Card Room</h3>
                       <p className="mt-1 text-xs" style={{ color: 'var(--aerie-text)' }}>Fifty-two cards. Four seats. One table.</p>
                     </div>
                   </div>

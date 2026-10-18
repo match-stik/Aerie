@@ -105,6 +105,8 @@ export interface ConversationMessage {
   role: 'user' | 'companion';
   content: string;
   createdAt: string;
+  /** The stored message's id, where the loader has it: what a read check is stamped on. */
+  id?: string;
   /**
    * Display name of the companion who actually wrote this message. A shared
    * thread's history holds every voice, so a recycle seed that labels all of

@@ -360,9 +360,31 @@ select optgroup {
 .aerie-theme-user-bubble,
 .aerie-theme-comp-bubble {
   position: relative;
+  /* The bubble's color reaches under its own thin edge as one sweep. By
+     default it was sized to the box inside the edge and repeated, so under
+     the edge it wrapped round to the far side's color and the edge changed
+     shade at each corner, which is what showed as a seam where a swoop meets
+     the bubble. Important because each theme's background shorthand below would
+     quietly put the default back. */
+  background-origin: border-box !important;
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #ffffff 15%, transparent),
     inset 0 -1px 0 color-mix(in srgb, #000000 12%, transparent);
+}
+
+/* A bubble drawn as one shape with its swoop (components/BubbleSkin.tsx)
+   stops painting itself: the skin behind it carries its color, its wash, its
+   edge line and its soft drop shadow round the whole outline, curl included.
+   The inner light lines are gone: they would stop short at the curl. The
+   box's own shadow went too, since it fell across the curl and left it a
+   hair darker than the color at the corner. */
+.aerie-bubble-skinned {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.aerie-bubble-skinned::before {
+  content: none !important;
 }
 
 .aerie-theme-user-bubble::before,

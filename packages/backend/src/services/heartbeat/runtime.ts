@@ -1107,6 +1107,11 @@ export class InteractiveCliRuntime implements AgentRuntime {
       }
     } catch { /* the handover below is the point; the log is the backup */ }
 
+    // Each of these is in a session's hands now, so it gets its read checks on
+    // the owner's screen like a message a turn starts on; without this, a
+    // message handed over through here sat on one check forever.
+    ownMessagesRead(mine.map((m) => m.id));
+
     return [
       '',
       missedInboundBanner(mine.length, afterRestart),

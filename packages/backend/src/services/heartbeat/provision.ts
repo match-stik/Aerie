@@ -17,7 +17,7 @@
  */
 
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { createHash } from 'crypto';
 import { loadConfig } from '../../config.js';
 
@@ -606,81 +606,156 @@ fs.appendFileSync(OUTBOX, JSON.stringify(line) + '\n', 'utf8');
 process.stdout.write('ok\n');
 `;
 
-const SETTINGS_JSON = JSON.stringify(
-  {
-    hooks: {
-      Stop: [
-        {
-          hooks: [
-            {
-              type: 'command',
-              command: 'node hooks/heartbeat.cjs',
-              timeout: 3600,
-            },
-          ],
-        },
-      ],
-      PreToolUse: [
-        {
-          hooks: [
-            {
-              type: 'command',
-              command: 'node hooks/gate.cjs',
-              timeout: 10,
-            },
-          ],
-        },
-        {
-          hooks: [
-            {
-              type: 'command',
-              command: 'node hooks/activity.cjs pre',
-              timeout: 10,
-            },
-          ],
-        },
-      ],
-      PostToolUse: [
-        {
-          hooks: [
-            {
-              type: 'command',
-              command: 'node hooks/activity.cjs post',
-              timeout: 10,
-            },
-          ],
-        },
-      ],
-      // A compaction marked as work in hand from its start to its end, so
-      // neither the reply window nor the watchdog takes it for a hang. See
-      // COMPACT in activity.cjs.
-      PreCompact: [
-        {
-          hooks: [
-            {
-              type: 'command',
-              command: 'node hooks/activity.cjs pre compact',
-              timeout: 10,
-            },
-          ],
-        },
-      ],
-      PostCompact: [
-        {
-          hooks: [
-            {
-              type: 'command',
-              command: 'node hooks/activity.cjs post compact',
-              timeout: 10,
-            },
-          ],
-        },
-      ],
+/**
+ * The lane's hook wiring. Every command names its script by ABSOLUTE path:
+ * Claude Code runs a hook from the shell's current directory, and a command
+ * that moved into a subfolder (cd io/images) left `node hooks/gate.cjs`
+ * pointing at io/images/hooks/gate.cjs, which does not exist. A hook that cannot even be found
+ * exits 1, and Claude Code lets the call THROUGH on any exit but 2, so the
+ * guest gate failed open for as long as the shell stood there. The scripts
+ * themselves already find their files from their own location.
+ */
+function settingsJson(dir: string): string {
+  const hook = (name: string, args = ''): string =>
+    `node "${join(resolve(dir), 'hooks', name)}"${args ? ' ' + args : ''}`;
+  return JSON.stringify(
+    {
+      hooks: {
+        Stop: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: hook('heartbeat.cjs'),
+                timeout: 3600,
+              },
+            ],
+          },
+        ],
+        PreToolUse: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: hook('gate.cjs'),
+                timeout: 10,
+              },
+            ],
+          },
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: hook('activity.cjs', 'pre'),
+                timeout: 10,
+              },
+            ],
+          },
+        ],
+        PostToolUse: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: hook('activity.cjs', 'post'),
+                timeout: 10,
+              },
+            ],
+          },
+        ],
+        // A compaction marked as work in hand from its start to its end, so
+        // neither the reply window nor the watchdog takes it for a hang. See
+        // COMPACT in activity.cjs.
+        PreCompact: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: hook('activity.cjs', 'pre compact'),
+                timeout: 10,
+              },
+            ],
+          },
+        ],
+        PostCompact: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: hook('activity.cjs', 'post compact'),
+                timeout: 10,
+              },
+            ],
+          },
+        ],
+        // After a squash, a line to the room itself. SessionStart with source
+        // "compact" is the slot Claude Code reads back into the room after a
+        // compaction; PostCompact's output only ever reaches a screen.
+        SessionStart: [
+          {
+            matcher: 'compact',
+            hooks: [
+              {
+                type: 'command',
+                command: hook('compacted.cjs'),
+                timeout: 10,
+              },
+            ],
+          },
+        ],
+      },
     },
-  },
-  null,
-  2,
-);
+    null,
+    2,
+  );
+}
+
+/**
+ * hooks/compacted.cjs, the SessionStart "compact" hook: a short note to the
+ * room that it was just squashed, worded for the companion and not announced to
+ * the owner (who already sees the banner the PostCompact hook raises), plus the
+ * memory blocks that moved while the room was open, which a compaction would otherwise never
+ * hand back. It must never break a session: every failure exits 0, and the
+ * note still goes out when the house cannot be reached.
+ */
+function compactedHookSource(internalBase: string): string {
+  return String.raw`#!/usr/bin/env node
+// compacted.cjs — after a squash, a line to the room itself. Managed by Aerie — edits
+// are overwritten. See compactedHookSource in services/heartbeat/provision.ts.
+'use strict';
+const fs = require('fs');
+const path = require('path');
+
+const LANE = path.basename(path.resolve(__dirname, '..'));
+const BASE = process.env.AERIE_INTERNAL_BASE || ${JSON.stringify(internalBase)};
+
+function note(stamp) {
+  return '[We just squashed (' + stamp + '). The summary above is this room, folded down; every word ' +
+    'is still in the transcript on disk and on the Compactions page. The owner saw it happen on their screen, ' +
+    'so there is nothing to announce. Pick up where we were, and do not answer anything twice.]';
+}
+
+async function main() {
+  try { fs.readFileSync(0, 'utf8'); } catch {}
+  let refresh = '';
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 3000);
+    const res = await fetch(BASE + '/api/internal/compaction-refresh?lane=' + encodeURIComponent(LANE), { signal: ctrl.signal });
+    clearTimeout(timer);
+    const body = await res.json().catch(() => ({}));
+    if (body && typeof body.refresh === 'string') refresh = body.refresh;
+  } catch {}
+  const context = refresh ? note(new Date().toISOString()) + '\n\n' + refresh : note(new Date().toISOString());
+  process.stdout.write(JSON.stringify({
+    suppressOutput: true,
+    hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: context },
+  }));
+}
+
+main().catch(() => {}).finally(() => process.exit(0));
+`;
+}
 
 /**
  * The heartbeat operation contract appended to the companion identity.
@@ -1000,7 +1075,9 @@ export function provisionSessionDir(dir: string, identityContent: string): Provi
   writeFileSync(join(dir, 'hooks', 'activity.cjs'), ACTIVITY_HOOK_SOURCE, 'utf8');
   writeFileSync(join(dir, 'hooks', 'gate.cjs'), GATE_HOOK_SOURCE, 'utf8');
   writeFileSync(join(dir, 'hooks', 'reply.cjs'), REPLY_HOOK_SOURCE, 'utf8');
-  writeFileSync(join(dir, '.claude', 'settings.json'), SETTINGS_JSON, 'utf8');
+  const internal = loadConfig().server;
+  writeFileSync(join(dir, 'hooks', 'compacted.cjs'), compactedHookSource(`http://127.0.0.1:${internal.internal_port}`), 'utf8');
+  writeFileSync(join(dir, '.claude', 'settings.json'), settingsJson(dir), 'utf8');
 
   const claudeMd = (identityContent || '# Companion').trimEnd() + heartbeatOperationSection();
   const claudeMdPath = join(dir, 'CLAUDE.md');

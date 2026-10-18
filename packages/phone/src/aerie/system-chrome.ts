@@ -8,6 +8,7 @@ import { opaqueHex } from '../lib/status-bar-color';
 interface SystemChromeBridge {
   setStatusBar(options: { color: string }): Promise<void>;
   setNavigationBar(options: { color: string }): Promise<void>;
+  setWindowBackground(options: { color: string }): Promise<void>;
 }
 
 const SystemChrome = registerPlugin<SystemChromeBridge>('SystemChrome');
@@ -29,5 +30,12 @@ export async function paintSystemBars(color: string): Promise<void> {
     await SystemChrome.setNavigationBar({ color: hex });
   } catch {
     // An APK older than 1.38, which could only reach the top.
+  }
+  // The window behind the page, the same color as the strip under it, so the
+  // moment between the keyboard closing and the page repainting shows nothing.
+  try {
+    await SystemChrome.setWindowBackground({ color: hex });
+  } catch {
+    // An APK built before this method existed.
   }
 }

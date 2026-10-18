@@ -1,13 +1,13 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bubbleCorners, bubbleLookOf, contrastRatio, nameColor } from './bubble-look.js';
+import { DEFAULT_LOOK, bubbleCorners, bubbleLookOf, contrastRatio, nameColor } from './bubble-look.js';
 
 test('the bubbles look as they do today until a switch is flipped', () => {
-  assert.deepEqual(bubbleLookOf({}), { faces: true, names: false, edges: false, quietActions: false, myName: false, tailMine: 'top', tailOurs: 'top', rings: 'house' });
+  assert.deepEqual(bubbleLookOf({}), { faces: true, names: false, edges: false, quietActions: false, myName: false, tailMine: 'top', tailOurs: 'top', tailShape: 'point', rings: 'house' });
   assert.deepEqual(
     bubbleLookOf({ bubbleFaces: false, bubbleNames: true, bubbleEdges: true, bubbleQuietActions: true, bubbleMyName: true, bubbleTailMine: 'bottom', bubbleTailOurs: 'sideways', bubbleRings: 'theme' }),
-    { faces: false, names: true, edges: true, quietActions: true, myName: true, tailMine: 'bottom', tailOurs: 'top', rings: 'theme' },
+    { faces: false, names: true, edges: true, quietActions: true, myName: true, tailMine: 'bottom', tailOurs: 'top', tailShape: 'point', rings: 'theme' },
   );
   assert.equal(bubbleLookOf({ bubbleRings: 'plaid' }).rings, 'house');
 });
@@ -43,4 +43,11 @@ test('a drawn bubble always names all four corners, so moving its tail cannot le
   assert.equal(bubbleCorners('mine', 'top').borderTopRightRadius, '0');
   assert.equal(bubbleCorners('mine', 'bottom').borderBottomRightRadius, '0');
   assert.equal(bubbleCorners('ours', 'bottom').borderTopLeftRadius, 'var(--shape-bubble)');
+});
+
+test('the tail shape is the point unless the swoop is picked', () => {
+  assert.equal(bubbleLookOf({}).tailShape, 'point');
+  assert.equal(bubbleLookOf({ bubbleTailShape: 'swoop' }).tailShape, 'swoop');
+  assert.equal(bubbleLookOf({ bubbleTailShape: 'curly' }).tailShape, 'point');
+  assert.equal(DEFAULT_LOOK.tailShape, 'point');
 });

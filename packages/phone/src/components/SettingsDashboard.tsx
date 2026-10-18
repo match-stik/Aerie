@@ -1,5 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useBackHandler } from '../lib/use-back-handler';
 import {
   X,
   Moon,
@@ -41,6 +42,7 @@ import { Toggle } from "./Toggle";
 import { LockPreview } from "./LockClock";
 import { HOME_WIDGETS, homeWidgetsOf, toggleWidget } from "../lib/home-widgets";
 import { bubbleCorners, bubbleLookOf, nameColor } from "../lib/bubble-look";
+import { BubbleSkin, SKINNED } from "./BubbleSkin";
 import { drawerIconPx, drawerLookOf, drawerTileStyle } from "../lib/drawer-look";
 import { BODY_FONTS, FONT_SCALE_MAX, FONT_SCALE_MIN, TITLE_FONTS, bodyStack, fontsOf, titleStack } from "../lib/fonts";
 import { AppLabel } from "./AppLabel";
@@ -89,6 +91,9 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  // The Bubbles preview's two bubbles, for the swoop drawn beside them.
+  const oursPreviewRef = useRef<HTMLSpanElement>(null);
+  const minePreviewRef = useRef<HTMLSpanElement>(null);
   const activeTheme = THEMES[theme.id] || THEMES["monochrome"];
   const colors = activeTheme[theme.mode];
 
@@ -122,6 +127,9 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<"appearance" | "data">("appearance");
   // Personalize: four doors instead of one long scroll. null is the tile page.
   const [pane, setPane] = useState<null | "theme" | "look" | "home" | "you" | "lock">(null);
+  // The back gesture inside a door goes to the doors, like the card at the top,
+  // rather than out to the home screen.
+  useBackHandler(pane !== null, () => setPane(null));
   // Which lock screen corner the shortcut picker is setting: 0 left, 1 right.
   const [lockCorner, setLockCorner] = useState<0 | 1>(0);
   // The dock picker names a room the way the drawer does, so an app a house
@@ -573,11 +581,14 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                 </div>
               )}
               {pane !== null && (
+                // A card that says where it goes, like everything else here;
+                // a bare "< Personalize" didn't say.
                 <button
                   onClick={() => setPane(null)}
-                  className={cn("flex items-center gap-1 -mt-2 text-xs font-bold uppercase tracking-widest", colors.accentText)}
+                  className={cn("w-full flex items-center gap-2 p-3 rounded-2xl border text-left", colors.panelBg, colors.panelBorder, colors.textMain)}
                 >
-                  <ChevronLeft size={16} /> Personalize
+                  <ChevronLeft size={18} className={colors.accentText} />
+                  <span className="text-sm font-semibold">Back to Personalize</span>
                 </button>
               )}
               {pane === 'theme' && (<>
@@ -1268,6 +1279,15 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                           ))}
                         </div>
                       ))}
+                      {/* The tail's shape on both sides: the point, or a swoop curling out of that corner. */}
+                      <div className="flex items-center gap-2">
+                        <span className={cn("w-20 shrink-0 text-[11px] font-bold", colors.textMain)}>Tail shape</span>
+                        {(["point", "swoop"] as const).map((shape) => (
+                          <button key={shape} onClick={() => onThemeChange({ bubbleTailShape: shape })} className={cn("flex-1", tailChip(look.tailShape === shape))} style={tailStyle(look.tailShape === shape)}>
+                            {shape === "point" ? "Point" : "Swoop"}
+                          </button>
+                        ))}
+                      </div>
                       {/* The rings round the faces: as set in the house, or the theme's. */}
                       <div className="flex items-center gap-2">
                         <span className={cn("w-20 shrink-0 text-[11px] font-bold", colors.textMain)}>Rings</span>
@@ -1286,15 +1306,20 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                         {look.names && look.tailOurs === "top" && (
                           <span className="mb-1 ml-0.5 text-[10px] font-semibold uppercase" style={{ letterSpacing: "0.16em", color: sampleName }}>{SAMPLE_COMPANION.name}</span>
                         )}
-                        <span className="relative">
+                        {/* Never narrower than the line under it, as the chat draws it. */}
+                        <span className="relative self-stretch">
                           {look.faces && (
                             <span
                               className={cn("absolute -left-[44px] h-9 w-9 rounded-full border-2 flex items-center justify-center text-sm", look.tailOurs === "bottom" ? "bottom-0" : "top-0.5", look.rings === "theme" && "aerie-theme-ring")}
                               style={look.rings === "theme" ? undefined : { borderColor: SAMPLE_COMPANION.color, background: "rgba(127,127,127,0.15)" }}
                             >{SAMPLE_COMPANION.name.charAt(0)}</span>
                           )}
+                          {look.tailShape === "swoop" && (
+                            <BubbleSkin bubbleRef={oursPreviewRef} right={false} top={look.tailOurs === "top"} paintClass={colors.compBubbleBg} />
+                          )}
                           <span
-                            className={cn("aerie-message-bubble block px-3.5 py-2.5 border text-[13px]", colors.compBubbleBg, colors.compBubbleText, colors.panelBorder)}
+                            ref={oursPreviewRef}
+                            className={cn("aerie-message-bubble block px-3.5 py-2.5 border text-[13px]", colors.compBubbleBg, colors.compBubbleText, colors.panelBorder, look.tailShape === "swoop" && SKINNED)}
                             style={{ ...bubbleCorners("ours", look.tailOurs), ...(look.edges ? { borderColor: `color-mix(in srgb, ${sampleName} 45%, transparent)` } : {}) }}
                             data-quiet-actions={look.quietActions ? "true" : undefined}
                           >
@@ -1317,7 +1342,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                         {look.myName && look.tailMine === "top" && (
                           <span className="mb-1 mr-0.5 text-right break-words text-[10px] font-semibold uppercase" style={{ letterSpacing: "0.16em", color: mine }}>{ownerName}</span>
                         )}
-                        <span className="relative">
+                        <span className="relative self-stretch">
                           {look.faces && (() => {
                             const themed = look.rings === "theme";
                             const pin = cn("absolute -right-[44px] h-9 w-9 rounded-full border-2", look.tailMine === "bottom" ? "bottom-0" : "top-0.5", themed && "aerie-theme-ring");
@@ -1325,10 +1350,15 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                               ? <img src={appSettings.userAvatar} alt="" className={cn(pin, "object-cover")} style={themed ? undefined : { borderColor: ring }} />
                               : <span className={pin} style={themed ? undefined : { borderColor: ring, background: "rgba(127,127,127,0.15)" }} />;
                           })()}
+                          {look.tailShape === "swoop" && (
+                            <BubbleSkin bubbleRef={minePreviewRef} right top={look.tailMine === "top"} paintClass={colors.userBubbleBg} />
+                          )}
                           <span
-                            className={cn("aerie-message-bubble block px-3.5 py-2.5 border text-[13px]", colors.userBubbleBg, colors.userBubbleText, colors.panelBorder)}
+                            ref={minePreviewRef}
+                            className={cn("aerie-message-bubble block px-3.5 py-2.5 border text-[13px] text-center", colors.userBubbleBg, colors.userBubbleText, colors.panelBorder, look.tailShape === "swoop" && SKINNED)}
                             style={bubbleCorners("mine", look.tailMine)}
                           >
+                            {/* Centered, as short messages now sit in the chat. */}
                             And this is me.
                           </span>
                         </span>
@@ -1531,7 +1561,8 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                     {/* A title and a line of a message, in what has been picked. */}
                     <div className={cn("rounded-xl border px-3 py-2.5 space-y-1", colors.panelBorder)} aria-hidden="true">
                       <div className={cn("text-base italic", colors.textMain)} style={{ fontFamily: titleStack(hf.title) }}>Messages</div>
-                      <div className={cn("text-[15px]", colors.textMain)} style={{ fontFamily: bodyStack(hf.body) }}>Morning. The kettle's on.</div>
+                      {/* In rem, like the real messages, so the Size slider moves this preview too, not only the title. */}
+                      <div className={cn("text-[0.9375rem]", colors.textMain)} style={{ fontFamily: bodyStack(hf.body) }}>Morning. The kettle's on.</div>
                     </div>
                   </section>
                 );

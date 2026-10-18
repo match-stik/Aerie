@@ -4,6 +4,7 @@
 // Reactive state lives in store.ts; connection internals are module-local here.
 
 import type { ClientMessage, ServerMessage, Message, ThreadSummary } from './protocol';
+import { withMissedReadMarks } from './read-marks';
 import { messagePreviewText } from '@aerie/shared';
 import { getState, setState } from './store';
 import { buildStreamingSegments } from './hooks';
@@ -725,6 +726,7 @@ export function connect(): void {
           // prove itself, because it is also the moment someone is about to type.
           // Waiting for the 30s heartbeat here is what eats a message.
           proveAliveOrReconnect();
+          void refreshMissedReadMarks();
         }
       };
       document.addEventListener('visibilitychange', visibilityHandler);
@@ -738,6 +740,9 @@ export function connect(): void {
       if (seenSeq > 0 && activeThreadId) {
         send({ type: 'sync', lastSeenSequence: seenSeq, threadId: activeThreadId });
       }
+      // The sync replays only newer messages; a read stamp sent while this
+      // socket was down is older than that, so ask for those separately.
+      if (activeThreadId) void refreshMissedReadMarks();
 
       if (pendingMessages.length > 0) {
         const queued = pendingMessages;
@@ -873,6 +878,28 @@ export function send(msg: ClientMessage): void {
 }
 
 // --- REST helpers ---
+
+/**
+ * Ask the house for the open thread and copy across any read stamp this phone
+ * missed while its socket was asleep or reconnecting (aerie/read-marks.ts).
+ * Quiet on purpose: no loading state, no reordering, and a failure changes
+ * nothing, because the next return to the app asks again.
+ */
+async function refreshMissedReadMarks(): Promise<void> {
+  const threadId = getState().activeThreadId;
+  if (!threadId) return;
+  try {
+    const res = await apiFetch(`/api/threads/${threadId}/messages`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const snapshot: Message[] = data.messages || [];
+    if (getState().activeThreadId !== threadId) return;
+    setState((st) => {
+      const next = withMissedReadMarks(st.messages, snapshot);
+      return next === st.messages ? {} : { messages: next };
+    });
+  } catch { /* a courtesy: the next return to the app tries again */ }
+}
 
 export async function loadThread(threadId: string): Promise<void> {
   const requestId = ++threadLoadRequest;

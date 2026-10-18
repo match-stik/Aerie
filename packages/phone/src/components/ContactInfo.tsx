@@ -8,6 +8,7 @@ import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
 import getCroppedImg, { createImage } from '../lib/cropImage';
+import { CARD_HEADER_REM, CARD_MAX_WIDTH_REM, CARD_SIDE_GAP_REM, FRAME_LEGEND, faceGuideStyle, liveContactCardAspect } from '../lib/contact-card-frame';
 
 interface ContactInfoProps {
   themeConfig: ThemeConfig;
@@ -173,6 +174,10 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  // The card's own rectangle, read off the header itself when it is on the
+  // screen, with the face circle drawn inside it (lib/contact-card-frame.ts).
+  const [cropAspect, setCropAspect] = useState(() => liveContactCardAspect());
+  const headerRef = useRef<HTMLDivElement>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Blank, never a stranger: for the frames before the roster lands there is no card
@@ -188,6 +193,8 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
     reader.onload = () => {
       const result = reader.result as string;
       if (result && /^data:image\/(jpeg|jpg|png|gif|webp)[;,]/i.test(result)) {
+        const header = headerRef.current;
+        setCropAspect(header && header.offsetWidth > 0 && header.offsetHeight > 0 ? header.offsetWidth / header.offsetHeight : liveContactCardAspect());
         setCropImageSrc(result);
       }
     };
@@ -310,10 +317,11 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
+      style={{ padding: `${CARD_SIDE_GAP_REM}rem` }}
     >
-      <div className={cn(
-        "w-full max-w-md overflow-hidden border relative transition-all duration-500 flex flex-col max-h-[90vh]",
+      <div style={{ maxWidth: `${CARD_MAX_WIDTH_REM}rem` }} className={cn(
+        "w-full overflow-hidden border relative transition-all duration-500 flex flex-col max-h-[90vh]",
         themeConfig.radius,
         colors.panelBg,
         colors.panelBorder,
@@ -328,7 +336,8 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                 zoom={zoom}
                 minZoom={0.1}
                 maxZoom={10}
-                aspect={448 / 320}
+                aspect={cropAspect}
+                style={{ cropAreaStyle: faceGuideStyle() }}
                 onCropChange={setCrop}
                 onCropComplete={onCropComplete}
                 onZoomChange={setZoom}
@@ -336,6 +345,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
               />
             </div>
             <div className="p-4 bg-neutral-900 border-t border-white/10 flex flex-col gap-4">
+              <p className="text-[11px] text-white/60 text-center">{FRAME_LEGEND}</p>
               <div className="flex items-center gap-4 px-2">
                 <Minus size={14} className="text-white/40" />
                 <input
@@ -388,7 +398,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
         </button>
 
         {/* Profile Header */}
-        <div className="relative h-56 shrink-0 overflow-hidden">
+        <div ref={headerRef} className="relative shrink-0 overflow-hidden" style={{ height: `${CARD_HEADER_REM}rem` }}>
           {current.image ? (
             <img
               src={current.image}

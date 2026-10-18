@@ -23,7 +23,7 @@ import {
 } from '../lib/home-widgets';
 import { inkFor, resolveNoteColor } from '../lib/note-colors';
 import { haptic } from '../lib/utils';
-import { weatherIcon } from './LockClock';
+import { isDaytime, weatherIcon } from './LockClock';
 import { useWeather } from './useWeather';
 
 export interface WidgetCompanion {
@@ -176,13 +176,22 @@ function NoteWidget({ companions, palette, onOpen }: { companions: WidgetCompani
 
 function WeatherWidget({ onOpen }: { onOpen: () => void }) {
   const weather = useWeather();
+  // The card fills its square, so today's high and low sit on its far side
+  // to give the room something to hold; a long sky word takes the middle and
+  // the high and low stay put.
   return (
-    <button type="button" onClick={onOpen} className="flex h-full items-center gap-3 rounded-2xl px-3 text-left" style={surface}>
-      {weather ? weatherIcon(weather.code) : null}
-      <span className="flex flex-col">
+    <button type="button" onClick={onOpen} className="flex h-full w-full items-center gap-3 rounded-2xl px-3 text-left" style={surface}>
+      <span className="shrink-0">{weather ? weatherIcon(weather.code, isDaytime(weather), 'h-7 w-7') : null}</span>
+      <span className="flex min-w-0 flex-1 flex-col">
         <span className="text-2xl leading-none">{weather ? `${weather.temp}°` : '—'}</span>
-        <span className="text-[11px]" style={{ color: 'var(--aerie-text-muted)' }}>{weather ? skyWord(weather.code) : 'Looking at the sky'}</span>
+        <span className="truncate text-[11px]" style={{ color: 'var(--aerie-text-muted)' }}>{weather ? skyWord(weather.code) : 'Looking at the sky'}</span>
       </span>
+      {weather && typeof weather.high === 'number' && typeof weather.low === 'number' && (
+        <span className="flex shrink-0 flex-col items-end text-[11px] leading-tight" style={{ color: 'var(--aerie-text-muted)' }}>
+          <span>H {weather.high}°</span>
+          <span>L {weather.low}°</span>
+        </span>
+      )}
     </button>
   );
 }

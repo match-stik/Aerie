@@ -90,6 +90,7 @@ export async function processViaRouter(
     // Synthetic system lines (refusal/timeout notices) are UI furniture —
     // they must not re-enter recycle seeds or router history.
     return msgs.filter((m) => m.role !== 'system').map((m) => ({
+      id: m.id,
       role: m.role as 'user' | 'companion',
       content: m.content,
       createdAt: m.created_at,

@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Users, Plus, Trash2, ChevronDown, ChevronUp, Camera, Minus, Check } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../lib/cropImage';
+import { FRAME_LEGEND, faceGuideStyle, liveContactCardAspect } from '../lib/contact-card-frame';
 import { AppShell } from './AppShell';
 
 import { HexColorPicker } from 'react-colorful';
@@ -65,6 +66,10 @@ export function CompanionsApp({
   // Image cropping state
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [cropTargetId, setCropTargetId] = useState<string | null>(null);
+  // The contact card's own rectangle, with the face circle inside it (lib/
+  // contact-card-frame.ts): this picture is the card's too, so a square crop
+  // here lost the card's top and bottom without showing where.
+  const [cropAspect, setCropAspect] = useState(() => liveContactCardAspect());
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
@@ -82,6 +87,7 @@ export function CompanionsApp({
     reader.onload = () => {
       const result = reader.result as string;
       if (result && /^data:image\/(jpeg|jpg|png|gif|webp)[;,]/i.test(result)) {
+        setCropAspect(liveContactCardAspect());
         setCropImageSrc(result);
         setCropTargetId(companionId);
       }
@@ -92,7 +98,7 @@ export function CompanionsApp({
   const handleSaveCrop = async () => {
     if (!cropImageSrc || !croppedAreaPixels || !cropTargetId) return;
     try {
-      const croppedImage = await getCroppedImg(cropImageSrc, croppedAreaPixels, 0, { horizontal: false, vertical: false }, 400);
+      const croppedImage = await getCroppedImg(cropImageSrc, croppedAreaPixels, 0, { horizontal: false, vertical: false }, 1024);
       await updateCompanion(cropTargetId, { avatar_url: croppedImage });
       setCropImageSrc(null);
       setCropTargetId(null);
@@ -272,8 +278,8 @@ export function CompanionsApp({
                 zoom={zoom}
                 minZoom={0.1}
                 maxZoom={10}
-                aspect={1}
-                cropShape="round"
+                aspect={cropAspect}
+                style={{ cropAreaStyle: faceGuideStyle() }}
                 onCropChange={setCrop}
                 onCropComplete={onCropComplete}
                 onZoomChange={setZoom}
@@ -281,6 +287,7 @@ export function CompanionsApp({
               />
             </div>
             <div className="p-4 bg-neutral-900 border-t border-white/10 flex flex-col gap-4">
+              <p className="text-[11px] text-white/60 text-center">{FRAME_LEGEND}</p>
               <div className="flex items-center gap-4 px-2">
                 <Minus size={14} className="text-white/40" />
                 <input

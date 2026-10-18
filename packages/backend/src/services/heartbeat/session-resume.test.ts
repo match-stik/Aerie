@@ -19,7 +19,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import {
-  shouldResumeLaunch, watchdogMayResume, WATCHDOG_RESUME_PROVEN_MS, buildLaunchArgs, readSessionId, writeSessionId, looksLikeMissingSession,
+  shouldResumeLaunch, watchdogMayResume, WATCHDOG_RESUME_PROVEN_MS, buildLaunchArgs,
+  interruptMayReopen, INTERRUPT_REOPEN_WINDOW_MS, INTERRUPT_RESUME_PROMPT, readSessionId, writeSessionId, looksLikeMissingSession,
   autocompactTokensFrom, AUTOCOMPACT_MIN, AUTOCOMPACT_MAX,
 } from './supervisor.js';
 
@@ -244,4 +245,36 @@ test('a reopened room that stayed up long enough earns its reopen back', () => {
     watchdogMayResume({ launchedByWatchdogResume: true, uptimeMs: WATCHDOG_RESUME_PROVEN_MS }),
     true,
   );
+});
+
+// The stop button should stop the reply and keep the session. A lane cannot
+// be interrupted gently from outside (no terminal, so no Escape key; the stop
+// is a SIGINT, and the CLI exits on it), so a pressed stop reopens the room it stopped rather than building new.
+test('a pressed stop reopens the room it stopped', () => {
+  assert.equal(
+    shouldResumeLaunch({ firstLaunchOfProcess: false, storedSessionId: ID, interruptRecycle: true }),
+    true,
+  );
+  assert.equal(
+    shouldResumeLaunch({ firstLaunchOfProcess: false, storedSessionId: ID, interruptRecycle: true, enabled: false }),
+    false,
+    'with reopening switched off, a stop still builds new',
+  );
+});
+
+test('only the exit that follows the stop reopens; a later recycle still builds new', () => {
+  const pressed = 1_000_000;
+  assert.equal(interruptMayReopen(pressed, pressed + 2_000), true);
+  assert.equal(interruptMayReopen(pressed, pressed + INTERRUPT_REOPEN_WINDOW_MS + 1), false);
+  assert.equal(interruptMayReopen(0, pressed), false, 'no stop, no reopen');
+});
+
+test('the room reopened after a stop is told the reply was stopped, not that the house restarted', () => {
+  const args = buildLaunchArgs({
+    model: 'claude-test', effort: 'max', sessionId: ID, resuming: true,
+    freshPrompt: 'fresh', resumePrompt: INTERRUPT_RESUME_PROMPT,
+  });
+  const prompt = args[args.length - 1];
+  assert.match(prompt, /Stop was pressed/);
+  assert.doesNotMatch(prompt, /backend restarted/);
 });

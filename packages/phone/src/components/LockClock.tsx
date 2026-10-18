@@ -4,20 +4,35 @@
 // and Settings draws the very same thing small, so the preview picked from
 // is never a different drawing from what the lock screen shows.
 import React, { useEffect, useRef, useState } from 'react';
-import { Cloud, Sun, CloudRain, Snowflake, X } from 'lucide-react';
+import { Cloud, CloudMoon, CloudSun, Moon, Sun, CloudRain, Snowflake, X } from 'lucide-react';
 import { clampClockAt, clockParts, type ClockAt, type LockFace, type LockPiece, type LockPosition, type LockSize } from '../lib/lock-clock';
 import { haptic } from '../lib/utils';
 
 export interface LockWeather {
   temp: number;
   code: number;
+  /** Open-Meteo's own day-or-night flag for the phone's spot; absent on a reading kept from before it was asked for. */
+  isDay?: boolean;
+  /** Today's high and low, when the reading carried them. */
+  high?: number;
+  low?: number;
 }
 
-export function weatherIcon(code: number) {
-  if (code <= 3) return <Sun className="h-4 w-4 text-yellow-300" />;
-  if (code <= 48) return <Cloud className="h-4 w-4 text-white/80" />;
-  if (code <= 67 || code >= 80) return <CloudRain className="h-4 w-4 text-blue-300" />;
-  return <Snowflake className="h-4 w-4 text-white" />;
+/** Day or night where the phone is: the reading's own flag, or the clock if an old reading has none. */
+export function isDaytime(weather: Pick<LockWeather, 'isDay'>, now = new Date()): boolean {
+  if (typeof weather.isDay === 'boolean') return weather.isDay;
+  const hour = now.getHours();
+  return hour >= 6 && hour < 19;
+}
+
+// A clear night draws a moon, not a sun, and a partly cloudy
+// sky draws the cloud with the sun or the moon behind it.
+export function weatherIcon(code: number, day = true, className = 'h-4 w-4') {
+  if (code <= 1) return day ? <Sun className={`${className} text-yellow-300`} /> : <Moon className={`${className} text-slate-200`} />;
+  if (code === 2) return day ? <CloudSun className={`${className} text-yellow-200`} /> : <CloudMoon className={`${className} text-slate-200`} />;
+  if (code <= 48) return <Cloud className={`${className} text-white/80`} />;
+  if (code <= 67 || code >= 80) return <CloudRain className={`${className} text-blue-300`} />;
+  return <Snowflake className={`${className} text-white`} />;
 }
 
 interface LockClockProps {
@@ -226,7 +241,7 @@ function WeatherPill({ weather, at, onMove, onHide }: { weather: LockWeather; at
       homeClass="top-12 right-4"
       homeStyle={{ marginTop: 'var(--sat)' }}
     >
-      {weatherIcon(weather.code)}
+      {weatherIcon(weather.code, isDaytime(weather))}
       <span className="text-xs font-medium">{weather.temp}°F</span>
     </Placed>
   );

@@ -1782,6 +1782,21 @@ router.post('/internal/compaction-notice', (req, res) => {
   res.json({ success: true, message, refresh: staleBlockText(where) });
 });
 
+// The blocks that moved while a lane's room was open, for its own note after a
+// compaction. The lane's SessionStart hook (matcher "compact", hooks/compacted.cjs)
+// asks here: that hook is the one place Claude Code reads words back into a
+// room after a compaction. PostCompact output is display-only, so anything the
+// hook above hands back never reaches the room. No banner from here: the
+// PostCompact hook still raises that, and one compaction is one banner.
+router.get('/internal/compaction-refresh', (req, res) => {
+  const lane = typeof req.query.lane === 'string' ? req.query.lane : '';
+  if (!isHeartbeatLane(lane, PROJECT_ROOT)) {
+    res.json({ success: true, skipped: 'not a lane', refresh: '' });
+    return;
+  }
+  res.json({ success: true, refresh: staleBlockText(lane) });
+});
+
 /**
  * What the walls say now, for a lane whose injected copy is about to be
  * replayed at it.

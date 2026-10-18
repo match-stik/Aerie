@@ -120,6 +120,9 @@ export interface AppTheme {
   bubbleMyName?: boolean;
   bubbleTailMine?: 'top' | 'bottom';
   bubbleTailOurs?: 'top' | 'bottom';
+  /** The tail's shape: the flat point it has always had, or a swoop that
+   *  curls out of the corner. Unset is the point. */
+  bubbleTailShape?: 'point' | 'swoop';
   /** Avatar rings in each companion's own color, or in the theme's. */
   bubbleRings?: 'house' | 'theme';
   /** Apps in a row of the drawer. Unset is four. */

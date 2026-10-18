@@ -259,11 +259,28 @@ export function shouldResumeLaunch(input: {
   /** This relaunch follows a watchdog kill that is allowed one reopen — see
    *  watchdogMayResume. */
   watchdogRecycle?: boolean;
+  /** This relaunch follows a Stop pressed on the phone — see interruptMayReopen. */
+  interruptRecycle?: boolean;
   enabled?: boolean;
 }): boolean {
   if (input.enabled === false) return false;
   if (!input.storedSessionId) return false;
-  return input.firstLaunchOfProcess || !!input.settingChangeRecycle || !!input.watchdogRecycle;
+  return input.firstLaunchOfProcess || !!input.settingChangeRecycle || !!input.watchdogRecycle || !!input.interruptRecycle;
+}
+
+/**
+ * How long after Stop is pressed the room's exit still counts as that stop.
+ * The stop button is meant to stop the reply, not end the room. The lane has
+ * no terminal, so there is no Escape key to press for it: a stop is a SIGINT,
+ * and the CLI exits on it. The relaunch that follows reopens the same room
+ * instead of building new. A window, so a stop that somehow left the room
+ * standing cannot make some later, unrelated recycle reopen a room it was
+ * meant to replace.
+ */
+export const INTERRUPT_REOPEN_WINDOW_MS = 60_000;
+
+export function interruptMayReopen(interruptedAt: number, now: number): boolean {
+  return interruptedAt > 0 && now - interruptedAt <= INTERRUPT_REOPEN_WINDOW_MS;
 }
 
 /** How long a room reopened after a watchdog kill has to stay up before it
@@ -540,6 +557,15 @@ const RESUME_PROMPT =
   'Wait silently; only write to io/outbox.jsonl when a real message arrives ' +
   'carrying a [turn_id].';
 
+// The room reopened after Stop was pressed. The stop stands: it is a stop,
+// not a pause, so the reopened room does not finish what was stopped.
+export const INTERRUPT_RESUME_PROMPT =
+  'This heartbeat session has been reopened after Stop was pressed on the reply you ' +
+  'were writing. Everything above is yours and is still loaded, and your CLAUDE.md was ' +
+  're-read fresh at startup. The stop was meant and it stands: do not finish, resend or ' +
+  'summarize the stopped reply, do not apologize for it, and do not greet anyone. ' +
+  'Wait silently; only write to io/outbox.jsonl when a real message arrives carrying a [turn_id].';
+
 // Fast-exit window: exits within this window get special handling for cap/auth.
 // Refusal detection removed 2026-07-05 — false positives vastly outnumber real
 // refusals; fast exits without cap/auth signals just relaunch normally now.
@@ -744,6 +770,9 @@ export class HeartbeatSession {
   /** Set when the watchdog kills a room that is allowed one reopen; consumed by
    *  the next launch. */
   private watchdogRecycle = false;
+  /** When Stop was last pressed on this lane (0 = never since the last launch);
+   *  consumed by the next launch, which reopens the room it stopped. */
+  private interruptedAt = 0;
   /** Did THIS child launch by reopening a room the watchdog had killed? A second
    *  kill of that room builds new. */
   private launchedByWatchdogResume = false;
@@ -919,6 +948,7 @@ export class HeartbeatSession {
     const pid = this.child?.pid;
     if (!pid || !pidIsRunning(pid)) return false;
     console.log(`[Heartbeat:${this.key}] interrupting active turn`);
+    this.interruptedAt = Date.now();
     try {
       if (IS_WIN) killPid(pid);
       else process.kill(pid, 'SIGINT');
@@ -1253,13 +1283,20 @@ export class HeartbeatSession {
     // Reopen the previous room, or build a new one. Consume the first-launch
     // chip HERE rather than at the end: every path out of this function has
     // spent it, including the ones that throw.
+    const interruptRecycle = interruptMayReopen(this.interruptedAt, Date.now());
+    this.interruptedAt = 0;
     const resuming = shouldResumeLaunch({
       firstLaunchOfProcess: this.firstLaunchOfProcess,
       storedSessionId: this.sessionId,
       settingChangeRecycle: this.settingChangeRecycle,
       watchdogRecycle: this.watchdogRecycle,
+      interruptRecycle,
       enabled: claudeResumeEnabled(),
     });
+    // The room is told the truth about why it reopened: a stop, or the house.
+    const resumePrompt = interruptRecycle && !this.firstLaunchOfProcess && !this.settingChangeRecycle
+      ? INTERRUPT_RESUME_PROMPT
+      : RESUME_PROMPT;
     this.launchedByWatchdogResume = resuming && this.watchdogRecycle
       && !this.firstLaunchOfProcess && !this.settingChangeRecycle;
     this.firstLaunchOfProcess = false;
@@ -1344,7 +1381,7 @@ export class HeartbeatSession {
       sessionId: this.sessionId!,
       resuming,
       freshPrompt: INITIAL_PROMPT,
-      resumePrompt: RESUME_PROMPT,
+      resumePrompt,
       autocompactTokens: autocompactTokensFrom(getConfig('heartbeat.autocompact_tokens')),
     });
     const child = spawn('claude', IS_WIN ? args.map(quoteForWindowsShell) : args, {

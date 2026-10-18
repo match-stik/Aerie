@@ -119,6 +119,7 @@ import { homeSpotsOf, homeWidgetsOf } from './lib/home-widgets';
 import { bubbleLookOf } from './lib/bubble-look';
 import { drawerLookOf } from './lib/drawer-look';
 import { bodyStack, fontsOf, titleStack } from './lib/fonts';
+import { layoutGap, summarizeKeyboardChange, type LayoutFrame, frameTiming, type LongTaskEntry } from './lib/layout-gap';
 import { inlineWallpapers, swapWallpapers } from './lib/wallpaper-files';
 
 const DEFAULT_THEME: AppTheme = {
@@ -375,8 +376,8 @@ export default function App() {
     metaThemeColor.setAttribute('content', themeColor);
     document.head.appendChild(metaThemeColor);
     
-    // The body keeps the page color, so nothing behind the apps changes with
-    // the frame.
+    // The page behind the apps (lib/system-bar-colors.ts): the frame's color,
+    // so the instant after a keyboard closes shows the footer, not a block.
     document.body.style.backgroundColor = bodyColor;
     document.documentElement.style.backgroundColor = bodyColor;
 
@@ -448,6 +449,10 @@ export default function App() {
   // off another screen, so this never appears anywhere.
   useEffect(() => startMediaReporter(), []);
 
+  // Bumped when the Companions app saves a row, so a face, a name or a color
+  // set there reaches the chat, home and the cards at once instead of on the
+  // next launch (a crop set there otherwise never showed up).
+  const [companionsVersion, setCompanionsVersion] = useState(0);
   useEffect(() => {
     apiFetch('/api/companions')
       .then(res => res.ok ? res.json() : null)
@@ -457,7 +462,7 @@ export default function App() {
         if (owner?.name) setOwnerName(owner.name);
       })
       .catch(() => {});
-  }, []);
+  }, [companionsVersion]);
 
   // Companions assigned to the active thread — the chat header shows only
   // these avatars. Threads with no explicit assignments fall back to all
@@ -471,7 +476,7 @@ export default function App() {
       .then(data => { if (!stale) setThreadCompanions(data?.companions ?? []); })
       .catch(() => { if (!stale) setThreadCompanions([]); });
     return () => { stale = true; };
-  }, [ksActiveThreadId]);
+  }, [ksActiveThreadId, companionsVersion]);
 
   // The treehouse is a normal-looking thread in this view, so it's possible to
   // open the app and land in the companions' room without realising it. The
@@ -1606,6 +1611,7 @@ export default function App() {
     theme.bubbleMyName,
     theme.bubbleTailMine,
     theme.bubbleTailOurs,
+    theme.bubbleTailShape,
     theme.bubbleRings,
     ownerName,
   ]);
@@ -1723,6 +1729,113 @@ export default function App() {
     root.style.setProperty('--shape-scale', String(shapeBase / 16));
     for (const [k, v] of Object.entries(shapeVarsFor(shapeBase))) root.style.setProperty(k, v);
   }, [colors, theme.mode, theme.id, theme.customColors, theme.shapeRadius]);
+
+  // The color block under the app after the keyboard closes: a settled
+  // reading after every resize, posted once when the app or its window is
+  // left short (lib/layout-gap.ts).
+  useEffect(() => {
+    let tallest = window.innerHeight;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let lastSent = 0;
+    const check = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const root = document.querySelector('.aerie-root');
+        if (!root) return;
+        const active = document.activeElement;
+        const typing = !!active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || (active as HTMLElement).isContentEditable);
+        const sample = { inner: window.innerHeight, visual: window.visualViewport?.height ?? window.innerHeight, rootBottom: Math.round(root.getBoundingClientRect().bottom), typing };
+        if (!typing) tallest = Math.max(tallest, sample.inner);
+        const gap = layoutGap(sample, tallest);
+        if (!gap || Date.now() - lastSent < 30_000) return;
+        lastSent = Date.now();
+        void apiFetch('/api/client-errors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ where: 'layout-gap', message: JSON.stringify({ gap, ...sample, tallest, screen: window.screen.height, dpr: window.devicePixelRatio, docH: document.documentElement.clientHeight }) }),
+        }).catch(() => {});
+      }, 700);
+    };
+    // What shows is a FLASH, gone before anything settles, so
+    // the settled reading above cannot catch it. Every resize also starts a
+    // frame-by-frame recording for a couple of seconds, and each time the
+    // keyboard closes the summary is posted whether or not the page fell
+    // short: a close where the page measured whole in every frame says the
+    // block is the app's Android window, not the page.
+    const frameNow = (t: number): LayoutFrame | null => {
+      const root = document.querySelector('.aerie-root');
+      if (!root) return null;
+      // The message box too: the block can show in its color.
+      const box = document.getElementById('message-input')?.getBoundingClientRect();
+      return {
+        t, inner: window.innerHeight, visual: Math.round(window.visualViewport?.height ?? window.innerHeight), rootBottom: Math.round(root.getBoundingClientRect().bottom), docH: document.documentElement.clientHeight,
+        ...(box ? { boxTop: Math.round(box.top), boxH: Math.round(box.height) } : {}),
+      };
+    };
+    let before = frameNow(-1);
+    let recording: LayoutFrame[] | null = null;
+    let lastTrace = 0;
+    // The stopwatch (lib/layout-gap.ts frameTiming): the page's long tasks
+    // are kept as they happen, the last forty, so a recording can say how
+    // busy the page was around the move, the second before it included.
+    const longTasks: LongTaskEntry[] = [];
+    let taskWatch: PerformanceObserver | null = null;
+    try {
+      taskWatch = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          longTasks.push({ start: entry.startTime, duration: entry.duration });
+          if (longTasks.length > 40) longTasks.shift();
+        }
+      });
+      taskWatch.observe({ type: 'longtask', buffered: true });
+    } catch {
+      taskWatch = null;
+    }
+    const record = () => {
+      if (recording) return;
+      const start = performance.now();
+      const stamps: number[] = [];
+      recording = before ? [{ ...before, t: -1 }] : [];
+      const step = () => {
+        const now = performance.now();
+        stamps.push(now);
+        const t = Math.round(now - start);
+        const frame = frameNow(t);
+        if (frame && recording) recording.push(frame);
+        if (t < 2500) { requestAnimationFrame(step); return; }
+        const frames = recording ?? [];
+        recording = null;
+        before = frames[frames.length - 1] ?? before;
+        const trace = summarizeKeyboardChange(frames);
+        const timing = frameTiming(start, stamps, longTasks);
+        // Opens as well as closes: either direction can be the one that flashes.
+        if ((!trace.closed && !trace.opened) || Date.now() - lastTrace < 20_000) return;
+        lastTrace = Date.now();
+        void apiFetch('/api/client-errors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // The summary rides in message (500 characters) and the frames as
+          // compact rows [t, inner, visual, rootBottom, docH, boxTop, boxH]
+          // in stack (2000), so this needs nothing new from the house.
+          body: JSON.stringify({
+            where: trace.closed ? 'keyboard-close' : 'keyboard-open',
+            message: JSON.stringify({ closed: trace.closed, opened: trace.opened, worstRootShort: trace.worstRootShort, worstWindowShort: trace.worstWindowShort, boxGrew: trace.boxGrew, frames: trace.frames.length, screen: window.screen.height, dpr: window.devicePixelRatio, firstFrameMs: timing.firstFrameMs, longestFrameMs: timing.longestFrameMs, busyMs: timing.busyMs, longestTaskMs: timing.longestTaskMs, tasks: timing.tasks, tasksSeen: !!taskWatch }),
+            stack: JSON.stringify(trace.frames.map((f) => [f.t, f.inner, f.visual, f.rootBottom, f.docH, f.boxTop ?? null, f.boxH ?? null])),
+          }),
+        }).catch(() => {});
+      };
+      requestAnimationFrame(step);
+    };
+    const onResize = () => { record(); check(); };
+    window.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('resize', onResize);
+    return () => {
+      clearTimeout(timer);
+      taskWatch?.disconnect();
+      window.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('resize', onResize);
+    };
+  }, []);
 
   return (
     <div
@@ -1882,6 +1995,7 @@ export default function App() {
             onClose={closeApp}
             themeConfig={activeTheme}
             themeMode={theme.mode}
+            onCompanionsChange={() => setCompanionsVersion((v) => v + 1)}
           />
         )}
         {osState === 'treehouse' && (

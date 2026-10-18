@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Cloud, Sun, CloudRain, Snowflake, Wind, Droplets, Thermometer, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Cloud, CloudMoon, CloudSun, Moon, Sun, CloudRain, Snowflake, Wind, Droplets, Thermometer, RefreshCw } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 
@@ -18,6 +18,7 @@ interface WeatherData {
     windSpeed: number;
     humidity: number;
     feelsLike: number;
+    isDay: boolean;
   };
   daily: {
     time: string[];
@@ -29,6 +30,7 @@ interface WeatherData {
     time: string[];
     temp: number[];
     code: number[];
+    isDay: boolean[];
   };
 }
 
@@ -61,7 +63,7 @@ export function WeatherApp({ onClose, themeConfig, themeMode }: WeatherAppProps)
         console.error('Failed to fetch location name', e);
       }
 
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`);
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&hourly=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`);
       const data = await res.json();
 
       if (data.current) {
@@ -72,6 +74,7 @@ export function WeatherApp({ onClose, themeConfig, themeMode }: WeatherAppProps)
             windSpeed: Math.round(data.current.wind_speed_10m),
             humidity: Math.round(data.current.relative_humidity_2m),
             feelsLike: Math.round(data.current.apparent_temperature),
+            isDay: data.current.is_day !== 0,
           },
           daily: {
             time: data.daily.time,
@@ -83,6 +86,7 @@ export function WeatherApp({ onClose, themeConfig, themeMode }: WeatherAppProps)
             time: data.hourly.time.slice(0, 24),
             temp: data.hourly.temperature_2m.slice(0, 24).map(Math.round),
             code: data.hourly.weather_code.slice(0, 24),
+            isDay: (data.hourly.is_day ?? []).slice(0, 24).map((d: number) => d !== 0),
           },
         });
       }
@@ -111,8 +115,10 @@ export function WeatherApp({ onClose, themeConfig, themeMode }: WeatherAppProps)
     fetchWeather();
   }, []);
 
-  const getWeatherIcon = (code: number, className: string = "h-6 w-6") => {
-    if (code <= 3) return <Sun className={cn(className, "text-yellow-400")} />;
+  // A clear night is a moon, not a sun, as on the home card, and partly cloudy keeps the sun or the moon behind it.
+  const getWeatherIcon = (code: number, className: string = "h-6 w-6", day = true) => {
+    if (code <= 1) return day ? <Sun className={cn(className, "text-yellow-400")} /> : <Moon className={cn(className, "text-slate-200")} />;
+    if (code === 2) return day ? <CloudSun className={cn(className, "text-yellow-300")} /> : <CloudMoon className={cn(className, "text-slate-200")} />;
     if (code <= 48) return <Cloud className={cn(className, "text-gray-400")} />;
     if (code <= 67 || code >= 80) return <CloudRain className={cn(className, "text-blue-400")} />;
     return <Snowflake className={cn(className, "text-blue-200")} />;
@@ -211,7 +217,7 @@ export function WeatherApp({ onClose, themeConfig, themeMode }: WeatherAppProps)
             <div className={cn("flex flex-col items-center text-center p-6 rounded-3xl border backdrop-blur-md", colors.panelBg, colors.panelBorder)}>
               <h2 className="text-2xl font-light tracking-tight mb-2">{locationName}</h2>
               <div className="flex items-center justify-center mb-2">
-                {getWeatherIcon(weather.current.code, "h-16 w-16 mr-4")}
+                {getWeatherIcon(weather.current.code, "h-16 w-16 mr-4", weather.current.isDay)}
                 <span className="text-7xl font-light tracking-tighter">{weather.current.temp}°</span>
               </div>
               <p className="text-xl font-medium opacity-80">{getWeatherDescription(weather.current.code)}</p>
@@ -247,7 +253,7 @@ export function WeatherApp({ onClose, themeConfig, themeMode }: WeatherAppProps)
                   return (
                     <div key={time} className="flex flex-col items-center min-w-[3rem]">
                       <span className="text-xs opacity-70 mb-2">{i === 0 ? 'Now' : formatHour(time)}</span>
-                      {getWeatherIcon(weather.hourly.code[i], "h-6 w-6 mb-2")}
+                      {getWeatherIcon(weather.hourly.code[i], "h-6 w-6 mb-2", weather.hourly.isDay[i] ?? true)}
                       <span className="font-medium">{weather.hourly.temp[i]}°</span>
                     </div>
                   );

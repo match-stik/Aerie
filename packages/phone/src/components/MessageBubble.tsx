@@ -14,6 +14,7 @@ import { CodeBlock } from './CodeBlock';
 import { Check, CheckCheck, Star, Heart, Smile, ThumbsUp, MoreHorizontal, Trash2, Play, Square, Loader2, Mic, FileText, Download, Pencil, RefreshCw, Copy, Reply, X, Volume2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSegments } from './MessageSegments';
+import { BubbleSkin, SKINNED } from './BubbleSkin';
 import { ImageLightbox } from './ImageLightbox';
 import { resolveStickerRef, apiFetch } from '../aerie';
 import { copyToClipboard } from '../lib/clipboard';
@@ -697,6 +698,52 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   // A picture with no words keeps its own width, or the bubble would show
   // round it as an empty frame.
   const mediaOnly = (isGif || isImage || videoSources.length > 0) && !textContent;
+  // A short message sits centered in a bubble the line under it made wider
+  // than the words, rather than hugging one side. The words keep their
+  // own width and the row centers them, so a message long enough to wrap fills
+  // the bubble exactly as before. Anything carrying a picture or a link keeps
+  // the old layout, since a full-width picture inside would have no width to
+  // take from a row that sizes itself to its words.
+  // A Discord emote or sticker is a picture by markup and a word by size (the
+  // img renderer below draws it emote-sized), so it never counts as a link
+  // here (a short line with an emote under it would otherwise stay at the left).
+  // The owner's, the companions' and Discord's short bubbles all center the
+  // same way. A system line and the
+  // treehouse keep their own layout, and so does a centered first voice.
+  const linkText = (textContent || '').replace(/!\[(?:d?emoji|sticker):[^\]]*\]\([^)]*\)/g, '');
+  const centersShortBubble = !isSystem && !isPrivateTab && !centered;
+  const centerShort = centersShortBubble && !(isGif || isImage || videoSources.length > 0) && !/https?:\/\//.test(linkText);
+  // And when no line had to wrap, each line centers on its own, so a whisper
+  // over an emote sits in the middle as a pair. Whether anything wrapped is
+  // read off the page: the words' box sizes itself to its longest line, so it
+  // is narrower than the room the row gives it only when nothing wrapped. A
+  // message that wraps keeps its lines to the left, as before.
+  const centerRowRef = useRef<HTMLDivElement>(null);
+  const centerBoxRef = useRef<HTMLDivElement>(null);
+  const [linesFit, setLinesFit] = useState(false);
+  React.useLayoutEffect(() => {
+    const row = centerRowRef.current;
+    const box = centerBoxRef.current;
+    if (!centerShort || !row || !box) { setLinesFit(false); return; }
+    const measure = () => {
+      let room = row.getBoundingClientRect().width;
+      for (const child of Array.from(row.children)) {
+        if (child !== box) room -= (child as HTMLElement).getBoundingClientRect().width + 8; // gap-2
+      }
+      setLinesFit(box.getBoundingClientRect().width < room - 0.5);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const watcher = new ResizeObserver(measure);
+    watcher.observe(row);
+    watcher.observe(box);
+    return () => watcher.disconnect();
+  }, [centerShort, textContent]);
+  // The swoop on the tail corner: the bubble and its curl painted as one
+  // shape behind the words (components/BubbleSkin.tsx), the same way the
+  // Settings preview draws it.
+  const swoopSide = !isSystem && !isPrivateTab && !centered && look.tailShape === 'swoop';
+  const swoopBubbleRef = useRef<HTMLDivElement>(null);
   // Reactions hang just under a turn's last bubble, so the line clears them.
   const underGap = isGroupLast && message.reactions && message.reactions.length > 0 ? 'mt-4' : 'mt-1';
 
@@ -823,11 +870,21 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
         {hasName && sideTail === 'top' && nameLabel('mb-1')}
         <div className={cn("relative max-w-full min-w-0", underLine && !mediaOnly && "self-stretch")}>
           {pinnedFace}
+          {swoopSide && (
+            <BubbleSkin
+              bubbleRef={swoopBubbleRef}
+              right={isUser}
+              top={(isUser ? look.tailMine : look.tailOurs) === 'top'}
+              paintClass={isUser ? colors.userBubbleBg : colors.compBubbleBg}
+            />
+          )}
           <div
+            ref={swoopBubbleRef}
             onClick={() => { if (isEditing) return; setShowActions(!showActions); }}
             data-user={isUser ? 'true' : 'false'}
             className={cn(
               "aerie-message-bubble overflow-hidden transition-all duration-500 cursor-pointer rounded-[var(--shape-bubble)]",
+              swoopSide && SKINNED,
               (isGif || isImage) && !textContent ? "p-1" : "px-3.5 py-2.5",
               // NO backdrop-filter on a bubble. A design choice, and also the fix:
               // a bubble should be ONE painted thing, not glyphs sitting over a
@@ -1012,7 +1069,10 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                 // 'anywhere' lets the browser break at any character if
                 // there's no other opportunity, so the bubble never gets
                 // clipped horizontally.
-                "prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-0 prose-pre:bg-black/30 prose-img:inline prose-img:m-0 select-text [overflow-wrap:anywhere] min-w-0",
+                // Headings carry no margin, as on Discord, so '## :emote:'
+                // sits right under the line before it as a big emote rather
+                // than floating apart.
+                "prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-0 prose-headings:my-0 prose-pre:bg-black/30 prose-img:inline prose-img:m-0 select-text [overflow-wrap:anywhere] min-w-0",
                 isLightText ? "prose-invert" : "",
                 isUser && isLightText ? "prose-code:text-white/80" : "",
                 isUser && !isLightText ? "prose-code:text-black/80" : "",
@@ -1048,11 +1108,11 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                 '--tw-prose-invert-td-borders': 'inherit',
               } as React.CSSProperties}
               >
-                <div className="flex gap-2 items-start">
+                <div ref={centerRowRef} className={cn("flex gap-2 items-start", centerShort && "justify-center")}>
                   {isUser && (isVoice || message.isVoiceInput) && (
                     <Mic size={16} className="mt-1 flex-shrink-0 opacity-70" />
                   )}
-                  <div className="flex-1 min-w-0">
+                  <div ref={centerBoxRef} className={cn("min-w-0", centerShort ? "flex-initial" : "flex-1", centerShort && linesFit && "text-center")}>
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm, remarkBreaks]}
                       components={{

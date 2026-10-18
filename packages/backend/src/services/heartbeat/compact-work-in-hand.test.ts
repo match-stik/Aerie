@@ -36,8 +36,9 @@ test('the lane is wired to mark a compaction from its start to its end', () => {
     const settings = JSON.parse(readFileSync(join(dir, '.claude', 'settings.json'), 'utf8'));
     const commands = (event: string): string[] =>
       (settings.hooks[event] ?? []).flatMap((m: { hooks: { command: string }[] }) => m.hooks.map((h) => h.command));
-    assert.deepStrictEqual(commands('PreCompact'), ['node hooks/activity.cjs pre compact']);
-    assert.deepStrictEqual(commands('PostCompact'), ['node hooks/activity.cjs post compact']);
+    const activity = join(dir, 'hooks', 'activity.cjs');
+    assert.deepStrictEqual(commands('PreCompact'), [`node "${activity}" pre compact`]);
+    assert.deepStrictEqual(commands('PostCompact'), [`node "${activity}" post compact`]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

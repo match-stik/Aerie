@@ -27,18 +27,22 @@ export interface BubbleLook {
    *  the same switch. */
   tailMine: Tail;
   tailOurs: Tail;
+  /** The tail's shape on both sides: the point, or a swoop curling out of
+   *  that same corner. */
+  tailShape: TailShape;
   /** The rings round every face: each in its own color as set in the house, or all in the theme's two-tone fill, the one
    *  selected things wear. A guest's ring stays the theme's accent either way. */
   rings: Rings;
 }
 
 export type Tail = 'top' | 'bottom';
+export type TailShape = 'point' | 'swoop';
 export type Rings = 'house' | 'theme';
 
 /** The bubbles as they have always looked. */
-export const DEFAULT_LOOK: BubbleLook = { faces: true, names: false, edges: false, quietActions: false, myName: false, tailMine: 'top', tailOurs: 'top', rings: 'house' };
+export const DEFAULT_LOOK: BubbleLook = { faces: true, names: false, edges: false, quietActions: false, myName: false, tailMine: 'top', tailOurs: 'top', tailShape: 'point', rings: 'house' };
 
-export function bubbleLookOf(theme: { bubbleFaces?: unknown; bubbleNames?: unknown; bubbleEdges?: unknown; bubbleQuietActions?: unknown; bubbleMyName?: unknown; bubbleTailMine?: unknown; bubbleTailOurs?: unknown; bubbleRings?: unknown }): BubbleLook {
+export function bubbleLookOf(theme: { bubbleFaces?: unknown; bubbleNames?: unknown; bubbleEdges?: unknown; bubbleQuietActions?: unknown; bubbleMyName?: unknown; bubbleTailMine?: unknown; bubbleTailOurs?: unknown; bubbleTailShape?: unknown; bubbleRings?: unknown }): BubbleLook {
   return {
     faces: theme.bubbleFaces !== false,
     names: theme.bubbleNames === true,
@@ -47,6 +51,7 @@ export function bubbleLookOf(theme: { bubbleFaces?: unknown; bubbleNames?: unkno
     myName: theme.bubbleMyName === true,
     tailMine: theme.bubbleTailMine === 'bottom' ? 'bottom' : 'top',
     tailOurs: theme.bubbleTailOurs === 'bottom' ? 'bottom' : 'top',
+    tailShape: theme.bubbleTailShape === 'swoop' ? 'swoop' : 'point',
     rings: theme.bubbleRings === 'theme' ? 'theme' : 'house',
   };
 }

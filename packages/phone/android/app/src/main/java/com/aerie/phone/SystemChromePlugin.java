@@ -2,6 +2,7 @@
 package com.aerie.phone;
 
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.view.Window;
 
 import androidx.core.view.WindowCompat;
@@ -54,6 +55,27 @@ public class SystemChromePlugin extends Plugin {
             window.setNavigationBarColor(color);
             WindowInsetsControllerCompat icons = WindowCompat.getInsetsController(window, window.getDecorView());
             icons.setAppearanceLightNavigationBars(isLight(color));
+            call.resolve();
+        });
+    }
+
+    /**
+     * What Android shows behind the page for the instant between the keyboard
+     * closing and the page repainting at its new height: the window's own
+     * background, which was the theme default, so a block of the wrong color
+     * flashed under the footer (measured: the page itself filled the new
+     * height in the same frame, every time). Painted the footer's color, there
+     * is nothing to see.
+     */
+    @PluginMethod
+    public void setWindowBackground(PluginCall call) {
+        Integer color = colorFrom(call);
+        if (color == null) return;
+        getActivity().runOnUiThread(() -> {
+            getActivity().getWindow().setBackgroundDrawable(new ColorDrawable(color));
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                getBridge().getWebView().setBackgroundColor(color);
+            }
             call.resolve();
         });
     }
