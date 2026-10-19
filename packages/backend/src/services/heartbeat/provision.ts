@@ -20,6 +20,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 import { createHash } from 'crypto';
 import { loadConfig } from '../../config.js';
+import { atLeast, claudeCliVersion } from './cli-version.js';
 
 /**
  * The Stop hook, verbatim Thornvale heartbeat.js with two Aerie touches:
@@ -615,11 +616,27 @@ process.stdout.write('ok\n');
  * guest gate failed open for as long as the shell stood there. The scripts
  * themselves already find their files from their own location.
  */
+/** Settings a newer Claude Code understands, turned on only once the box runs
+ *  it (off the CLI's own release notes). 2.1.295: a hook
+ *  that fails to start or exits oddly can block instead of letting the call
+ *  through, which is how a guest gate can be quietly off.
+ *  2.1.299: an idle room over 200K is compacted before the cache expires; lane rooms
+ *  sit that size while the owner is away, and a squash here is something kept
+ *  rare on purpose, so it stays off. */
+export function newerCliSettings(version: [number, number, number] | null): { gateBlocks: boolean; idleCompactionOff: boolean } {
+  return {
+    gateBlocks: atLeast(version, [2, 1, 295]),
+    idleCompactionOff: atLeast(version, [2, 1, 299]),
+  };
+}
+
 function settingsJson(dir: string): string {
   const hook = (name: string, args = ''): string =>
     `node "${join(resolve(dir), 'hooks', name)}"${args ? ' ' + args : ''}`;
+  const newer = newerCliSettings(claudeCliVersion());
   return JSON.stringify(
     {
+      ...(newer.idleCompactionOff ? { idleCompaction: false } : {}),
       hooks: {
         Stop: [
           {
@@ -639,6 +656,7 @@ function settingsJson(dir: string): string {
                 type: 'command',
                 command: hook('gate.cjs'),
                 timeout: 10,
+                ...(newer.gateBlocks ? { onFailure: 'block' } : {}),
               },
             ],
           },

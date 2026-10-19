@@ -3,6 +3,7 @@
 // wallpaper keeps the top of the screen, on the same solid surface as the
 // dock, because every surface in the house is solid. lib/home-widgets.ts
 // decides what each one shows.
+import { themeInk } from '../lib/theme-ink';
 import React, { useEffect, useRef, useState } from 'react';
 import { Heart, Mail } from 'lucide-react';
 import { apiFetch, sendUserMessageToThread, useAerie } from '../aerie';
@@ -216,7 +217,7 @@ function LetterWidget({ companions, onOpen }: { companions: WidgetCompanion[]; o
   const from = companions.find((c) => c.slug.toLowerCase() === letter.author.toLowerCase());
   return (
     <button type="button" onClick={onOpen} className="flex h-full items-center gap-3 rounded-2xl px-3 text-left" style={surface}>
-      <Mail size={20} style={{ color: from?.color || 'var(--aerie-accent)' }} />
+      <Mail size={20} style={{ color: from ? themeInk(from.slug, from.color) : 'var(--aerie-accent)' }} />
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-semibold">A letter waiting</span>
         <span className="truncate text-[11px]" style={{ color: 'var(--aerie-text-muted)' }}>from {from?.name || letter.author}</span>

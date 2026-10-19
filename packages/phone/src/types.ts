@@ -115,6 +115,8 @@ export interface AppTheme {
   bubbleNames?: boolean;
   bubbleEdges?: boolean;
   bubbleQuietActions?: boolean;
+  bubbleNameColors?: boolean;
+  bubbleDotColors?: boolean;
   // The owner's own name over their bubbles, and which corner each side's tail comes
   // from (unset is the top, as always).
   bubbleMyName?: boolean;
@@ -164,9 +166,11 @@ export interface AppSettings {
   fontFamily?: string;
   /** The title and message fonts and size (lib/fonts.ts). The
    *  old fontFamily and fontSize are read only to start these where they were. */
-  fontTitle?: 'noto' | 'playfair' | 'cormorant' | 'robotoslab';
-  fontBody?: 'noto' | 'geist' | 'mono';
+  fontTitle?: import('./lib/fonts').TitleFont;
+  fontBody?: import('./lib/fonts').BodyFont;
   fontScale?: number;
+  /** Titles' own size on top of fontScale. */
+  fontTitleScale?: number;
   fontSize?: 'small' | 'medium' | 'large';
   workerUrl?: string;
   backendUrl?: string;

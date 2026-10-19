@@ -1766,6 +1766,25 @@ export function deliverSideNoteToBusySession(text: string, messageId?: string): 
   return target ? target.sendSideNote(text, messageId) : false;
 }
 
+/**
+ * The owner's side notes still unanswered when a turn closed: taken into the turn,
+ * never covered by the session's read mark. Notes that land while the final
+ * line is going out have nowhere to go, so without this they waited for the
+ * owner's next message to carry them in. Pure, for testing.
+ */
+export function leftoverSideNotes<N extends { at: string }>(notes: ReadonlyArray<N>, mark: string): N[] {
+  return notes.filter((n) => !(mark && n.at && n.at <= mark));
+}
+
+type LeftoverHandler = (threadId: string, notes: Array<{ at: string; text: string }>) => void;
+let leftoverHandler: LeftoverHandler | null = null;
+/** server.ts hands this a way to start a turn, so a closed turn can start
+ *  the next one on the owner's leftover notes without importing the agent. */
+export function onLeftoverSideNotes(handler: LeftoverHandler | null): void { leftoverHandler = handler; }
+export function reportLeftoverSideNotes(threadId: string, notes: Array<{ at: string; text: string }>): void {
+  if (leftoverHandler && threadId && notes.length > 0) leftoverHandler(threadId, notes);
+}
+
 /** The message ids of the notes a read mark covers: stamped at or before it. */
 export function sideNotesCoveredBy(notes: ReadonlyArray<{ at: string; messageId?: string }>, mark: string): string[] {
   if (!mark) return [];

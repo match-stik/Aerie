@@ -5,6 +5,7 @@ import { motion, useIsPresent } from 'motion/react';
 import { LayoutGrid, Lock } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn, haptic } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 import { APPS, useAppName, type AppDef } from '../lib/apps';
 import type { AppTheme } from '../types';
 import { toggleWidget, type HomeWidget, type Layout } from '../lib/home-widgets';
@@ -53,6 +54,8 @@ export function HomeScreen({
   // home screen does. Not from inside a text box, where a long press selects,
   // and not on a widget, where a long press picks the widget up to move it.
   const [sheet, setSheet] = useState(false);
+  // Back closes the widget sheet rather than putting the whole app away.
+  useBackHandler(sheet, () => setSheet(false));
   const holdTimer = useRef<number | null>(null);
   const cancelHold = () => { if (holdTimer.current) { window.clearTimeout(holdTimer.current); holdTimer.current = null; } };
   const holdHandlers = {

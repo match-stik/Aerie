@@ -4,10 +4,12 @@ import { DEFAULT_LOOK, nameColor, type BubbleLook } from '../lib/bubble-look';
 import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 import { openExternal } from '../lib/open-external';
 import { Message, ThemeMode, ContactProfile, CustomEmoji } from '../types';
 import { ThemeConfig, contrastTextColor, resolveThemeColors } from '../lib/theme';
 import ReactMarkdown from 'react-markdown';
+import { rehypeActionLines } from '../lib/action-lines';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { CodeBlock } from './CodeBlock';
@@ -16,7 +18,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageSegments } from './MessageSegments';
 import { BubbleSkin, SKINNED } from './BubbleSkin';
 import { ImageLightbox } from './ImageLightbox';
-import { resolveStickerRef, apiFetch } from '../aerie';
+import { resolveStickerRef, apiFetch, requestMessageTts, requestMessageTtsStream, isMessageTtsStreamUnavailable, playVoiceSequence, stopVoicePlayback, unlockVoicePlayback } from '../aerie';
 import { copyToClipboard } from '../lib/clipboard';
 import { fileBlockIsHref, houseFileLink, resolveMessageHref } from '../lib/message-links';
 import { cleanForTTS } from '../lib/tts';
@@ -166,8 +168,10 @@ interface MessageBubbleProps {
   onReroll?: () => Promise<void> | void;
   /** How many messages a reroll would remove, this one included. Shown in the
    *  confirmation, because reroll's blast radius is everything after the
-   *  message you tapped and nothing on screen said so. */
-  rerollRemoves?: number;
+   *  message you tapped and nothing on screen said so. A function is read
+   *  only when the confirmation opens, so a new message at the bottom does not
+   *  change every older bubble's props. */
+  rerollRemoves?: number | (() => number);
   onReply?: () => void;
   onCopy?: () => void;
   // Multi-voice replies render as several virtual bubbles, but their actions
@@ -208,6 +212,8 @@ const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || "";
 export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, onReroll, rerollRemoves, onReply, onCopy, copyText, onJumpToReply, themeConfig, themeMode, elevenLabsApiKey, contacts, isPrivateTab, onMediaLoad, customEmojis, voice, groupPos = 'only', userAvatar, userAvatarColor, centered, look = DEFAULT_LOOK, ownerName }: MessageBubbleProps) {
   const [showReactions, setShowReactions] = useState(false);
   const [showCustomReactions, setShowCustomReactions] = useState(false);
+  // Back closes the reaction sheet before it closes the chat.
+  useBackHandler(showReactions, () => { setShowReactions(false); setShowCustomReactions(false); });
   const [showActions, setShowActions] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   // A guest's picture lives on someone else's CDN and can stop answering.
@@ -217,6 +223,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   const [showRerollConfirm, setShowRerollConfirm] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const streamAbortRef = useRef<AbortController | null>(null);
   // Kept around after playback so the user can re-tap Download.
   const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
   // Revoke any retained blob URL when the bubble unmounts.
@@ -455,6 +462,13 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   };
 
   const handlePlayAudio = async () => {
+    if (isPlaying && streamAbortRef.current) {
+      streamAbortRef.current.abort();
+      stopVoicePlayback();
+      streamAbortRef.current = null;
+      setIsPlaying(false);
+      return;
+    }
     if (isPlaying && audioElement) {
       audioElement.pause();
       setIsPlaying(false);
@@ -462,6 +476,42 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
     }
 
     if (isUser) return;
+
+    // A text message plays as it is made: the house's stream route starts every piece
+    // at once and hands back one live URL per piece, so the first sentence
+    // speaks while the rest are still rendering, instead of waiting for the
+    // whole reply to render and stitch. The call has used this road since
+    // July; the speaker button on a bubble never did. Voice notes already have
+    // a file and keep the old road below.
+    if (!isVoice) {
+      setIsLoadingAudio(true);
+      const controller = new AbortController();
+      streamAbortRef.current = controller;
+      // Primed inside the tap, before anything awaits, so a phone that wants a
+      // gesture for audio has had one.
+      void unlockVoicePlayback().catch(() => {});
+      try {
+        let urls: string[];
+        try {
+          const manifest = await requestMessageTtsStream(message.id, controller.signal);
+          urls = manifest.segments.map((segment) => segment.url);
+        } catch (caught) {
+          if (controller.signal.aborted) throw caught;
+          if (!isMessageTtsStreamUnavailable(caught)) throw caught;
+          urls = [(await requestMessageTts(message.id, controller.signal)).url];
+        }
+        setIsLoadingAudio(false);
+        setIsPlaying(true);
+        await playVoiceSequence(urls, controller.signal);
+      } catch (error) {
+        if (!controller.signal.aborted) console.error('Error playing audio:', error);
+      } finally {
+        if (streamAbortRef.current === controller) streamAbortRef.current = null;
+        setIsLoadingAudio(false);
+        setIsPlaying(false);
+      }
+      return;
+    }
 
     setIsLoadingAudio(true);
     try {
@@ -597,6 +647,9 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   const companionNameColor = isCompanion ? nameColor(voice!.slug, voice!.color, themeMode, resolvedColors.pageBg) : null;
   // The owner's bubbles, and their name in their own ring color lifted until it reads.
   const isOwner = isUser && !isPrivateTab && !centered;
+  // Names on Theme wear the theme's accent, fitted to the page the same way,
+  // as the rings do.
+  const themeName = nameColor('', resolvedColors.accent, themeMode, resolvedColors.pageBg);
   const ownerNameColor = isOwner && look.myName ? nameColor('', userAvatarColor || '#f97316', themeMode, resolvedColors.pageBg) : null;
   // A face sits level with its bubble's tail: at the top, or at the bottom.
   // A name sits by the face: over the bubble with a top tail, and with a
@@ -608,14 +661,14 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   const nameLabel = (extra: string) => ownerNameColor && ownerName ? (
     <div
       className={cn("min-w-0 break-words text-right mr-0.5 text-[10px] font-semibold uppercase", extra)}
-      style={{ letterSpacing: '0.16em', color: ownerNameColor }}
+      style={{ letterSpacing: '0.16em', color: look.nameColors ? ownerNameColor : themeName }}
     >
       {ownerName}
     </div>
   ) : isCompanion && look.names ? (
     <div
       className={cn("min-w-0 break-words ml-0.5 text-[10px] font-semibold uppercase", extra)}
-      style={{ letterSpacing: '0.16em', color: companionNameColor! }}
+      style={{ letterSpacing: '0.16em', color: look.nameColors ? companionNameColor! : themeName }}
     >
       {voice!.display_name}
     </div>
@@ -692,53 +745,20 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
       />
     </div>
   ) : null;
-  // A bubble with a line under it (the time, or a name beside the face) is
-  // never narrower than that line, so the date card sits under the bubble
-  // instead of hanging past its edge.
-  // A picture with no words keeps its own width, or the bubble would show
-  // round it as an empty frame.
+  // A bubble with a line under it (the date, or a name beside the face) is
+  // never narrower than that line, so the line never hangs past its edge.
+  // With the time inside, the line is only the date and whatever the owner
+  // has switched on, so the minimum shrinks to match. A picture with no words
+  // keeps its own width, or it would sit in an empty frame.
   const mediaOnly = (isGif || isImage || videoSources.length > 0) && !textContent;
-  // A short message sits centered in a bubble the line under it made wider
-  // than the words, rather than hugging one side. The words keep their
-  // own width and the row centers them, so a message long enough to wrap fills
-  // the bubble exactly as before. Anything carrying a picture or a link keeps
-  // the old layout, since a full-width picture inside would have no width to
-  // take from a row that sizes itself to its words.
-  // A Discord emote or sticker is a picture by markup and a word by size (the
-  // img renderer below draws it emote-sized), so it never counts as a link
-  // here (a short line with an emote under it would otherwise stay at the left).
-  // The owner's, the companions' and Discord's short bubbles all center the
-  // same way. A system line and the
-  // treehouse keep their own layout, and so does a centered first voice.
-  const linkText = (textContent || '').replace(/!\[(?:d?emoji|sticker):[^\]]*\]\([^)]*\)/g, '');
-  const centersShortBubble = !isSystem && !isPrivateTab && !centered;
-  const centerShort = centersShortBubble && !(isGif || isImage || videoSources.length > 0) && !/https?:\/\//.test(linkText);
-  // And when no line had to wrap, each line centers on its own, so a whisper
-  // over an emote sits in the middle as a pair. Whether anything wrapped is
-  // read off the page: the words' box sizes itself to its longest line, so it
-  // is narrower than the room the row gives it only when nothing wrapped. A
-  // message that wraps keeps its lines to the left, as before.
-  const centerRowRef = useRef<HTMLDivElement>(null);
-  const centerBoxRef = useRef<HTMLDivElement>(null);
-  const [linesFit, setLinesFit] = useState(false);
-  React.useLayoutEffect(() => {
-    const row = centerRowRef.current;
-    const box = centerBoxRef.current;
-    if (!centerShort || !row || !box) { setLinesFit(false); return; }
-    const measure = () => {
-      let room = row.getBoundingClientRect().width;
-      for (const child of Array.from(row.children)) {
-        if (child !== box) room -= (child as HTMLElement).getBoundingClientRect().width + 8; // gap-2
-      }
-      setLinesFit(box.getBoundingClientRect().width < room - 0.5);
-    };
-    measure();
-    if (typeof ResizeObserver === 'undefined') return;
-    const watcher = new ResizeObserver(measure);
-    watcher.observe(row);
-    watcher.observe(box);
-    return () => watcher.disconnect();
-  }, [centerShort, textContent]);
+  // Short bubbles sit at their own side, as wide as their words, with the
+  // time inside the last bubble of a turn and only the date under it.
+  const timeInBubble = isGroupLast && !isSystem && !isPrivateTab && (!!textContent || hasSegments);
+  const timeInside = timeInBubble ? (
+    <span className="aerie-message-time-inner block text-right text-[10px] font-bold leading-none mt-1 opacity-60">
+      {format(new Date(message.timestamp), 'h:mm a')}
+    </span>
+  ) : null;
   // The swoop on the tail corner: the bubble and its curl painted as one
   // shape behind the words (components/BubbleSkin.tsx), the same way the
   // Settings preview draws it.
@@ -796,7 +816,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           isUser && !isPrivateTab ? "aerie-theme-user-bubble" : "aerie-theme-comp-bubble",
         )}
       >
-        {format(new Date(message.timestamp), 'MMM d, h:mm a')}
+        {format(new Date(message.timestamp), timeInBubble ? 'MMM d' : 'MMM d, h:mm a')}
       </span>
       {isUser && isPrivateTab && readChecks}
       {message.editedAt && (
@@ -912,7 +932,8 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
               : isCompanion && look.edges
                 ? { borderColor: `color-mix(in srgb, ${companionNameColor} 45%, transparent)` }
                 : undefined}
-            data-quiet-actions={isCompanion && look.quietActions ? 'true' : undefined}
+            // One switch for every action line, the owner's included.
+            data-quiet-actions={(isCompanion || (isUser && !isPrivateTab)) && look.quietActions ? 'true' : undefined}
           >
             {message.replyToPreview && !isEditing && isGroupFirst && (
               <button
@@ -1061,7 +1082,9 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                 customEmojis={customEmojis}
                 textClass={textColorClass}
               />
-            ) : textContent && !isVoice && (
+            ) : null}
+            {hasSegments && timeInside}
+            {!hasSegments && textContent && !isVoice && (
             <div className={cn(
                 // [overflow-wrap:anywhere] handles the pathological case
                 // — a very long unbroken string (URL, hash, paste of code)
@@ -1108,13 +1131,14 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                 '--tw-prose-invert-td-borders': 'inherit',
               } as React.CSSProperties}
               >
-                <div ref={centerRowRef} className={cn("flex gap-2 items-start", centerShort && "justify-center")}>
+                <div className="flex gap-2 items-start">
                   {isUser && (isVoice || message.isVoiceInput) && (
                     <Mic size={16} className="mt-1 flex-shrink-0 opacity-70" />
                   )}
-                  <div ref={centerBoxRef} className={cn("min-w-0", centerShort ? "flex-initial" : "flex-1", centerShort && linesFit && "text-center")}>
+                  <div className="min-w-0 flex-1">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm, remarkBreaks]}
+                      rehypePlugins={[rehypeActionLines]}
                       components={{
                         p: ({ children }) => <span className="block">{children}</span>,
                         // Discord-style "-# whisper" subtext (preprocessed to h6 above)
@@ -1248,6 +1272,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                     </ReactMarkdown>
                   </div>
                 </div>
+                {timeInside}
               </div>
             )}
 
@@ -1464,7 +1489,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
               */
               <div className="flex items-center gap-2 px-1 py-0.5">
                 <span className="text-[11px] font-bold">
-                  {rerollRemoves && rerollRemoves > 1 ? `Reroll? Removes ${rerollRemoves}` : 'Reroll?'}
+                  {(() => { const n = typeof rerollRemoves === 'function' ? rerollRemoves() : rerollRemoves; return n && n > 1 ? `Reroll? Removes ${n}` : 'Reroll?'; })()}
                 </span>
                 <button
                   onClick={(e) => { e.stopPropagation(); void onReroll?.(); setShowRerollConfirm(false); }}

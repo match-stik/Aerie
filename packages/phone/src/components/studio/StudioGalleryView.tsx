@@ -8,6 +8,7 @@ import { apiFetch } from '../../aerie';
 import { cn } from '../../lib/utils';
 import { Paginator, usePaged } from '../Paginator';
 import { thumbSrc } from '../../lib/thumb';
+import { useBackHandler } from '../../lib/use-back-handler';
 import { useHouseRoster } from '../../lib/house';
 import type { ThemeColors } from '../../lib/theme';
 import { ACCENT_TEXT_COLOR_BY_THEME } from './constants';
@@ -125,6 +126,11 @@ export function StudioGalleryView({
   const [bulkFolderName, setBulkFolderName] = useState('');
   const [autoFetches, setAutoFetches] = useState(0);
   const [drainStalled, setDrainStalled] = useState(false);
+  // Back closes the top sheet first: the cast editor or folder picker, then the
+  // picture being viewed, before the gallery itself.
+  useBackHandler(viewing !== null, () => setViewing(null));
+  useBackHandler(castEditor !== null, () => setCastEditor(null));
+  useBackHandler(showBulkFolderPicker, () => { if (!movingSelection) setShowBulkFolderPicker(false); });
   const galleryRequestRef = useRef(0);
   const galleryLoadingRef = useRef(false);
 

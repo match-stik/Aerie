@@ -13,6 +13,7 @@
 // agree WILL drift: the shared one learned to forgive a title after a name
 // (`**🌫️ Willow — the docs**`) and this copy never did, so those voices silently
 // folded into the bubble above them in here and nowhere else.
+import { themeInk } from '../../lib/theme-ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -246,7 +247,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
                       {companion && (
                         <div
                           className="mb-1.5 text-[12px] font-semibold uppercase tracking-[.12em]"
-                          style={{ color: companion?.color || PANEL_TEXT_MUTED }}
+                          style={{ color: companion ? themeInk(companion.slug, companion.color, colors) : PANEL_TEXT_MUTED }}
                         >
                           {companion.display_name}
                         </div>

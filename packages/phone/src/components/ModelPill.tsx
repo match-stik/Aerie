@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, ChevronRight, Plus, Star, X, Loader2, Wrench } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 import { apiFetch } from '../aerie';
 import { clearProviderScopedState } from '../aerie/socket';
 import { isModelSwitch } from './model-switch';
@@ -75,6 +76,7 @@ export function ModelPill({ themeConfig, themeMode }: ModelPillProps) {
   const colors = themeConfig[themeMode];
   const [open, setOpen] = useState(false);
   const [models, setModels] = useState<ModelInfo[]>([]);
+  useBackHandler(open, () => setOpen(false));
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [currentModel, setCurrentModel] = useState('');
   const [lanes, setLanes] = useState<LaneModelState[]>([]);

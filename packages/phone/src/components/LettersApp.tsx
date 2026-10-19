@@ -4,7 +4,7 @@
 // feel like sealing. There is no edit and no delete anywhere in this UI
 // because the vault has no routes for them — the absence is the contract.
 
-import { nameColor } from '../lib/bubble-look';
+import { themeInk } from '../lib/theme-ink';
 import { useEffect, useState } from 'react';
 import { useBackHandler } from '../lib/use-back-handler';
 import ReactMarkdown from 'react-markdown';
@@ -124,10 +124,9 @@ export function LettersApp({ onClose, themeConfig, themeMode, embedded }: Letter
   const companionOf = (slug: string) => companions.find((c) => c.slug === slug);
   const isOwner = (name: string) => !!owner.slug && name === owner.slug;
   const colorOf = (name: string) => (isOwner(name) ? OWNER_COLOR : companionOf(name)?.color || colors.accent);
-  // A color used as lettering at night takes the readable night shade the
-  // chat names already use (a deep navy pill on a dark theme was nearly
-  // invisible). By day the color stays exactly as it was.
-  const inkOf = (name: string) => (themeMode === 'dark' ? nameColor(isOwner(name) ? '' : name, colorOf(name), 'dark', '') : colorOf(name));
+  // A color used as lettering is fitted to read on this theme, day and night
+  // (a deep navy pill on a dark theme was nearly invisible).
+  const inkOf = (name: string) => themeInk(isOwner(name) ? '' : name, colorOf(name), colors, themeMode);
   const displayName = (name: string) => (isOwner(name) ? owner.name : companionOf(name)?.display_name || name);
   const sigilOf = (name: string) => (isOwner(name) ? OWNER_SIGIL : companionOf(name)?.emoji || '💌');
 

@@ -16,6 +16,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import type { ThemeConfig } from '../lib/theme';
 import { cn, haptic } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 import { apiFetch } from '../aerie/api';
 import { getState, useAerie } from '../aerie/store';
 import {
@@ -337,6 +338,9 @@ export function VoiceModeOverlay({
   onPhaseChange,
 }: VoiceModeOverlayProps) {
   const colors = themeConfig[themeMode];
+  // Back folds a full-screen call down to its dock, as the minimize button does.
+  // It never hangs up: the call keeps going and the screen behind comes back.
+  useBackHandler(open && !minimized && !!onMinimize, () => onMinimize?.());
   const reduceMotion = useReducedMotion();
   const messages = useAerie((state) => state.messages);
   const transcription = useAerie((state) => state.transcription);

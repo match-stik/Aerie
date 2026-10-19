@@ -9,6 +9,7 @@ import { copyToClipboard } from '../lib/clipboard';
 import { saveToDevice } from '../lib/download';
 import { apiFetch } from '../aerie';
 import { thumbSrc } from '../lib/thumb';
+import { useBackHandler } from '../lib/use-back-handler';
 
 interface FilesAppProps {
   onClose: () => void;
@@ -93,6 +94,7 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
   const [filter, setFilter] = useState<Filter>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [preview, setPreview] = useState<FileEntry | null>(null);
+  useBackHandler(preview !== null, () => setPreview(null));
   const [textBody, setTextBody] = useState<string | null>(null);
   const [textState, setTextState] = useState<'idle' | 'loading' | 'ready' | 'toobig' | 'error'>('idle');
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'failed'>('idle');

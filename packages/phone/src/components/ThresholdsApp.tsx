@@ -28,6 +28,7 @@ import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { Paginator, usePaged } from './Paginator';
 import { apiFetch } from '../aerie';
+import { useBackHandler } from '../lib/use-back-handler';
 import {
   hasNativeGeofence, openLocationSettings, syncArmedPlaces,
   type GeofenceStatus,
@@ -139,6 +140,8 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
   const historyPage = usePaged(openHistory);
   const [detailLoading, setDetailLoading] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  // Back from a place returns to the list, as its header arrow does.
+  useBackHandler(openPlace !== null, () => setOpenPlace(null));
 
   // Whether the phone itself is watching these places with Aerie shut. Null
   // until asked; on anything but the Android shell it stays null and no part

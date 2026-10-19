@@ -13,6 +13,7 @@ import { matchShortcodeToken, applyShortcode } from '../lib/shortcodes';
 import { matchModelArgToken, applyModelArg } from '../lib/model-arg';
 import { AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 import { ThemeConfig } from '../lib/theme';
 import { ThemeMode, CustomEmoji, EmojiPack, Message } from '../types';
 import {
@@ -182,6 +183,11 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  // Back closes a picker or the image preview before it closes the chat.
+  useBackHandler(showGifPicker, () => setShowGifPicker(false));
+  useBackHandler(showEmojiPicker, () => setShowEmojiPicker(false));
+  useBackHandler(showStickerPicker, () => setShowStickerPicker(false));
+  useBackHandler(previewImage !== null, () => setPreviewImage(null));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);

@@ -44,7 +44,7 @@ import { HOME_WIDGETS, homeWidgetsOf, toggleWidget } from "../lib/home-widgets";
 import { bubbleCorners, bubbleLookOf, nameColor } from "../lib/bubble-look";
 import { BubbleSkin, SKINNED } from "./BubbleSkin";
 import { drawerIconPx, drawerLookOf, drawerTileStyle } from "../lib/drawer-look";
-import { BODY_FONTS, FONT_SCALE_MAX, FONT_SCALE_MIN, TITLE_FONTS, bodyStack, fontsOf, titleStack } from "../lib/fonts";
+import { BODY_FONTS, FONT_SCALE_MAX, FONT_SCALE_MIN, TITLE_FONTS, TITLE_SCALE_MAX, TITLE_SCALE_MIN, bodyStack, fontsOf, titleStack } from "../lib/fonts";
 import { AppLabel } from "./AppLabel";
 import { lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, withClockAt, withHidden, type LockFace, type LockPiece, type LockShow, type LockSize } from "../lib/lock-clock";
 import { apiFetch, houseKeepsLinkedFiles, storeInlinePicture } from "../aerie";
@@ -127,9 +127,6 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<"appearance" | "data">("appearance");
   // Personalize: four doors instead of one long scroll. null is the tile page.
   const [pane, setPane] = useState<null | "theme" | "look" | "home" | "you" | "lock">(null);
-  // The back gesture inside a door goes to the doors, like the card at the top,
-  // rather than out to the home screen.
-  useBackHandler(pane !== null, () => setPane(null));
   // Which lock screen corner the shortcut picker is setting: 0 left, 1 right.
   const [lockCorner, setLockCorner] = useState<0 | 1>(0);
   // The dock picker names a room the way the drawer does, so an app a house
@@ -141,6 +138,14 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   const [cropTarget, setCropTarget] = useState<
     "single" | "lockscreen" | "avatar" | number
   >("single");
+  // The back gesture inside a door goes to the doors, like the card at the top,
+  // rather than out to the home screen, and from the doors it closes Settings.
+  // Settings answers every back press while it is open, so App asks it first.
+  useBackHandler(true, () => {
+    if (cropImageSrc) setCropImageSrc(null);
+    else if (pane !== null) setPane(null);
+    else onClose();
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -1202,12 +1207,14 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                   { key: "bubbleNames", on: look.names, label: "Names", hint: `Each companion named ${look.tailOurs === "bottom" ? "under" : "over"} their bubbles, in their color` },
                   { key: "bubbleMyName", on: look.myName, label: "Your name", hint: `Your name ${look.tailMine === "bottom" ? "under" : "over"} your bubbles, in your ring color` },
                   { key: "bubbleEdges", on: look.edges, label: "Edges in companion colors", hint: "A companion bubble's thin border in that companion's color" },
-                  { key: "bubbleQuietActions", on: look.quietActions, label: "Quieter action lines", hint: "The italics a little softer than the words" },
+                  { key: "bubbleQuietActions", on: look.quietActions, label: "Quieter action lines", hint: "Every action line a little softer than the words, the owner's too" },
                 ];
                 const page = resolveThemeColors(colors).pageBg;
-                const sampleName = nameColor(SAMPLE_COMPANION.slug, SAMPLE_COMPANION.color, theme.mode, page);
+                const sampleColor = nameColor(SAMPLE_COMPANION.slug, SAMPLE_COMPANION.color, theme.mode, page);
+                const themeName = nameColor("", resolveThemeColors(colors).accent, theme.mode, page);
+                const sampleName = look.nameColors ? sampleColor : themeName;
                 const ring = appSettings.userAvatarColor || "#f97316";
-                const mine = nameColor("", ring, theme.mode, page);
+                const mine = look.nameColors ? nameColor("", ring, theme.mode, page) : themeName;
                 const tailChip = (on: boolean) => cn(
                   "flex items-center justify-center px-3 py-2 rounded-2xl border text-[11px] font-bold uppercase tracking-widest",
                   on ? "border-transparent" : `${colors.panelBg} ${colors.panelBorder} ${colors.accentText}`,
@@ -1216,10 +1223,13 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                 // The previews wear a time the way the chat does: under the
                 // bubble at the far end from the face, sharing the line with the
                 // name when the tail is at the bottom.
-                const sampleTime = new Date().toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+                // As the chat draws it: the time inside the bubble, the date under it.
+                const sampleDate = new Date().toLocaleString(undefined, { month: "short", day: "numeric" });
+                const sampleClock = new Date().toLocaleString(undefined, { hour: "numeric", minute: "2-digit" });
+                const timeInside = <span className="block text-right text-[10px] font-bold leading-none mt-1 opacity-60">{sampleClock}</span>;
                 const timePill = (who: "mine" | "ours", extra = "") => (
                   <span className={cn("text-[10px] font-bold", theme.mode === "light" ? "text-black" : "text-white", extra)}>
-                    <span className={cn("aerie-message-time", who === "mine" ? "aerie-theme-user-bubble" : "aerie-theme-comp-bubble")}>{sampleTime}</span>
+                    <span className={cn("aerie-message-time", who === "mine" ? "aerie-theme-user-bubble" : "aerie-theme-comp-bubble")}>{sampleDate}</span>
                   </span>
                 );
                 return (<>
@@ -1297,6 +1307,21 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                           </button>
                         ))}
                       </div>
+                      {/* Names and typing dots the same way as the rings: House is the
+                          companions' own colors, Theme is the theme's ink. */}
+                      {([
+                        ["Names", "bubbleNameColors", look.nameColors],
+                        ["Dots", "bubbleDotColors", look.dotColors],
+                      ] as const).map(([label, key, on]) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className={cn("w-20 shrink-0 text-[11px] font-bold", colors.textMain)}>{label}</span>
+                          {([true, false] as const).map((pick) => (
+                            <button key={String(pick)} onClick={() => onThemeChange({ [key]: pick })} className={cn("flex-1", tailChip(on === pick))} style={tailStyle(on === pick)}>
+                              {pick ? "House" : "Theme"}
+                            </button>
+                          ))}
+                        </div>
+                      ))}
                     </div>
                     {/* A sample companion bubble, drawn by the same rules the chat uses. */}
                     {/* Faces pinned to the bubble's own edge, as the chat does. */}
@@ -1320,12 +1345,13 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                           <span
                             ref={oursPreviewRef}
                             className={cn("aerie-message-bubble block px-3.5 py-2.5 border text-[13px]", colors.compBubbleBg, colors.compBubbleText, colors.panelBorder, look.tailShape === "swoop" && SKINNED)}
-                            style={{ ...bubbleCorners("ours", look.tailOurs), ...(look.edges ? { borderColor: `color-mix(in srgb, ${sampleName} 45%, transparent)` } : {}) }}
+                            style={{ ...bubbleCorners("ours", look.tailOurs), ...(look.edges ? { borderColor: `color-mix(in srgb, ${sampleColor} 45%, transparent)` } : {}) }}
                             data-quiet-actions={look.quietActions ? "true" : undefined}
                           >
                             <em>waves</em>
                             <br />
                             This is how a reply will look.
+                            {timeInside}
                           </span>
                         </span>
                         <span className="mt-1 flex w-full items-center justify-between gap-3">
@@ -1355,11 +1381,11 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                           )}
                           <span
                             ref={minePreviewRef}
-                            className={cn("aerie-message-bubble block px-3.5 py-2.5 border text-[13px] text-center", colors.userBubbleBg, colors.userBubbleText, colors.panelBorder, look.tailShape === "swoop" && SKINNED)}
+                            className={cn("aerie-message-bubble block px-3.5 py-2.5 border text-[13px]", colors.userBubbleBg, colors.userBubbleText, colors.panelBorder, look.tailShape === "swoop" && SKINNED)}
                             style={bubbleCorners("mine", look.tailMine)}
                           >
-                            {/* Centered, as short messages now sit in the chat. */}
                             And this is me.
+                            {timeInside}
                           </span>
                         </span>
                         <span className="mt-1 flex w-full flex-row-reverse items-center justify-between gap-3">
@@ -1413,10 +1439,11 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                             ))}
                           </div>
                         ))}
-                        {/* Four tiles drawn by the same rules the drawer uses. */}
-                        <div className="grid gap-x-3 gap-y-3 pt-2" style={{ gridTemplateColumns: `repeat(${drawerColumnsOf(theme.drawerColumns)}, minmax(0, 1fr))` }} aria-hidden="true">
+                        {/* Four tiles drawn by the same rules the drawer uses, each as wide as
+                            a drawer column, and centered in the row. */}
+                        <div className="flex flex-wrap justify-center gap-x-3 gap-y-3 pt-2" aria-hidden="true">
                           {sample.map((app) => (
-                            <div key={app.id} className="flex flex-col items-center gap-1.5">
+                            <div key={app.id} className="flex flex-col items-center gap-1.5" style={{ width: `calc((100% - ${drawerColumnsOf(theme.drawerColumns) - 1} * 0.75rem) / ${drawerColumnsOf(theme.drawerColumns)})` }}>
                               <div className="aerie-app-tile flex items-center justify-center" style={tile}>
                                 <app.icon style={{ width: iconPx, height: iconPx }} />
                               </div>
@@ -1528,6 +1555,26 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                       </div>
                     </div>
                     <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className={cn("text-[11px] font-bold", colors.textMain)}>Title size</span>
+                        <span className={cn("text-[11px] font-bold", colors.textMuted)}>{Math.round(hf.titleScale * 100)}%</span>
+                      </div>
+                      <div className="flex items-center gap-3 px-1">
+                        <span className={cn("text-[11px] font-bold", colors.textMuted)} style={{ fontFamily: titleStack(hf.title) }}>A</span>
+                        <input
+                          type="range"
+                          min={TITLE_SCALE_MIN}
+                          max={TITLE_SCALE_MAX}
+                          step={0.05}
+                          value={hf.titleScale}
+                          onChange={(e) => onSettingsChange({ fontTitleScale: Number(e.target.value) })}
+                          className="flex-1 cursor-pointer"
+                          style={{ accentColor: colors.accent }}
+                        />
+                        <span className={cn("text-lg font-bold", colors.textMuted)} style={{ fontFamily: titleStack(hf.title) }}>A</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
                       <span className={cn("text-[11px] font-bold", colors.textMain)}>Messages</span>
                       <div className="grid grid-cols-3 gap-2">
                         {BODY_FONTS.map((f) => (
@@ -1540,7 +1587,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className={cn("text-[11px] font-bold", colors.textMain)}>Size</span>
+                        <span className={cn("text-[11px] font-bold", colors.textMain)}>Text size</span>
                         <span className={cn("text-[11px] font-bold", colors.textMuted)}>{Math.round(hf.scale * 100)}%</span>
                       </div>
                       <div className="flex items-center gap-3 px-1">
@@ -1560,7 +1607,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                     </div>
                     {/* A title and a line of a message, in what has been picked. */}
                     <div className={cn("rounded-xl border px-3 py-2.5 space-y-1", colors.panelBorder)} aria-hidden="true">
-                      <div className={cn("text-base italic", colors.textMain)} style={{ fontFamily: titleStack(hf.title) }}>Messages</div>
+                      <div className={cn("text-base italic", colors.textMain)} style={{ fontFamily: titleStack(hf.title), zoom: hf.titleScale }}>Messages</div>
                       {/* In rem, like the real messages, so the Size slider moves this preview too, not only the title. */}
                       <div className={cn("text-[0.9375rem]", colors.textMain)} style={{ fontFamily: bodyStack(hf.body) }}>Morning. The kettle's on.</div>
                     </div>

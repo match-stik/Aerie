@@ -6,6 +6,7 @@ import { ArchivistSettings } from './ArchivistSettings';
 import { ThemeConfig } from '../lib/theme';
 import { Paginator, usePaged } from './Paginator';
 import { cn } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 
 interface MemoryBlocksAppProps {
   onClose: () => void;
@@ -271,6 +272,8 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
       onClose();
     }
   };
+  // The system back gesture takes the same step, while there is one to take.
+  useBackHandler(tab === 'blocks' && selectedBlock !== null, handleBack);
 
   return (
     <AppShell embedded={embedded} title="Memory Blocks" icon={Layers} onClose={handleBack} themeConfig={themeConfig} themeMode={themeMode}>

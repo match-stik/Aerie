@@ -120,9 +120,11 @@ export const ANTIGRAVITY_MODELS = [
   'Gemini 3.1 Pro (Low)',
 ] as const;
 
-/** The one this house has actually had take a picture. Defined once because a
- *  duplicated default drifts even when both copies start out identical. */
-export const ANTIGRAVITY_DEFAULT_MODEL = 'Gemini 3.1 Pro (High)' as const;
+/** The one that has actually been seen to take a picture. Defined once because a
+ *  duplicated default drifts even when both copies start out identical. agy
+ *  stopped offering Gemini 3.1 Pro by Oct 2026 ('invalid model selection'),
+ *  so every refused Codex job skipped this painter; 3.8 Flash (High) draws. */
+export const ANTIGRAVITY_DEFAULT_MODEL = 'Gemini 3.8 Flash (High)' as const;
 
 export type AntigravityModel = typeof ANTIGRAVITY_MODELS[number];
 

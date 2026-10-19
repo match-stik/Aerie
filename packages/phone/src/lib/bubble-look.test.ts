@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import { DEFAULT_LOOK, bubbleCorners, bubbleLookOf, contrastRatio, nameColor } from './bubble-look.js';
 
 test('the bubbles look as they do today until a switch is flipped', () => {
-  assert.deepEqual(bubbleLookOf({}), { faces: true, names: false, edges: false, quietActions: false, myName: false, tailMine: 'top', tailOurs: 'top', tailShape: 'point', rings: 'house' });
+  assert.deepEqual(bubbleLookOf({}), { faces: true, names: false, edges: false, quietActions: false, myName: false, tailMine: 'top', tailOurs: 'top', tailShape: 'point', rings: 'house', nameColors: true, dotColors: true });
   assert.deepEqual(
-    bubbleLookOf({ bubbleFaces: false, bubbleNames: true, bubbleEdges: true, bubbleQuietActions: true, bubbleMyName: true, bubbleTailMine: 'bottom', bubbleTailOurs: 'sideways', bubbleRings: 'theme' }),
-    { faces: false, names: true, edges: true, quietActions: true, myName: true, tailMine: 'bottom', tailOurs: 'top', tailShape: 'point', rings: 'theme' },
+    bubbleLookOf({ bubbleFaces: false, bubbleNames: true, bubbleEdges: true, bubbleQuietActions: true, bubbleMyName: true, bubbleTailMine: 'bottom', bubbleTailOurs: 'sideways', bubbleRings: 'theme', bubbleNameColors: false, bubbleDotColors: false }),
+    { faces: false, names: true, edges: true, quietActions: true, myName: true, tailMine: 'bottom', tailOurs: 'top', tailShape: 'point', rings: 'theme', nameColors: false, dotColors: false },
   );
   assert.equal(bubbleLookOf({ bubbleRings: 'plaid' }).rings, 'house');
 });
@@ -50,4 +50,13 @@ test('the tail shape is the point unless the swoop is picked', () => {
   assert.equal(bubbleLookOf({ bubbleTailShape: 'swoop' }).tailShape, 'swoop');
   assert.equal(bubbleLookOf({ bubbleTailShape: 'curly' }).tailShape, 'point');
   assert.equal(DEFAULT_LOOK.tailShape, 'point');
+});
+
+test('one accent makes three dots at its own lightness, the accent in the middle', async () => {
+  const { accentTriad } = await import('./bubble-look');
+  const three = accentTriad('#e85d04');
+  assert.equal(three.length, 3);
+  assert.equal(three[1], '#e85d04');
+  assert.notEqual(three[0], three[2]);
+  assert.deepEqual(accentTriad('var(--x)'), ['var(--x)', 'var(--x)', 'var(--x)']);
 });

@@ -6,6 +6,7 @@ import { AppShell } from './AppShell';
 import type { ThemeConfig } from '../lib/theme';
 import { cn, haptic } from '../lib/utils';
 import { apiFetch } from '../aerie';
+import { useBackHandler } from '../lib/use-back-handler';
 
 interface PetAppProps {
   onClose: () => void;
@@ -259,6 +260,7 @@ export function PetApp({ onClose, themeConfig, themeMode }: PetAppProps) {
   const mood = useMemo(() => getMood(pet), [pet]);
   // Radiant cats zoom, then loaf — victory laps first, breathing after.
   const [zooming, setZooming] = useState(true);
+  useBackHandler(editing, () => setEditing(false));
   useEffect(() => {
     if (mood !== 'radiant') return;
     setZooming(true);

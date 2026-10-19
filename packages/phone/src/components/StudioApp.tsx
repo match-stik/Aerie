@@ -6,6 +6,7 @@ import {
   Users, X,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 import { SegmentedControl } from '../ui';
 import { GifApp } from './GifApp';
 import { CutoutApp } from './CutoutApp';
@@ -106,6 +107,12 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
     promptStyles: PROMPT_STYLES,
     sizePresets: SIZE_PRESETS,
   });
+
+  // Edit, Sketch and References step back to the generator, as the header arrow
+  // does; the picture viewer and the backends sheet close first when open.
+  useBackHandler(viewMode !== 'generate', () => setViewMode('generate'));
+  useBackHandler(viewMode === 'generate' && section === 'create' && viewingImage !== null, () => setViewingImage(null));
+  useBackHandler(showSettings, () => setShowSettings(false));
 
   const focusPrompt = () => {
     window.setTimeout(() => document.getElementById('aerie-studio-prompt')?.focus(), 80);

@@ -12,6 +12,7 @@ import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
 import { saveHref } from '../lib/download';
+import { useBackHandler } from '../lib/use-back-handler';
 
 interface CutoutAppProps {
   themeConfig: ThemeConfig;
@@ -177,6 +178,9 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
   // so the button says so when there is a batch. Box is held in the image's own pixels,
   // never in screen pixels, so zoom and pan cannot drift it.
   const [cropping, setCropping] = useState(false);
+  // Back leaves the crop box, as tapping Crop again does. Only while this is the
+  // Studio section showing: a hidden one stays mounted.
+  useBackHandler(active && cropping, () => { setCropping(false); setCrop(null); });
   const [crop, setCrop] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const cropDrag = useRef<'new' | 'move' | 'nw' | 'ne' | 'sw' | 'se' | null>(null);
   const cropAnchor = useRef<{ x: number; y: number } | null>(null);

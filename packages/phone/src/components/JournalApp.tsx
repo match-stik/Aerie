@@ -1,4 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { themeInk } from '../lib/theme-ink';
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -114,7 +115,7 @@ export function JournalApp({ onClose, themeConfig, themeMode, embedded }: Journa
         className={cn('shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors', colors.panelBorder, !active && colors.panelBg)}
         style={active
           ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
-          : { color: accent || undefined }}
+          : { color: (accent && companions.some((c) => c.slug === value) ? themeInk(value, accent, colors, themeMode) : accent) || undefined }}
       >
         {label}
       </button>
@@ -139,6 +140,8 @@ export function JournalApp({ onClose, themeConfig, themeMode, embedded }: Journa
   function entryCard(entry: JournalEntry) {
     const companion = companionOf(entry.companion_id);
     const accent = companion?.color || colors.accent;
+    // Words in the companion's color read on the theme; the stripe and ring keep it raw.
+    const ink = companion ? themeInk(companion.slug, companion.color, colors, themeMode) : accent;
     const isDream = entry.entry_type === 'dream';
     const faded = isDream && !entry.anchored_at && (entry.effective_vividness ?? 0) === 0;
     return (
@@ -158,7 +161,7 @@ export function JournalApp({ onClose, themeConfig, themeMode, embedded }: Journa
           {isDream && (
             <span
               className="flex items-center gap-1 rounded-[var(--shape-control)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
-              style={{ background: 'rgba(127,127,127,0.15)', color: accent }}
+              style={{ background: 'rgba(127,127,127,0.15)', color: ink }}
             >
               <Moon size={9} />
               {entry.dream_type || 'dream'}

@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { saveToDevice } from '../lib/download';
+import { useBackHandler } from '../lib/use-back-handler';
 
 interface ImageLightboxProps {
   src?: string;
@@ -15,7 +16,7 @@ interface ImageLightboxProps {
 // Fullscreen image viewer rendered via a portal. Supports pinch-to-zoom and
 // pan gestures on touch devices, plus button controls. When multiple images
 // are provided, supports swiping/clicking to navigate between them.
-// Closes on backdrop click, the close button, or the Escape key.
+// Closes on backdrop click, the close button, the Escape key, or back.
 export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: ImageLightboxProps) {
   // Build image array from either prop
   const allImages = images && images.length > 0 ? images : (src ? [src] : []);
@@ -28,6 +29,8 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  // Open on top of whatever screen called it, so back closes it first, everywhere.
+  useBackHandler(true, onClose);
 
   /**
    * Keep the picture under the user's finger.

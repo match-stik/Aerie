@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ThemeConfig } from '../lib/theme';
 import { ThemeMode } from '../types';
+import { accentTriad, inkOn } from '../lib/bubble-look';
 
 interface TypingIndicatorProps {
   themeConfig: ThemeConfig;
@@ -11,11 +12,37 @@ interface TypingIndicatorProps {
   /** Which corner the companions' tails come from, so the dots match
    *  companion bubbles (the Bubbles switches, lib/bubble-look.ts). */
   tail?: 'top' | 'bottom';
+  /** Who is in the room, in house order: one dot each in their own color
+   *  Empty keeps the
+   *  bubble's ink, as before. */
+  companions?: { slug: string; color?: string | null }[];
+  /** With no companions passed (Dots on Theme), the dots wear the
+   *  theme's accent, fitted to the bubble. */
+  accent?: string;
+  /** A multi-color palette's own colors, used for the Theme dots in place of
+   *  the accent's neighbors. */
+  themeColors?: string[];
 }
 
-export function TypingIndicator({ themeConfig, themeMode, tail = 'top' }: TypingIndicatorProps) {
+export function TypingIndicator({ themeConfig, themeMode, tail = 'top', companions = [], accent, themeColors }: TypingIndicatorProps) {
   const colors = themeConfig[themeMode];
   const reduceMotion = useReducedMotion();
+  // Each dot is fitted to the bubble it sits on, read off the page, so a
+  // navy dot does not vanish into a dark bubble (lib/bubble-look.ts inkOn).
+  const bubbleRef = React.useRef<HTMLDivElement>(null);
+  const [under, setUnder] = React.useState<string | null>(null);
+  React.useLayoutEffect(() => {
+    const el = bubbleRef.current;
+    if (!el) return;
+    const m = getComputedStyle(el).backgroundColor.match(/\d+(\.\d+)?/g);
+    if (m && m.length >= 3) setUnder('#' + m.slice(0, 3).map((n) => Math.round(Number(n)).toString(16).padStart(2, '0')).join(''));
+  }, [themeConfig, themeMode]);
+  const dots = companions.length > 0
+    ? companions.map((c) => inkOn(c.slug, c.color ?? null, themeMode === 'light' ? 'light' : 'dark', under ? [under] : []))
+    : accent
+      ? (themeColors && themeColors.length >= 3 ? themeColors.slice(0, 3) : accentTriad(accent))
+          .map((c) => inkOn('', c, themeMode === 'light' ? 'light' : 'dark', under ? [under] : []))
+      : [null, null, null];
 
   return (
     <motion.div
@@ -25,7 +52,7 @@ export function TypingIndicator({ themeConfig, themeMode, tail = 'top' }: Typing
       transition={{ duration: reduceMotion ? 0 : 0.2 }}
       className="flex justify-start mb-6"
     >
-      <div className={cn(
+      <div ref={bubbleRef} className={cn(
         "px-5 py-3.5 rounded-[var(--shape-bubble)] border backdrop-blur-md",
         tail === 'bottom' ? "rounded-bl-none" : "rounded-tl-none",
         colors.compBubbleBg,
@@ -33,7 +60,7 @@ export function TypingIndicator({ themeConfig, themeMode, tail = 'top' }: Typing
         colors.panelBorder
       )}>
         <div className="flex gap-1.5 items-center h-5">
-          {[0, 1, 2].map((i) => (
+          {dots.map((dot, i) => (
             <motion.div
               key={i}
               animate={reduceMotion ? {} : {
@@ -47,7 +74,7 @@ export function TypingIndicator({ themeConfig, themeMode, tail = 'top' }: Typing
                 ease: "easeInOut"
               }}
               className={cn("w-1.5 h-1.5 rounded-full", colors.compBubbleText)}
-              style={{ backgroundColor: 'currentColor', opacity: reduceMotion ? 0.7 : undefined }}
+              style={{ backgroundColor: dot ?? 'currentColor', opacity: reduceMotion ? 0.7 : undefined }}
             />
           ))}
         </div>

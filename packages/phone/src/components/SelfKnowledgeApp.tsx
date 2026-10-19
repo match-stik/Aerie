@@ -1,4 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { themeInk } from '../lib/theme-ink';
 import React, { useEffect, useState } from 'react';
 import { Sparkles, RefreshCw, Loader2, Check, X, Trash2 } from 'lucide-react';
 import { AppShell } from './AppShell';
@@ -137,7 +138,7 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
         className={cn('shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder, !active && colors.panelBg)}
         style={active
           ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
-          : { color: accent || undefined }}
+          : { color: (accent && companions.some((c) => c.slug === value) ? themeInk(value, accent, colors, themeMode) : accent) || undefined }}
       >
         {label}
         {badge ? <span className="ml-1 opacity-80">{badge}</span> : null}
@@ -148,6 +149,8 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
   function entryCard(entry: SelfKnowledgeEntry) {
     const companion = companionOf(entry.companion_id);
     const accent = companion?.color || colors.accent;
+    // Words and the small check in the companion's color read on the theme; the stripe and ring keep it raw.
+    const ink = companion ? themeInk(companion.slug, companion.color, colors, themeMode) : accent;
     const proposed = entry.status === 'proposed';
     const dismissed = entry.status === 'dismissed';
     const contradicted = entry.status === 'contradicted';
@@ -168,13 +171,13 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
           <span className={cn('text-xs font-semibold', colors.textMain)}>{companion?.display_name || entry.companion_id}</span>
           <span
             className="rounded-[var(--shape-control)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
-            style={{ background: 'rgba(127,127,127,0.15)', color: accent }}
+            style={{ background: 'rgba(127,127,127,0.15)', color: ink }}
           >
             {CATEGORY_LABEL[entry.category] || entry.category}
           </span>
           {accepted && (
             <span title="Accepted into identity">
-              <Check size={12} style={{ color: accent }} />
+              <Check size={12} style={{ color: ink }} />
             </span>
           )}
           {contradicted && (

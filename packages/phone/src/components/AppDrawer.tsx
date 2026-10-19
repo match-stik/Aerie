@@ -6,6 +6,7 @@ import { ThemeConfig } from '../lib/theme';
 import { AppLabel } from './AppLabel';
 import { DEFAULT_DRAWER_LOOK, drawerIconPx, drawerTileStyle, type DrawerLook } from '../lib/drawer-look';
 import { cn, haptic } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 import { APPS, applyAppLayout, loadAppLayout, saveAppLayout, trimTrailingEmpty, useAppName, type AppDef, type AppSlot, type DrawerColumns } from '../lib/apps';
 
 interface AppDrawerProps {
@@ -40,6 +41,8 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns 
     applyAppLayout(APPS, loadAppLayout(columns)),
   );
   const [editing, setEditing] = useState(false);
+  // Back leaves edit mode, as Done does, before it leaves the drawer.
+  useBackHandler(editing, () => setEditing(false));
   const [query, setQuery] = useState('');
 
   // While the user is searching, the drag-to-reorder layout doesn't make

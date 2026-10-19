@@ -11,6 +11,7 @@ import { apiFetch } from '../aerie';
 import { ThemeConfig } from '../lib/theme';
 import { SecretInput } from './SecretInput';
 import { cn } from '../lib/utils';
+import { useBackHandler } from '../lib/use-back-handler';
 
 interface CompanionsAppProps {
   onClose: () => void;
@@ -74,6 +75,11 @@ export function CompanionsApp({
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Back closes whichever sheet is open over the list: the cropper, or the
+  // emoji or colour picker.
+  useBackHandler(cropImageSrc !== null, () => { setCropImageSrc(null); setCropTargetId(null); });
+  useBackHandler(showEmojiPicker !== null, () => setShowEmojiPicker(null));
+  useBackHandler(showColorPicker !== null, () => setShowColorPicker(null));
 
   const onCropComplete = useCallback((croppedArea: any, pixels: any) => {
     setCroppedAreaPixels(pixels);

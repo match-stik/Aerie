@@ -1,4 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { themeInk } from '../../lib/theme-ink';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -570,7 +571,7 @@ const RailConversation = React.memo(function RailConversation({
                     }}
                   >
                     {voice && (
-                      <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[.12em]" style={{ color: voice.color || PANEL_TEXT_MUTED }}>
+                      <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[.12em]" style={{ color: themeInk(voice.slug, voice.color) }}>
                         {voice.display_name}
                       </div>
                     )}

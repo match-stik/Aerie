@@ -334,7 +334,7 @@ import { startMemoryExtraction, stopMemoryExtraction } from './services/memory-e
 import { listCompanions } from './services/db/companions.js';
 import { initHandoff } from './services/handoff.js';
 import { initMemoryProposals } from './services/memory-proposals.js';
-import { shutdownAllHeartbeats } from './services/heartbeat/supervisor.js';
+import { shutdownAllHeartbeats, onLeftoverSideNotes } from './services/heartbeat/supervisor.js';
 
 app.use('/api', companionsRoutes);
 app.use('/api/stickers', stickerRoutes);
@@ -402,6 +402,15 @@ const server = createServer(app);
 
 // Initialize agent service (shared between WebSocket and orchestrator)
 const agentService = new AgentService();
+// The owner's side notes that land as a turn closes start the next turn at once
+// (services/heartbeat/supervisor.ts onLeftoverSideNotes), rather than waiting
+// for their next message to carry them in.
+onLeftoverSideNotes((threadId, notes) => {
+  console.log(`[Heartbeat] ${notes.length} side note(s) landed as a turn closed; starting a turn on them`);
+  agentService.processAutonomous(threadId, '[Side notes from the owner landed just as your last reply went out, so they are handed over above. Answer them; this is the owner talking, not a bell.]').catch((err) => {
+    console.error('[Heartbeat] Turn for leftover side notes failed:', err);
+  });
+});
 
 // Initialize voice service
 const voiceService = new VoiceService();

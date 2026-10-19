@@ -5,6 +5,7 @@
 // one paper. This screen is deliberately NOT a game: it is the table the games
 // will be designed on, so it does everything a table does (shuffle, deal, turn
 // one over, gather up) and decides nothing about how any of that is scored.
+import { themeInk } from '../../lib/theme-ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Layers, RotateCcw, Hand, Shuffle, MessagesSquare, Maximize2, Minimize2, MessageCircle } from 'lucide-react';
@@ -20,6 +21,7 @@ import { CardRail } from './CardRail';
 import { apiFetch } from '../../aerie';
 import { useHouseRoster, OWNER_SIGIL } from '../../lib/house';
 import { cn } from '../../lib/utils';
+import { useBackHandler } from '../../lib/use-back-handler';
 import type { ThemeConfig } from '../../lib/theme';
 
 type CardId = string;
@@ -89,6 +91,9 @@ export function CardRoom({ colors }: CardRoomProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState<CardId | null>(null);
+  // Back closes a zoomed card, then the rail, before it leaves the room.
+  useBackHandler(railOpen, () => { setRailExpanded(false); setRailOpen(false); });
+  useBackHandler(zoom !== null, () => setZoom(null));
   const loaded = useRef(false);
   // Reopen onto a live game exactly once per visit. The server keeps the game
   // between visits; this screen used to forget which tab it was on, which
@@ -464,7 +469,7 @@ export function CardRoom({ colors }: CardRoomProps) {
                        style={{ borderColor: accent }} />
                 )}
               </div>
-              <div className="text-[10px] font-semibold tracking-wide" style={{ color: accent }}>
+              <div className="text-[10px] font-semibold tracking-wide" style={{ color: companion ? themeInk(companion.slug, companion.color, colors) : accent }}>
                 {sigilOf(seat.slug)} {labelOf(seat.slug)}
               </div>
               <div className="text-[10px] opacity-50">{seat.count}</div>

@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import { nameColor } from '../lib/bubble-look';
+import { themeInk } from '../lib/theme-ink';
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronDown, TreePine, Users } from 'lucide-react';
@@ -108,7 +108,7 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 mb-0.5">
-          <span className="text-sm font-medium" style={{ color: themeMode === 'dark' ? nameColor(card.name, card.color, 'dark', '') : card.color }}>
+          <span className="text-sm font-medium" style={{ color: themeInk(card.name, card.color, colors, themeMode) }}>
             {card.name}
           </span>
           <span className={cn('text-[10px]', colors.textMuted)}>

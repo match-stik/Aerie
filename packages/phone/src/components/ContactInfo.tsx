@@ -7,6 +7,7 @@ import { ContactProfile, ThemeMode } from '../types';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
+import { useBackHandler } from '../lib/use-back-handler';
 import getCroppedImg, { createImage } from '../lib/cropImage';
 import { CARD_HEADER_REM, CARD_MAX_WIDTH_REM, CARD_SIDE_GAP_REM, FRAME_LEGEND, faceGuideStyle, liveContactCardAspect } from '../lib/contact-card-frame';
 
@@ -178,6 +179,13 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
   // screen, with the face circle drawn inside it (lib/contact-card-frame.ts).
   const [cropAspect, setCropAspect] = useState(() => liveContactCardAspect());
   const headerRef = useRef<HTMLDivElement>(null);
+  // The card sits over the whole phone, so it answers back for its whole life:
+  // the cropper closes first, then the card itself. Otherwise back closed the
+  // chat underneath and left the card standing on the home screen.
+  useBackHandler(true, () => {
+    if (cropImageSrc) setCropImageSrc(null);
+    else onClose();
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Blank, never a stranger: for the frames before the roster lands there is no card

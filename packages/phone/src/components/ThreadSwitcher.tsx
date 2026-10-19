@@ -1,10 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { themeInk } from '../lib/theme-ink';
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn, withAlpha, stripMarkdown } from '../lib/utils';
 import { groupThreads, monthKey, previewText } from '../lib/thread-list';
+import { useBackHandler } from '../lib/use-back-handler';
 import {
   useThreads,
   useActiveThreadId,
@@ -56,6 +58,13 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
   const [selectedCompanions, setSelectedCompanions] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
   const [archivedThreads, setArchivedThreads] = useState<ThreadSummary[]>([]);
+  // Back closes a thread's menu or delete question first, then the switcher,
+  // which leaves the owner in the thread they were in.
+  useBackHandler(isOpen, () => {
+    if (deleteConfirmId) setDeleteConfirmId(null);
+    else if (menuThreadId) setMenuThreadId(null);
+    else onClose();
+  });
 
   const currentMonth = monthKey(null);
 
@@ -476,7 +485,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
                                 isSelected ? 'border-current' : colors.panelBorder,
                                 'hover:opacity-80'
                               )}
-                              style={isSelected ? { borderColor: companionColor, color: companionColor } : undefined}
+                              style={isSelected ? { borderColor: companionColor, color: themeInk(companion.display_name, companion.color || accentHex, colors, themeMode) } : undefined}
                             >
                               {companion.avatar_url ? (
                                 <img

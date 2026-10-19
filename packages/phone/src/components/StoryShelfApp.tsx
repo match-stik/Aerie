@@ -18,6 +18,7 @@
 // every color is mixed in OKLCH from the theme's own variables, so the shelf
 // follows the owner's palette in daylight and at midnight alike.
 
+import { themeInk } from '../lib/theme-ink';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -1033,7 +1034,7 @@ function SceneText({ page, companions, colors }: { page: StoryPage; companions: 
       {sections.map((section, index) => (
         <div key={index}>
           {section.voice && (
-            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: section.voice.color ?? 'var(--aerie-accent)' }}>
+            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: themeInk(section.voice.slug, section.voice.color, colors) }}>
               <Face companion={section.voice} size={18} />
               {section.voice.display_name}
             </div>
@@ -1465,7 +1466,7 @@ function TableTalk({
               {section.voice ? <Face companion={section.voice} size={22} /> : <span aria-hidden className="w-[22px] shrink-0" />}
               <div className="min-w-0 flex-1 rounded-xl px-2.5 py-1.5" style={{ background: CARD }}>
                 {section.voice && (
-                  <div className="text-[10px] font-semibold" style={{ color: section.voice.color ?? 'var(--aerie-accent)' }}>
+                  <div className="text-[10px] font-semibold" style={{ color: themeInk(section.voice.slug, section.voice.color, colors) }}>
                     {section.voice.display_name}
                   </div>
                 )}

@@ -21,6 +21,7 @@ import type { ThemeConfig } from '../lib/theme';
 import { apiFetch } from '../aerie';
 import { cn } from '../lib/utils';
 import { thumbSrc } from '../lib/thumb';
+import { useBackHandler } from '../lib/use-back-handler';
 
 const PressEditor = lazy(() => import('./press/PressEditor'));
 
@@ -84,6 +85,10 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
   const [creating, setCreating] = useState(false);
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  // Back from an open issue returns to the shelf of issues, as its header arrow
+  // does; the new or rename sheet closes first if it is up.
+  useBackHandler(bundle !== null, () => { setBundle(null); void loadIssues(); });
+  useBackHandler(showCreate || renameTarget !== null, () => { setShowCreate(false); setRenameTarget(null); });
   const [activeSaveStatus, setActiveSaveStatus] = useState<PressSaveStatus>('loading');
   const [spreadRailCollapsed, setSpreadRailCollapsed] = useState(() => {
     try {

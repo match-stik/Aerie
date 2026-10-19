@@ -5,6 +5,7 @@ import { AppShell } from './AppShell';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
+import { useBackHandler } from '../lib/use-back-handler';
 
 interface CanvasAppProps {
   onClose: () => void;
@@ -35,6 +36,8 @@ export function CanvasApp({ onClose, themeConfig, themeMode }: CanvasAppProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<Canvas['content_type']>('markdown');
+  // Back from an open canvas returns to the list, as its header arrow does.
+  useBackHandler(active !== null, () => setActive(null));
 
   async function loadList() {
     setLoading(true);

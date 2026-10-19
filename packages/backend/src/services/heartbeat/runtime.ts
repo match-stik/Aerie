@@ -30,7 +30,7 @@ import type {
 } from '../runtimes/types.js';
 import { getFile, saveFile, ensureFilesDir } from '../files.js';
 import type { ConversationMessage, HistoryLoader } from '../runtimes/api-router.js';
-import { getHeartbeatSession, type HeartbeatSession } from './supervisor.js';
+import { getHeartbeatSession, leftoverSideNotes, reportLeftoverSideNotes, type HeartbeatSession } from './supervisor.js';
 import { outboxCard, parseOutboxLine } from './outbox-line.js';
 import { projectKeyForDir, readSessionUsage } from '../agent/session-list.js';
 import { USAGE_WATERMARK_FILE, readUsageWatermark, usageSinceFile, writeUsageWatermark } from './turn-usage.js';
@@ -44,6 +44,7 @@ import { ownMessagesRead } from '../own-messages-read.js';
 import * as cortex from '../cortex.js';
 import { ambientRecall, unfiledNoticings } from './whisper.js';
 import { roomVoicesBlock, type RoomVoices } from './room-voices.js';
+import { readShelf, stickerShelfBlock } from './sticker-shelf.js';
 import { outageNotices } from './outage-notices.js';
 import { getAllBlocks } from '../memory-blocks.js';
 import { contextWindowFor } from '../usage-pricing.js';
@@ -1287,6 +1288,17 @@ export class InteractiveCliRuntime implements AgentRuntime {
       // The session often marks its notes read in the same breath as its last
       // line, so the mark is read once more on the way out.
       applySideNoteReceipts(session, '');
+      // A note of the owner's still unanswered as the turn closes starts the next
+      // turn now, instead of waiting for their next message to carry it in.
+      // That turn hands it over the usual way (the side-note block). Not from
+      // a turn answering elsewhere: no owner's note is handed to one.
+      try {
+        const from = (session as { sideNoteReceiptsFrom?: number }).sideNoteReceiptsFrom ?? -1;
+        if (from >= 0 && !this.options.audience && typeof session.readSideNotesFrom === 'function') {
+          const left = leftoverSideNotes(session.readSideNotesFrom(from).notes, session.sideNotesReadMark?.() ?? '');
+          if (left.length > 0) reportLeftoverSideNotes(this.options.threadId ?? '', left);
+        }
+      } catch { /* a courtesy; never touch the turn */ }
       session.sideNoteReceiptsFrom = -1;
       session.turnActive = false;
       session.turnStartedAt = 0;
@@ -1513,6 +1525,14 @@ export class InteractiveCliRuntime implements AgentRuntime {
       try { unfiledBlock = unfiledNoticings(); } catch { /* never delay a turn */ }
     }
 
+    // The sticker shelf (services/heartbeat/sticker-shelf.ts): a handful of the
+    // companions' own stickers in view, so they get used. Not on a guest's
+    // turn: a sticker in a Discord reply is fine, but the shelf is the house's.
+    let stickerBlock = '';
+    if (!guestTurn) {
+      try { stickerBlock = stickerShelfBlock(readShelf(this.options.roomVoices), input.prompt); } catch { /* never delay a turn */ }
+    }
+
     // Side notes sent while the last turn was working. The session may read
     // them live from io/side-notes.jsonl, but nothing guarantees it looked —
     // so whatever is still unread is handed over here. Late, never lost.
@@ -1561,7 +1581,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       ...(timeLabel ? { time: timeLabel } : {}),
       channel: 'aerie',
       author: this.options.userName || 'user',
-      content: contextBlock + catchUpBlock + missedBlock + whisperBlock + unfiledBlock + sideNoteBlock
+      content: contextBlock + catchUpBlock + missedBlock + whisperBlock + unfiledBlock + stickerBlock + sideNoteBlock
         + roomVoicesBlock(this.options.roomVoices) + this.clampForInbox(input.prompt, 60_000),
       turn: turnId,
       ...(images.length > 0 ? { images } : {}),

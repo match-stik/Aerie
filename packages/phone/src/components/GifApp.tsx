@@ -12,6 +12,7 @@ import { apiFetch } from '../aerie';
 import type { ThemeConfig } from '../lib/theme';
 import { SegmentedControl } from '../ui';
 import { saveHref } from '../lib/download';
+import { useBackHandler } from '../lib/use-back-handler';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -353,6 +354,9 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
 
   // Crop state
   const [showCrop, setShowCrop] = useState(false);
+  // Back cancels the crop panel, as its Cancel does. Only while this lab is the
+  // one showing: Studio keeps a hidden one mounted.
+  useBackHandler(active && showCrop, () => setShowCrop(false));
   const [cropX, setCropX] = useState(0);
   const [cropY, setCropY] = useState(0);
   const [cropW, setCropW] = useState(100);

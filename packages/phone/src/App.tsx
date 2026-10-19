@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { isBackSwipe } from './lib/edge-swipe';
 import { runBackHandler } from './lib/back-stack';
+import { useBackHandler } from './lib/use-back-handler';
 import localforage from 'localforage';
 import { MessageBubble } from './components/MessageBubble';
 import { TypingIndicator } from './components/TypingIndicator';
@@ -262,11 +263,21 @@ export default function App() {
     [ksThreads, ksActiveThreadId],
   );
 
+  // One phone message per stored row object: the store keeps an unchanged row
+  // as the same object, so an unchanged message stays the same here too and
+  // the bubble cache below can tell it has not moved.
+  const phoneMessageCache = useRef(new WeakMap<object, Message>());
   const messages = useMemo<Message[]>(
     () =>
       ksMessages
         .filter((m) => !m.deleted_at && !(m.role === 'companion' && m.content === '[No response]'))
-        .map(toPhoneMessage),
+        .map((m) => {
+          const hit = phoneMessageCache.current.get(m);
+          if (hit) return hit;
+          const made = toPhoneMessage(m);
+          phoneMessageCache.current.set(m, made);
+          return made;
+        }),
     [ksMessages],
   );
 
@@ -316,6 +327,8 @@ export default function App() {
   // Modals
   const [showSettings, setShowSettings] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
+  // Back closes the chat's search bar before it closes the chat.
+  useBackHandler(osState === 'messages' && isSearching, () => { setIsSearching(false); setSearchQuery(''); });
 
   // Theme State
   const [theme, setTheme] = useState<AppTheme>(() => {
@@ -1360,8 +1373,11 @@ export default function App() {
     if (!Capacitor.isNativePlatform()) return;
     let remove: (() => void) | undefined;
     void CapacitorApp.addListener('backButton', () => {
-      if (showSettings) { setShowSettings(false); return; }
-      if (osState === 'appdrawer') { setOsState('home'); return; }
+      // Settings answers for itself (a door steps back to the doors, the doors
+      // close it), and is closed outright only if it registered nothing.
+      if (showSettings) { if (!runBackHandler()) setShowSettings(false); return; }
+      // The drawer asks too, so back leaves its edit mode before the drawer.
+      if (osState === 'appdrawer') { if (!runBackHandler()) setOsState('home'); return; }
       // Ask the innermost screen first. An app three pages deep gets to step
       // back one page instead of the whole thing shutting — see back-stack.
       if (runBackHandler()) return;
@@ -1425,17 +1441,31 @@ export default function App() {
 
   // Bookmark filter only — the search input drives the server-side search
   // panel below the header, not an in-place message filter.
+  // Each message keeps the same derived object while its source row and its
+  // local metadata are unchanged, so the bubble list below can hand React the
+  // very same element for it. Rebuilding every bubble on each send held the
+  // phone busy for about a second at a time (keyboard-close recorder), long enough to leave the keyboard's space unpainted.
+  const derivedMessagesRef = useRef(new Map<string, { src: Message; meta: unknown; status: string; out: any }>());
   const filteredMessages = useMemo(() => {
-    return messages
-      .map(msg => ({
-        ...msg,
-        ...localMetadata[msg.id],
-        status: (msg.direction === 'outbound' ? 'read' : (msg.read ? 'read' : 'delivered')) as 'read' | 'sent' | 'delivered'
-      }))
+    const prior = derivedMessagesRef.current;
+    const next = new Map<string, { src: Message; meta: unknown; status: string; out: any }>();
+    const derived = messages
+      .map(msg => {
+        const meta = localMetadata[msg.id];
+        const status = (msg.direction === 'outbound' ? 'read' : (msg.read ? 'read' : 'delivered')) as 'read' | 'sent' | 'delivered';
+        const was = prior.get(msg.id);
+        const out = was && was.src === msg && was.meta === meta && was.status === status
+          ? was.out
+          : { ...msg, ...meta, status };
+        next.set(msg.id, { src: msg, meta, status, out });
+        return out as typeof msg & { status: typeof status; reactions?: string[]; isBookmarked?: boolean };
+      })
       .filter(msg => {
         const matchesBookmark = !showBookmarksOnly || msg.isBookmarked;
         return matchesBookmark;
       });
+    derivedMessagesRef.current = next;
+    return derived;
   }, [messages, localMetadata, showBookmarksOnly]);
 
   // The router broadcasts presence 'active' for the whole turn and 'dormant'
@@ -1466,21 +1496,40 @@ export default function App() {
   // Bubble handlers read through a ref at call time so the memoized bubble
   // list below never holds stale closures (handleReact closes over messages,
   // scrollToMessageId over the accent color, etc.).
-  const bubbleHandlersRef = useRef({ handleReact, handleBookmark, deleteMessage, setReplyTo, setError, scrollToMessageId, scrollToBottom });
-  bubbleHandlersRef.current = { handleReact, handleBookmark, deleteMessage, setReplyTo, setError, scrollToMessageId, scrollToBottom };
+  const rerollCountFrom = (id: string) => messages.length - messages.findIndex((x) => x.id === id);
+  const bubbleHandlersRef = useRef({ handleReact, handleBookmark, deleteMessage, setReplyTo, setError, scrollToMessageId, scrollToBottom, rerollCountFrom });
+  bubbleHandlersRef.current = { handleReact, handleBookmark, deleteMessage, setReplyTo, setError, scrollToMessageId, scrollToBottom, rerollCountFrom };
 
   // The rendered bubble list is memoized so App re-renders that don't touch
   // message data (scroll-position state, streaming ticks, typing indicator,
   // toasts) skip re-splitting voices and re-parsing markdown for the whole
   // history — unchanged element references let React bail out of each
   // bubble's subtree entirely.
+  // A message whose derived object, date divider, index and every shared
+  // input below are unchanged reuses the nodes it rendered last time, so a
+  // send re-renders the new bubble rather than the whole history.
+  const bubbleNodesRef = useRef(new Map<string, { msg: unknown; showDate: boolean; index: number; shared: unknown; nodes: React.ReactNode[] }>());
+  const bubbleShared = useMemo(() => ({}), [
+    threadCompanions, dbCompanions, activeTheme, theme.mode, elevenLabsApiKey,
+    appSettings.customEmojis, appSettings.userAvatar, appSettings.userAvatarColor,
+    theme.bubbleFaces, theme.bubbleNames, theme.bubbleEdges, theme.bubbleQuietActions,
+    theme.bubbleMyName, theme.bubbleTailMine, theme.bubbleTailOurs, theme.bubbleTailShape,
+    theme.bubbleRings, theme.bubbleNameColors, ownerName,
+  ]);
   const renderedMessages = useMemo(() => {
     const voiceRoster = threadCompanions.length > 0 ? threadCompanions : dbCompanions;
-    return filteredMessages.flatMap((msg, index) => {
+    const priorNodes = bubbleNodesRef.current;
+    const nextNodes = new Map<string, { msg: unknown; showDate: boolean; index: number; shared: unknown; nodes: React.ReactNode[] }>();
+    const out = filteredMessages.flatMap((msg, index) => {
       const prev = index > 0 ? filteredMessages[index - 1] : null;
       const showDate =
         !prev ||
         new Date(prev.timestamp).toDateString() !== new Date(msg.timestamp).toDateString();
+      const kept = priorNodes.get(msg.id);
+      if (kept && kept.msg === msg && kept.showDate === showDate && kept.index === index && kept.shared === bubbleShared) {
+        nextNodes.set(msg.id, kept);
+        return kept.nodes;
+      }
       const nodes: React.ReactNode[] = [];
       if (showDate) {
         nodes.push(
@@ -1529,7 +1578,7 @@ export default function App() {
           // target message onward, so rerolling something from hours ago
           // clears the whole rest of the conversation — the number is the
           // difference between a confident tap and a mild panic attack.
-          rerollRemoves={messages.length - messages.findIndex((x) => x.id === msg.id)}
+          rerollRemoves={() => bubbleHandlersRef.current.rerollCountFrom(msg.id)}
           onReroll={async () => {
             try {
               await regenerateMessage(msg.id);
@@ -1591,9 +1640,13 @@ export default function App() {
           </motion.div>,
         );
       }
+      nextNodes.set(msg.id, { msg, showDate, index, shared: bubbleShared, nodes });
       return nodes;
     });
+    bubbleNodesRef.current = nextNodes;
+    return out;
   }, [
+    bubbleShared,
     filteredMessages,
     threadCompanions,
     dbCompanions,
@@ -1613,6 +1666,7 @@ export default function App() {
     theme.bubbleTailOurs,
     theme.bubbleTailShape,
     theme.bubbleRings,
+    theme.bubbleNameColors,
     ownerName,
   ]);
 
@@ -1625,7 +1679,8 @@ export default function App() {
     root.fontSize = `${Math.round(16 * houseFonts.scale * 100) / 100}px`;
     root.setProperty('--font-title', titleStack(houseFonts.title));
     root.setProperty('--font-body', bodyStack(houseFonts.body));
-  }, [houseFonts.scale, houseFonts.title, houseFonts.body]);
+    root.setProperty('--title-scale', String(houseFonts.titleScale));
+  }, [houseFonts.scale, houseFonts.title, houseFonts.body, houseFonts.titleScale]);
 
   // One semantic palette feeds every screen. Components still consume the
   // legacy utility-class contract, while shared surfaces/bubbles and loose
@@ -2341,6 +2396,11 @@ export default function App() {
                     themeConfig={activeTheme}
                     themeMode={theme.mode}
                     tail={bubbleLookOf(theme).tailOurs}
+                    companions={bubbleLookOf(theme).dotColors ? (threadCompanions.length > 0 ? threadCompanions : dbCompanions).map((c) => ({ slug: c.slug, color: c.color })) : []}
+                    accent={resolveThemeColors(colors).accent}
+                    themeColors={activeTheme.palette ? (theme.mode === 'dark'
+                      ? [activeTheme.palette.night.primary, activeTheme.palette.night.secondary, activeTheme.palette.night.spark]
+                      : [activeTheme.palette.day.primary, activeTheme.palette.day.secondary, activeTheme.palette.day.spark]) : undefined}
                   />
                 )}
               </AnimatePresence>

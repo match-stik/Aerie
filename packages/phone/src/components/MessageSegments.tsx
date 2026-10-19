@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { isHiddenTool } from '../lib/segment-visibility';
 import ReactMarkdown from 'react-markdown';
+import { rehypeActionLines } from '../lib/action-lines';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { Wrench, Brain, ChevronRight, RefreshCw } from 'lucide-react';
@@ -132,6 +133,7 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
             >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkBreaks]}
+                      rehypePlugins={[rehypeActionLines]}
                 components={{
                   p: ({ children }) => <span className="block">{children}</span>,
                   // Discord-style "-# whisper" subtext (preprocessed to h6 above)
