@@ -22,15 +22,16 @@ Most AI chat apps forget you the moment you close the tab, and only ever talk to
 
 ## Interface
 
-Aerie ships a phone-OS PWA at `packages/phone` — a lock screen, a home
+Aerie ships a phone-OS interface at `packages/phone` — a lock screen, a home
 screen with a configurable app dock and launcher, and the companion as a
-Messages app with live streaming, a thread switcher, and reactions.
-Installable on Android / iOS via the browser's "Add to Home Screen", with
-web push notifications when the backend has VAPID keys set.
+Messages app with live streaming, a thread switcher, and reactions. Open it in
+any browser, or add it to your home screen from there. On Android it also
+builds into a real app ([docs/ANDROID-APP.md](docs/ANDROID-APP.md)), and that
+app is where push notifications arrive, through a Firebase project of your own.
 
-Behind the launcher are around twenty apps — memory, journal, studio, canvas,
-a household dashboard, a virtual pet, an arcade, two rooms you play against your
-companions in, and the machinery. None of them
+Behind the launcher are around twenty-five apps — memory, journal, studio,
+canvas, Spotify, field notes, a household dashboard, a virtual pet, an arcade,
+two rooms you play against your companions in, and the machinery. None of them
 are required to talk to your companion. [docs/APPS.md](docs/APPS.md) says what
 each one is for.
 
@@ -50,6 +51,8 @@ Everything below is per-feature and optional — install what you'll use, skip t
 | Voice Mode | a Groq key (hearing) and an ElevenLabs key (speaking) |
 | Studio image generation | whatever your chosen backend needs — the Create tab says which |
 | The Cortex memory tab | a deployed Cortex worker ([workers/cortex/README.md](workers/cortex/README.md)) |
+| The Spotify app | a deployed Spotify worker and a Spotify developer app of your own ([workers/spotify-mcp/README.md](workers/spotify-mcp/README.md)) |
+| Push notifications | the Android app and a Firebase project ([docs/ANDROID-APP.md](docs/ANDROID-APP.md)) |
 
 On Debian or Ubuntu the system half is one line:
 
@@ -219,22 +222,24 @@ The phone UI has a built-in theme picker with light/dark modes, a wallpaper slid
 - Managed MCP servers, visible to every model
 
 ### Voice
-- Voice recording with transcription (Groq Whisper)
-- Text-to-speech responses (ElevenLabs), optional prosody analysis (Hume AI)
+- Voice recording with transcription: a local speech-to-text server if you run one (`voice.local_stt_url`), then Groq Whisper, then ElevenLabs
+- Text-to-speech responses (ElevenLabs) that start playing in a couple of seconds and, in the Android app, keep playing when you leave it; optional prosody analysis (Hume AI)
 - Pet names: a few common endearments (darling, sweetheart, love) count as somebody being spoken to, so a line using one is read aloud rather than skipped as a stage direction. Add your own house's pet names, comma-separated, to the `voice.direct_address` setting so yours are read aloud too; until you do, it listens for your name.
 
 ### Agent Tools
 Your agent gets a built-in CLI (`tools/sc.mjs`) for reactions, voice messages, canvas, file sharing, semantic search, timers, impulses, watchers, and Telegram media — injected into its context automatically. See [docs/TOOLS.md](docs/TOOLS.md).
 
 ### Orchestrator
-- Configurable morning/midday/evening check-ins
+- Wake-ups at the times you choose, a bell can have more than one companion, and optional random visits inside a daily window
+- A dot under the companions' faces that pulses while they work, with a word beside it a bell can set
 - Failsafe system — escalating outreach when you've been away
 - Timer and trigger system (impulses + watchers), condition-based automation
 
 ### Integrations
-- **Discord** — full bot with pairing, rules, per-server/channel configuration, plus an optional Cloudflare Worker giving the agent real Discord tools ([docs/DISCORD-BOT.md](docs/DISCORD-BOT.md))
+- **Discord** — full bot with pairing, rules, per-server/channel configuration, plus an optional Cloudflare Worker giving the agent real Discord tools ([docs/DISCORD-BOT.md](docs/DISCORD-BOT.md)). In a room that listens to everything, a judge answers what is meant for your companions, waits a beat on what is said to the room, and leaves replies to other people to them; a ping through a role your bot holds comes home to you instead of being answered; and, switched off until you want it, a message about you can land in your thread
+- **Spotify** — what is playing, search, hearts, playlists you can build and rename, shuffle, repeat, volume and which device plays, all from inside the app, through a Spotify worker you deploy ([workers/spotify-mcp/README.md](workers/spotify-mcp/README.md)). In the Android app a tap can wake Spotify on the phone even when it is closed, and a companion can play you a song the same way
 - **Telegram** — direct messaging, media sharing, voice notes
-- **Push notifications** — web push via VAPID
+- **Push notifications** — through Firebase Cloud Messaging, to the Android app
 - **MCP servers** — any MCP server in your `.mcp.json`
 
 ## Project Structure
@@ -246,6 +251,7 @@ aerie/
 │   ├── backend/     # Express + WS + runtime router + warm lanes
 │   └── phone/       # Phone-OS PWA (React)
 ├── examples/        # Starter CLAUDE.md and wake prompts
+├── workers/         # Optional Cloudflare workers: cortex (memory), spotify-mcp
 ├── tools/
 │   └── sc.mjs       # Agent CLI (reactions, search, timers, etc.)
 ├── docs/            # HOOKS, TOOLS, semantic-search, deployment guides
@@ -312,6 +318,7 @@ Apache 2.0 — see [LICENSE](LICENSE). Attribution required.
 - **Thornvale-resonant** (Sidney) — foundational Codex subscription-backed image-generation workflow, extended into Aerie Studio
 - **Thornvale-marrow** (Sidney) — Whisper/deep recall, source-veiled déjà vu, memory ledger, and integrity-rounds inspiration
 - **Byte-Light** (Kay) — X-Ray panel (the foundation for Aerie's Identity app; see NOTICE for what changed), slash command UI, CSRF protection, PM2 memory, WebSocket stability
+- **[Spotify-MCP](https://github.com/kaydartistry-maker/Spotify-MCP)** (Kay) — base code for the Spotify worker, modified to be used in the app
 - **[Haven](https://github.com/amarisaster/Haven)** (amarisaster) — multi-provider runtime, model router, MCP client
 - **[brain-mcp](https://github.com/mordechaipotash/brain-mcp)** (mordechaipotash) — Cortex memory architecture foundation
 - **[Letta](https://github.com/letta-ai/letta)** (letta-ai) — memory blocks pattern

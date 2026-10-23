@@ -224,16 +224,19 @@ Ships and cards both ship plain. A `data/fleet.json` renames the fleet without
 forking the game — same five lengths, different names — and a deck of your own
 in `data/cards` is served in place of the one in the box.
 
-**Spotify** — your listening: what is playing now with its cover big and
-previous, play or pause, and next under it; what played lately as a row of
-covers, each a tap to play that song; and every playlist as a grid of covers
-that opens to each song with its own, a tap on a song to play it and a Play
-button for the whole playlist. The music plays wherever your Spotify is open,
-usually your phone, and after every press the app looks at what is playing and
-shows that. Those are the only presses. It goes through the Spotify server in
-Integrations > MCP, fills the covers from Spotify's public pages, and says
-plainly when that server's sign-in has lapsed or Spotify needs opening first.
-While a song is playing or paused, the lock screen carries a card with its
+**Spotify** — your listening, without leaving the app. Search at the top; what
+is playing with its cover big, previous, play or pause and next under it, and
+under those shuffle, repeat, the heart, a slider for where you are in the song,
+one for the volume, and which device plays; what played lately as a row of
+covers, each a tap to play; your Liked Songs; and every playlist as a grid that
+opens to its songs. A tapped song plays inside its playlist or album and carries
+on through it. Every song has dots for hearting it or adding it to one of your
+playlists, and in your own playlists for moving it up or down or taking it out;
+you can start a new playlist, rename one and give it a picture. It goes through
+the Spotify server in Integrations > MCP and says plainly when that server's
+sign-in has lapsed. In the Android app, a press with Spotify closed wakes
+Spotify on the phone and plays, and a companion can play you a song the same
+way. While a song is playing or paused, the lock screen carries a card with its
 cover, the song and the artist, and the same three presses; a tap on the cover
 opens the app, and Settings > Lock screen turns the card off.
 

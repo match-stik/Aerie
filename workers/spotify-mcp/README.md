@@ -10,6 +10,29 @@ and modified to be used in the app.
 index.js is the whole worker, one file (the version in `initialize` says
 which one is running; this worker has no BUILD marker).
 
+## Setting it up
+
+1. In Spotify's developer dashboard (developer.spotify.com/dashboard), create
+   an app. Its redirect URI is your worker's address plus `/callback`, for
+   example `https://spotify-mcp.<your-subdomain>.workers.dev/callback`.
+2. Deploy this folder as a Cloudflare worker (the steps are at the top of
+   `wrangler.toml`, or paste `index.js` into the dashboard), with a KV namespace
+   bound as `SPOTIFY_KV` and three secrets: `SPOTIFY_CLIENT_ID` and
+   `SPOTIFY_CLIENT_SECRET` from the dashboard, and `SPOTIFY_REDIRECT_URI`, the
+   same redirect as step 1.
+3. Open `/auth` on the worker once and say yes. The sign-in is kept in the
+   worker's KV, so if it ever lapses, opening `/auth` again is the whole fix.
+4. In Aerie, add the worker's `/mcp` address under Integrations > MCP. Any name
+   with "spotify" in it (or in the address) is how the Spotify app finds it.
+
+To let the Android app wake Spotify on the phone when it is closed, add your
+app to the same Spotify app's settings as an Android package: its package name
+(the `applicationId` in `packages/phone/android/app/build.gradle`) and the SHA1
+fingerprint of the key your APK is signed with. The phone reads the client id
+and redirect off the worker's `/auth` page, so there is nothing else to set.
+Spotify has to be installed and signed in on the phone, and the first wake may
+show Spotify's own consent screen.
+
 What changed from the base code:
 
 - Playlist rows are read from `item`, falling back to `track`, and the count
