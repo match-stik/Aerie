@@ -51,6 +51,23 @@ function attachmentSentinels(metadata: Record<string, unknown> | null): string {
     .join('');
 }
 
+// A Discord message about the owner that the companions did not answer carries
+// why (ownerMention) and where (discordChannelName). This turns that into the
+// same words the notification used, so the message the owner tapped through to is
+// recognizable in the thread. A kind the backend never writes gets no label.
+function ownerMentionLabel(metadata: Record<string, unknown> | null): string | undefined {
+  if (!metadata || typeof metadata !== 'object') return undefined;
+  const { ownerMention, discordChannelName } = metadata as {
+    ownerMention?: unknown;
+    discordChannelName?: unknown;
+  };
+  if (ownerMention !== 'mention' && ownerMention !== 'reply' && ownerMention !== 'name') return undefined;
+  const what = ownerMention === 'reply' ? 'replied to you' : 'mentioned you';
+  return typeof discordChannelName === 'string' && discordChannelName
+    ? `${what} in #${discordChannelName}`
+    : what;
+}
+
 // Pull the interleaved text/tool/thinking segments the backend persists in
 // metadata.segments so finalized companion replies can show tool calls.
 function extractSegments(metadata: Record<string, unknown> | null): MessageSegment[] | undefined {
@@ -99,6 +116,8 @@ export function toPhoneMessage(km: AerieMessage): PhoneMessage {
     sender: km.role === 'system' ? (discordUsername || 'System') : undefined,
     senderAvatar: discordUsername ? discordMeta?.discordAvatarUrl : undefined,
     via: discordUsername ? 'Discord' : undefined,
+    // Only a guest's message can be about the owner; their own rows never are.
+    mentionLabel: km.role === 'system' && discordUsername ? ownerMentionLabel(km.metadata) : undefined,
     companionSlug:
       typeof (km.metadata as { companionSlug?: unknown } | null)?.companionSlug === 'string'
         ? ((km.metadata as { companionSlug: string }).companionSlug)

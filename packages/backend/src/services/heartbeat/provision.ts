@@ -526,6 +526,13 @@ try {
   try { input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); } catch { input = null; }
   if (!input || typeof input !== 'object') refuse(unrecorded + 'The tool gate could not read this call, so it is refused.');
 
+  // A call from inside a subagent carries agent_id. A guest's turn cannot start
+  // one (the Agent tool is refused below), so any subagent running was started
+  // by the owner's turn or a wake, and the audience file it is reading now
+  // belongs to whatever turn came after. Oct 21 2026 it froze a background
+  // builder for the length of a guest's visit.
+  if (typeof input.agent_id === 'string' && input.agent_id) allow();
+
   const tool = String(input.tool_name || '');
   const args = (input.tool_input && typeof input.tool_input === 'object') ? input.tool_input : {};
   const how = "Answer with the reply helper: node hooks/reply.cjs <<'EOF', then one JSON line with turn_id, content and card, then EOF on its own line.";
@@ -595,7 +602,9 @@ if (typeof obj.content !== 'string' || !obj.content.trim()) fail('content must b
 if (obj.card !== undefined && typeof obj.card !== 'string') fail('card must be text');
 if (obj.thinking !== undefined && typeof obj.thinking !== 'string') fail('thinking must be text');
 if (obj.more !== undefined && typeof obj.more !== 'boolean') fail('more must be true or false');
-if (obj.content.includes('[discord-attach:')) fail("a guest's reply cannot attach a file");
+// The house reads the marker in any case ([DISCORD-ATTACH: works as well as
+// lowercase), so the check here has to as well.
+if (/\[\s*discord-attach\s*:/i.test(obj.content)) fail("a guest's reply cannot attach a file");
 
 let current = null;
 try { current = JSON.parse(fs.readFileSync(AUDIENCE_FILE, 'utf8')).turn || null; } catch {}

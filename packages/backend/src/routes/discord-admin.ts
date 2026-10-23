@@ -154,6 +154,9 @@ router.put('/discord/settings', (req, res) => {
       ownerActiveThresholdMin: 'discord.ownerActiveThresholdMin',
       deferPollIntervalMs: 'discord.deferPollIntervalMs',
       deferMaxAgeMs: 'discord.deferMaxAgeMs',
+      judgeEnabled: 'discord.judgeEnabled',
+      judgeBeatMs: 'discord.judgeBeatMs',
+      judgeMaxWaitMs: 'discord.judgeMaxWaitMs',
     };
 
     const setSettingsMap: Record<string, string> = {

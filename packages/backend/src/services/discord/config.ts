@@ -4,6 +4,7 @@
 
 import { getConfig, getConfigBool, getConfigNumber } from '../db.js';
 import { getAerieConfig } from '../../config.js';
+import { ownerNamesFrom } from './owner-mention.js';
 
 export interface DiscordConfigValues {
   ownerUserId: string;
@@ -13,6 +14,12 @@ export interface DiscordConfigValues {
   ownerActiveThresholdMin: number;
   deferPollIntervalMs: number;
   deferMaxAgeMs: number;
+  /** The judge in rooms that need no mention (see judge.ts). */
+  judgeEnabled: boolean;
+  /** How long a message said to the room waits before we decide. */
+  judgeBeatMs: number;
+  /** The longest a beat waits on somebody else's typing. */
+  judgeMaxWaitMs: number;
 }
 
 const DEFAULTS = {
@@ -22,6 +29,9 @@ const DEFAULTS = {
   ownerActiveThresholdMin: 0,
   deferPollIntervalMs: 30000,
   deferMaxAgeMs: 600000,
+  judgeEnabled: true,
+  judgeBeatMs: 60000,
+  judgeMaxWaitMs: 180000,
 };
 
 export function getDiscordConfig(): DiscordConfigValues {
@@ -34,6 +44,31 @@ export function getDiscordConfig(): DiscordConfigValues {
     ownerActiveThresholdMin: getConfigNumber('discord.ownerActiveThresholdMin', DEFAULTS.ownerActiveThresholdMin),
     deferPollIntervalMs: getConfigNumber('discord.deferPollIntervalMs', DEFAULTS.deferPollIntervalMs),
     deferMaxAgeMs: getConfigNumber('discord.deferMaxAgeMs', DEFAULTS.deferMaxAgeMs),
+    judgeEnabled: getConfigBool('discord.judgeEnabled', DEFAULTS.judgeEnabled),
+    judgeBeatMs: getConfigNumber('discord.judgeBeatMs', DEFAULTS.judgeBeatMs),
+    judgeMaxWaitMs: getConfigNumber('discord.judgeMaxWaitMs', DEFAULTS.judgeMaxWaitMs),
+  };
+}
+
+export interface OwnerMentionSettings {
+  enabled: boolean;
+  names: string[];
+}
+
+/**
+ * Whether a Discord message ABOUT the owner (an @mention of the owner, a reply to
+ * the owner, their name from a person) is delivered to their thread with a notification,
+ * and which names count. Read live on every message, like everything above,
+ * so flipping the row takes effect without a restart.
+ *
+ * Off unless switched on: a public install should not start carrying other
+ * people's conversations into the house the day it is set up. Names left
+ * empty fall back to identity.user_name.
+ */
+export function getOwnerMentionSettings(): OwnerMentionSettings {
+  return {
+    enabled: getConfigBool('discord.owner_mentions', false),
+    names: ownerNamesFrom(getConfig('discord.owner_names'), getAerieConfig().identity.user_name),
   };
 }
 

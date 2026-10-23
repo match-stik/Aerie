@@ -881,6 +881,20 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
             >
               {message.via.toUpperCase()}
             </span>
+            {/* A message about the owner that nobody answered says so, in the same
+                words as the notification that brought the owner here. Same skin as
+                the name beside it, and for the same reason: bare text loses to
+                the wallpaper. */}
+            {message.mentionLabel && (
+              <span
+                className={cn(
+                  "text-[10px] px-1.5 py-0.5 border rounded-[var(--shape-chip)] opacity-90",
+                  colors.compBubbleBg, colors.compBubbleText, colors.panelBorder
+                )}
+              >
+                {message.mentionLabel}
+              </span>
+            )}
           </div>
         )}
         {/* Every companion bubble carries its name: within one reply each

@@ -27,6 +27,10 @@ export interface Message {
   // (currently 'Discord'). Guest messages pair this with sender for the
   // name label; the owner's own bridged messages show it as a badge.
   via?: string;
+  // Set on a guest's message that was ABOUT the owner rather than addressed to
+  // the companions ("mentioned you in #general"). Shown beside the sender's
+  // name, in the same words as the notification that brought the owner to it.
+  mentionLabel?: string;
   // Slug of the companion who authored this message, when the backend
   // recorded one (treehouse posts, per-companion sends). Lets the chat
   // attach the right avatar even without an in-text voice header.

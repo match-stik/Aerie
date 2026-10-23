@@ -72,6 +72,39 @@ test('an owner message bridged in is not a guest', () => {
   assert.equal(m.direction, 'inbound');
 });
 
+// A Discord message ABOUT the owner, delivered without the companions answering it,
+// says so beside the sender's name, in the same words as the notification
+// that brought the owner to it.
+test('a Discord message about the owner carries a label saying what happened and where', () => {
+  const about = (kind: string) => toPhoneMessage(row({
+    metadata: { discordDisplayName: 'Guest', ownerMention: kind, discordChannelName: 'general' },
+  }));
+  assert.equal(about('mention').mentionLabel, 'mentioned you in #general');
+  assert.equal(about('reply').mentionLabel, 'replied to you in #general');
+  assert.equal(about('name').mentionLabel, 'mentioned you in #general');
+});
+
+test('without a channel name the label still says what happened', () => {
+  const m = toPhoneMessage(row({ metadata: { discordDisplayName: 'Guest', ownerMention: 'reply' } }));
+  assert.equal(m.mentionLabel, 'replied to you');
+});
+
+test('an ordinary guest message, or a kind nobody wrote, carries no label', () => {
+  assert.equal(toPhoneMessage(row({ metadata: { discordDisplayName: 'Guest' } })).mentionLabel, undefined);
+  const odd = toPhoneMessage(row({
+    metadata: { discordDisplayName: 'Guest', ownerMention: 'shouted', discordChannelName: 'general' },
+  }));
+  assert.equal(odd.mentionLabel, undefined);
+});
+
+test('the label only ever rides a guest message', () => {
+  // Their own row and a house line never carry one, whatever their metadata says.
+  const own = toPhoneMessage(row({ role: 'user', metadata: { discordUsername: 'owner', ownerMention: 'mention' } }));
+  assert.equal(own.mentionLabel, undefined);
+  const house = toPhoneMessage(row({ platform: 'web', metadata: { ownerMention: 'mention' } }));
+  assert.equal(house.mentionLabel, undefined);
+});
+
 // FILMS RIDE LIKE PICTURES (Sep 24 2026). A film is stored as a plain 'file',
 // so without its mime being read it would draw as a download chip.
 test('a film becomes a player, a picture stays a picture, a zip stays a file', () => {

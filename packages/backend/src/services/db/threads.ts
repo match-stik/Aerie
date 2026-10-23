@@ -117,6 +117,23 @@ export function getMostRecentActiveThread(): Thread | null {
   return row ? (row as unknown as Thread) : null;
 }
 
+/**
+ * The most recently active thread other than one. A Discord room's own
+ * channel thread keeps itself newest while guests talk in a listening room,
+ * and the owner's messages there were following it out of their home thread
+ * (Oct 19 2026); routing the owner home skips the room's own thread.
+ */
+export function getMostRecentActiveThreadExcept(excludeId: string): Thread | null {
+  const stmt = getDb().prepare(`
+    SELECT * FROM threads
+    WHERE archived_at IS NULL AND id != ?
+    ORDER BY last_activity_at DESC
+    LIMIT 1
+  `);
+  const row = stmt.get(excludeId);
+  return row ? (row as unknown as Thread) : null;
+}
+
 export function updateThreadSession(threadId: string, sessionId: string | null): void {
   const stmt = getDb().prepare('UPDATE threads SET current_session_id = ? WHERE id = ?');
   stmt.run(sessionId, threadId);

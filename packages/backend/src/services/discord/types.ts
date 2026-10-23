@@ -2,6 +2,7 @@
 // Discord gateway types
 
 import type { Message } from 'discord.js';
+import type { OwnerMentionReason } from './owner-mention.js';
 
 export interface QueuedMessage {
   message: Message;
@@ -35,8 +36,17 @@ export interface PreflightResult {
   pairingCode?: string;
   /**
    * Not allowed to be ANSWERED, but still to be heard: store it, broadcast it,
-   * leave it unread, and generate nothing. Only the consecutive-bot cool-off
-   * sets this — every other denial is a door and stays one.
+   * leave it unread, and generate nothing. Two things set this: the
+   * consecutive-bot cool-off, and a message about the owner that was not
+   * addressed to us (see ownerMention). Every other denial is a door and
+   * stays one.
    */
   deliver?: boolean;
+  /**
+   * Set alongside `deliver` when the message is ABOUT the owner rather than
+   * to us, and says why: a reply to the owner, an @mention of the owner, or their name.
+   * The gateway routes it to where the owner is reading and sends the owner a
+   * notification. The cool-off never sets it.
+   */
+  ownerMention?: OwnerMentionReason;
 }

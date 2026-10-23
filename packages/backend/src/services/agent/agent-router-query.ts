@@ -33,6 +33,11 @@ import { effectiveAgentProvider, type AgentRouting } from './agent-route-selecti
 import { getPushService } from '../push.js';
 import { buildCompanionPush } from '../push-notify.js';
 
+/** A row the Discord judge stored as heard and not ours to answer (see services/discord/judge.ts). */
+function isJudgeHeard(metadata: unknown): boolean {
+  return !!metadata && typeof metadata === 'object' && (metadata as Record<string, unknown>).judgeHeard === true;
+}
+
 interface RouterQueryRuntimeContext {
   getAgentCwd: () => string;
   agentState: AgentMutableState;
@@ -88,8 +93,10 @@ export async function processViaRouter(
   const historyLoader = (tid: string, limit: number): ConversationMessage[] => {
     const msgs = getMessages({ threadId: tid, limit });
     // Synthetic system lines (refusal/timeout notices) are UI furniture —
-    // they must not re-enter recycle seeds or router history.
-    return msgs.filter((m) => m.role !== 'system').map((m) => ({
+    // they must not re-enter recycle seeds or router history. So is a Discord
+    // reply of theirs to somebody else that the judge only heard: it was never
+    // ours to answer, and the missed net reading it as owed would answer it.
+    return msgs.filter((m) => m.role !== 'system' && !isJudgeHeard(m.metadata)).map((m) => ({
       id: m.id,
       role: m.role as 'user' | 'companion',
       content: m.content,
@@ -567,11 +574,11 @@ export async function processViaRouter(
     return '';
   }
 
-  // Silence-sentinel support remains as emergency plumbing even though no
-  // interactive or wake contract offers it as a choice. If an old or manually
-  // driven lane emits one, close the stream without posting a bubble rather
-  // than leaking the sentinel to the owner. (Distinct from a timeout, which surfaces
-  // as an error.)
+  // Silence-sentinel support remains as emergency plumbing, and exactly one
+  // contract offers it as a choice: the Discord beat (services/discord/judge.ts),
+  // where a message said to the room may be passed on. If a lane emits one,
+  // close the stream without posting a bubble rather than leaking the sentinel
+  // to the owner. (Distinct from a timeout, which surfaces as an error.)
   //
   // Two shapes, because two runtimes report it differently. A runtime that
   // passes the sentinel through as text is caught by the string; the

@@ -10,15 +10,24 @@ type BatchHandler = (batch: MessageBatch) => Promise<void>;
 
 // discord.js cleanContent reduces custom emotes <a:name:id> to :name:,
 // dropping the id needed to render the emote image. Put the raw tokens back:
-// each token from the raw content replaces the first matching :name: in the
-// cleaned string, in order, so duplicates line up.
-function restoreEmoteTokens(raw: string, cleaned: string): string {
+// each token from the raw content replaces the next matching :name: in the
+// cleaned string, in order, so duplicates line up. The search moves on past
+// each token it puts back, because a restored token holds its own :name:
+// inside it: searching from the start again nested the second copy of an
+// emote inside the first and left the second as plain text (Oct 21 2026: a
+// guest's title with the same emote on each side of it).
+export function restoreEmoteTokens(raw: string, cleaned: string): string {
   const tokens = raw.match(/<a?:\w+:\d{17,20}>/g);
   if (!tokens) return cleaned;
   let result = cleaned;
+  let from = 0;
   for (const token of tokens) {
     const name = token.slice(token.indexOf(':') + 1, token.lastIndexOf(':'));
-    result = result.replace(`:${name}:`, token);
+    const plain = `:${name}:`;
+    const at = result.indexOf(plain, from);
+    if (at < 0) continue;
+    result = result.slice(0, at) + token + result.slice(at + plain.length);
+    from = at + token.length;
   }
   return result;
 }

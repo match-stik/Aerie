@@ -183,11 +183,11 @@ test("the owner's side notes stay theirs: a guest's turn cannot read them", () =
   // A note sent while a guest's turn is running is handed to the next turn.
   const { root, lane } = house();
   try {
-    writeFileSync(join(lane, 'io', 'side-notes.jsonl'), '{"at":"x","text":"owner note"}\n');
+    writeFileSync(join(lane, 'io', 'side-notes.jsonl'), '{"at":"x","text":"theirs"}\n');
     for (const trust of ['limited', 'standard', 'full']) {
       audience(lane, GUEST(trust));
       assert.equal(gate(lane, 'Read', { file_path: join(lane, 'io', 'side-notes.jsonl') }).status, 2, trust);
-      assert.equal(gate(lane, 'Grep', { pattern: 'owner note', path: join(lane, 'io') }).status, 2, trust + ' grep');
+      assert.equal(gate(lane, 'Grep', { pattern: 'theirs', path: join(lane, 'io') }).status, 2, trust + ' grep');
     }
     audience(lane, OWNER);
     assert.equal(gate(lane, 'Read', { file_path: join(lane, 'io', 'side-notes.jsonl') }).status, 0, 'owner');
@@ -248,5 +248,40 @@ test('the lane is launched with the gate in front of every tool call', () => {
     assert.ok(commands.includes(`node "${join(lane, 'hooks', 'gate.cjs')}"`));
     assert.ok(existsSync(join(lane, 'hooks', 'gate.cjs')));
     assert.ok(existsSync(join(lane, 'hooks', 'reply.cjs')));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("a background agent the owner started keeps its tools while a guest's turn is open", () => {
+  // Oct 21 2026: a guest's visit flipped io/.turn-audience to guest and a
+  // builder the owner's turn had started was refused for the length of it.
+  // A guest's turn cannot start a subagent (Agent is refused above), so a call
+  // carrying agent_id is never the guest's.
+  const { root, lane } = house();
+  try {
+    audience(lane, GUEST('limited'));
+    const fromAgent = (tool_name: string, tool_input: Record<string, unknown>) => spawnSync(process.execPath, [join(lane, 'hooks', 'gate.cjs')], {
+      cwd: lane, encoding: 'utf8', timeout: 10000,
+      input: JSON.stringify({ hook_event_name: 'PreToolUse', tool_name, tool_input, agent_id: 'a1b2c3', agent_type: 'general-purpose' }),
+    });
+    assert.equal(fromAgent('Bash', { command: 'npm test' }).status, 0);
+    assert.equal(fromAgent('Write', { file_path: join(root, 'packages', 'backend', 'thing.ts') }).status, 0);
+    assert.equal(gate(lane, 'Bash', { command: 'npm test' }).status, 2, "the guest's own call is still refused");
+    const blank = gateRaw(lane, JSON.stringify({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'true' }, agent_id: '' }));
+    assert.equal(blank.status, 2, 'an empty agent_id is not an agent');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("a guest's reply cannot attach a file however the marker is cased", () => {
+  // The house reads [discord-attach:<id>] case-insensitively, so the helper
+  // has to refuse every casing of it, not only lowercase.
+  const { root, lane } = house();
+  try {
+    audience(lane, { ...GUEST('full'), turn: 't-guest' });
+    for (const marker of ['[discord-attach:', '[DISCORD-ATTACH:', '[Discord-Attach:', '[ discord-attach :']) {
+      const body = JSON.stringify({ turn_id: 't-guest', content: `here ${marker}0f1e2d3c-1111-2222-3333-444455556666]` });
+      const res = spawnSync(process.execPath, [join(lane, 'hooks', 'reply.cjs')], { cwd: lane, input: body, encoding: 'utf8', timeout: 10000 });
+      assert.notEqual(res.status, 0, marker);
+      assert.match(res.stderr, /cannot attach/, marker);
+    }
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

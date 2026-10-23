@@ -192,9 +192,11 @@ test('the held message is stored BEFORE the turn stops — the guard sits after 
 });
 
 test('a held turn never shows a typing indicator', () => {
-  // A typing dot is a promise of a reply. We are not going to make one.
+  // A typing dot is a promise of a reply. We are not going to make one, for a
+  // turn the bot guard is holding or a role ping held for the owner.
   const source = readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
-  const guard = source.indexOf('if (!heardOnly) {');
+  assert.ok(source.includes('const quiet = heardOnly || holdForHer;'), 'quiet should cover both kinds of held turn');
+  const guard = source.indexOf('if (!quiet) {');
   const typing = source.indexOf('sendTyping()');
   assert.ok(guard > 0 && typing > guard, 'sendTyping should sit inside the not-held branch');
 });
