@@ -124,12 +124,13 @@ a file in the repo. What you need depends entirely on which lanes you use.
 | Feature | Needs |
 | --- | --- |
 | Companion replies | an authenticated CLI for the lane you route to, or an API key for a router lane |
-| Voice Mode — hearing you | a Groq key (speech to text) |
+| Voice Mode — hearing you | a Groq key (speech to text), or a transcription server of your own on the same machine, tried first when `voice.local_stt_url` is set (built against CrispASR's `--server` mode: `POST /inference` with a multipart `file`, answering JSON with a top-level `text`); ElevenLabs is the last fallback |
 | Voice Mode — speaking | an ElevenLabs key, plus a voice id per companion |
 | Voice Mode — credit meter | the same ElevenLabs key, with the **User > Read** permission enabled |
 | Studio — image generation | whatever the chosen backend needs; the Create tab reports this per backend before you spend a prompt |
 | Memory → Cortex tab | a deployed Cortex worker URL and its token — see `workers/cortex/README.md`. The URL is entered on the Cortex tab itself, not here |
-| Push notifications | web-push keys generated on first use |
+| The Spotify app | a deployed Spotify worker, added under Integrations > MCP — see `workers/spotify-mcp/README.md` |
+| Push notifications | the Android app and your own Firebase project: `google-services.json` at build time and the `fcm_service_account` secret on the server — see `docs/ANDROID-APP.md` |
 | Weather, GIF search | their own free keys, entered where the feature asks |
 
 Blocks and Self-Knowledge need none of this: they live in Aerie's own database.

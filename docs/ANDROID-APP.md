@@ -140,6 +140,23 @@ you, the server sees the live socket and sends nothing — you already have the
 message. Close the app or lock the phone and the same message arrives as a
 notification instead.
 
+One kind of push is silent. When your companion plays you a song and Spotify is
+not running anywhere, the server sends the app a data-only message with nothing
+to show: the app's own push listener wakes Spotify on the phone, the server
+waits for the phone to appear among Spotify's devices, and the song plays. Every
+other push is handed on to the ordinary notification path unchanged.
+
+## Spotify on the phone
+
+The Spotify app works from the browser too, but only the Android app can start
+Spotify when it is closed: a tap that comes back as nowhere to play wakes
+Spotify on the phone (through Spotify's own App Remote kit, Apache-2.0, bundled
+in `app/libs`, and a media play key as the fallback) and sends the tap again.
+For that, your Spotify developer app needs this app's package name and signing
+fingerprint; [workers/spotify-mcp/README.md](../workers/spotify-mcp/README.md)
+has the steps. Without them the app still plays anywhere Spotify is already
+open, and says so when it is not.
+
 ## If you skip all of this
 
 Nothing fails, and it isn't luck — each path is guarded on purpose:

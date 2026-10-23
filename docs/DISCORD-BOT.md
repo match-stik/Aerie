@@ -94,6 +94,39 @@ set to mention-only, an actual mention.
 
 If your companion is silent somewhere, that is the order to check it in.
 
+### 7. Rooms that listen to everything
+
+A server or channel rule can say a mention is not required (or a channel can be
+set to always listen), and then your companion hears every message there, not
+only the ones that tag it. So it does not answer all of them, a judge sorts each
+message first:
+
+- **Ours** — a tag, a reply to one of its messages, or one of your companions'
+  names: answered as usual.
+- **Said to the room** — waits a beat (a minute by default, longer while someone
+  else is typing), then your companion either adds something of its own or
+  passes, and a pass posts nothing.
+- **Aimed at somebody else** — heard and kept, not answered. That includes your
+  own reply to someone else's message, unless you tag or name your companion in
+  it.
+
+Your own messages are never sorted otherwise: you speak, it answers. The judge
+is on by default; `discord.judgeEnabled`, `discord.judgeBeatMs` and
+`discord.judgeMaxWaitMs` (through `PUT /api/discord/settings`) change it, live.
+
+Two more things happen in every server:
+
+- A ping that reaches your companion only through a **role** it holds is not
+  answered in the channel. It comes home to you, in your own thread, with who
+  pinged which role where.
+- **Messages about you** — an @mention of you, a reply to you, or your name from
+  a person — can land in your thread and buzz your phone, labeled with where they
+  were said. This is off until you switch on `discord.owner_mentions`; the names
+  it listens for are `discord.owner_names` (comma-separated), or your
+  `identity.user_name` when that is empty.
+
+Nothing your companion posts can ping @everyone, @here or a role.
+
 ---
 
 ## Part 2 — The worker (optional)

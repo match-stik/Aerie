@@ -373,8 +373,10 @@ This only needs to be done once. After that, `npm run build` and `npm start` wor
 - **Voice:** add ElevenLabs (speaking) and Groq (hearing) keys under **Integrations → Secrets**, then switch Voice on in the **Services** section of that same app.
 - **Discord:** **Integrations → Discord.** Paste a bot token, then approve yourself when the pairing request appears — the gateway only answers people you've approved.
 - **Telegram:** also **Integrations**, in the same **Services** list as voice.
+- **Spotify:** deploy the Spotify worker (`workers/spotify-mcp/README.md` has the steps) and add it under **Integrations → MCP**; the Spotify app in the drawer does the rest.
+- **Your phone:** build the Android app (`docs/ANDROID-APP.md`) for push notifications, and for waking Spotify when it is closed.
 
 Settings holds your name, your companion's name, your timezone and the look of
 the place. Anything that reaches the outside world lives in Integrations.
-- **Themes:** Settings → Appearance. Light and dark, an accent palette, fully custom colours, wallpapers for the lock and home screens. No files, no rebuild.
+- **Themes:** Settings → Appearance. Light and dark, an accent palette, fully custom colors, wallpapers for the lock and home screens. No files, no rebuild.
 - **Context hooks:** Advanced context injection. See `docs/HOOKS.md`.

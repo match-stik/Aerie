@@ -192,3 +192,4 @@ Regardless of which method you choose:
 - [ ] **Don't expose port 3002 directly** to the internet via port forwarding — use a tunnel instead
 - [ ] **Keep Node.js updated** for security patches
 - [ ] **Check PM2 logs** periodically: `pm2 logs aerie`
+- [ ] **Turn on the cross-site check** once you know it is quiet. Aerie checks whether each request that changes something came from its own page (the browser's `Sec-Fetch-Site`, then `Origin`). It ships in report mode: it only logs `[CSRF] would refuse` lines in the error log. After a few days of normal use with none from your own devices, set `security.csrf_mode` to `enforce`.
