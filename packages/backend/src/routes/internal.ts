@@ -19,6 +19,9 @@ import { isHeartbeatLane } from '../services/compaction-log.js';
 import { basename, resolve, dirname, join } from 'path';
 import { getAllBlocks } from '../services/memory-blocks.js';
 import { driftAgainstBaseline, renderDrift, BASELINE_FILE } from '../services/heartbeat/block-drift.js';
+import { readPlayRequest, spotify } from '../services/spotify.js';
+import { wakeAndPlay } from '../services/spotify-wake.js';
+import { getPushService } from '../services/push.js';
 import { fileURLToPath } from 'url';
 import {
   listThreads,
@@ -116,6 +119,7 @@ import {
 } from '../services/db/screening.js';
 import type { TelegramService } from '../services/telegram/index.js';
 import { getStickerByRef } from '../services/db/stickers.js';
+import { addFieldNote, listFieldNotes, fieldNotesLimit, FieldNoteError } from '../services/db/field-notes.js';
 
 // Derive project root for path containment
 const __filename = fileURLToPath(import.meta.url);
@@ -1065,6 +1069,36 @@ router.get('/internal/treehouse/messages', (req, res) => {
   res.json({ messages: getTreehouseMessages(limit, beforeId) });
 });
 
+// ─── The owner field notes (localhost-only) ──────────────────────────
+// The morning look writes a sentence or two for their phone's Field Notes page.
+// addFieldNote checks everything and refuses in one plain sentence.
+
+router.post('/internal/field-notes', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  try {
+    const note = addFieldNote(req.body ?? {});
+    res.status(201).json({ note });
+  } catch (error) {
+    if (error instanceof FieldNoteError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    console.error('Field note write error:', error);
+    res.status(500).json({ error: 'The field note could not be kept.' });
+  }
+});
+
+router.get('/internal/field-notes', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  res.json({ notes: listFieldNotes(fieldNotesLimit(req.query.limit)) });
+});
+
 // ─── Companion journal (localhost-only) ────────────────────────
 // Companions write entries in their own voice; dreams get the vividness
 // lifecycle (decay at read, +15 on recall, frozen once anchored).
@@ -1977,4 +2011,39 @@ router.post('/internal/story-shelf/keepsakes/:id/weave', (req, res) => {
   } catch (error) {
     answerStoryError(res, error, 'weave the keepsake');
   }
+});
+
+// ---- Spotify on their phone, even when Spotify is closed ----
+//
+// POST /api/internal/spotify/wake-play { companion, trackUri?, playlistUri?,
+// albumUri? }: plays it on their phone. When Spotify isn't running anywhere, a
+// silent push asks their phone to wake Spotify (nothing shows on their screen),
+// the house waits up to 30 seconds for their phone to appear among Spotify's
+// devices, and plays it there. The answer says whether it had to wake the owner
+// phone (woke), how long it waited, and, on a no, the plain reason.
+
+router.post('/internal/spotify/wake-play', async (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const body = (req.body && typeof req.body === 'object') ? { ...req.body } as Record<string, unknown> : {};
+  const companion = typeof body.companion === 'string' ? body.companion.trim() : '';
+  if (!companion) {
+    res.status(400).json({ ok: false, error: 'companion is required: who is pressing play.' });
+    return;
+  }
+  delete body.companion;
+  const asked = readPlayRequest(body);
+  if (!asked.ok) {
+    res.status(400).json({ ok: false, error: asked.error });
+    return;
+  }
+  const push = getPushService();
+  const answer = await wakeAndPlay(asked.value, {
+    spotify: spotify(),
+    sendData: async (data) => (push ? push.sendData(data) : 0),
+  });
+  console.log(`[Spotify] ${companion} wake-play: ${answer.ok ? (answer.woke ? `woke ${answer.device} after ${answer.waitedMs} ms and played` : 'played, nothing to wake') : `${answer.reason} (${answer.error})`}`);
+  res.json(answer);
 });

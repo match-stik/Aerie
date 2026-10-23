@@ -46,6 +46,8 @@ import { BubbleSkin, SKINNED } from "./BubbleSkin";
 import { drawerIconPx, drawerLookOf, drawerTileStyle } from "../lib/drawer-look";
 import { BODY_FONTS, FONT_SCALE_MAX, FONT_SCALE_MIN, TITLE_FONTS, TITLE_SCALE_MAX, TITLE_SCALE_MIN, bodyStack, fontsOf, titleStack } from "../lib/fonts";
 import { AppLabel } from "./AppLabel";
+import { lockSpotifyOf } from "../lib/lock-spotify";
+import { lockCardsOf, type LockCardChoice } from "../lib/lock-cards";
 import { lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, withClockAt, withHidden, type LockFace, type LockPiece, type LockShow, type LockSize } from "../lib/lock-clock";
 import { apiFetch, houseKeepsLinkedFiles, storeInlinePicture } from "../aerie";
 
@@ -847,6 +849,33 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                     <div className="grid grid-cols-3 gap-2">
                       {([["names", "Names"], ["first-line", "First line"], ["nothing", "Nothing"]] as [LockShow, string][]).map(([id, label]) => (
                         <button key={id} onClick={() => onThemeChange({ lockShow: id })} className={chip(lockShowOf(theme.lockShow) === id)} style={chipStyle(lockShowOf(theme.lockShow) === id)}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                  <section className={cn("space-y-3 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
+                    <h3 className={cn("micro-label", colors.accentText)}>Spotify</h3>
+                    <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
+                      A card on the lock screen while a song is playing or paused: its cover, the song and the artist, with previous, play or pause, and next. Tap the cover to open Spotify.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([[true, "On"], [false, "Off"]] as [boolean, string][]).map(([on, label]) => (
+                        <button key={label} onClick={() => onThemeChange({ lockSpotify: on })} className={chip(lockSpotifyOf(theme.lockSpotify) === on)} style={chipStyle(lockSpotifyOf(theme.lockSpotify) === on)} aria-pressed={lockSpotifyOf(theme.lockSpotify) === on}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                  {/* One look for every card on the lock screen (the owner idea, Oct 20 2026). */}
+                  <section className={cn("space-y-3 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
+                    <h3 className={cn("micro-label", colors.accentText)}>Cards</h3>
+                    <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
+                      How the message, note and Spotify cards look on the lock screen. Light suits a light wallpaper, with dark words on it. Auto looks at your wallpaper behind the cards and picks.
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]] as [LockCardChoice, string][]).map(([id, label]) => (
+                        <button key={id} onClick={() => onThemeChange({ lockCards: id })} className={chip(lockCardsOf(theme.lockCards) === id)} style={chipStyle(lockCardsOf(theme.lockCards) === id)} aria-pressed={lockCardsOf(theme.lockCards) === id}>
                           {label}
                         </button>
                       ))}

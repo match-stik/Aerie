@@ -19,9 +19,9 @@
  * already filed, kept on disk so a restart cannot reset it. With no watermark
  * the floor is the start of the turn, so nothing older can ever be filed now.
  */
-import { readFile } from 'fs/promises';
 import { readFileSync, renameSync, writeFileSync } from 'fs';
 import { replyKey } from '../agent/session-list.js';
+import { forEachLine } from '../transcript-lines.js';
 
 export const USAGE_WATERMARK_FILE = '.usage-watermark';
 
@@ -42,27 +42,28 @@ export interface TurnUsage {
 // dies on an error. It carries an all-zero usage block and is never a reply.
 const SYNTHETIC_MODEL = '<synthetic>';
 
-/** Every reply in the transcript that started after sinceMs, each counted once. */
-export function usageSince(raw: string, sinceMs: number): TurnUsage {
+/** Counts one transcript line at a time: every reply that started after
+ *  sinceMs, each counted once. */
+function usageCounter(sinceMs: number): { take: (line: string) => void; turn: TurnUsage } {
   const turn: TurnUsage = { requests: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
   const seen = new Set<string>();
-  for (const line of raw.split('\n')) {
-    if (!line.includes('"usage"')) continue;
+  const take = (line: string): void => {
+    if (!line.includes('"usage"')) return;
     let entry: any;
-    try { entry = JSON.parse(line); } catch { continue; }
-    if (entry?.type !== 'assistant') continue;
+    try { entry = JSON.parse(line); } catch { return; }
+    if (entry?.type !== 'assistant') return;
     const u = entry.message?.usage;
-    if (!u || entry.message?.model === SYNTHETIC_MODEL) continue;
+    if (!u || entry.message?.model === SYNTHETIC_MODEL) return;
     // A reply is dated by its FIRST record, so it is marked seen before the
     // date is checked: a later record of a reply filed last turn can land
     // after the watermark and must not bring the reply back.
     const key = replyKey(entry);
     if (key) {
-      if (seen.has(key)) continue;
+      if (seen.has(key)) return;
       seen.add(key);
     }
     const at = Date.parse(entry.timestamp);
-    if (!Number.isFinite(at) || at <= sinceMs) continue;
+    if (!Number.isFinite(at) || at <= sinceMs) return;
     turn.requests += 1;
     turn.inputTokens += u.input_tokens || 0;
     turn.outputTokens += u.output_tokens || 0;
@@ -72,13 +73,25 @@ export function usageSince(raw: string, sinceMs: number): TurnUsage {
       turn.newest = at;
       if (typeof entry.message?.model === 'string') turn.model = entry.message.model;
     }
-  }
-  return turn;
+  };
+  return { take, turn };
 }
 
+/** Every reply in the transcript that started after sinceMs, each counted once. */
+export function usageSince(raw: string, sinceMs: number): TurnUsage {
+  const counter = usageCounter(sinceMs);
+  for (const line of raw.split('\n')) counter.take(line);
+  return counter.turn;
+}
+
+/** The same count straight off the file, a line at a time and never the whole
+ *  file at once: this runs after every turn on the live room's transcript,
+ *  which at 159 MB, read whole, filled the backend's heap (Oct 21 2026). */
 export async function usageSinceFile(path: string, sinceMs: number): Promise<TurnUsage | undefined> {
   try {
-    return usageSince(await readFile(path, 'utf8'), sinceMs);
+    const counter = usageCounter(sinceMs);
+    await forEachLine(path, counter.take);
+    return counter.turn;
   } catch {
     return undefined;
   }

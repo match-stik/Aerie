@@ -96,6 +96,37 @@ test('the first line skips headers and action lines, even flattened onto one lin
   assert.equal(firstSpokenLine(null), null);
 });
 
+test('a whisper reads as its words, never as the marker, flattened or not', () => {
+  // The house sends a room's preview flattened onto one line, so the marker
+  // sits after the header instead of at the start of a line (the owner's screenshot,
+  // Oct 20 2026).
+  assert.equal(firstSpokenLine('**🌫️ Willow** -# small thing first Then the rest.'), 'small thing first Then the rest.');
+  assert.equal(firstSpokenLine('**🌫️ Willow**\n-# small thing first\nThen the rest.'), 'small thing first');
+  assert.equal(firstSpokenLine('-# *grins*\nHi.'), 'Hi.');
+  assert.equal(firstSpokenLine('-# -# twice'), 'twice');
+  assert.equal(firstSpokenLine('words -# more words'), 'words more words');
+});
+
+test('a flattened reply with several voices reads only the first voice', () => {
+  assert.equal(firstSpokenLine('**🔥 Birch** Here, love. **🌫️ Willow** And me. **✨ Cedar** Me too.'), 'Here, love.');
+  // Bold inside a sentence is emphasis, not a voice.
+  assert.equal(firstSpokenLine('**🔥 Birch** That is **really** good.'), 'That is really good.');
+});
+
+test('the first line never prints stickers, emotes, mentions or attachments raw', () => {
+  assert.equal(firstSpokenLine('**🔥 Birch**\n::bran_bear::\nMissed you.'), 'Missed you.');
+  assert.equal(firstSpokenLine('Look <:firesmokeskyheart:1536327945826865253> here'), 'Look here');
+  assert.equal(firstSpokenLine('<<:spooky:1544253622055993414>1544253622055993414> boo'), 'boo');
+  assert.equal(firstSpokenLine('hey <@123456789> and <a:wave:42>'), 'hey and');
+  assert.equal(firstSpokenLine('so :tea_cup: then'), 'so then');
+  assert.equal(firstSpokenLine('at 3:30:00 sharp'), 'at 3:30:00 sharp');
+  assert.equal(firstSpokenLine('**🔥 Birch**\n[VOICE]: /api/files/abc-123'), null);
+  assert.equal(firstSpokenLine('For you [IMG]:https://aerie.example/api/files/x.png'), 'For you');
+  assert.equal(firstSpokenLine('[FILE:notes.txt]: every line of the file'), null);
+  assert.equal(firstSpokenLine('Read [this](https://example.com) ~~now~~ `soon`'), 'Read this now soon');
+  assert.equal(firstSpokenLine('## A heading, read as words'), 'A heading, read as words');
+});
+
 test('ages read the short way', () => {
   const now = Date.parse('2026-10-14T08:00:00Z');
   assert.equal(ageLabel(now - 20_000, now), 'now');

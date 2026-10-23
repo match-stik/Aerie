@@ -754,3 +754,23 @@ test('a turn from Discord marks itself as answering elsewhere, and only while it
     assert.equal(session.turnAnswersElsewhere, false, 'lowered once the turn is over');
   }
 });
+
+// The thread a note from their phone is checked against (sideNoteTarget): the
+// turn's own thread for as long as it runs, so a bell in the treehouse never
+// takes a note the owner wrote at home.
+test('a turn marks the thread it answers in, and only while it runs', async () => {
+  const session = new FakeHeartbeatSession() as FakeHeartbeatSession & { turnThreadId?: string };
+  let during: string | undefined;
+  session.onAppend = (current) => {
+    during = session.turnThreadId;
+    session.lines.push(JSON.stringify({ turn_id: current.turn, content: 'answered' }));
+  };
+  const runtime = new InteractiveCliRuntime({
+    sessionKey: `turn-thread-${Date.now()}`,
+    threadId: 'treehouse-thread',
+    sessionFactory: () => session as any,
+  } as any);
+  await collect(runtime);
+  assert.equal(during, 'treehouse-thread');
+  assert.equal(session.turnThreadId, '', 'cleared once the turn is over');
+});

@@ -42,6 +42,8 @@ interface ClaudeUsage {
   limits: ClaudeLimitRow[];
   extraUsage: ClaudeExtraUsage | null;
   spend: ClaudeSpend | null;
+  /** The live read failed and this is the last good reading: when, and why. */
+  stale: { readAt: string; reason: string } | null;
 }
 
 interface CodexWindow {
@@ -209,6 +211,10 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
           limits,
           extraUsage,
           spend,
+          stale: data.stale && typeof data.stale === 'object'
+            && typeof data.stale.readAt === 'string' && typeof data.stale.reason === 'string'
+            ? { readAt: data.stale.readAt, reason: data.stale.reason }
+            : null,
         });
         setClaudeError(null);
       } catch (err) {
@@ -294,6 +300,13 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
         </div>
         {claude ? (
           <>
+            {claude.stale ? (
+              // At the cap the live read tends to fail, and that is when the
+              // reset time matters most: show what we last knew, and say so.
+              <p className={cn('text-[11px] italic mb-2', colors.textMuted)}>
+                Last read {formatReset(claude.stale.readAt)}. Can't read it right now ({claude.stale.reason}).
+              </p>
+            ) : null}
             {claude.limits.length > 0 ? (
               <div className="space-y-2">
                 {claude.limits.map((limit, i) => (

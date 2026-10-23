@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../lib/utils';
 
 /**
@@ -58,7 +58,27 @@ export function Paginator({
   colors: { textMain: string; textMuted: string; panelBorder: string; panelBg: string; accent: string };
   className?: string;
 }) {
+  const navRef = useRef<HTMLElement>(null);
   if (pageCount <= 1) return null;
+
+  /**
+   * Turning a page from the numbers at the bottom used to leave the owner standing at
+   * the bottom of the new page, so the top of it was already scrolled past
+   * (Oct 22 2026). Take the list's own scroller back up to where it starts.
+   */
+  function turnTo(n: number) {
+    onPage(n);
+    let el: HTMLElement | null = navRef.current?.parentElement ?? null;
+    while (el) {
+      const overflowY = getComputedStyle(el).overflowY;
+      if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+        el.scrollTo({ top: 0 });
+        return;
+      }
+      el = el.parentElement;
+    }
+    window.scrollTo({ top: 0 });
+  }
 
   const numbers: (number | '…')[] = [];
   const WINDOW = 1; // pages either side of the current one
@@ -73,6 +93,7 @@ export function Paginator({
 
   return (
     <nav
+      ref={navRef}
       aria-label="Pages"
       className={cn('flex flex-wrap items-center justify-center gap-1.5 py-3', className)}
     >
@@ -85,7 +106,7 @@ export function Paginator({
           <button
             key={n}
             type="button"
-            onClick={() => onPage(n)}
+            onClick={() => turnTo(n)}
             aria-label={`Page ${n}`}
             aria-current={n === page ? 'page' : undefined}
             /* The unselected numbers used to be bare text on a hairline ring, which
@@ -94,7 +115,7 @@ export function Paginator({
                the panel colour instead of the accent — so a row of pages reads as a
                row of pages whichever one the user is standing on. */
             className={cn(
-              'min-h-9 min-w-9 rounded-[var(--shape-control)] border px-2.5 text-xs font-semibold backdrop-blur-md transition-colors',
+              'min-h-9 min-w-9 rounded-[var(--shape-control)] border px-2.5 text-xs font-semibold transition-colors',
               colors.panelBorder,
               n === page ? 'aerie-on-accent' : cn(colors.panelBg, colors.textMuted),
             )}

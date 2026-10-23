@@ -65,6 +65,14 @@ export interface ClaudeUsage {
   limits: ClaudeLimit[];
   extraUsage: ClaudeExtraUsage;
   spend: ClaudeSpend | null;
+  /**
+   * Set only when the live read failed and this is the last good reading:
+   * when it was taken and why the fresh one could not be. At the cap is
+   * exactly when the read tends to fail and exactly when the owner most needs the
+   * reset time, so a failure hands back what we last knew, labelled, rather
+   * than nothing (Oct 22 2026: the card showed the owner a 502 for the whole wait).
+   */
+  stale?: { readAt: string; reason: string };
 }
 
 export interface CodexWindow {
@@ -364,10 +372,31 @@ async function refreshClaudeCredentials(stale: ClaudeCredentials): Promise<Claud
   }
 }
 
+/**
+ * A fresh reading if it comes, else the last good one labelled stale with the
+ * reason, else the failure itself. Never invents a number.
+ */
+export async function claudeUsageOrLastGood(
+  fresh: () => Promise<ClaudeUsage>,
+  lastGood: { at: number; data: ClaudeUsage } | null,
+): Promise<ClaudeUsage> {
+  try {
+    return await fresh();
+  } catch (error) {
+    if (!lastGood) throw error;
+    const reason = error instanceof Error && error.message ? error.message : 'the usage read failed';
+    return { ...lastGood.data, stale: { readAt: new Date(lastGood.at).toISOString(), reason } };
+  }
+}
+
 export async function getClaudeUsage(): Promise<ClaudeUsage> {
   if (claudeCache && Date.now() - claudeCache.at < USAGE_CACHE_MS) {
     return claudeCache.data;
   }
+  return claudeUsageOrLastGood(readClaudeUsageFresh, claudeCache);
+}
+
+async function readClaudeUsageFresh(): Promise<ClaudeUsage> {
   let creds = await readClaudeCredentials();
   let res = await fetchClaudeUsage(creds);
   if (res.status === 401) {

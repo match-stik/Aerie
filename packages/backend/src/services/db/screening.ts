@@ -87,6 +87,19 @@ export function currentScreening(): ScreeningRow | null {
     .get() as ScreeningRow | undefined) ?? null;
 }
 
+/**
+ * Whether a screening is going on now: the most recent one, touched within the
+ * last few hours. Screenings never end on their own (the latest stays
+ * 'playing' for days), so recency is the only honest test. Used when the owner has
+ * asked the house to hear their phone's media only during a screening.
+ */
+export const SCREENING_LIVE_WINDOW_MS = 6 * 60 * 60 * 1000;
+export function screeningIsLive(row: ScreeningRow | null, now = Date.now(), windowMs = SCREENING_LIVE_WINDOW_MS): boolean {
+  if (!row?.updated_at) return false;
+  const touched = Date.parse(row.updated_at.includes('T') ? row.updated_at : `${row.updated_at.replace(' ', 'T')}Z`);
+  return Number.isFinite(touched) && now - touched <= windowMs;
+}
+
 export function loadScreening(opts: { title: string; source?: string | null; subtitles: string }): Screening {
   const cues = parseSubtitles(opts.subtitles);
   if (!cues.length) throw new Error('No timed cues found in that subtitle file');

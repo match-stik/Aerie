@@ -131,6 +131,17 @@ export function initDb(dbPath: string): Database.Database {
   const storyShelfMigrationPath = join(__dirname, '../../../migrations/014_story_shelf.sql');
   db.exec(readFileSync(storyShelfMigrationPath, 'utf-8'));
 
+  // The compactions shelf — every squash the lanes have had, kept here because
+  // Claude Code deletes the transcripts they were written into
+  // (015 is fully IF NOT EXISTS — safe every boot).
+  const compactionsMigrationPath = join(__dirname, '../../../migrations/015_compactions.sql');
+  db.exec(readFileSync(compactionsMigrationPath, 'utf-8'));
+
+  // The owner field notes — what the morning look found in the tools the house runs
+  // on, a sentence or two a day in plain words, for the owner Field Notes page
+  // (016 is fully IF NOT EXISTS — safe every boot).
+  const fieldNotesMigrationPath = join(__dirname, '../../../migrations/016_field_notes.sql');
+  db.exec(readFileSync(fieldNotesMigrationPath, 'utf-8'));
 
   // 008 originally shipped before imported source archives/brush metadata were
   // retained at pack level. SQLite cannot add a column conditionally in SQL,

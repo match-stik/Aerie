@@ -126,10 +126,15 @@ export function deliverSideNoteToBusyCodexLane(
   activeLanes: Set<string>,
   text: string,
   answeringElsewhere: ReadonlySet<string> = new Set(),
+  threadId?: string,
 ): boolean {
   if (activeLanes.size !== 1) return false;
   const [laneKey] = activeLanes;
   // Its turn came from Discord and answers there, so the owner's note queues instead.
   if (answeringElsewhere.has(laneKey)) return false;
+  // Its turn answers in another thread (a bell in its own room), so an answer
+  // to their note would land there: it queues and comes home instead. A lane key
+  // is the thread, or the thread and a companion (agent-state.ts codexLaneKey).
+  if (threadId && laneKey.split(':companion:')[0] !== threadId) return false;
   return appendCodexSideNote(laneKey, text);
 }

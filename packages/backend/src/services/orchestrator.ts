@@ -1,6 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import * as cron from 'node-cron';
 import { parseBellOwners, sameBellBlock, ringBellInTurn, MAX_BELL_RECALLS } from './bell-owners.js';
+import { bellStatus, statusWordKey, statusWordOf } from './bell-status.js';
 import { laneSwitchBefore, laneSwitchAfter, BELLS_SPLIT_LANES_KEY, LANES_BY_BELL_KEY } from './bell-lanes.js';
 import { ensureCompanionLanes } from './heartbeat/lane-keeper.js';
 import { isHeartbeatLaneWarm } from './heartbeat/supervisor.js';
@@ -1129,6 +1130,9 @@ export class Orchestrator {
 
     olog(`WAKE: ${wakeType}`);
 
+    // The bell's status word, when it has one, is up for as long as its turn
+    // runs (services/bell-status.ts), and comes down however the turn ends.
+    let endStatusWord: (() => void) | null = null;
     try {
       const userName = getAerieConfig().identity.user_name;
 
@@ -1214,6 +1218,7 @@ export class Orchestrator {
       // A bell rings in its own companion's lane when one is attached, so the
       // session that answers it is the one that has been in the room.
       const owners = wakeCompanionsFor(wakeType);
+      endStatusWord = bellStatus().begin(wakeType, owners.map((o) => o.slug));
 
       // Several owners: the bell rings in each one's own head in turn, and each
       // after the first is handed what the companions before them said. One at a
@@ -1260,7 +1265,23 @@ export class Orchestrator {
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       olog(`ERROR: ${wakeType} failed — ${errMsg}`);
+    } finally {
+      endStatusWord?.();
     }
+  }
+
+  /**
+   * A bell's status word (services/bell-status.ts): what the phone says under
+   * the faces while its turn runs. Null or empty takes it away. False for a
+   * bell the house does not have.
+   */
+  setTaskStatusWord(wakeType: string, word: string | null): boolean {
+    if (!this.tasks.has(wakeType)) return false;
+    const kept = statusWordOf(word);
+    if (kept) setConfig(statusWordKey(wakeType), kept);
+    else deleteConfig(statusWordKey(wakeType));
+    olog(`${wakeType}: status word ${kept ? `'${kept}'` : 'cleared'}`);
+    return true;
   }
 
   /** Whether a bell has more than one owner. */

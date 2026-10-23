@@ -248,7 +248,12 @@ export function buildAnthropicBody(
   const body: any = {
     model,
     messages: msgs,
-    max_tokens: opts.thinking ? 16000 : 4096,
+    // A Claude model can think on its own even when we did not ask it to, and
+    // that thinking spends the same output allowance. At 4096 the Archivist's
+    // Haiku 5.5 spent it all before writing a word on most sweeps (Oct 22
+    // 2026, half its runs that day). Only what is written is billed, so the
+    // larger ceiling costs nothing on a short answer.
+    max_tokens: opts.thinking || isStrictClaude(model) ? 16000 : 4096,
     stream: opts.stream,
   };
 

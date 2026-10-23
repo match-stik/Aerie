@@ -148,35 +148,56 @@ export class PushService {
 
   /** Deliver a notification to every registered device. */
   async sendPush(payload: PushPayload): Promise<void> {
-    if (!this.account) return;
+    await this.sendToEveryDevice(token => ({
+      token,
+      notification: { title: payload.title, body: payload.body },
+      // Data travels alongside so a tap can open the right room.
+      data: {
+        ...(payload.threadId ? { threadId: payload.threadId } : {}),
+        ...(payload.url ? { url: payload.url } : {}),
+      },
+      android: {
+        priority: 'HIGH',
+        notification: {
+          // Same tag replaces rather than stacks — a chunked reply arrives
+          // as one notification that updates, not four buzzes.
+          ...(payload.tag ? { tag: payload.tag } : {}),
+          default_sound: true,
+        },
+      },
+    }));
+  }
+
+  /**
+   * A data-only message: nothing is shown on their phone, the app's own
+   * messaging service reads `data` and acts on it (the Spotify wake). HIGH so
+   * it arrives through Doze; a short ttl (as long as the Spotify wake waits)
+   * so a phone that was off doesn't act on it an hour late. Answers how many
+   * devices FCM took it for.
+   */
+  async sendData(data: Record<string, string>, ttlSeconds = 120): Promise<number> {
+    return this.sendToEveryDevice(token => ({
+      token,
+      data,
+      android: { priority: 'HIGH', ttl: `${ttlSeconds}s` },
+    }));
+  }
+
+  /** One message per registered device; answers how many FCM accepted. */
+  private async sendToEveryDevice(messageFor: (token: string) => Record<string, unknown>): Promise<number> {
+    if (!this.account) return 0;
 
     const subs = listPushSubscriptions().filter(s => s.device_token);
-    if (subs.length === 0) return;
+    if (subs.length === 0) return 0;
 
     const accessToken = await this.getAccessToken();
-    if (!accessToken) return;
+    if (!accessToken) return 0;
 
     const endpoint = `https://fcm.googleapis.com/v1/projects/${this.account.project_id}/messages:send`;
+    let taken = 0;
 
     await Promise.all(subs.map(async sub => {
-      const message: Record<string, unknown> = {
-        token: sub.device_token,
-        notification: { title: payload.title, body: payload.body },
-        // Data travels alongside so a tap can open the right room.
-        data: {
-          ...(payload.threadId ? { threadId: payload.threadId } : {}),
-          ...(payload.url ? { url: payload.url } : {}),
-        },
-        android: {
-          priority: 'HIGH',
-          notification: {
-            // Same tag replaces rather than stacks — a chunked reply arrives
-            // as one notification that updates, not four buzzes.
-            ...(payload.tag ? { tag: payload.tag } : {}),
-            default_sound: true,
-          },
-        },
-      };
+      const message = messageFor(sub.device_token!);
 
       try {
         const res = await fetch(endpoint, {
@@ -190,6 +211,7 @@ export class PushService {
 
         if (res.ok) {
           touchPushSubscriptionById(sub.id);
+          taken++;
           return;
         }
 
@@ -207,6 +229,7 @@ export class PushService {
         console.error('PushService: send error:', err);
       }
     }));
+    return taken;
   }
 
   async sendIfOffline(payload: PushPayload): Promise<void> {

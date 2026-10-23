@@ -1,7 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import { readdir, stat, open, readFile } from 'fs/promises';
+import { readdir, stat, open } from 'fs/promises';
 import { homedir } from 'os';
 import { join, basename } from 'path';
+import { forEachLine } from '../transcript-lines.js';
 import { CLAUDE_MODELS, extraModelsFor, normalizeModelId } from '../model-catalog.js';
 
 /** Session metadata for the phone's Agent Sessions card. Mirrors the shape the
@@ -134,7 +135,9 @@ export function replyKey(entry: any): string | undefined {
 const usageCache = new Map<string, { key: string; usage: SessionUsage }>();
 
 /** Sum a whole transcript. Measured at 221 MB across 20 sessions in 0.69s, so
- *  the full read is affordable even before the cache takes it to nothing. */
+ *  the full read is affordable even before the cache takes it to nothing. It is
+ *  walked a line at a time, never held whole: the live room's file is re-read
+ *  after every turn, and at 159 MB, read whole, it filled the heap (Oct 21 2026). */
 export async function readSessionUsage(filePath: string, size: number, mtime: number): Promise<SessionUsage | undefined> {
   const key = `${size}:${mtime}`;
   const hit = usageCache.get(filePath);
@@ -146,22 +149,21 @@ export async function readSessionUsage(filePath: string, size: number, mtime: nu
   };
   const counted = new Set<string>();
   try {
-    const raw = await readFile(filePath, 'utf8');
-    for (const line of raw.split('\n')) {
+    await forEachLine(filePath, (line) => {
       // Cheap reject before the parse — most lines are tool traffic.
-      if (!line.includes('"usage"')) continue;
+      if (!line.includes('"usage"')) return;
       let entry: any;
-      try { entry = JSON.parse(line); } catch { continue; }
+      try { entry = JSON.parse(line); } catch { return; }
       const u = entry?.type === 'assistant' ? entry.message?.usage : undefined;
-      if (!u) continue;
+      if (!u) return;
       if (entry.message?.model === SYNTHETIC_MODEL) {
         usage.endedWith = syntheticText(entry) ?? usage.endedWith;
-        continue; // never a reply, never the model, never the context
+        return; // never a reply, never the model, never the context
       }
       // Its other records repeat the same usage; the first one already counted.
       const key = replyKey(entry);
       if (key) {
-        if (counted.has(key)) continue;
+        if (counted.has(key)) return;
         counted.add(key);
       }
       usage.replies += 1;
@@ -174,7 +176,7 @@ export async function readSessionUsage(filePath: string, size: number, mtime: nu
       usage.contextTokens =
         (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
       if (typeof entry.message?.model === 'string') usage.model = entry.message.model;
-    }
+    });
   } catch {
     return undefined;
   }

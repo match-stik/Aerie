@@ -13,7 +13,9 @@ import { join } from 'node:path';
 // ported code. Both halves are checked here.
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const SOURCE = /\.(ts|tsx|js|mjs|cjs|java|css|py)$/;
-const SKIP = /^(node_modules|data|logs)\/|\/(dist|build)\//;
+// workers/spotify-mcp is built on Kay's base code (its README credits it) and
+// carries no header line of ours.
+const SKIP = /^(node_modules|data|logs|workers\/spotify-mcp)\/|\/(dist|build)\//;
 const HEADER = /Copyright \d{4} Aerie Systems\. Licensed under the Apache License 2\.0\./;
 const CANARY = /Porting code from here\? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before\./;
 

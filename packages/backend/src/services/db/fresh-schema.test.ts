@@ -156,6 +156,62 @@ test('the story shelf tables land whole on a fresh install, and a second boot ke
   }
 });
 
+test('the compactions shelf lands whole on a fresh install, and a second boot keeps what is on it', () => {
+  // 015 creates its table whole, like 013 and 014, so it is named column by
+  // column here. Its whole point is to outlive the transcripts, so a reboot
+  // that lost a row would be the one fault worth checking for.
+  const dir = mkdtempSync(join(tmpdir(), 'aerie-fresh-compactions-'));
+  const path = join(dir, 'fresh.db');
+  let db = initDb(path);
+  try {
+    const columns = (db.prepare('PRAGMA table_info(compactions)').all() as Array<{ name: string }>).map((c) => c.name);
+    assert.deepEqual(columns, ['id', 'project', 'lane', 'companion', 'session_id', 'at', 'chars', 'summary', 'first_seen']);
+    const indexes = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_compactions_%' ORDER BY name").all() as Array<{ name: string }>)
+      .map((i) => i.name);
+    assert.deepEqual(indexes, ['idx_compactions_at']);
+    // And where each transcript was read to, so an unchanged one is skipped after a restart.
+    const markColumns = (db.prepare('PRAGMA table_info(compaction_scan_marks)').all() as Array<{ name: string }>).map((c) => c.name);
+    assert.deepEqual(markColumns, ['path', 'size', 'mtime_ms', 'byte_offset', 'head_len', 'head_hash', 'tail_len', 'tail_hash', 'read_at']);
+
+    db.prepare(`INSERT INTO compactions (id, project, lane, companion, session_id, at, chars, summary, first_seen)
+                VALUES ('c1', '-home-example-aerie-data-heartbeat-primary', 'primary', NULL, 's1', 'then', 4, 'kept', 'now')`).run();
+    db.prepare(`INSERT INTO compaction_scan_marks (path, size, mtime_ms, byte_offset, head_len, head_hash, tail_len, tail_hash, read_at)
+                VALUES ('/x/s1.jsonl', 10, 1.5, 10, 10, 'h', 10, 't', 'now')`).run();
+    db.close();
+    db = initDb(path);
+    assert.equal((db.prepare('SELECT COUNT(*) AS n FROM compactions').get() as { n: number }).n, 1, 'a reboot re-runs 015 harmlessly');
+    assert.equal((db.prepare('SELECT mtime_ms AS m FROM compaction_scan_marks').get() as { m: number }).m, 1.5, 'a stamp keeps its fraction');
+  } finally {
+    db.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('the field notes table lands whole on a fresh install, and a second boot keeps what is in it', () => {
+  // 016 creates its table whole, like 013 to 015, so it is named column by
+  // column here. The owner page is a record of every morning, so a reboot that lost
+  // a row is the one fault worth checking for.
+  const dir = mkdtempSync(join(tmpdir(), 'aerie-fresh-field-notes-'));
+  const path = join(dir, 'fresh.db');
+  let db = initDb(path);
+  try {
+    const columns = (db.prepare('PRAGMA table_info(field_notes)').all() as Array<{ name: string }>).map((c) => c.name);
+    assert.deepEqual(columns, ['id', 'day', 'companion', 'text', 'created_at']);
+    const indexes = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_field_notes_%' ORDER BY name").all() as Array<{ name: string }>)
+      .map((i) => i.name);
+    assert.deepEqual(indexes, ['idx_field_notes_day']);
+
+    db.prepare(`INSERT INTO field_notes (id, day, companion, text, created_at)
+                VALUES ('n1', '2026-10-22', 'example', 'Nothing changed.', 'now')`).run();
+    db.close();
+    db = initDb(path);
+    assert.equal((db.prepare('SELECT COUNT(*) AS n FROM field_notes').get() as { n: number }).n, 1, 'a reboot re-runs 016 harmlessly');
+  } finally {
+    db.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 // The house this came from keeps a third test here, on a table that is held
 // back from this tree — so it is deliberately not carried. A test that asserts
 // a feature the kit does not ship is red on every machine but the one that

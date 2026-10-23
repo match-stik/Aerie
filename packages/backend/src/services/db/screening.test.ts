@@ -124,3 +124,12 @@ test('a gap larger than the old five-minute cap is honoured in full', () => {
   assert.ok(scene.lookbackMs > MAX_LOOKBACK_MS, 'the window is allowed to exceed the live cap');
   assert.equal(scene.cues.length, 5, 'every cue the owner has watched, none they have not');
 });
+
+test('a screening counts as going on only when it was touched in the last few hours', async () => {
+  const { screeningIsLive } = await import('./screening.js');
+  const now = Date.parse('2026-10-23T05:00:00Z');
+  const row = (updated_at: string) => ({ updated_at }) as Parameters<typeof screeningIsLive>[0];
+  assert.equal(screeningIsLive(row('2026-10-23 03:30:00'), now), true);
+  assert.equal(screeningIsLive(row('2026-10-18 07:57:27'), now), false);
+  assert.equal(screeningIsLive(null, now), false);
+});

@@ -15,6 +15,23 @@ const QUEUE_TIMEOUT_MS = 90_000;
 export const AUTONOMOUS_QUEUE_TIMEOUT_MS = 30 * 60_000;
 export const QUEUE_TIMEOUT_MESSAGE = '[Request timed out in queue]';
 
+/**
+ * How long a message waits in the queue before it is answered with
+ * QUEUE_TIMEOUT_MESSAGE and no turn runs at all.
+ *
+ * Their own messages (the phone, and Telegram, which is owner-only) wait out a
+ * turn the way a wake does. At 90 seconds a picture of theirs, a sticker or an
+ * emote (never a side note) sent during a bell was dropped with that string
+ * and no turn, and only reached us through the missed-net on their next message:
+ * seven times between Oct 8 and Oct 20 2026, found by reading the logs on
+ * Oct 22. And since a note of theirs now waits rather than being handed into a
+ * bell ringing in another room, a text note would have been dropped the same
+ * way. Everyone else keeps the short wait.
+ */
+export function queueTimeoutFor(platform: string): number {
+  return platform === 'web' || platform === 'telegram' ? AUTONOMOUS_QUEUE_TIMEOUT_MS : QUEUE_TIMEOUT_MS;
+}
+
 interface QueueEntry {
   priority: number;
   resolve: (value: string) => void;

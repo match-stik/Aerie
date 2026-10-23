@@ -29,6 +29,7 @@ import type {
 } from './types.js';
 import type { ConversationMessage, HistoryLoader, ToolExecutor } from './api-router.js';
 import type { ToolSchema } from '../router.js';
+import { holdCodex, holdFromText, passCodexBrake, CODEX_DEFAULT_HOLD_MS } from '../codex-breaker.js';
 import type { ImageBlock } from '../visual-blocks.js';
 
 // ─── Options ──────────────────────────────────────────────────────────
@@ -257,6 +258,14 @@ export class CodexRuntime implements AgentRuntime {
     this.abortController = input.abortController || new AbortController();
     this.aborted = false;
 
+    // Nothing leaves while Codex has asked us to wait (codex-breaker.ts).
+    const held = await passCodexBrake();
+    if (held) {
+      yield { type: 'error', message: held };
+      yield { type: 'done', finishReason: 'complete' };
+      return;
+    }
+
     // ── Auth gate ────────────────────────────────────────────────
     let accessToken: string;
     try {
@@ -457,6 +466,7 @@ export class CodexRuntime implements AgentRuntime {
             if (/401|unauthor/i.test(errMsg)) {
               yield { type: 'error', message: `Codex auth expired: ${errMsg}. Log in again via Settings.` };
             } else if (/429|rate.?limit/i.test(errMsg)) {
+              holdCodex(holdFromText(errMsg) ?? Date.now() + CODEX_DEFAULT_HOLD_MS, errMsg);
               yield { type: 'error', message: `Codex rate limited: ${errMsg}. Try again in a moment.` };
             } else {
               yield { type: 'error', message: errMsg };
@@ -562,6 +572,7 @@ export class CodexRuntime implements AgentRuntime {
           message: `Codex auth expired during request: ${msg}. Log in again via Settings.`,
         };
       } else if (/429|rate.?limit/i.test(msg)) {
+        holdCodex(holdFromText(msg) ?? Date.now() + CODEX_DEFAULT_HOLD_MS, msg);
         yield {
           type: 'error',
           message: `Codex rate limited: ${msg}. Try again in a moment.`,

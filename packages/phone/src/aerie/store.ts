@@ -46,6 +46,8 @@ export interface AerieState {
   threads: ThreadSummary[];
   activeThreadId: string | null;
   presence: PresenceStatus;
+  /** The word under the faces while a bell that has one runs (lib/presence-word.ts); a null word is Home. */
+  statusWord: { word: string | null; companions: string[] };
   unreadCounts: Record<string, number>;
   loadingThread: boolean;
   streamingMessageId: string | null;
@@ -85,6 +87,7 @@ const initialState: AerieState = {
   threads: [],
   activeThreadId: null,
   presence: 'offline',
+  statusWord: { word: null, companions: [] },
   unreadCounts: {},
   loadingThread: false,
   streamingMessageId: null,

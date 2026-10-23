@@ -4,6 +4,7 @@ import { Router, type Response as ExpressResponse } from 'express';
 import crypto from 'crypto';
 import { settingsForClient } from '../services/settings-view.js';
 import { fileIdsInUse } from '../services/file-references.js';
+import { pipeWholeStream, wakeWholeStreamWaiters, wholeFromFinished } from '../services/tts-whole.js';
 import * as babel from '@babel/core';
 import multer from 'multer';
 import { readdirSync, readFileSync, writeFileSync, existsSync } from 'fs';
@@ -122,6 +123,8 @@ type LiveTtsSegment = {
   state: 'pending' | 'streaming' | 'complete' | 'error';
   error?: Error;
   subscribers: Set<LiveTtsSubscriber>;
+  /** The whole-reply stream (tts-whole.ts) waits here for the next chunk. */
+  waiters: Set<() => void>;
   completion: Promise<Buffer>;
   resolveCompletion: (buffer: Buffer) => void;
   rejectCompletion: (error: Error) => void;
@@ -157,6 +160,7 @@ function createLiveTtsSegment(index: number, voice: string, text: string): LiveT
     byteLength: 0,
     state: 'pending',
     subscribers: new Set(),
+    waiters: new Set(),
     completion,
     resolveCompletion,
     rejectCompletion,
@@ -174,6 +178,10 @@ function getMessageTtsStreamManifest(job: MessageTtsStreamJob) {
       voice: segment.voice,
       url: `/api/messages/${job.messageId}/tts/stream/${job.id}/${segment.index}`,
     })),
+    // Every piece in order as one stream, for a phone that has to keep playing
+    // with the app in the background (tts-whole.ts). Only worth offering when
+    // there is more than one piece.
+    ...(job.segments.length > 1 ? { wholeUrl: `/api/messages/${job.messageId}/tts/stream/${job.id}/all` } : {}),
   };
 }
 
@@ -271,6 +279,7 @@ function publishLiveTtsChunk(segment: LiveTtsSegment, chunk: Buffer): void {
   segment.chunks.push(chunk);
   segment.byteLength += chunk.length;
   for (const subscriber of segment.subscribers) flushLiveTtsSubscriber(segment, subscriber);
+  wakeWholeStreamWaiters(segment);
 }
 
 function completeLiveTtsSegment(segment: LiveTtsSegment): void {
@@ -283,6 +292,7 @@ function completeLiveTtsSegment(segment: LiveTtsSegment): void {
   segment.state = 'complete';
   segment.resolveCompletion(buffer);
   for (const subscriber of segment.subscribers) flushLiveTtsSubscriber(segment, subscriber);
+  wakeWholeStreamWaiters(segment);
 }
 
 function failLiveTtsSegment(segment: LiveTtsSegment, error: unknown): void {
@@ -291,6 +301,7 @@ function failLiveTtsSegment(segment: LiveTtsSegment, error: unknown): void {
   segment.state = 'error';
   segment.rejectCompletion(segment.error);
   for (const subscriber of segment.subscribers) flushLiveTtsSubscriber(segment, subscriber);
+  wakeWholeStreamWaiters(segment);
 }
 
 async function pumpLiveTtsSegment(segment: LiveTtsSegment, voiceService: VoiceService): Promise<void> {
@@ -1224,6 +1235,56 @@ router.post('/messages/:id/tts/stream', async (req, res) => {
 // Subscribe to one already-started provider stream. Completed jobs support
 // byte ranges for HTMLAudioElement probes/retries; live `bytes=0-` requests
 // follow the progressive stream, while nonzero seeks wait for a complete MP3.
+// Every piece of a read-aloud job, in order, as one stream (tts-whole.ts).
+// Registered before the per-piece route so 'all' is never read as an index.
+router.get('/messages/:id/tts/stream/:jobId/all', (req, res) => {
+  const job = messageTtsStreamJobs.get(req.params.jobId);
+  if (!job || job.messageId !== req.params.id) {
+    res.status(404).json({ error: 'TTS stream not found or expired' });
+    return;
+  }
+  if (req.method === 'HEAD') {
+    res.status(200);
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'private, no-store, no-transform');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.end();
+    return;
+  }
+
+  // A media player asking for a later range is resuming or seeking: answer it
+  // from the finished whole once every piece is done, like the per-piece route.
+  const requestedRange = req.headers.range;
+  const everyPieceDone = job.segments.every((segment) => segment.state === 'complete');
+  if (everyPieceDone || (requestedRange && requestedRange.trim() !== 'bytes=0-')) {
+    let closed = false;
+    res.once('close', () => { closed = true; });
+    void Promise.all(job.segments.map((segment) => segment.completion)).then(
+      (buffers) => {
+        if (!closed) sendCompletedTtsSegment(req, res, wholeFromFinished(buffers));
+      },
+      (error) => {
+        if (closed || res.headersSent) return;
+        res.status(502).json({ error: error instanceof Error ? error.message : 'TTS stream failed' });
+      },
+    );
+    return;
+  }
+
+  void pipeWholeStream(
+    job.segments,
+    res,
+    () => writeLiveAudioHeaders(res),
+    (message) => {
+      if (!res.headersSent) res.status(502).json({ error: message });
+    },
+  ).catch((error) => {
+    console.error('[Read-aloud stream] Whole-reply stream failed:', error);
+    if (!res.headersSent) res.status(500).json({ error: 'TTS stream failed' });
+    else res.destroy(error instanceof Error ? error : undefined);
+  });
+});
+
 router.get('/messages/:id/tts/stream/:jobId/:segmentIndex', (req, res) => {
   const job = messageTtsStreamJobs.get(req.params.jobId);
   const index = Number(req.params.segmentIndex);

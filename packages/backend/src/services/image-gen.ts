@@ -27,6 +27,7 @@ import { PROJECT_ROOT, getAerieConfig } from '../config.js';
 import { getConfig, setConfig, getConfigBool, getConfigNumber } from './db/config.js';
 import { listCompanions } from './db/companions.js';
 import { getDb } from './db/state.js';
+import { codexHold, codexHoldMessage, holdCodex, holdFromText, CODEX_DEFAULT_HOLD_MS } from './codex-breaker.js';
 import {
   KNOWN_BACKENDS,
   planAttempts,
@@ -1414,6 +1415,10 @@ async function findNewestAntigravityImage(since: number): Promise<string | null>
 }
 
 async function generateViaCodex(input: GenerateInput): Promise<GenerateResult> {
+  // While Codex has asked the house to wait, a picture does not go either; the
+  // refusal hands it down the owner fallback chain like any other (codex-breaker.ts).
+  const hold = codexHold();
+  if (hold) throw new ImageGenError(codexHoldMessage(hold));
   const start = Date.now();
   const { guidance: sizeDesc } = resolveSize(input);
   const sizeGuidance = sizeDesc ? `Make it ${sizeDesc}.` : '';
@@ -1537,6 +1542,9 @@ async function generateViaCodex(input: GenerateInput): Promise<GenerateResult> {
         // with a blank reason, so fall back to the tail of what it actually
         // said before giving up.
         const said = stderr.trim() || lastCodexMessage(stdout);
+        if (said && /usage.?limit|rate.?limit|\b429\b/i.test(said)) {
+          holdCodex(holdFromText(said) ?? Date.now() + CODEX_DEFAULT_HOLD_MS, said);
+        }
         settle(() => reject(new ImageGenError(
           said
             ? `Codex finished without an image. It said: ${said}`
@@ -1571,7 +1579,14 @@ async function generateViaAntigravity(input: GenerateInput): Promise<GenerateRes
     ? `Use these reference images to maintain character/subject consistency: ${refs.join(', ')}. `
     : '';
 
-  const instruction = `${refLine}generate an image of: ${input.prompt}${sizeGuidance}`;
+  // agy runs headless here, where a shell command can never be approved: on
+  // Oct 22 2026 two Studio fallbacks in a row died because Gemini first tried
+  // `ls -la` on the reference folder to look around, was auto-denied, and then
+  // drew nothing (its own log: 'Print mode: soft-denying tool confirmation
+  // "RunCommand"'). So the instruction says the paths are good and that no
+  // command is needed, and hands it straight to the image tool.
+  const noCommands = 'The reference paths are exact and readable as given. Do not list folders, inspect files with a shell, or run any command; no command can be approved here. Go straight to your image generation tool. ';
+  const instruction = `${refLine}${noCommands}generate an image of: ${input.prompt}${sizeGuidance}`;
 
   const bin = antigravityBin();
   if (!existsSync(bin)) {

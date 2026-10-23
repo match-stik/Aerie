@@ -7,6 +7,8 @@ import { ageLabel, type ClockAt, type LockFace, type LockPiece, type LockPositio
 import type { AppDef } from '../lib/apps';
 import { apiFetch } from '../aerie';
 import { NOTES_SEEN_KEY, unseenCompanionNote } from '../lib/home-widgets';
+import { LockSpotifyCard } from './LockSpotifyCard';
+import { LOCK_CARD_LOOKS, useLockCardLook, type LockCardChoice } from '../lib/lock-cards';
 
 interface LockFaceDot {
   url: string | null;
@@ -58,6 +60,13 @@ interface LockScreenProps {
   /** Who can leave a note on the fridge, and the Notes app the note card opens. */
   writers?: LockWriter[];
   notesApp?: AppDef;
+  /** The Spotify card's switch (Settings > Lock screen, on unless the owner
+   *  turned it off), and the Spotify app a tap on the card opens. */
+  spotify?: boolean;
+  spotifyApp?: AppDef;
+  /** How the cards look: dark, light, or auto, read off the wallpaper behind
+   *  them (Settings > Lock screen; lib/lock-cards.ts). Unset is dark. */
+  cards?: LockCardChoice;
   /** Where this face's clock was dragged, and how a new spot is kept: hold
    *  the clock, drag it, and let go. */
   clockAt?: ClockAt | null;
@@ -72,7 +81,7 @@ interface LockScreenProps {
   onHide?: (piece: LockPiece) => void;
 }
 
-export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcuts, onOpenApp, show, unread, faces, messagesApp, writers = [], notesApp, clockAt = null, onMoveClock, weatherAt = null, onMoveWeather, showClock = true, showWeather = true, onHide }: LockScreenProps) {
+export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcuts, onOpenApp, show, unread, faces, messagesApp, writers = [], notesApp, spotify = true, spotifyApp, cards = 'dark', clockAt = null, onMoveClock, weatherAt = null, onMoveWeather, showClock = true, showWeather = true, onHide }: LockScreenProps) {
   const [time, setTime] = useState(new Date());
   const weather = useWeather();
   const controls = useAnimation();
@@ -94,8 +103,15 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
   const [seenAt] = useState(notesSeenAt);
   const note = show === 'nothing' ? null : unseenCompanionNote(notes, writers.map((w) => w.slug), seenAt);
   const noteWriter = note ? writers.find((w) => w.slug.toLowerCase() === (note.sender || '').toLowerCase()) : undefined;
+  // One look for every card on the lock screen, theirs or read off the wallpaper.
+  const look = useLockCardLook(cards, wallpaper);
+  const ink = LOCK_CARD_LOOKS[look];
   const messagesCardUp = show !== 'nothing' && unread.count > 0;
   const cardBase = face === 'dateline' ? 184 : 124;
+  // How far up each card sits: the messages card on the base, the note above
+  // it, and the Spotify card on top of both.
+  const messagesStep = messagesCardUp ? (show === 'first-line' && unread.firstLine ? 76 : 60) : 0;
+  const noteStep = note ? (show === 'first-line' && note.text.trim() ? 76 : 60) : 0;
 
   const handleDragEnd = (event: any, info: PanInfo) => {
     if (info.offset.y < -100) {
@@ -107,6 +123,7 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
 
   return (
     <motion.div 
+      data-lock-frame=""
       className="absolute inset-0 z-50 flex flex-col items-center justify-end overflow-hidden bg-black text-white"
       initial={{ opacity: 1 }}
       animate={{ opacity: 1 }}
@@ -134,15 +151,15 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
         <button
           type="button"
           onClick={() => messagesApp && onOpenApp(messagesApp)}
-          className="absolute inset-x-5 z-20 flex items-center gap-3 rounded-2xl border border-white/15 bg-black/45 px-4 py-3 text-left"
+          className={`absolute inset-x-5 z-20 flex items-center gap-3 rounded-2xl border px-4 py-3 text-left ${ink.card}`}
           style={{ bottom: face === 'dateline' ? 'calc(var(--sab, 0px) + 184px)' : 'calc(var(--sab, 0px) + 124px)' }}
         >
           <span className="flex shrink-0 -space-x-2">
             {faces.slice(0, 3).map((f, i) => (
               <span
                 key={f.name + i}
-                className="h-[26px] w-[26px] overflow-hidden rounded-full border-2 bg-black"
-                style={{ borderColor: f.color || 'rgba(255,255,255,0.6)', zIndex: 3 - i }}
+                className={`h-[26px] w-[26px] overflow-hidden rounded-full border-2 ${ink.face}`}
+                style={{ borderColor: f.color || ink.ring, zIndex: 3 - i }}
               >
                 {f.url && <img src={f.url} alt="" className="h-full w-full object-cover" />}
               </span>
@@ -152,11 +169,11 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
             <span className="block text-sm font-semibold">
               {unread.count === 1 ? '1 new message' : `${unread.count} new messages`}
               {unread.newestAt !== null && (
-                <span className="font-normal text-white/60"> · {ageLabel(unread.newestAt, time.getTime())}</span>
+                <span className={`font-normal ${ink.muted}`}> · {ageLabel(unread.newestAt, time.getTime())}</span>
               )}
             </span>
             {show === 'first-line' && unread.firstLine && (
-              <span className="block truncate text-xs text-white/75">{unread.firstLine}</span>
+              <span className={`block truncate text-xs ${ink.line}`}>{unread.firstLine}</span>
             )}
           </span>
         </button>
@@ -169,12 +186,12 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
         <button
           type="button"
           onClick={() => notesApp && onOpenApp(notesApp)}
-          className="absolute inset-x-5 z-20 flex items-center gap-3 rounded-2xl border border-white/15 bg-black/45 px-4 py-3 text-left"
-          style={{ bottom: `calc(var(--sab, 0px) + ${cardBase + (messagesCardUp ? (show === 'first-line' && unread.firstLine ? 76 : 60) : 0)}px)` }}
+          className={`absolute inset-x-5 z-20 flex items-center gap-3 rounded-2xl border px-4 py-3 text-left ${ink.card}`}
+          style={{ bottom: `calc(var(--sab, 0px) + ${cardBase + messagesStep}px)` }}
         >
           <span
-            className="h-[26px] w-[26px] shrink-0 overflow-hidden rounded-full border-2 bg-black"
-            style={{ borderColor: noteWriter?.color || 'rgba(255,255,255,0.6)' }}
+            className={`h-[26px] w-[26px] shrink-0 overflow-hidden rounded-full border-2 ${ink.face}`}
+            style={{ borderColor: noteWriter?.color || ink.ring }}
           >
             {noteWriter?.url && <img src={noteWriter.url} alt="" className="h-full w-full object-cover" />}
           </span>
@@ -182,14 +199,25 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
             <span className="block text-sm font-semibold">
               A note from {noteWriter?.name || note.sender}
               {Number.isFinite(Date.parse(note.timestamp)) && (
-                <span className="font-normal text-white/60"> · {ageLabel(Date.parse(note.timestamp), time.getTime())}</span>
+                <span className={`font-normal ${ink.muted}`}> · {ageLabel(Date.parse(note.timestamp), time.getTime())}</span>
               )}
             </span>
             {show === 'first-line' && note.text.trim() && (
-              <span className="block truncate text-xs text-white/75">{note.text.trim().split('\n')[0]}</span>
+              <span className={`block truncate text-xs ${ink.line}`}>{note.text.trim().split('\n')[0]}</span>
             )}
           </span>
         </button>
+      )}
+
+      {/* What is playing on the owner Spotify, on top of the other cards, while a
+          song is playing or paused (Oct 20 2026). Settings turns it off. */}
+      {spotify && (
+        <LockSpotifyCard
+          fetcher={apiFetch}
+          base={cardBase + messagesStep + noteStep}
+          look={look}
+          onOpen={spotifyApp ? () => onOpenApp(spotifyApp) : undefined}
+        />
       )}
 
       {/* The two corner shortcuts. Each opens its app straight away. */}

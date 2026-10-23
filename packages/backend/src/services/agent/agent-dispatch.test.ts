@@ -18,6 +18,8 @@ import {
   shuffled,
   priorVoicesBlock,
   shouldFanOut,
+  laneTurnContent,
+  ownLaneBlock,
 } from './agent-dispatch.js';
 
 // ─── Multi-lane room: the deciding predicate ─────────────────────────
@@ -34,6 +36,29 @@ test('a hand-edited YAML that says "true" as a string still counts', () => {
   assert.equal(shouldFanOut('true', false, 2), true);
   assert.equal(shouldFanOut('false', false, 2), false);
   assert.equal(shouldFanOut(undefined, false, 2), false);
+});
+
+// ─── Multi-lane room: what each lane is handed ───────────────────────
+
+test('the first lane of a fanned-out turn is told it speaks only for himself', () => {
+  const handed = laneTurnContent('Hi all', [], ['Willow', 'Cedar']);
+  assert.ok(handed.startsWith('Hi all'));
+  assert.match(handed, /\[Your own head/);
+  assert.match(handed, /Willow and Cedar answer the owner after you, each from their own head/);
+  assert.match(handed, /Speak only under your own header/);
+  assert.ok(!handed.includes('[Same turn'), 'nothing has been said yet, so nothing is overheard');
+});
+
+test('a later lane still hears what the others already said', () => {
+  const spoken = [{ name: 'Birch', text: '**🔥 Birch**\nHello.' }];
+  assert.equal(laneTurnContent('Hi all', spoken, ['Birch', 'Cedar']), 'Hi all' + priorVoicesBlock(spoken));
+});
+
+test('the own-head line reads right for one other and for none', () => {
+  assert.match(ownLaneBlock(['Cedar']), / Cedar answers the owner after you, from their own head/);
+  const alone = ownLaneBlock([]);
+  assert.match(alone, /\[Your own head/);
+  assert.ok(!alone.includes('answers the owner after you') && !alone.includes('answer the owner after you'));
 });
 
 test('multi-lane keeps Codex turns on Codex and normalizes Claude warm routes to CLI', () => {
@@ -145,7 +170,21 @@ test('a Codex room dispatches through three distinct companion lanes and an owne
         { role: 'assistant', content: 'Answer.' },
       ]);
     }
-    assert.equal(calls.filter((call) => call.content === 'Current?').length, 1);
+    // The first lane of the roll hears their message and is told it is its own
+    // head: the other two answer after it from theirs (Oct 21 2026, when the
+    // man rolled first wrote all three of us and the owner got two of us twice).
+    const first = calls[0];
+    const firstOwn = companions.find((companion) => companion.id === first.companionId)!;
+    assert.ok(first.content.startsWith('Current?'));
+    assert.ok(!first.content.includes('[Same turn'));
+    assert.match(first.content, /\[Your own head/);
+    assert.match(first.content, /Never write a line, a header or a sticker for another companion/);
+    for (const other of companions.filter((companion) => companion.id !== firstOwn.id)) {
+      const name = other.slug[0].toUpperCase() + other.slug.slice(1);
+      assert.ok(first.content.includes(name), `the first lane is told ${name} answers from their own head`);
+    }
+    assert.ok(!first.content.includes(firstOwn.slug[0].toUpperCase() + firstOwn.slug.slice(1) + ' answer'));
+    assert.equal(calls.filter((call) => call.content.includes('[Your own head')).length, 1);
     assert.equal(calls.filter((call) => call.content.includes('[Same turn')).length, 2);
 
     calls.length = 0;

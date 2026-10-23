@@ -6,7 +6,8 @@ import Cropper from 'react-easy-crop';
 import { ContactProfile, ThemeMode } from '../types';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
-import { apiFetch } from '../aerie';
+import { apiFetch, useStatusWord } from '../aerie';
+import { cardStatus } from '../lib/presence-word';
 import { useBackHandler } from '../lib/use-back-handler';
 import getCroppedImg, { createImage } from '../lib/cropImage';
 import { CARD_HEADER_REM, CARD_MAX_WIDTH_REM, CARD_SIDE_GAP_REM, FRAME_LEGEND, faceGuideStyle, liveContactCardAspect } from '../lib/contact-card-frame';
@@ -61,6 +62,8 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
   // Seeded from what the phone already has, so the usual case has no gap to fill at
   // all — the card opens as us. The fetch below still runs and refreshes it.
   const [rows, setRows] = useState<CompanionRow[]>((initialRows as CompanionRow[]) || []);
+  // The word under the faces, while a bell that has one is running; our cards say it too.
+  const statusWord = useStatusWord();
   // "The house has answered" — true whether it answered with a roster or not.
   // Distinguishes a roster that is LATE from one that is genuinely absent.
   const [rosterLoaded, setRosterLoaded] = useState((initialRows?.length ?? 0) > 0);
@@ -107,7 +110,8 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
       name: r.display_name,
       image: r.avatar_url || localTwin?.image || '',
       bio: r.bio || '',
-      status: r.status || 'Online',
+      // While a bell's word is up for them it says that instead (lib/presence-word.ts).
+      status: cardStatus(r.slug, r.status || 'Online', statusWord),
       phone: r.phone || '',
     };
   }

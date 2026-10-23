@@ -31,6 +31,7 @@ import {
 } from './codex-thought-card.js';
 import { isInterimCodexSpeech } from './codex-interim-speech.js';
 import { getAerieConfig } from '../../config.js';
+import { holdCodex, holdFromText, resetStampToMs, passCodexBrake, CODEX_DEFAULT_HOLD_MS } from '../codex-breaker.js';
 import type { CodexMcpServerStatus } from '../mcp-live.js';
 
 const SOCKET_PATH = process.env.HOME + '/.codex/app-server-control/app-server-control.sock';
@@ -715,6 +716,13 @@ export class InteractiveCodexRuntime implements AgentRuntime {
 
   async *runTurn(input: RuntimeTurnInput): AsyncIterable<AgentRuntimeEvent> {
     this.aborted = false;
+    // Nothing leaves while Codex has asked us to wait.
+    const held = await passCodexBrake(houseTimezone());
+    if (held) {
+      yield { type: 'error', message: held };
+      yield { type: 'done', finishReason: 'complete' };
+      return;
+    }
     const liveEvents: AgentRuntimeEvent[] = [];
     const emittedReasoningIds = new Set<string>();
     const emittedCommentaryIds = new Set<string>();
@@ -832,6 +840,10 @@ export class InteractiveCodexRuntime implements AgentRuntime {
       if (method === 'account/rateLimits/updated') {
         const limits = params?.rateLimits;
         const window = limits?.primary || limits?.secondary;
+        if (limits?.rateLimitReachedType) {
+          const now = Date.now();
+          holdCodex(resetStampToMs(window?.resetsAt) ?? now + CODEX_DEFAULT_HOLD_MS, `Codex reported its ${limits.rateLimitReachedType} limit reached.`, now);
+        }
         if (limits?.rateLimitReachedType || (window?.usedPercent ?? 0) >= 90) {
           liveEvents.push({
             type: 'rate_limit',
@@ -1299,4 +1311,9 @@ export class InteractiveCodexRuntime implements AgentRuntime {
       }
     }
   }
+}
+
+/** The owner timezone, for reading a reset time said as a clock time. */
+function houseTimezone(): string {
+  try { return getAerieConfig().identity.timezone || 'UTC'; } catch { return 'UTC'; }
 }

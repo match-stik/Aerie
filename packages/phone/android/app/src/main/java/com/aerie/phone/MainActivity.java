@@ -30,6 +30,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ThresholdGeofencePlugin.class);
         registerPlugin(MediaSessionPlugin.class);
         registerPlugin(SystemChromePlugin.class);
+        registerPlugin(SpotifyRemotePlugin.class);
         AerieCrashReporter.install(this);
         super.onCreate(savedInstanceState);
         guardRenderProcess();

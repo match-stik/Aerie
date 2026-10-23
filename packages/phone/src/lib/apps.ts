@@ -4,9 +4,10 @@
 
 import { useCallback } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { MessageSquare, Radar, CloudSun, StickyNote, Gamepad2, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, TreePine, Brain, Paintbrush, Box, FolderOpen, BookOpen, PawPrint, Newspaper, Inbox, Mail, MapPin, LibraryBig } from 'lucide-react';
+import { MessageSquare, Radar, CloudSun, StickyNote, Gamepad2, Settings, Activity, Sticker, LayoutDashboard, Plug, FileText, Bot, Users, TreePine, Brain, Paintbrush, Box, FolderOpen, BookOpen, PawPrint, Newspaper, Inbox, Mail, MapPin, LibraryBig, Music, Telescope } from 'lucide-react';
 import type { OsScreen } from '../App';
 import { STORY_SHELF_APP_ID, STORY_SHELF_NAME } from './story-shelf';
+import { SPOTIFY_APP_ID } from './spotify';
 
 export interface AppDef {
   id: string;
@@ -33,6 +34,8 @@ export const APPS: AppDef[] = [
   { id: 'treehouse', name: 'Treehouse', icon: TreePine, category: 'Companion', kind: 'screen', screen: 'treehouse' },
   { id: 'memory', name: 'Memory', icon: Brain, category: 'Companion', kind: 'screen', screen: 'memory' },
   { id: 'journal', name: 'Journal', icon: BookOpen, category: 'Companion', kind: 'screen', screen: 'journal' },
+  // The owner field notes: what the morning look found, in plain words.
+  { id: 'fieldnotes', name: 'Field Notes', icon: Telescope, category: 'Companion', kind: 'screen', screen: 'fieldnotes' },
   { id: 'letters', name: 'Letters', icon: Mail, category: 'Companion', kind: 'screen', screen: 'letters' },
   { id: 'thresholds', name: 'Thresholds', icon: MapPin, category: 'Companion', kind: 'screen', screen: 'thresholds' },
   // The Story Shelf: books the companions write and run, and the owner reads.
@@ -47,6 +50,8 @@ export const APPS: AppDef[] = [
   { id: 'weather', name: 'Weather', icon: CloudSun, category: 'Tools', kind: 'screen', screen: 'weather', dock: true },
   { id: 'notes', name: 'Notes', icon: StickyNote, category: 'Tools', kind: 'screen', screen: 'notes', dock: true },
   { id: 'games', name: 'Games', icon: Gamepad2, category: 'Fun', kind: 'screen', screen: 'games' },
+  // Spotify, for seeing: the owner listening with a cover on everything. Read only.
+  { id: SPOTIFY_APP_ID, name: 'Spotify', icon: Music, category: 'Fun', kind: 'screen', screen: 'spotify' },
 ];
 
 /** The name an app shows under its icon. A house can rename an app it owns;

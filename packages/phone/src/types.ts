@@ -105,6 +105,14 @@ export interface AppTheme {
   // corner), and what the message card may show.
   lockShortcuts?: [string | null, string | null];
   lockShow?: 'names' | 'first-line' | 'nothing';
+  // The Spotify card on the lock screen while a song is playing or paused.
+  // Unset is on; false is the owner's switch in Settings (lockSpotifyOf in
+  // lib/lock-spotify.ts).
+  lockSpotify?: boolean;
+  // How the lock screen's cards look, all three at once: dark, light (for a
+  // light wallpaper), or auto, read off the wallpaper behind them. Unset is
+  // dark (lockCardsOf in lib/lock-cards.ts).
+  lockCards?: 'dark' | 'light' | 'auto';
   // The home widgets, and the quiet line on the dock (lib/home-widgets.ts).
   // Unset is none, so the home screen stays as it was.
   homeWidgets?: ('companions' | 'note' | 'weather' | 'letter' | 'day')[];

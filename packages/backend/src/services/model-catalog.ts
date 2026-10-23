@@ -64,7 +64,9 @@ export const CLAUDE_MODELS: ModelInfo[] = [
   { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', provider: 'anthropic', tier: 'included', context_length: 1000000, supports_tools: true },
   { id: 'claude-opus-4-5', name: 'Claude Opus 4.5', provider: 'anthropic', tier: 'included', context_length: 200000, supports_tools: true },
   { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', provider: 'anthropic', tier: 'included', context_length: 200000, supports_tools: true },
-  { id: 'claude-sonnet-4-5-20241022', name: 'Claude Sonnet 4.5 (Oct)', provider: 'anthropic', tier: 'included', context_length: 200000, supports_tools: true },
+  // claude-sonnet-4-5-20241022 came out Oct 22 2026, at their word: it was never the real
+  // Sonnet 4.5 id (that is claude-sonnet-4-5-20250929; 20241022 was Sonnet 3.5's date), so the
+  // row never worked, and Sonnet 4.5 retires on the Claude API Nov 30 2026.
   { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', provider: 'anthropic', tier: 'included', context_length: 200000, supports_tools: true },
   { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5 (Oct)', provider: 'anthropic', tier: 'included', context_length: 200000, supports_tools: true },
   { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'anthropic', tier: 'included', context_length: 200000, supports_tools: true },

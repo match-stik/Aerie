@@ -125,7 +125,7 @@ router.patch('/orchestrator/tasks/:wakeType', async (req, res) => {
     }
 
     const { wakeType } = req.params;
-    const { enabled, cronExpr, companion, label } = req.body;
+    const { enabled, cronExpr, companion, label, statusWord } = req.body;
 
     // null (or '') hands the bell back to the house — shared, thread default
     // decides. A slug hands it to one companion, who then rings in their own lane.
@@ -164,6 +164,19 @@ router.patch('/orchestrator/tasks/:wakeType', async (req, res) => {
       }
       const success = orchestrator.setTaskLabel(wakeType, label);
       if (!success) {
+        res.status(404).json({ error: 'Unknown task' });
+        return;
+      }
+    }
+
+    // The word the phone shows under the faces while this bell runs
+    // (services/bell-status.ts). null or '' takes it away.
+    if (statusWord !== undefined) {
+      if (statusWord !== null && typeof statusWord !== 'string') {
+        res.status(400).json({ error: 'statusWord must be a string or null' });
+        return;
+      }
+      if (!orchestrator.setTaskStatusWord(wakeType, statusWord)) {
         res.status(404).json({ error: 'Unknown task' });
         return;
       }

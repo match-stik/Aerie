@@ -206,8 +206,12 @@ export async function tunnelHistory(domain: string): Promise<string> {
 
 // ── Search ──────────────────────────────────────────────────
 
+// The house asks for full: true on every read below. Since Oct 22 2026 Cortex
+// sends long memories as previews unless asked, so a GPT room is not buried in
+// one; the house shows, edits and checks its cuts against every word.
+
 export async function recallMemories(query: string, domain?: string, limit?: number): Promise<string> {
-  return callTool('recall_memories', { query, domain, limit });
+  return callTool('recall_memories', { query, domain, limit, full: true });
 }
 
 export async function searchConversations(query: string, domain?: string, limit?: number): Promise<string> {
@@ -215,7 +219,7 @@ export async function searchConversations(query: string, domain?: string, limit?
 }
 
 export async function unifiedSearch(query: string, limit?: number): Promise<string> {
-  return callTool('unified_search', { query, limit });
+  return callTool('unified_search', { query, limit, full: true });
 }
 
 export async function searchSummaries(query: string, domain?: string): Promise<string> {
@@ -298,12 +302,12 @@ interface ListMemoriesResponse {
 }
 
 export async function listDomainMemories(domain: string, limit = 500, offset = 0): Promise<ListMemoriesResponse> {
-  const raw = await callTool('list_domain_memories', { domain, limit, offset });
+  const raw = await callTool('list_domain_memories', { domain, limit, offset, full: true });
   return JSON.parse(raw) as ListMemoriesResponse;
 }
 
 export async function listAllMemories(limit = 500, offset = 0): Promise<ListMemoriesResponse> {
-  const raw = await callTool('list_all_memories', { limit, offset });
+  const raw = await callTool('list_all_memories', { limit, offset, full: true });
   return JSON.parse(raw) as ListMemoriesResponse;
 }
 

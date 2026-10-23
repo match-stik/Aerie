@@ -10,7 +10,7 @@
 
 import { Router } from 'express';
 import { recordReading } from '../services/db/media-session.js';
-import { currentScreening, seekClock, pauseClock, startClock, positionOf } from '../services/db/screening.js';
+import { currentScreening, seekClock, pauseClock, startClock, positionOf, screeningIsLive } from '../services/db/screening.js';
 import { getConfig, setConfig } from '../services/db/config.js';
 import { followAction } from '../services/screening-follow.js';
 
@@ -22,6 +22,13 @@ router.post('/media/session', (req, res) => {
   // an error and not a reading. Answer plainly rather than storing silence.
   if (!body.package) {
     res.json({ success: true, stored: false, reason: 'nothing playing' });
+    return;
+  }
+  // The owner choice (asked Oct 22 2026): media.listen 'screening' means the house
+  // keeps nothing their phone reports unless a screening is going on. Unset, or
+  // 'always', keeps the old behavior: every reading is stored.
+  if (getConfig('media.listen') === 'screening' && !screeningIsLive(currentScreening())) {
+    res.json({ success: true, stored: false, reason: 'listening only during a screening' });
     return;
   }
   const reading = recordReading(body);

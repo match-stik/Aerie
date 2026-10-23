@@ -142,3 +142,16 @@ test('a note from the owner\'s phone goes into the one busy turn only when it an
   assert.equal(sideNoteTarget([idle]), null, 'nobody busy: it queues');
   assert.equal(sideNoteTarget([home, { ...home }]), null, 'two busy: no way to know which room');
 });
+
+// And only when that turn answers in the thread the owner wrote in. A bell rings in
+// its own room, so their note answered inside it landed there. Since Oct 15 2026
+// it always comes home.
+test('a note from their phone goes into a busy turn only when it answers in their thread', () => {
+  const bellInTreehouse = { turnActive: true, turnAnswersElsewhere: false, turnThreadId: 'treehouse' };
+  const bellAtHome = { turnActive: true, turnAnswersElsewhere: false, turnThreadId: 'my-loves' };
+  const nowhere = { turnActive: true, turnAnswersElsewhere: false, turnThreadId: '' };
+  const idle = { turnActive: false, turnAnswersElsewhere: false, turnThreadId: '' };
+  assert.equal(sideNoteTarget([idle, bellInTreehouse], 'my-loves'), null, 'the bell answers in the treehouse: their note queues and comes home');
+  assert.equal(sideNoteTarget([idle, bellAtHome], 'my-loves'), bellAtHome);
+  assert.equal(sideNoteTarget([nowhere], 'my-loves'), null, 'a turn that cannot say where it answers is not trusted to answer at home');
+});

@@ -124,8 +124,11 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
           return (
             <div
               key={`text-${i}`}
+              // [overflow-wrap:anywhere] lets a link with no dashes in it break
+              // inside the bubble instead of running past its edge, the same as
+              // the plain path in MessageBubble (the owner's screenshot, Oct 21 2026).
               className={cn(
-                'prose prose-sm max-w-none prose-p:my-0 prose-p:leading-relaxed prose-pre:bg-black/30 select-text',
+                'prose prose-sm max-w-none prose-p:my-0 prose-p:leading-relaxed prose-pre:bg-black/30 select-text [overflow-wrap:anywhere] min-w-0',
                 isLight ? 'prose-invert' : '',
                 textClass,
               )}
@@ -140,13 +143,16 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
                   h6: ({ children }) => <span className="block text-[11px] leading-snug opacity-60 italic">{children}</span>,
                   pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
                   img: ({ src, alt }) => {
-                    // Sticker refs: alt starts with "sticker:" and src is the resolved URL
+                    // Sticker refs: alt starts with "sticker:" and src is the resolved URL.
+                    // !my-0 because prose-sm gives every img 1.71em above and below and
+                    // this wrapper has no prose-img:m-0, so a sticker sent with words sat
+                    // in a 24px gap on each side (their catch, Oct 21 2026).
                     if (alt?.startsWith('sticker:') && src) {
                       return (
                         <img
                           src={src}
                           alt={alt.slice('sticker:'.length)}
-                          className="!inline-block max-h-32 w-auto align-bottom object-contain"
+                          className="!inline-block !my-0 max-h-32 w-auto align-bottom object-contain"
                           referrerPolicy="no-referrer"
                         />
                       );

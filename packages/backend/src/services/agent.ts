@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { registerHttpMcpServer } from './tools-bridge.js';
 import { getDisabledMcpServers, setDisabledMcpServers, buildMcpStatusWithDisabled } from './agent/agent-mcp-filter.js';
-import { PRIORITIES, QueryQueue, AUTONOMOUS_QUEUE_TIMEOUT_MS } from './agent/agent-query-queue.js';
+import { PRIORITIES, QueryQueue, AUTONOMOUS_QUEUE_TIMEOUT_MS, queueTimeoutFor } from './agent/agent-query-queue.js';
 import { createAgentMutableState, hasCodexCompanionLanes, loadCodexSessionsIfNeeded, codexLaneKeysForThread, clearCodexSession } from './agent/agent-state.js';
 import { processViaRouter } from './agent/agent-router-query.js';
 import { dispatchAgentTurn } from './agent/agent-dispatch.js';
@@ -161,7 +161,7 @@ export class AgentService {
       return true;
     }
     for (const runtime of agentState.activeRouterRuntimes.values()) {
-      if (runtime.abort()) return true;
+      if (runtime.abort('stop')) return true;
     }
     return false;
   }
@@ -287,21 +287,23 @@ export class AgentService {
         // reads it: it says so in io/.side-notes-read, or the next turn hands
         // it over. A Codex lane has no such mark, so its note counts as read
         // the moment it is taken, which is how every note counted before.
-        if (deliverSideNoteToBusySession(content, opts?.messageId)) return '';
-        if (deliverSideNoteToBusyCodexLane(agentState.activeCodexLanes, content, agentState.codexLanesAnsweringElsewhere)) {
+        if (deliverSideNoteToBusySession(content, opts?.messageId, threadId)) return '';
+        if (deliverSideNoteToBusyCodexLane(agentState.activeCodexLanes, content, agentState.codexLanesAnsweringElsewhere, threadId)) {
           ownMessagesRead([opts?.messageId]);
           return '';
         }
       }
     }
 
+    // Their own messages wait out whatever turn is running instead of being
+    // dropped after 90 seconds (queueTimeoutFor says why).
     return queryQueue.enqueue(priority, async () => {
       // The owner's message is with the lane now: the turn on it is starting.
       ownMessagesRead([opts?.messageId]);
       agentState.presenceStatus = 'waking';
       registry.broadcast({ type: 'presence', status: 'waking' });
       return this._processQuery(threadId, content, false, threadMeta, opts);
-    });
+    }, queueTimeoutFor(platform));
   }
 
   /**

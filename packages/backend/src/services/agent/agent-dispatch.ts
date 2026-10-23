@@ -131,6 +131,55 @@ export function priorVoicesBlock(spoken: Array<{ name: string; text: string }>):
 }
 
 /**
+ * What the FIRST lane of a fanned-out turn is handed alongside their message.
+ *
+ * THE FAULT THIS IS AIMED AT (Oct 21 2026, caught by the owner: the first lane
+ * wrote every companion's part, and then the others wrote their own). With A Lane Each on,
+ * the second and third lanes hear priorVoicesBlock, which says never to speak
+ * under another companion's header; the first lane heard nothing at all. Its
+ * turn arrives looking exactly like a shared-room turn (the sticker shelf lists
+ * all three packs, the house file says every companion speaks under their own
+ * header, whoever is present in the thread), so the companion who happened to be
+ * rolled first wrote all three, and then the others answered from their own
+ * heads and the owner got them twice. Every three-voice bubble from an own lane
+ * that night was the first lane of the roll; when the same companion was
+ * rolled second or third, it wrote only itself.
+ *
+ * So the first lane is told what the others are told: this is its own head,
+ * the others answer after it from theirs, and nothing goes out under a
+ * header that is not its own.
+ */
+export function ownLaneBlock(others: string[]): string {
+  const names = others.filter(Boolean);
+  const after = names.length === 0
+    ? ''
+    : names.length === 1
+      ? ` ${names[0]} answers the owner after you, from their own head, in their own words.`
+      : ` ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} answer the owner after you, each from their own head, in their own words.`;
+  return [
+    '',
+    '',
+    `[Your own head — A Lane Each is on, so you are answering the owner from your own lane, first this turn.${after}`,
+    'Speak only under your own header. Never write a line, a header or a sticker for another companion,',
+    'not even a short one: their voice is theirs to bring, and a line you write for them reaches the owner twice.]',
+  ].join('\n');
+}
+
+/**
+ * The turn one lane is handed in a fanned-out room: their message, plus either
+ * the first lane's own-head line or what the others already said.
+ */
+export function laneTurnContent(
+  content: string,
+  spoken: Array<{ name: string; text: string }>,
+  others: string[],
+): string {
+  return spoken.length === 0
+    ? content + ownLaneBlock(others)
+    : content + priorVoicesBlock(spoken);
+}
+
+/**
  * Whether this turn fans out across the companions' own lanes. Autonomous
  * turns never fan out — a wake already targets one companion, and tripling it
  * would ring the same bell three times (and paint three selfies on a
@@ -362,6 +411,9 @@ export async function dispatchAgentTurn(
         }
       : platformOpts;
     console.log(`[Agent] Multi-lane room: ${plan.map(p => `${p.lane.slug}@${p.laneModel}`).join(' → ')} (thread ${threadId})`);
+    const laneName = (lane: { id: string; slug: string }): string => {
+      try { return getCompanion(lane.id)?.display_name || lane.slug; } catch { return lane.slug; }
+    };
     const spoken: Array<{ name: string; text: string }> = [];
     const replies: string[] = [];
     for (const { lane, laneModel, laneRoute } of plan) {
@@ -371,11 +423,14 @@ export async function dispatchAgentTurn(
         console.warn(`[Agent] Lane ${lane.slug} skipped — ${laneModel} has no warm lane on this route`);
         continue;
       }
-      const laneContent = spoken.length === 0 ? content : content + priorVoicesBlock(spoken);
+      // The companions who answer from their own heads this turn: every other
+      // lane in the roll that has a route to answer on.
+      const others = plan
+        .filter((p) => p.laneRoute && p.lane.id !== lane.id)
+        .map((p) => laneName(p.lane));
+      const laneContent = laneTurnContent(content, spoken, others);
       const lanePrompt = buildLanePrompt(lane.id, lane.slug, runtime.getClaudeMdContent());
-      const displayName = (() => {
-        try { return getCompanion(lane.id)?.display_name || lane.slug; } catch { return lane.slug; }
-      })();
+      const displayName = laneName(lane);
       try {
         // A fresh stream id per lane — each lane's reply is its own message,
         // so the bubbles arrive staggered as each companion finishes rather

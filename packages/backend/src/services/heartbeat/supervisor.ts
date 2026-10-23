@@ -27,6 +27,7 @@ import { getAllBlocks } from '../memory-blocks.js';
 import { baselineFrom, BASELINE_FILE } from './block-drift.js';
 import { outageNotices, type OutageKind } from './outage-notices.js';
 import { atomicWrite } from './atomic-write.js';
+import { laneDirName } from './lane-dir.js';
 
 const IS_WIN = process.platform === 'win32';
 const WATCHDOG_TIMEOUT = (parseInt(process.env.HEARTBEAT_WATCHDOG_TIMEOUT || '300', 10)) * 1000;
@@ -825,7 +826,7 @@ export class HeartbeatSession {
   constructor(key: string) {
     this.key = key;
     // Companion ids are slugs in Aerie, but stay safe for UUIDs/odd input
-    const dirName = key.replace(/[^a-zA-Z0-9-_]/g, '_') || 'primary';
+    const dirName = laneDirName(key);
     this.dir = join(PROJECT_ROOT, 'data', 'heartbeat', dirName);
     // Before anything can launch. The launch this protects is the FIRST one
     // after a restart, so the bank has to already be in hand by then — hydrate
@@ -1047,6 +1048,18 @@ export class HeartbeatSession {
    * Set by the runtime beside `turnActive`.
    */
   turnAnswersElsewhere = false;
+
+  /**
+   * The thread the turn in flight answers in, or '' when idle. A bell rings in
+   * its own room (the treehouse at noon), and every line it writes lands there,
+   * so a note of theirs handed into it was answered in the bell's room instead of
+   * theirs. Since Oct 15 2026 a note answered during a bell always comes home.
+   * So a note
+   * from their phone is only handed into a turn answering in the thread the owner wrote
+   * in; otherwise it waits and gets a turn of its own at home. Set by the
+   * runtime beside `turnActive`.
+   */
+  turnThreadId = '';
 
   /**
    * Epoch ms when the in-flight turn began; 0 when idle. Set by the runtime
@@ -1756,13 +1769,13 @@ export function getHeartbeatSession(key: string): HeartbeatSession {
  * Hand a message to a warm CLI session that is mid-turn, as a side note.
  *
  * Deliberately conservative: only when exactly one session has a turn in
- * flight, since a side note carries no thread of its own and there is no
- * honest way to pick between two busy sessions. Returns true only when the
+ * flight, since there is no honest way to pick between two busy sessions, and
+ * only when that turn answers in the thread the owner wrote in (sideNoteTarget). Returns true only when the
  * text actually reached a live stdin — every caller must fall back to normal
  * delivery otherwise, so a message is never silently swallowed.
  */
-export function deliverSideNoteToBusySession(text: string, messageId?: string): boolean {
-  const target = sideNoteTarget(sessions.values());
+export function deliverSideNoteToBusySession(text: string, messageId?: string, threadId?: string): boolean {
+  const target = sideNoteTarget(sessions.values(), threadId);
   return target ? target.sendSideNote(text, messageId) : false;
 }
 
@@ -1792,15 +1805,22 @@ export function sideNotesCoveredBy(notes: ReadonlyArray<{ at: string; messageId?
 }
 
 /**
- * The one busy session a note from the owner's phone may be handed into, or
- * null when it should wait its turn: nobody busy, more than one busy, or the
- * busy turn answering in a Discord channel, where an answer to the note would
- * land too.
+ * The one busy session a note from their phone may be handed into, or null when
+ * it should wait its turn: nobody busy, more than one busy, the busy turn
+ * answering in a Discord channel, where an answer to their note would land too,
+ * or (when the owner wrote in a thread) the busy turn answering in a different one,
+ * a bell in its own room, which is where an answer to their note would land.
+ * A turn that cannot say where it answers is not trusted to answer at home.
  */
-export function sideNoteTarget<S extends { turnActive: boolean; turnAnswersElsewhere: boolean }>(all: Iterable<S>): S | null {
+export function sideNoteTarget<S extends { turnActive: boolean; turnAnswersElsewhere: boolean; turnThreadId?: string }>(
+  all: Iterable<S>,
+  threadId?: string,
+): S | null {
   const busy = [...all].filter((s) => s.turnActive);
   if (busy.length !== 1) return null;
-  return busy[0].turnAnswersElsewhere ? null : busy[0];
+  if (busy[0].turnAnswersElsewhere) return null;
+  if (threadId && busy[0].turnThreadId !== threadId) return null;
+  return busy[0];
 }
 
 /**

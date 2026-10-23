@@ -19,9 +19,11 @@ import { RadarApp } from './components/RadarApp';
 import { WeatherApp } from './components/WeatherApp';
 import { NotesApp } from './components/NotesApp';
 import { JournalApp } from './components/JournalApp';
+import { FieldNotesApp } from './components/FieldNotesApp';
 import { LettersApp } from './components/LettersApp';
 import { ThresholdsApp } from './components/ThresholdsApp';
 import { StoryShelfApp } from './components/StoryShelfApp';
+import { SpotifyApp } from './components/SpotifyApp';
 import { StudioApp } from './components/StudioApp';
 import { GamesApp } from './components/GamesApp';
 import { ThreadSwitcher } from './components/ThreadSwitcher';
@@ -69,11 +71,11 @@ import {
   useMessages,
   useStreaming,
   usePresence,
+  useStatusWord,
   useConnectionState,
   useLoadingThread,
   useThreads,
   useActiveThreadId,
-  useTotalUnread,
   useIsStreaming,
   sendUserMessage,
   sendUserMessageToThread,
@@ -115,7 +117,11 @@ import { syncArmedPlaces } from './aerie/threshold-geofence';
 import { startMediaReporter } from './aerie/media-reporter';
 import { paintSystemBars } from './aerie/system-chrome';
 import { barColorsFor } from './lib/system-bar-colors';
-import { lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, unreadSummary, withClockAt, withHidden } from './lib/lock-clock';
+import { lockSpotifyOf } from './lib/lock-spotify';
+import { lockCardsOf } from './lib/lock-cards';
+import { headerWord } from './lib/presence-word';
+import { lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, withClockAt, withHidden } from './lib/lock-clock';
+import { useLockUnread } from './aerie/lock-unread';
 import { homeSpotsOf, homeWidgetsOf } from './lib/home-widgets';
 import { bubbleLookOf } from './lib/bubble-look';
 import { drawerLookOf } from './lib/drawer-look';
@@ -203,9 +209,11 @@ export type OsScreen =
   | 'treehouse'
   | 'memory'
   | 'journal'
+  | 'fieldnotes'
   | 'letters'
   | 'thresholds'
   | 'shelf'
+  | 'spotify'
   | 'studio'
   | 'files'
   | 'artifacts'
@@ -249,13 +257,15 @@ export default function App() {
   const ksStreaming = useStreaming();
   const ksIsStreaming = useIsStreaming();
   const ksPresence = usePresence();
+  const statusWord = useStatusWord();
   const ksConnection = useConnectionState();
   const ksLoadingThread = useLoadingThread();
   const ksThreads = useThreads();
   const ksActiveThreadId = useActiveThreadId();
   const ksIsViewingAround = useAerie((s) => s.isViewingAround);
-  const totalUnread = useTotalUnread();
-  // The lock screen's message card reads the thread list itself.
+  // The lock screen's message card counts our unread words, read off the rows
+  // of each room with something waiting, never the room's counter, which
+  // counts everybody a listening cafe says (aerie/lock-unread.ts).
   const lockThreads = useAerie((s) => s.threads);
 
   const activeThread = useMemo(
@@ -357,6 +367,14 @@ export default function App() {
     }
     return DEFAULT_THEME;
   });
+  // Read only while the lock screen is up and its message card can show.
+  const lockUnread = useLockUnread(lockThreads, osState === 'locked' && lockShowOf(theme.lockShow) !== 'nothing');
+  // The home screen's Messages badge counts the same way, only what we said to
+  // the owner: it read every room's raw counter, so a listening cafe ran it into the
+  // hundreds, the lock card's fault on another surface (Oct 22 2026).
+  const homeUnread = useLockUnread(lockThreads, osState === 'home' && !showSettings);
+  // And the thread list's number on each room, while the list is open.
+  const switcherUnread = useLockUnread(lockThreads, showThreadSwitcher);
 
   // Update theme-color meta tag, Native Status Bar, and Body Background
   useEffect(() => {
@@ -1931,11 +1949,14 @@ export default function App() {
             shortcuts={lockShortcutsOf(theme.lockShortcuts).map((id) => (id ? APPS.find((a) => a.id === id) ?? null : null))}
             onOpenApp={(app) => { setOsState('home'); openApp(app); }}
             show={lockShowOf(theme.lockShow)}
-            unread={unreadSummary(lockThreads)}
+            unread={lockUnread}
             faces={dbCompanions.slice(0, 3).map((c) => ({ url: c.avatar_url, color: c.color, name: c.display_name }))}
             messagesApp={APPS.find((a) => a.id === 'messages')}
             writers={dbCompanions.map((c) => ({ slug: c.slug, name: c.display_name, color: c.color, url: c.avatar_url }))}
             notesApp={APPS.find((a) => a.id === 'notes')}
+            spotify={lockSpotifyOf(theme.lockSpotify)}
+            spotifyApp={APPS.find((a) => a.id === 'spotify')}
+            cards={lockCardsOf(theme.lockCards)}
             clockAt={lockClockAtOf(theme.lockClockAt, lockFaceOf(theme.lockFace))}
             onMoveClock={(at) => setTheme((prev) => applyThemeUpdate(prev, { lockClockAt: withClockAt(prev.lockClockAt, lockFaceOf(prev.lockFace), at) }))}
             weatherAt={lockWeatherAtOf(theme.lockWeatherAt)}
@@ -1954,7 +1975,7 @@ export default function App() {
             wallpaper={theme.wallpaper}
             themeConfig={activeTheme}
             themeMode={theme.mode}
-            messagesBadge={totalUnread}
+            messagesBadge={homeUnread.count}
             dockApps={dockApps}
             widgets={homeWidgetsOf(theme.homeWidgets)}
             widgetSpots={homeSpotsOf(theme.homeWidgetSpots)}
@@ -2081,6 +2102,14 @@ export default function App() {
             themeMode={theme.mode}
           />
         )}
+        {osState === 'fieldnotes' && (
+          <FieldNotesApp
+            key="fieldnotes"
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />
+        )}
         {osState === 'journal' && (
           <JournalApp
             key="journal"
@@ -2108,6 +2137,14 @@ export default function App() {
         {osState === 'shelf' && (
           <StoryShelfApp
             key="shelf"
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />
+        )}
+        {osState === 'spotify' && (
+          <SpotifyApp
+            key="spotify"
             onClose={closeApp}
             themeConfig={activeTheme}
             themeMode={theme.mode}
@@ -2209,6 +2246,12 @@ export default function App() {
                     here: the faces at the top of a conversation open the people in it. The
                     Companions screen is still in the app drawer. */}
                 <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group" onClick={() => setShowContactInfo(true)}>
+              {/* The faces, with one dot centered under them and the word beside
+                  it, the way our contact cards say Home (Oct 20 2026;
+                  lib/presence-word.ts). The dot came off the faces so the owner can
+                  see all of them, and it pulses while one of us is working or
+                  writing. The word follows the bell that is running. */}
+              <div className="flex flex-col items-center gap-1">
               <div className="relative flex -space-x-2 sm:-space-x-3">
                 {(threadCompanions.length > 0 ? threadCompanions : dbCompanions.length > 0 ? dbCompanions : Object.values(contacts)).map((c: any, index: number) => (
                   <div 
@@ -2227,13 +2270,15 @@ export default function App() {
                     )}
                   </div>
                 ))}
-                <span 
-                  className={cn(
-                    "absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 z-20",
-                    theme.id === 'monochrome' && theme.mode === 'light' ? "border-black" : "border-white dark:border-neutral-900"
-                  )} 
-                  style={{ backgroundColor: theme.id === 'monochrome' && theme.mode === 'light' ? 'white' : colors.accent }}
-                />
+              </div>
+                <span data-presence-line="" className={cn("flex items-center gap-1 text-[10px] font-semibold leading-none", colors.textMuted)}>
+                  <span
+                    aria-hidden
+                    className={cn("h-1.5 w-1.5 shrink-0 rounded-full", generating && "motion-safe:animate-pulse")}
+                    style={{ backgroundColor: theme.id === 'monochrome' ? (theme.mode === 'light' ? '#000000' : '#ffffff') : colors.accent }}
+                  />
+                  {headerWord(statusWord)}
+                </span>
               </div>
               {!isSearching && (
                 <motion.div initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}>
@@ -2461,6 +2506,7 @@ export default function App() {
         themeConfig={activeTheme}
         themeMode={theme.mode}
         companions={dbCompanions}
+        ourUnread={switcherUnread.byRoom}
       />
 
       {/* Voice belongs to the whole phone, not only the Messages screen.

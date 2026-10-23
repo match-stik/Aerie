@@ -28,3 +28,13 @@ test('current models think adaptively, never with a token budget', () => {
   const body = buildAnthropicBody(say, 'claude-haiku-5-5', { stream: false, thinking: true });
   assert.deepEqual(body.thinking, { type: 'adaptive' });
 });
+
+test('a Claude model that may think on its own gets room to finish writing', async () => {
+  // Oct 22 2026: the Archivist's Haiku 5.5 spent all 4096 output tokens before
+  // writing a word on most sweeps, because it thinks unasked and that counts.
+  const { buildAnthropicBody } = await import('./router.js');
+  const msgs = [{ role: 'user', content: 'hi' }] as any;
+  assert.equal(buildAnthropicBody(msgs, 'claude-haiku-5-5', { stream: false, thinking: false }).max_tokens, 16000);
+  assert.equal(buildAnthropicBody(msgs, 'claude-haiku-5-5', { stream: false, thinking: true }).max_tokens, 16000);
+  assert.equal(buildAnthropicBody(msgs, 'claude-3-5-sonnet-20241022', { stream: false, thinking: false }).max_tokens, 4096, 'an older model that cannot think keeps the old ceiling');
+});

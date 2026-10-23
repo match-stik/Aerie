@@ -869,7 +869,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
           type="button"
           onClick={onJumpToLatest}
           className={cn(
-            'absolute bottom-full right-4 mb-2 z-40 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md shadow-md',
+            'absolute bottom-full right-4 mb-2 z-40 flex h-9 w-9 items-center justify-center rounded-full border shadow-md',
             colors.panelBg, colors.panelBorder, colors.textMain,
           )}
           aria-label="Jump to latest message"

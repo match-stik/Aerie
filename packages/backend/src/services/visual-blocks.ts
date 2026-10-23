@@ -13,6 +13,7 @@ import { extname, dirname, join } from 'path';
 import { getStickerByRef } from './db/stickers.js';
 import { getEmojiByName } from './db/emojis.js';
 import { getAerieConfig, PROJECT_ROOT } from '../config.js';
+import { fetchPublic } from './public-fetch.js';
 
 // Resolve runtime data dirs from the same config the upload routes use
 // (dirname of server.db_path). PROJECT_ROOT/data only happens to match
@@ -186,34 +187,28 @@ export function isEmbeddableImage(filePath: string, maxBytes = 5 * 1024 * 1024):
 }
 
 // Fetch an image from a URL and convert to ImageBlock
-// Used for Discord CDN images, embeds, and other external sources
+// Used for Discord CDN images, embeds, and other external sources. The URL is
+// somebody else's choice (a link preview's image belongs to the page), so it
+// goes through fetchPublic: open internet only, every redirect checked again,
+// a byte cap and a timeout (found Oct 22 2026 with none of the three).
 export async function urlToImageBlock(url: string): Promise<ImageBlock | null> {
-  try {
-    const response = await fetch(url, {
-      headers: { Accept: 'image/gif,image/*' },
-    });
-    if (!response.ok) return null;
+  const fetched = await fetchPublic(url, { accept: 'image/gif,image/*' });
+  if (!fetched) return null;
 
-    const contentType = response.headers.get('content-type') || '';
-    let mediaType: ImageBlock['source']['media_type'] | null = null;
+  const contentType = fetched.contentType;
+  let mediaType: ImageBlock['source']['media_type'] | null = null;
 
-    if (contentType.includes('png')) mediaType = 'image/png';
-    else if (contentType.includes('jpeg') || contentType.includes('jpg')) mediaType = 'image/jpeg';
-    else if (contentType.includes('gif')) mediaType = 'image/gif';
-    else if (contentType.includes('webp')) mediaType = 'image/webp';
+  if (contentType.includes('png')) mediaType = 'image/png';
+  else if (contentType.includes('jpeg') || contentType.includes('jpg')) mediaType = 'image/jpeg';
+  else if (contentType.includes('gif')) mediaType = 'image/gif';
+  else if (contentType.includes('webp')) mediaType = 'image/webp';
 
-    if (!mediaType) return null;
+  if (!mediaType) return null;
 
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
-
-    return {
-      type: 'image',
-      source: { type: 'base64', media_type: mediaType, data: base64 },
-    };
-  } catch {
-    return null;
-  }
+  return {
+    type: 'image',
+    source: { type: 'base64', media_type: mediaType, data: fetched.bytes.toString('base64') },
+  };
 }
 
 // Batch fetch multiple URLs, returning only successful fetches

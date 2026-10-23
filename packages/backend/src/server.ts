@@ -35,6 +35,7 @@ import { authMiddleware } from './middleware/auth.js';
 import { collapseDuplicateSlashes } from './middleware/normalize-path.js';
 import { startInternalServer } from './internal-server.js';
 import { startLaneKeeper } from './services/heartbeat/lane-keeper.js';
+import { startCompactionShelf } from './services/compaction-shelf.js';
 import discordAdminRoutes from './routes/discord-admin.js';
 import orchestratorAdminRoutes from './routes/orchestrator-admin.js';
 import xrayRoutes from './routes/xray.js';
@@ -298,10 +299,12 @@ import appShellRoutes from './routes/app.js';
 app.use('/api/app', appShellRoutes);
 import petRoutes from './routes/pet.js';
 import compactionRoutes from './routes/compactions.js';
+import fieldNotesRoutes from './routes/field-notes.js';
 app.use('/api/pet', petRoutes);
 // Compactions: the squash-and-carry-on event, which is invisible to the owner
 // everywhere else in this house.
 app.use('/api/compactions', compactionRoutes);
+app.use('/api/field-notes', fieldNotesRoutes);
 // Crash reports from the phone's error boundary, one bounded line each.
 import clientErrorRoutes from './routes/client-errors.js';
 app.use('/api/client-errors', clientErrorRoutes);
@@ -312,6 +315,10 @@ app.use('/api/thresholds', thresholdRoutes);
 // the companions write through /api/internal/story-shelf on the loopback port.
 import storyShelfRoutes from './routes/story-shelf.js';
 app.use('/api/story-shelf', storyShelfRoutes);
+// Spotify in the house: the owner listening with a cover on everything, read through
+// the house's Spotify MCP server, and play, pause and skip through the same.
+import spotifyRoutes from './routes/spotify.js';
+app.use('/api/spotify', spotifyRoutes);
 import selfKnowledgeRoutes from './routes/self-knowledge.js';
 app.use('/api/self-knowledge', selfKnowledgeRoutes);
 import companionsRoutes from './routes/companions.js';
@@ -462,6 +469,12 @@ startMemoryExtraction(agentService);
 // CLI lane warm so owned bells ring at their own doors. Warms only; never
 // kills. Reads the flag fresh each tick, so a settings save flips it live.
 startLaneKeeper();
+
+// The compactions shelf — reads the lanes' transcripts for new squashes a few
+// minutes after boot and then every six hours, so a summary is kept in the
+// database before Claude Code deletes the transcript it was written into.
+// Read-only on the transcripts; the timers never hold the process open.
+startCompactionShelf();
 
 // Make orchestrator, agent, voice, push, and discord services available to route handlers
 app.locals.orchestrator = orchestrator;

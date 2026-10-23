@@ -198,4 +198,6 @@ export type ServerMessage =
   | { type: 'command_result'; name: string; success: boolean; data?: Record<string, unknown>; error?: string; display: 'toast' | 'silent' }
   | { type: 'battleship_update'; gameId: string }
   | { type: 'card_table_update'; tableId: string }
-  | { type: 'story_update'; bookId: string | null };
+  | { type: 'story_update'; bookId: string | null }
+  /** The word beside the dot under the faces while a bell that has one is running; null is Home. `companions` names whose cards show it, or is empty for every companion's. */
+  | { type: 'status_word'; word: string | null; companions: string[] };

@@ -380,6 +380,7 @@ export async function requestMessageTtsStream(
     success?: boolean;
     cached?: boolean;
     url?: unknown;
+    wholeUrl?: unknown;
     segments?: Array<{
       index?: unknown;
       voice?: unknown;
@@ -401,6 +402,16 @@ export async function requestMessageTtsStream(
       .sort((left, right) => left.index - right.index || left.position - right.position)
       .map(({ index, voice, url }) => ({ index, voice, url }))
     : [];
+
+  // On Android the pieces play one after another on one audio element, and the
+  // hand-off between them is our own code, which Android stops running once
+  // the app is in the background, so a reply went quiet at the next voice
+  // (Oct 22 2026). The house also offers every piece as ONE stream; the
+  // phone plays that to the end by itself. A browser decodes whole buffers and
+  // never stops in the background, so it keeps the pieces and their head start.
+  if (useNativeAndroidPlayback() && typeof data.wholeUrl === 'string' && data.wholeUrl) {
+    segments.splice(0, segments.length, { index: 0, url: data.wholeUrl });
+  }
 
   // A cached combined file is already correctly ordered and should not be
   // split again. Prefer it when the server returns no fresh segment list.

@@ -8,94 +8,76 @@
 // companion goes subtly off, says nothing, and the owner has no way to tell a
 // compaction from a dead lane.
 //
-// The record has always existed in the transcripts. This is the first screen
-// that reads it back to the owner.
+// The record has always existed in the transcripts. This is the screen that
+// reads it back to the owner. Since Oct 21 2026 the house keeps every squash on a
+// shelf of its own (Claude Code deletes old transcripts), and says whose head
+// each came from and what was changing; the list is twenty a page, and a
+// summary's whole text is fetched only when the owner opens it. Reading the house's
+// answer, either house's, lives in lib/compactions.ts; drawing a row lives in
+// CompactionCard.tsx.
 
-import React, { useCallback, useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
-import { Scissors, RefreshCw, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { RefreshCw, Loader2 } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
-
-interface Compaction {
-  sessionId: string;
-  project: string;
-  at: string;
-  chars: number;
-  summary: string;
-  truncated?: boolean;
-}
+import { loadCompactionList, loadSummary, type CompactionRow } from '../lib/compactions';
+import { CompactionCard } from './CompactionCard';
+import { Paginator, usePaged } from './Paginator';
 
 interface Props {
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
 }
 
-/** Project directories are path slugs. Say which lane, not which folder. */
-function laneName(project: string): string {
-  const tail = project.replace(/^-home-[^-]+(-[^-]+)?-aerie-?/, '').replace(/^data-heartbeat-?/, '');
-  if (!tail) return 'aerie';
-  if (tail === 'primary') return 'primary lane';
-  if (/^[0-9a-f]{8}-/.test(tail)) return `lane ${tail.slice(0, 8)}`;
-  return tail.replace(/-/g, ' ');
-}
-
-function whenLabel(at: string): string {
-  if (!at) return 'undated';
-  const d = new Date(at);
-  if (Number.isNaN(d.getTime())) return at;
-  return d.toLocaleString(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: 'numeric', minute: '2-digit',
-  });
-}
-
 export function CompactionsApp({ themeConfig, themeMode }: Props) {
   const colors = themeConfig[themeMode];
-  const [rows, setRows] = useState<Compaction[]>([]);
+  const [rows, setRows] = useState<CompactionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [reading, setReading] = useState(false);
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const [full, setFull] = useState<Record<string, string>>({});
+  const [opening, setOpening] = useState<string | null>(null);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiFetch('/api/compactions?limit=100');
-      // An older backend answers this address with the app shell, not JSON —
-      // so the shape is checked rather than res.ok trusted.
-      const data = res.ok ? await res.json().catch(() => null) : null;
-      if (data && Array.isArray(data.compactions)) {
-        setRows(data.compactions);
+      // Checked for its shape rather than res.ok trusted: an older house
+      // answers an address it does not have with the app shell, not JSON.
+      const list = await loadCompactionList(apiFetch);
+      if (!alive.current) return;
+      if (list) {
+        setRows(list.rows);
+        setReading(list.reading);
         setFailed(false);
       } else {
         setFailed(true);
       }
-    } catch {
-      setFailed(true);
     } finally {
-      setLoading(false);
+      if (alive.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
 
-  const open = async (row: Compaction) => {
-    const key = row.sessionId + row.at;
-    if (openId === key) { setOpenId(null); return; }
-    setOpenId(key);
-    if (full[key] || !row.truncated) return;
+  const paged = usePaged(rows);
+
+  const toggle = async (row: CompactionRow) => {
+    if (openKey === row.key) { setOpenKey(null); return; }
+    setOpenKey(row.key);
+    if (full[row.key] !== undefined) return;
+    // A short summary from the older house is already whole on the row.
+    if (!row.id && !row.cut) return;
+    setOpening(row.key);
     try {
-      const res = await apiFetch('/api/compactions?limit=100&full=1');
-      const data = res.ok ? await res.json().catch(() => null) : null;
-      if (data && Array.isArray(data.compactions)) {
-        const match = data.compactions.find((c: Compaction) => c.sessionId === row.sessionId && c.at === row.at);
-        if (match) setFull((prev) => ({ ...prev, [key]: match.summary }));
-      }
-    } catch { /* the preview stays; nothing to say about it */ }
+      const text = await loadSummary(apiFetch, row);
+      if (alive.current && text !== null) setFull((prev) => ({ ...prev, [row.key]: text }));
+    } finally {
+      if (alive.current) setOpening((key) => (key === row.key ? null : key));
+    }
   };
 
   return (
@@ -121,7 +103,13 @@ export function CompactionsApp({ themeConfig, themeMode }: Props) {
 
       {failed && (
         <div className={cn('rounded-2xl border p-3 text-xs', colors.panelBg, colors.panelBorder)}>
-          Could not read the transcripts. The backend may be older than this screen.
+          Could not read the compactions. The backend may be older than this screen.
+        </div>
+      )}
+
+      {!loading && reading && (
+        <div className={cn('rounded-2xl border p-3 text-xs', colors.panelBg, colors.panelBorder, colors.textMuted)}>
+          Still reading the older transcripts for the first time. Refresh in a minute for the rest.
         </div>
       )}
 
@@ -131,60 +119,19 @@ export function CompactionsApp({ themeConfig, themeMode }: Props) {
         </div>
       )}
 
-      {rows.map((row) => {
-        const key = row.sessionId + row.at;
-        const isOpen = openId === key;
-        return (
-          <div key={key} className={cn('rounded-2xl border overflow-hidden', colors.panelBg, colors.panelBorder)}>
-            <button onClick={() => void open(row)} className="w-full p-3 text-left flex items-start gap-2">
-              <Scissors size={14} className="mt-0.5 shrink-0" style={{ color: colors.accent }} />
-              <span className="flex-1 min-w-0">
-                <span className={cn('block text-sm font-medium', colors.textMain)}>{whenLabel(row.at)}</span>
-                <span className={cn('block text-xs', colors.textMuted)}>
-                  {laneName(row.project)} · {row.chars.toLocaleString()} characters squashed
-                </span>
-              </span>
-              {isOpen ? <ChevronDown size={14} className="mt-1 shrink-0" /> : <ChevronRight size={14} className="mt-1 shrink-0" />}
-            </button>
-            {isOpen && (
-              <div className={cn('px-3 pb-3 text-xs break-words space-y-1.5', colors.textMuted)}>
-                {/* The summary is written as markdown by the summariser. Render it as
-                    markdown rather than raw text so the headings and emphasis it already
-                    carries read as structure instead of asterisks. */}
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm, remarkBreaks]}
-                  components={{
-                    p: ({ children }) => <span className="block">{children}</span>,
-                    strong: ({ children }) => (
-                      <strong className={cn('font-semibold', colors.textMain)}>{children}</strong>
-                    ),
-                    h1: ({ children }) => (
-                      <span className={cn('block text-sm font-semibold mt-2', colors.textMain)}>{children}</span>
-                    ),
-                    h2: ({ children }) => (
-                      <span className={cn('block text-sm font-semibold mt-2', colors.textMain)}>{children}</span>
-                    ),
-                    h3: ({ children }) => (
-                      <span className={cn('block text-xs font-semibold mt-2', colors.textMain)}>{children}</span>
-                    ),
-                    ul: ({ children }) => <ul className="list-disc pl-4 space-y-0.5">{children}</ul>,
-                    ol: ({ children }) => <ol className="list-decimal pl-4 space-y-0.5">{children}</ol>,
-                    code: ({ children }) => (
-                      <code className="px-1 py-0.5 rounded bg-black/20 text-[11px] break-all">{children}</code>
-                    ),
-                    pre: ({ children }) => (
-                      <pre className="p-2 rounded bg-black/20 text-[11px] overflow-x-auto">{children}</pre>
-                    ),
-                  }}
-                >
-                  {full[key] || row.summary}
-                </ReactMarkdown>
-                {!full[key] && row.truncated && <span className="opacity-60"> …</span>}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {paged.visible.map((row) => (
+        <CompactionCard
+          key={row.key}
+          row={row}
+          isOpen={openKey === row.key}
+          fullText={full[row.key] ?? null}
+          opening={opening === row.key}
+          colors={colors}
+          onToggle={(r) => void toggle(r)}
+        />
+      ))}
+
+      <Paginator page={paged.page} pageCount={paged.pageCount} onPage={paged.setPage} colors={colors} />
     </div>
   );
 }

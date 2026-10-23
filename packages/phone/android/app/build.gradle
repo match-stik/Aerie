@@ -67,6 +67,14 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    // Spotify's App Remote kit (Apache-2.0, github.com/spotify/android-sdk v0.8.0),
+    // which wakes Spotify on the phone, and the gson it reads JSON with.
+    implementation files('libs/spotify-app-remote-release-0.8.0.aar')
+    implementation 'com.google.code.gson:gson:2.8.6'
+    // The app's own push listener (AerieMessagingService) extends the push
+    // plugin's and reads RemoteMessage, which the plugin keeps to itself; this
+    // is the plugin's own version, so nothing else moves.
+    implementation "com.google.firebase:firebase-messaging:25.0.1"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

@@ -2,6 +2,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { parse as parseCookie } from 'cookie';
 import crypto from 'crypto';
+import { getConfig } from '../services/db/config.js';
 
 const CSRF_COOKIE = 'aerie_csrf';
 const CSRF_HEADER = 'x-csrf-token';
@@ -37,6 +38,58 @@ function verifyToken(token: string, sessionToken: string): boolean {
   }
 }
 
+// The token below has never refused anything: every way it can fail resets the
+// cookie and lets the request through (found Oct 22 2026, Ashen's open item).
+// The browser now says on every request where it came from, so that is the
+// gate: OWASP's CSRF cheat sheet names Sec-Fetch-Site the primary signal for
+// modern browsers, with Origin as the mandatory fallback when it is missing.
+// Only a request that carries the session cookie gets here, so curl, the
+// lanes and webhooks (no cookie, no Sec-Fetch, no Origin) are untouched.
+//
+// It starts in REPORT mode: the house logs what it would refuse and refuses
+// nothing, so it can be watched against the owner real phone before it enforces.
+// security.csrf_mode: 'report' (unset), 'enforce', or 'off'.
+
+export interface CrossSiteSignals {
+  secFetchSite?: string;
+  origin?: string;
+  host?: string;
+  forwardedHost?: string;
+}
+
+/** Why this request looks like it came from another site, or null when it does not. */
+export function crossSiteVerdict(signals: CrossSiteSignals): string | null {
+  const site = signals.secFetchSite?.trim().toLowerCase();
+  if (site) {
+    // 'none' is a request the person started themselves (typed, bookmarked).
+    if (site === 'same-origin' || site === 'none') return null;
+    return `Sec-Fetch-Site is ${site}`;
+  }
+  const origin = signals.origin?.trim();
+  if (!origin) return null; // not a browser, or one too old to say
+  if (origin === 'null') return 'Origin is null';
+  let originHost: string;
+  try {
+    originHost = new URL(origin).host.toLowerCase();
+  } catch {
+    return 'Origin is unreadable';
+  }
+  const hosts = [signals.host, signals.forwardedHost]
+    .filter((h): h is string => typeof h === 'string' && h.length > 0)
+    .flatMap((h) => h.split(',').map((part) => part.trim().toLowerCase()));
+  return hosts.includes(originHost) ? null : `Origin ${originHost} is not this house`;
+}
+
+function csrfMode(): 'report' | 'enforce' | 'off' {
+  try {
+    const value = getConfig('security.csrf_mode');
+    if (value === 'enforce' || value === 'off') return value;
+  } catch {
+    // No database yet (tests, first boot): report.
+  }
+  return 'report';
+}
+
 export function csrfProtection(req: Request, res: Response, next: NextFunction): void {
   // Skip safe methods
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
@@ -57,6 +110,24 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   const sessionToken = cookies.aerie_session;
   if (!sessionToken) {
     return next();
+  }
+
+  const mode = csrfMode();
+  if (mode !== 'off') {
+    const verdict = crossSiteVerdict({
+      secFetchSite: req.get('sec-fetch-site'),
+      origin: req.get('origin'),
+      host: req.get('host'),
+      forwardedHost: req.get('x-forwarded-host'),
+    });
+    if (verdict) {
+      if (mode === 'enforce') {
+        console.warn(`[CSRF] refused ${req.method} ${req.path}: ${verdict}`);
+        res.status(403).json({ error: 'Cross-site request refused' });
+        return;
+      }
+      console.warn(`[CSRF] would refuse ${req.method} ${req.path}: ${verdict} (report mode)`);
+    }
   }
 
   // Check for existing CSRF cookie

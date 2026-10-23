@@ -165,7 +165,7 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
   return createPortal(
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 touch-none"
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/90 touch-none ${hasMultiple ? 'px-14 py-4' : 'p-4'}`}
       onClick={handleBackdropClick}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
@@ -179,7 +179,7 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
         {scale !== 1 && (
           <button
             onClick={(e) => { e.stopPropagation(); reset(); }}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur hover:bg-black/60"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
             aria-label="Reset zoom"
           >
             <RotateCcw size={18} />
@@ -187,14 +187,14 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
         )}
         <button
           onClick={(e) => { e.stopPropagation(); setScale((s) => Math.max(s / 1.3, 1)); }}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur hover:bg-black/60"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
           aria-label="Zoom out"
         >
           <ZoomOut size={18} />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); setScale((s) => Math.min(s * 1.3, 5)); }}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur hover:bg-black/60"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
           aria-label="Zoom in"
         >
           <ZoomIn size={18} />
@@ -205,7 +205,7 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
             and being looked at, so the save says so out loud, in a button. */}
         <button
           onClick={(e) => { e.stopPropagation(); saveToDevice(allImages[currentIndex]); }}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur hover:bg-black/60"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
           aria-label="Save image"
           title="Save image"
         >
@@ -213,18 +213,21 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur hover:bg-black/60"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
           aria-label="Close"
         >
           <X size={20} />
         </button>
       </div>
 
-      {/* Navigation arrows for multiple images */}
+      {/* Navigation arrows for multiple images. They sit in their own gutters
+          beside the picture rather than over it (Oct 22 2026: the
+          arrows were getting in the way on the owner's images), so a viewer with more
+          than one picture keeps 56px of black either side for them. */}
       {hasMultiple && currentIndex > 0 && (
         <button
           onClick={(e) => { e.stopPropagation(); goPrev(); }}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur hover:bg-black/60"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
           aria-label="Previous image"
         >
           <ChevronLeft size={24} />
@@ -233,7 +236,7 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
       {hasMultiple && currentIndex < allImages.length - 1 && (
         <button
           onClick={(e) => { e.stopPropagation(); goNext(); }}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur hover:bg-black/60"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
           aria-label="Next image"
         >
           <ChevronRight size={24} />
@@ -242,7 +245,7 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
 
       {/* Zoom indicator */}
       {scale !== 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-[var(--shape-control)] bg-black/50 px-3 py-1 text-sm text-white backdrop-blur">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-[var(--shape-control)] bg-black/50 px-3 py-1 text-sm text-white">
           {Math.round(scale * 100)}%
         </div>
       )}

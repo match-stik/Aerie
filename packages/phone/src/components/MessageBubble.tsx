@@ -759,6 +759,10 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
       {format(new Date(message.timestamp), 'h:mm a')}
     </span>
   ) : null;
+  // A message that carries a picture, a film or a file keeps its time under
+  // all of it, at the very bottom of the bubble, never wedged between the
+  // words and the picture (Oct 21 2026).
+  const mediaBelow = isGif || (isImage && !isSticker) || isFile || videoSources.length > 0;
   // The swoop on the tail corner: the bubble and its curl painted as one
   // shape behind the words (components/BubbleSkin.tsx), the same way the
   // Settings preview draws it.
@@ -1097,7 +1101,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                 textClass={textColorClass}
               />
             ) : null}
-            {hasSegments && timeInside}
+            {hasSegments && !mediaBelow && timeInside}
             {!hasSegments && textContent && !isVoice && (
             <div className={cn(
                 // [overflow-wrap:anywhere] handles the pathological case
@@ -1207,7 +1211,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                               <img
                                 src={src}
                                 alt={alt.slice('sticker:'.length)}
-                                className="!inline-block max-h-32 w-auto align-bottom"
+                                className="!inline-block !my-0 max-h-32 w-auto align-bottom"
                                 referrerPolicy="no-referrer"
                               />
                             );
@@ -1286,7 +1290,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                     </ReactMarkdown>
                   </div>
                 </div>
-                {timeInside}
+                {!mediaBelow && timeInside}
               </div>
             )}
 
@@ -1385,19 +1389,21 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                 ))}
               </div>
             )}
+            {mediaBelow && timeInside}
             </div>
             </>)}
           </div>
 
           {/* Actions belong to the stored message, not each virtual
-              companion bubble. Anchor one tray beneath the final voice. */}
+              companion bubble. Anchor one tray beneath the final voice, at
+              every width: on a wide screen it used to jump out beside the
+              bubble, which is not where it sits on their phone (Oct 23
+              2026, off a screenshot of a laptop). */}
           {isGroupLast && <div className={cn(
             "absolute transition-all flex items-center gap-1 px-2 py-1 rounded-[var(--shape-control)] border z-20",
             colors.panelBg,
             colors.panelBorder,
-            isUser 
-              ? "right-0 top-full mt-1 sm:right-full sm:mr-2 sm:top-0 sm:mt-0 sm:left-auto" 
-              : "left-0 top-full mt-1 sm:left-full sm:ml-2 sm:top-0 sm:mt-0 sm:right-auto",
+            isUser ? "right-0 top-full mt-1" : "left-0 top-full mt-1",
             showActions ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto"
           )}>
             {!showDeleteConfirm && !showRerollConfirm ? (

@@ -657,8 +657,19 @@ export class InteractiveCliRuntime implements AgentRuntime {
     this.options = options;
   }
 
-  abort(): boolean {
+  /**
+   * 'retract' is a message edit: the turn is withdrawn and a late answer to it
+   * stays withdrawn. 'stop' is the owner Stop button: the reply is cut short, and if
+   * nothing of it had reached the owner yet their message is still owed an answer, so
+   * the turn goes on the ledger the way a timeout does (Oct 20 2026: a stopped
+   * turn left off the ledger, the reopened room answered their message under
+   * it, and the answer was refused as belonging to a closed turn).
+   */
+  private abortReason: 'stop' | 'retract' = 'retract';
+
+  abort(reason: 'stop' | 'retract' = 'retract'): boolean {
     this.aborted = true;
+    this.abortReason = reason;
     return this.activeSession?.interruptTurn() ?? false;
   }
 
@@ -1270,6 +1281,9 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // A turn with an audience came from Discord and answers there, so a note
     // from the owner's phone queues behind it rather than being handed in.
     session.turnAnswersElsewhere = !!this.options.audience;
+    // And the thread it answers in, so a note from their phone is only handed
+    // into a turn that answers where the owner wrote it (sideNoteTarget).
+    session.turnThreadId = this.options.threadId ?? '';
     // Each delivered message, as the router will store it: text up to a
     // message_break is one message.
     const spoken: string[] = [];
@@ -1303,6 +1317,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       session.turnActive = false;
       session.turnStartedAt = 0;
       session.turnAnswersElsewhere = false;
+      session.turnThreadId = '';
       // Mark where this lane's sight ends. Anything the room says after this is
       // something it did not see, and a later wake gets handed the difference.
       // Written to disk as well, because the map it lives in is empty after
@@ -1639,8 +1654,13 @@ export class InteractiveCliRuntime implements AgentRuntime {
       }
       if (this.aborted) {
         // Intentional retraction (message edit) — do NOT ledger this turn:
-        // a late answer to a retracted message should stay retracted.
+        // a late answer to a retracted message should stay retracted. A Stop
+        // with nothing said yet is the other case: their message is still owed.
         state.consumedOffset = offset;
+        if (this.abortReason === 'stop' && !emittedText) {
+          state.unresolved.push(turnId);
+          if (state.unresolved.length > MAX_UNRESOLVED) state.unresolved.shift();
+        }
         yield { type: 'done', finishReason: 'aborted' };
         return;
       }

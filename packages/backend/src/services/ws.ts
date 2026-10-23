@@ -66,6 +66,7 @@ import {
 } from './ws/handlers/reaction-handlers.js';
 import { handleMcpReconnect, handleMcpToggle } from './ws/handlers/mcp-handlers.js';
 import { handleCommandMessage } from './ws/handlers/command-handlers.js';
+import { bellStatus } from './bell-status.js';
 
 export { registry } from './ws/connection-registry.js';
 export type { ExtendedWebSocket } from './ws/connection-registry.js';
@@ -168,6 +169,11 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
       commands: buildCommandRegistry(),
     };
     extWs.send(JSON.stringify(connectedMsg));
+
+    // The word under the faces as it stands, so a phone that connects in the
+    // middle of a bell shows it (services/bell-status.ts).
+    const statusWordMsg: ServerMessage = { type: 'status_word', ...bellStatus().now() };
+    extWs.send(JSON.stringify(statusWordMsg));
 
     // Send canvas list
     const canvases = listCanvases();

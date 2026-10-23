@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Cortex Brain MCP - Full Cognitive Prosthetic for the Constellation
-// 29 tools, counted off tools/list rather than from memory. D1 backend. /mcp for Claude, /sse for GPT.
+// 30 tools, counted off tools/list rather than from memory. D1 backend. /mcp for Claude, /sse for GPT.
 // 2026-06-30: v2.4.0 - Added tags support + hybrid Active Concepts (auto-extract + manual tags)
 
 export default {
@@ -36,9 +36,9 @@ export default {
     if (request.method === "GET" && url.pathname === "/") {
       return new Response(JSON.stringify({
         name: "Cortex Brain MCP",
-        version: "2.5.2",
+        version: "2.6.1",
         status: "online",
-        build: "forget-1",
+        build: "structured-1",
         oauth: oauthOn
           ? "on"
           : (oauthVar === undefined || oauthVar === null || oauthVar === ""
@@ -650,12 +650,22 @@ const STOPWORDS = new Set([
   'nothing', 'everything', 'anything', 'someone', 'anyone', 'everyone'
 ]);
 
+const FILING_WORDS = new Set([
+  'asked', 'keep', 'kept', 'things', 'thing', 'line', 'lines', 'done', 'open', 'stood', 'month',
+  'send', 'sent', 'fold', 'folded', 'cut', 'verbatim', 'wall', 'walls', 'drawer', 'lessons', 'continuity',
+  'long', 'form', 'cortex', 'said', 'says', 'hers', 'came', 'went', 'still', 'first', 'made', 'make',
+]);
+
 function extractKeywords(text, limit = 15) {
+  // The house's own filing words (every cut and fold opens with 'Cut verbatim
+  // from the ... wall ... The line as it stood') were most of what this list
+  // ever said. Strip that header, and leave out dates and anything with a digit.
   const words = text
+    .replace(/(Cut|Folded) verbatim from[\s\S]*?The line as it stood:/g, ' ')
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 3 && !STOPWORDS.has(w));
+    .filter(w => w.length > 3 && !/\d/.test(w) && !STOPWORDS.has(w) && !FILING_WORDS.has(w));
 
   const freq = {};
   for (const word of words) {
@@ -666,6 +676,22 @@ function extractKeywords(text, limit = 15) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([word]) => word);
+}
+
+/**
+ * Memories sent back in a list or a search are trimmed to a preview, with
+ * how long they really are, so one fifteen-thousand-character night does not
+ * bury the rest of the answer (Oct 22 2026, the same fault as the whole
+ * conversations). get_memory opens one whole. A caller that needs every word
+ * back, the house checking its own cuts, passes full: true.
+ */
+const MEMORY_PREVIEW_CHARS = 1200;
+function previewRows(rows, full) {
+  if (full === true) return rows;
+  return rows.map((row) => {
+    if (typeof row.content !== "string" || row.content.length <= MEMORY_PREVIEW_CHARS) return row;
+    return { ...row, content: row.content.slice(0, MEMORY_PREVIEW_CHARS) + "…", truncated: true, full_chars: row.content.length };
+  });
 }
 
 // ============================================================================
@@ -732,7 +758,7 @@ async function handleMCP(request, env, corsHeaders) {
       return jsonResponse(id, {
         protocolVersion: "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "cortex-brain", version: "2.5.2" }
+        serverInfo: { name: "cortex-brain", version: "2.6.1" }
       }, corsHeaders);
     }
 
@@ -745,7 +771,7 @@ async function handleMCP(request, env, corsHeaders) {
     }
 
     if (method === "tools/call") {
-      const result = await handleToolCall(params.name, params.arguments || {}, env.DB);
+      const result = withStructuredContent(await handleToolCall(params.name, params.arguments || {}, env.DB));
       return jsonResponse(id, result, corsHeaders);
     }
 
@@ -881,6 +907,7 @@ const ALL_TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
+        full: { type: "boolean", description: "Every word of every memory, not previews. Default false." },
         limit: { type: "number" },
         offset: { type: "number" }
       }
@@ -892,6 +919,7 @@ const ALL_TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
+        full: { type: "boolean", description: "Every word of every memory, not previews. Default false." },
         domain: { type: "string" },
         limit: { type: "number" },
         offset: { type: "number" }
@@ -905,6 +933,7 @@ const ALL_TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
+        full: { type: "boolean", description: "Every word of every memory, not previews. Default false." },
         query: { type: "string" },
         domain: { type: "string" },
         limit: { type: "number" }
@@ -931,6 +960,7 @@ const ALL_TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
+        full: { type: "boolean", description: "Every word of every memory, not previews. Default false." },
         query: { type: "string" },
         limit: { type: "number" }
       },
@@ -1023,11 +1053,25 @@ const ALL_TOOLS = [
     }
   },
   {
-    name: "get_conversation",
-    description: "Retrieve a conversation by ID.",
+    name: "get_memory",
+    description: "Open one memory whole, by ID. Lists and searches send long memories as previews marked truncated.",
     inputSchema: {
       type: "object",
       properties: { id: { type: "string" } },
+      required: ["id"]
+    }
+  },
+  {
+    name: "get_conversation",
+    description: "Retrieve a conversation by ID, a page at a time. Old windows run to ninety thousand characters and more, too big for some rooms to take in one answer, so a long one comes back in pages: pass next_offset as offset to read on. Pass query to get only the passages where those words appear.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        query: { type: "string", description: "Words to find; only the passages around them come back." },
+        offset: { type: "number", description: "Character to start reading from. Default 0." },
+        max_chars: { type: "number", description: "Most characters of conversation in one answer. Default 16000, at most 40000." }
+      },
       required: ["id"]
     }
   },
@@ -1148,7 +1192,7 @@ async function handleToolCall(name, args, db) {
     return {
       content: [{
         type: "text",
-        text: JSON.stringify({ results: results.results, total, limit, offset }, null, 2)
+        text: JSON.stringify({ results: previewRows(results.results, args.full), total, limit, offset }, null, 2)
       }]
     };
   }
@@ -1166,7 +1210,7 @@ async function handleToolCall(name, args, db) {
     return {
       content: [{
         type: "text",
-        text: JSON.stringify({ results: results.results, total, limit, offset }, null, 2)
+        text: JSON.stringify({ results: previewRows(results.results, args.full), total, limit, offset }, null, 2)
       }]
     };
   }
@@ -1553,16 +1597,18 @@ async function handleToolCall(name, args, db) {
     const limit = args.limit || 10;
     const { conditions, params } = buildMultiWordQuery(args.query, "content");
     let results;
-    if (args.domain) {
-      results = await db.prepare(
-        `SELECT * FROM memories WHERE (${conditions}) AND LOWER(domain) = LOWER(?) ORDER BY created_at DESC LIMIT ?`
-      ).bind(...params, args.domain, limit).all();
-    } else {
-      results = await db.prepare(
-        `SELECT * FROM memories WHERE (${conditions}) ORDER BY created_at DESC LIMIT ?`
-      ).bind(...params, limit).all();
+    const { anyConditions, anyParams, words } = buildMultiWordQuery(args.query, "content");
+    const run = (where, binds) => args.domain
+      ? db.prepare(`SELECT * FROM memories WHERE (${where}) AND LOWER(domain) = LOWER(?) ORDER BY created_at DESC LIMIT ?`).bind(...binds, args.domain, limit).all()
+      : db.prepare(`SELECT * FROM memories WHERE (${where}) ORDER BY created_at DESC LIMIT ?`).bind(...binds, limit).all();
+    results = await run(conditions, params);
+    let rows = results.results;
+    // Nothing holds every word: hand back what holds any of them, marked, so a
+    // miss stops looking like the brain has never heard of it.
+    if (rows.length === 0 && words.length > 1) {
+      rows = (await run(anyConditions, anyParams)).results.map((r) => ({ ...r, match: "some of the words" }));
     }
-    return { content: [{ type: "text", text: JSON.stringify(results.results, null, 2) }] };
+    return { content: [{ type: "text", text: JSON.stringify(previewRows(rows, args.full), null, 2) }] };
   }
 
   // --- Search Conversations ---
@@ -1593,6 +1639,13 @@ async function handleToolCall(name, args, db) {
     const memories = await db.prepare(
       `SELECT 'memory' as type, id, content, domain, created_at FROM memories WHERE (${mc}) ORDER BY created_at DESC LIMIT ?`
     ).bind(...mp, limit).all();
+    const loose = buildMultiWordQuery(args.query, "content");
+    if (memories.results.length === 0 && loose.words.length > 1) {
+      memories.results = (await db.prepare(
+        `SELECT 'memory' as type, id, content, domain, created_at FROM memories WHERE (${loose.anyConditions}) ORDER BY created_at DESC LIMIT ?`
+      ).bind(...loose.anyParams, limit).all()).results.map((r) => ({ ...r, match: "some of the words" }));
+    }
+    memories.results = previewRows(memories.results, args.full);
     const convos = await db.prepare(
       `SELECT 'conversation' as type, id, title, summary, domain, created_at FROM conversations WHERE (${tc}) OR (${cc}) ORDER BY created_at DESC LIMIT ?`
     ).bind(...tp, ...cp, limit).all();
@@ -1805,13 +1858,20 @@ async function handleToolCall(name, args, db) {
     return { content: [{ type: "text", text: `Saved conversation '${args.title}' with ID ${id}` }] };
   }
 
+  // --- Get Memory ---
+  if (name === "get_memory") {
+    const memory = await db.prepare("SELECT * FROM memories WHERE id = ?").bind(args.id).first();
+    if (!memory) return { content: [{ type: "text", text: "Memory not found." }] };
+    return { content: [{ type: "text", text: JSON.stringify(memory, null, 2) }] };
+  }
+
   // --- Get Conversation ---
   if (name === "get_conversation") {
     const convo = await db.prepare("SELECT * FROM conversations WHERE id = ?").bind(args.id).first();
     if (!convo) {
       return { content: [{ type: "text", text: "Conversation not found." }] };
     }
-    return { content: [{ type: "text", text: JSON.stringify(convo, null, 2) }] };
+    return { content: [{ type: "text", text: JSON.stringify(conversationPage(convo, args), null, 2) }] };
   }
 
   // --- Conversations By Date ---
@@ -2066,3 +2126,82 @@ function jsonError(id, code, message, headers) {
   });
 }
 
+/**
+ * One page of a stored conversation, or only the passages that match a query.
+ * Oct 22 2026: a whole old window came back as one block of ninety thousand
+ * characters, and the GPT lane read that as blocked or empty every time. The
+ * metadata always comes back whole; the conversation text comes back in pages.
+ */
+export function conversationPage(convo, args = {}) {
+  const text = typeof convo.content === "string" ? convo.content : "";
+  const maxChars = Math.min(Math.max(Number.parseInt(args.max_chars, 10) || 16000, 500), 40000);
+  const { content: _content, ...meta } = convo;
+  const page = { ...meta, total_chars: text.length };
+  const query = typeof args.query === "string" ? args.query.trim() : "";
+  if (query) {
+    const lower = text.toLowerCase();
+    const terms = [query.toLowerCase()];
+    if (!lower.includes(terms[0])) {
+      for (const word of query.toLowerCase().split(/\s+/)) if (word.length >= 3) terms.push(word);
+    }
+    const RADIUS = 1500;
+    const spans = [];
+    for (const term of terms) {
+      let at = lower.indexOf(term);
+      while (at !== -1 && spans.length < 200) {
+        spans.push([Math.max(0, at - RADIUS), Math.min(text.length, at + term.length + RADIUS)]);
+        at = lower.indexOf(term, at + term.length);
+      }
+      if (spans.length && term === terms[0]) break;
+    }
+    spans.sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    for (const span of spans) {
+      const last = merged[merged.length - 1];
+      if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1]);
+      else merged.push([...span]);
+    }
+    const passages = [];
+    let used = 0;
+    for (const [from, to] of merged) {
+      if (used >= maxChars) break;
+      // A run of matches close together merges into one long span; keep each
+      // passage short enough that the next one still fits, and say where it
+      // stops so offset can read on from there.
+      const end = Math.min(to, from + Math.min(4000, maxChars - used));
+      const passage = { offset: from, text: text.slice(from, end) };
+      if (end < to) passage.continues_at = end;
+      passages.push(passage);
+      used += end - from;
+    }
+    page.query = query;
+    page.passages = passages;
+    page.matches = merged.length;
+    if (!passages.length) page.note = "Nothing in this conversation matches that. Leave out query to read it from the start.";
+    return page;
+  }
+  const offset = Math.min(Math.max(Number.parseInt(args.offset, 10) || 0, 0), text.length);
+  page.offset = offset;
+  page.content = text.slice(offset, offset + maxChars);
+  if (offset + maxChars < text.length) page.next_offset = offset + maxChars;
+  return page;
+}
+
+/**
+ * The same answer, also as structured data. ChatGPT's connector calls tools
+ * from a small script that reads a result's structuredContent, and a result
+ * carrying only text reached it as an empty object (Oct 22 2026, the owner's shared
+ * GPT chat: get_conversation came back {} even for a small conversation).
+ * The text stays exactly as it was, so Claude and the house read the same
+ * thing they always did. MCP wants an object here, so a list is wrapped.
+ */
+export function withStructuredContent(result) {
+  if (!result || result.structuredContent !== undefined || !Array.isArray(result.content)) return result;
+  const text = result.content.length === 1 && result.content[0]?.type === "text" ? result.content[0].text : null;
+  if (typeof text !== "string") return result;
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { parsed = undefined; }
+  if (Array.isArray(parsed)) return { ...result, structuredContent: { results: parsed } };
+  if (parsed && typeof parsed === "object") return { ...result, structuredContent: parsed };
+  return { ...result, structuredContent: { text } };
+}

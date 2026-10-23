@@ -206,3 +206,20 @@ test('non-token_count lines and stamps without rate limits return null', () => {
     null,
   );
 });
+
+test('a failed Claude read hands back the last good reading, labelled stale with the reason', async () => {
+  const { claudeUsageOrLastGood, parseClaudeUsage } = await import('./subscription-usage.js');
+  const good = parseClaudeUsage({ five_hour: { utilization: 96, resets_at: '2026-10-22T10:20:00Z' } } as Record<string, unknown>, 'max');
+  const at = Date.UTC(2026, 9, 22, 8, 0, 0);
+  const failing = async () => { throw new Error('Claude usage endpoint answered 429'); };
+
+  const stale = await claudeUsageOrLastGood(failing, { at, data: good });
+  assert.equal(stale.fiveHourPercent, good.fiveHourPercent);
+  assert.equal(stale.fiveHourResetsAt, good.fiveHourResetsAt);
+  assert.deepEqual(stale.stale, { readAt: new Date(at).toISOString(), reason: 'Claude usage endpoint answered 429' });
+
+  await assert.rejects(() => claudeUsageOrLastGood(failing, null), /429/, 'nothing known, nothing invented');
+
+  const fresh = await claudeUsageOrLastGood(async () => good, { at, data: good });
+  assert.equal(fresh.stale, undefined, 'a fresh reading carries no label');
+});

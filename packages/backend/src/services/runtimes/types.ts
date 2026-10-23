@@ -215,7 +215,8 @@ export interface AgentRuntime {
    * Abort the current turn (if running).
    * Returns true if there was something to abort.
    */
-  abort(): boolean;
+  /** 'stop' is the owner Stop button; 'retract' (the default) is a message edit. */
+  abort(reason?: 'stop' | 'retract'): boolean;
 
   /**
    * Get the session ID from the most recent turn (SDK only).

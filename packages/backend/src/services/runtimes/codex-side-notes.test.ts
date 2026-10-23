@@ -98,3 +98,11 @@ test('a Codex lane answering in a Discord channel does not take a note from the 
   assert.deepEqual(readCodexSideNotesFrom(lane, 0).notes, [], 'it queues instead');
   assert.equal(deliverSideNoteToBusyCodexLane(new Set([lane]), 'hello', new Set(['some-other-lane'])), true);
 });
+
+test('a Codex lane answering in another thread does not take a note from their phone', () => {
+  const lane = freshLane();
+  assert.equal(deliverSideNoteToBusyCodexLane(new Set([lane]), 'hello', new Set(), 'my-loves'), false);
+  assert.deepEqual(readCodexSideNotesFrom(lane, 0).notes, [], 'it queues and comes home instead');
+  assert.equal(deliverSideNoteToBusyCodexLane(new Set([lane]), 'hello', new Set(), 'test-thread'), true);
+  assert.deepEqual(readCodexSideNotesFrom(lane, 0).notes.map((n) => n.text), ['hello']);
+});

@@ -176,18 +176,51 @@ export function unreadSummary(threads: readonly ThreadLike[]): UnreadSummary {
   return { count, newestAt, firstLine: firstSpokenLine(preview) };
 }
 
+/** A voice header in the middle of a line, the way the house flattens a
+ *  room's preview onto one line: a bold run that opens on a sigil
+ *  (**🔥 Birch**). Bold that opens on a word is emphasis and stays put. */
+const INLINE_VOICE_HEADER = /\s*(\*\*\s*\p{Extended_Pictographic}[^*\n]{0,40}?\*\*)\s*/gu;
+
+/** A whisper marker, `-# `, wherever it landed. The bubble draws it as small
+ *  text; on the lock screen it is only ever noise. */
+const WHISPER_MARKERS = /^(?:-#(?:\s+|$))+/;
+
+/** One line as a person would read it on a bubble: no markdown, and none of
+ *  the codes the bubble turns into pictures (stickers, emotes, mentions,
+ *  voice notes, pictures and files). */
+function plainWords(line: string): string {
+  return line
+    .replace(/\[FILE:[^\]]*\]:?.*$/i, '')
+    .replace(/\[(?:VOICE|IMG)\]:\s*\S*/gi, '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/::[a-z0-9_-]+::/gi, '')
+    .replace(/<a?:[a-z0-9_~-]+:\d+>/gi, '')
+    .replace(/<(?:[@#][!&]?)?\d+>/g, '')
+    .replace(/:(?=[a-z0-9_-]*[a-z])[a-z0-9_-]+:/gi, '')
+    .replace(/(^|\s)-#(?=\s|$)/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*[^*]+\*/g, '')
+    .replace(/\*|~~|`/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /** The first line of a reply that is somebody talking: past a voice header
- *  (**Birch**) and past an action line (*leans in*). */
+ *  (**Birch**), past an action line (*leans in*), and past the whisper
+ *  marker, the codes and the markdown the bubble draws as something else. A
+ *  flattened reply with several voices gives the first voice's words only. */
 export function firstSpokenLine(preview: string | null): string | null {
   if (!preview) return null;
-  for (const raw of preview.split('\n')) {
-    let line = raw.trim();
+  const lines = preview.replace(INLINE_VOICE_HEADER, '\n$1\n').split('\n');
+  for (const raw of lines) {
+    let line = raw.trim().replace(WHISPER_MARKERS, '').trim();
     if (!line) continue;
     if (/^\*\*[^*]+\*\*$/.test(line)) continue;
     if (/^\*[^*].*\*$/.test(line)) continue;
-    if (line.startsWith('-# ')) line = line.slice(3);
-    // A header and its first words on one line, the way a preview flattens.
-    line = line.replace(/^\*\*[^*]+\*\*\s*/, '').replace(/\*[^*]+\*/g, '').replace(/\*/g, '').replace(/\s+/g, ' ').trim();
+    // A header and its first words on one line; a markdown heading reads as
+    // its words.
+    line = plainWords(line.replace(/^\*\*[^*]+\*\*\s*/, '').replace(WHISPER_MARKERS, '').replace(/^#{1,6}\s+/, ''));
     if (line) return line;
   }
   return null;

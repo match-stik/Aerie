@@ -81,9 +81,16 @@ Every router module under `packages/backend/src/routes`:
 - `client-errors.ts` — the phone's crash reports. `AppErrorBoundary` catches a
   render error, shows a tap-to-reload card instead of a black screen, and posts
   what broke here; it lands in the error log as one bounded `[client-error]` line.
-- `compactions.ts` — reads `isCompactSummary` records out of the CLI's own
-  transcripts, so the squash that a lane is instructed not to mention becomes
-  something the Memory app can show. Nothing is written; there is no table.
+- `compactions.ts` — reads `isCompactSummary` records out of the house lanes'
+  own transcripts, so the squash that a lane is instructed not to mention becomes
+  something the Memory app can show. Since Oct 21 2026 every squash found is kept
+  in the `compactions` table (Claude Code deletes old transcripts), with how far
+  each transcript was read in `compaction_scan_marks`; the list sends previews
+  and whose head each came from, twenty to a page on the phone, and `GET /:id`
+  sends one summary whole.
+- `field-notes.ts` — the owner Field Notes page reads here, signed in and read only,
+  newest day first. The morning look writes through `POST /api/internal/field-notes`
+  on the loopback port; notes live in the `field_notes` table.
 - `cc-mcp.ts` — the Command Center MCP HTTP endpoint at `/mcp/cc`.
 - `cc-routes.ts` — Command Center config/status, care, tasks, projects, events, cycles, pets, lists, expenses, countdowns, wins, scratchpad, and statistics.
 - `codex-auth.ts` — Codex OAuth login, status, manual-code completion, logout, and cancellation; mounted by `api.ts`.
@@ -107,6 +114,18 @@ Every router module under `packages/backend/src/routes`:
 - `secrets.ts` — secret presence/read/write/delete and configured voice IDs.
 - `self-knowledge.ts` — authenticated review queue, review decisions, edit, and delete.
 - `settings.ts` — the large JSON phone settings blob at `/api/app-settings`.
+- `spotify.ts` — Spotify in the house: `GET /api/spotify/now`, `/recent`,
+  `/playlists` and `/playlists/:id`, each with a cover on every item, and
+  three presses, `POST /api/spotify/play` (`{ trackUri }`, `{ playlistUri }`,
+  or nothing to carry on), `/pause` and `/skip` (`{ direction: 'next' |
+  'previous' }`). `services/spotify.ts` talks to the Spotify server in the
+  house's own MCP list (one JSON-RPC `tools/call` each) and fills the covers
+  from Spotify's public oEmbed, kept by uri in `data/spotify-covers.json`. A
+  press's body is checked whole before anything reaches the server
+  (`isPlayableTrackUri` / `isPlayablePlaylistUri` in `@aerie/shared`), and a
+  press's answer is not believed: the phone reads what is playing again after
+  every press. Anything that cannot come back answers one plain sentence
+  (`SpotifyProblem` in `@aerie/shared`), never a page.
 - `stickers.ts` — sticker-pack CRUD and sticker lookup/upload/update/delete. A
   sticker's url is built from its filename, so every write picks a fresh one
   (`stickerFilenameFor` in `services/sticker-admin.ts`): new bytes at an
@@ -173,7 +192,7 @@ Database:
 - `services/db/index.ts` is the current barrel.
 - `services/db/init.ts` exports `initDb` and `getDb` and performs schema initialization and boot-time migrations.
 - Domain reads/writes live in `services/db/*.ts`: open `messages.ts` for `createMessage` and message queries, `threads.ts` for thread operations, `config.ts` for `getConfig`, `setConfig`, and typed config helpers, and the correspondingly named module for other tables.
-- SQLite migrations live in `packages/backend/migrations`. `initDb` directly executes `001_init.sql` and `006_command_center.sql` through `012_media_session.sql`, and `014_story_shelf.sql`, followed by additional guarded schema changes embedded in `services/db/init.ts`.
+- SQLite migrations live in `packages/backend/migrations`. `initDb` directly executes `001_init.sql` and `006_command_center.sql` through `012_media_session.sql`, `014_story_shelf.sql`, `015_compactions.sql` and `016_field_notes.sql`, followed by additional guarded schema changes embedded in `services/db/init.ts`.
 
 Discord:
 

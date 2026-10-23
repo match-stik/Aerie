@@ -1245,3 +1245,17 @@ input[type="color"]::-moz-color-swatch {
 .aerie-message-bubble[data-quiet-actions='true'] em.aerie-action {
   color: color-mix(in srgb, currentColor 66%, transparent);
 }
+
+/* No frosted glass anywhere (Oct 22 2026). The
+   bubbles lost their blur in October and the palettes were ruled solid with
+   no blur, but 81 components still carried backdrop-blur classes, and over a
+   panel painted 90% solid that reads as glass. This turns the blur off at the
+   class rather than file by file, so a component written tomorrow with
+   backdrop-blur-md gets the same answer. The painted glass (wash, hairline,
+   shadow) is untouched; only the blur of what is behind goes. */
+[class*='backdrop-blur'],
+.glass,
+.glass-dark {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

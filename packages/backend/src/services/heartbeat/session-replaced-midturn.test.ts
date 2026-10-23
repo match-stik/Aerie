@@ -130,3 +130,23 @@ test('two ordinary silent turns DO trip the recycle — the control that proves 
   await collect(runtime);
   assert.equal(session.restartCalls, 1);
 });
+
+test("the owner Stop before anything was said leaves the turn owed, so the next room's answer to it is delivered", async () => {
+  // Oct 20 2026: the owner pressed Stop while the owner Hi sat unread; the room that came
+  // back answered the Hi under the stopped turn's id and it was refused.
+  for (const [reason, delivered] of [['stop', true], ['retract', false]] as const) {
+    const session = new Session();
+    const runtime: any = new InteractiveCliRuntime({
+      sessionKey: `stopped-${reason}-${Date.now()}`,
+      sessionFactory: () => session as any,
+    } as any);
+    const appendInbox = session.appendInbox.bind(session);
+    session.appendInbox = (line: InboxLine) => { appendInbox(line); if (session.inbox.length === 1) runtime.abort(reason); };
+    const first = await collect(runtime);
+    assert.ok(first.some((e: any) => e.type === 'done' && e.finishReason === 'aborted'), `${reason}: the turn ends as aborted`);
+
+    session.lines.push(JSON.stringify({ turn_id: session.inbox[0].turn, content: 'hi, love', card: 'back' }));
+    const said = (await collect(runtime)).filter((e: any) => e.type === 'text_delta').map((e: any) => e.text).join('');
+    assert.equal(/hi, love/.test(said), delivered, `${reason}: ${delivered ? 'delivered with the next turn' : 'stays withdrawn'}`);
+  }
+});

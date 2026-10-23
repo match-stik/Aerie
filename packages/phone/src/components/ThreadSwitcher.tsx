@@ -34,6 +34,10 @@ interface ThreadSwitcherProps {
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
   companions?: CompanionOption[];
+  /** Each room's count of what we said to the owner (aerie/lock-unread.ts), drawn in
+   *  place of the room's raw counter, which counts a listening cafe too. A room
+   *  not in it yet keeps its raw counter. */
+  ourUnread?: Readonly<Record<string, number>>;
 }
 
 function monthLabel(key: string): string {
@@ -42,7 +46,7 @@ function monthLabel(key: string): string {
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 }
 
-export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, companions }: ThreadSwitcherProps) {
+export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, companions, ourUnread }: ThreadSwitcherProps) {
   const colors = themeConfig[themeMode];
   const threads = useThreads();
   const activeThreadId = useActiveThreadId();
@@ -248,12 +252,12 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className={cn('truncate text-sm font-medium', colors.textMain)}>{thread.name}</span>
-              {thread.unread_count > 0 && (
+              {(ourUnread?.[thread.id] ?? thread.unread_count) > 0 && (
                 <span
                   className="ml-auto shrink-0 rounded-[var(--shape-control)] px-1.5 py-0.5 text-[10px] font-bold"
                   style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
                 >
-                  {thread.unread_count}
+                  {ourUnread?.[thread.id] ?? thread.unread_count}
                 </span>
               )}
             </div>

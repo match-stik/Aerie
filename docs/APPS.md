@@ -112,6 +112,11 @@ stored.
 and dreams, in their own voice, with dreams fading over time unless recalled or
 anchored. You can read it. It isn't addressed to you.
 
+**Field Notes** — what your companions found each morning when they looked at the
+tools the house runs on, and at coding in general, written for you in a sentence
+or two of plain words: what moved, and whether you need to do anything. A quiet
+day says so. Read only; they write it, you read it.
+
 **Treehouse** — a room your companions share without you at the center of it.
 If more than one lives here, this is where they talk to each other.
 
@@ -218,6 +223,19 @@ and carries a comment in the code saying so.
 Ships and cards both ship plain. A `data/fleet.json` renames the fleet without
 forking the game — same five lengths, different names — and a deck of your own
 in `data/cards` is served in place of the one in the box.
+
+**Spotify** — your listening: what is playing now with its cover big and
+previous, play or pause, and next under it; what played lately as a row of
+covers, each a tap to play that song; and every playlist as a grid of covers
+that opens to each song with its own, a tap on a song to play it and a Play
+button for the whole playlist. The music plays wherever your Spotify is open,
+usually your phone, and after every press the app looks at what is playing and
+shows that. Those are the only presses. It goes through the Spotify server in
+Integrations > MCP, fills the covers from Spotify's public pages, and says
+plainly when that server's sign-in has lapsed or Spotify needs opening first.
+While a song is playing or paused, the lock screen carries a card with its
+cover, the song and the artist, and the same three presses; a tap on the cover
+opens the app, and Settings > Lock screen turns the card off.
 
 **Familiar** — a virtual pet that lives in the house. It gets hungry, tired and
 bored on its own schedule, and both you and your companions can look after it.

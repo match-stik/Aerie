@@ -101,7 +101,9 @@ export type ServerMessage =
   // The Story Shelf changed: a book was shelved, a page was written or taken,
   // a page turn started or ended, or a keepsake was tied. The phone re-reads
   // GET /api/story-shelf, and the open book if it is the one named.
-  | { type: 'story_update'; bookId: string | null };
+  | { type: 'story_update'; bookId: string | null }
+  /** The word beside the dot under the faces, while a bell that has one is running (services/bell-status.ts); null is Home. `companions` names whose cards show it, or is empty for every companion's. */
+  | { type: 'status_word'; word: string | null; companions: string[] };
 
 // --- Message type guards ---
 

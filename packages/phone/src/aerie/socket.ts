@@ -351,6 +351,15 @@ function handleMessage(event: MessageEvent): void {
       setState({ presence: msg.status });
       break;
 
+    case 'status_word':
+      setState({
+        statusWord: {
+          word: typeof msg.word === 'string' && msg.word.trim() ? msg.word.trim() : null,
+          companions: Array.isArray(msg.companions) ? msg.companions.filter((slug): slug is string => typeof slug === 'string') : [],
+        },
+      });
+      break;
+
     case 'battleship_update':
       window.dispatchEvent(new CustomEvent('aerie:battleship-update', {
         detail: { gameId: msg.gameId },
@@ -918,10 +927,15 @@ export async function loadThread(threadId: string): Promise<void> {
     // After messages load, clear stale streaming state — catches the case
     // where visibility fired before reconnect completed
     clearStaleStreamingState();
+    // Loading a thread is not reading it. The app loads their thread the moment
+    // it opens, lock screen and all, and a read mark sent from here cleared the
+    // lock screen's message card a couple of seconds after it appeared (Oct 19
+    // 2026).
+    // App.tsx marks a thread read while Messages is actually on screen, and
+    // that is the only place it happens.
     if (mergedMessages.length > 0) {
       const last = mergedMessages[mergedMessages.length - 1];
       bumpSeen(threadId, last.sequence);
-      send({ type: 'read', threadId, beforeId: last.id });
     }
   } catch (err) {
     console.error('Failed to load thread:', err);
@@ -959,12 +973,22 @@ export async function loadThreadAround(threadId: string, messageId: string, wind
 }
 
 // Loads an older page and prepends it. Returns true if more may remain.
+//
+// A failed or stalled page is NOT the end of the thread (Oct 22 2026:
+// scrolling back stopped dead at one of Birch's messages with 33,000 older ones
+// in the database). Every failure used to answer false, and the caller reads
+// false as 'nothing older', so one dropped request ended scroll-back for the
+// whole visit; and the request had no timeout, so one that never answered
+// held the loading guard forever. Now a failure answers true (try again on the
+// next scroll) and the request gives up after 20 s.
 export async function loadOlderMessages(threadId: string): Promise<boolean> {
   const current = getState().messages;
   if (current.length === 0) return false;
   const oldest = current[0];
   try {
-    const res = await apiFetch(`/api/threads/${threadId}/messages?before=${oldest.id}&limit=50`);
+    const res = await apiFetch(`/api/threads/${threadId}/messages?before=${oldest.id}&limit=50`, {
+      signal: AbortSignal.timeout(20_000),
+    });
     if (!res.ok) throw new Error('Failed to load older messages');
     const data = await res.json();
     const older: Message[] = data.messages || [];
@@ -981,7 +1005,7 @@ export async function loadOlderMessages(threadId: string): Promise<boolean> {
     return older.length >= 50;
   } catch (err) {
     console.error('Failed to load older messages:', err);
-    return false;
+    return true;
   }
 }
 

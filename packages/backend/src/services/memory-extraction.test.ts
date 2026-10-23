@@ -31,3 +31,31 @@ test('Archivist cursor target is the last message actually included', () => {
   assert.deepEqual(batch.messages.map((m) => m.sequence), [10]);
   assert.equal(batch.maxSequence, 10);
 });
+
+// Found Oct 22 2026: Discord rows from anybody but the owner are stored with
+// role 'system', and the Archivist was shown every one of them as 'System:'
+// with no name, so a guest's words reached the memory writer wearing the most
+// trusted label in its prompt. A guest now reads as who they are, marked as
+// not the owner; a real system row still reads as System.
+test('Archivist names a Discord guest instead of calling them System', () => {
+  const guest = {
+    sequence: 1,
+    role: 'system',
+    content: 'meter the exit, not the rooms',
+    created_at: '2026-10-22T00:00:00.000Z',
+    metadata: JSON.stringify({ discordUserId: '42', discordUsername: 'pat', discordDisplayName: 'Pat' }),
+  };
+  const house = {
+    sequence: 2,
+    role: 'system',
+    content: 'a bell rang',
+    created_at: '2026-10-22T00:00:00.000Z',
+    metadata: null,
+  };
+  const batch = buildConversationBatch([guest, house], 'Ivy', 'America/Chicago');
+
+  assert.ok(batch);
+  assert.match(batch.text, /Pat \(a guest, not Ivy\): meter the exit/);
+  assert.doesNotMatch(batch.text, /System: meter the exit/);
+  assert.match(batch.text, /System: a bell rang/);
+});
