@@ -108,14 +108,33 @@ export function findSpotifyServer(rows: McpServerRow[] = listMcpServers()): Spot
   );
 }
 
-/** The sign-in page of a Spotify worker. Only a Cloudflare worker is known to have one at /auth. */
+/**
+ * The sign-in page of a Spotify worker. Only a Cloudflare worker is known to
+ * have one at /auth. A locked worker (1.2.0) opens /auth only for
+ * its own key, so a key on the server's address is carried onto the page.
+ */
 export function signInPageOf(serverUrl: string): string | null {
   try {
     const url = new URL(serverUrl);
     if (url.protocol !== 'https:' || !/\.workers\.dev$/i.test(url.hostname)) return null;
-    return new URL('/auth', url).toString();
+    const page = new URL('/auth', url);
+    const key = url.searchParams.get('key');
+    if (key) page.searchParams.set('key', key);
+    return page.toString();
   } catch {
     return null;
+  }
+}
+
+/** The server's address with its key on it, so the sign-in page built from it opens. */
+export function keyedAddress(serverUrl: string, apiKey: string | null): string {
+  if (!apiKey) return serverUrl;
+  try {
+    const url = new URL(serverUrl);
+    url.searchParams.set('key', apiKey);
+    return url.toString();
+  } catch {
+    return serverUrl;
   }
 }
 
@@ -771,14 +790,15 @@ export function createSpotify(deps: SpotifyDeps = {}) {
     if (answer.error !== undefined) {
       const error = answer.error;
       const words = isRecord(error) && typeof error.message === 'string' ? error.message : JSON.stringify(error);
-      throw problemOf(words, server.url);
+      throw problemOf(words, keyedAddress(server.url, server.apiKey));
     }
     const result = isRecord(answer.result) ? answer.result : {};
     const value = toolValueOf(result);
     if (result.isError === true) {
-      throw problemOf(typeof value === 'string' ? value : JSON.stringify(value), server.url);
+      throw problemOf(typeof value === 'string' ? value : JSON.stringify(value), keyedAddress(server.url, server.apiKey));
     }
-    return { value, serverUrl: server.url };
+    // Only ever used to build the sign-in page, which needs the key on a locked worker.
+    return { value, serverUrl: keyedAddress(server.url, server.apiKey) };
   }
 
   /** One press: the tool asked once, its answer logged, and only a plain yes or a SpotifyError back. */
@@ -1006,7 +1026,7 @@ export function createSpotify(deps: SpotifyDeps = {}) {
       if (connectView) return connectView;
       const server = whereIsServer();
       if (server instanceof SpotifyError) throw server;
-      const page = signInPageOf(server.url);
+      const page = signInPageOf(keyedAddress(server.url, server.apiKey));
       if (!page) throw new SpotifyError('spotify', "The house's Spotify server has no sign-in page it can read the app's id from.");
       let location: string | null = null;
       try {

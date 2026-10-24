@@ -11,6 +11,7 @@ interface StickerRow {
   aliases: string;
   sort_order: number;
   created_at: string;
+  description?: string | null;
 }
 
 interface PackRow {
@@ -40,7 +41,15 @@ function rowToSticker(row: StickerRow): Sticker {
     sort_order: row.sort_order,
     url: `/stickers/${row.pack_id}/${row.filename}`,
     created_at: row.created_at,
+    description: row.description ?? null,
   };
+}
+
+/** A description as the house keeps it: one tidy line, or null for none. */
+export function stickerDescriptionOf(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const text = raw.replace(/\s+/g, ' ').trim();
+  return text ? text.slice(0, 200) : null;
 }
 
 // Pack operations
@@ -160,18 +169,21 @@ export function updateSticker(id: string, updates: {
   aliases?: string[];
   sortOrder?: number;
   filename?: string;
+  /** What it looks like; '' or null takes it away, undefined leaves it. */
+  description?: string | null;
 }): boolean {
   const sticker = getSticker(id);
   if (!sticker) return false;
 
   const stmt = getDb().prepare(`
-    UPDATE stickers SET name = ?, aliases = ?, sort_order = ?, filename = ? WHERE id = ?
+    UPDATE stickers SET name = ?, aliases = ?, sort_order = ?, filename = ?, description = ? WHERE id = ?
   `);
   const result = stmt.run(
     updates.name ?? sticker.name,
     JSON.stringify(updates.aliases ?? sticker.aliases),
     updates.sortOrder ?? sticker.sort_order,
     updates.filename ?? sticker.filename,
+    updates.description === undefined ? (sticker.description ?? null) : stickerDescriptionOf(updates.description),
     id,
   );
   return result.changes > 0;

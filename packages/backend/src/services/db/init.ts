@@ -411,6 +411,13 @@ export function initDb(dbPath: string): Database.Database {
     )
   `);
 
+  // A sticker's description says what it looks like, so a companion handed a
+  // shortcode knows what it is sending without opening the picture.
+  const stickerColumns = new Set(
+    (db.prepare('PRAGMA table_info(stickers)').all() as Array<{ name: string }>).map((column) => column.name),
+  );
+  if (!stickerColumns.has('description')) db.exec('ALTER TABLE stickers ADD COLUMN description TEXT');
+
   // Custom emoji system (separate from stickers)
   db.exec(`
     CREATE TABLE IF NOT EXISTS emoji_packs (

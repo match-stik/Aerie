@@ -12,6 +12,7 @@
 // fetches leave by now.
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
+import { Agent, fetch as undiciFetch } from 'undici';
 
 export type LookupFn = (hostname: string) => Promise<Array<{ address: string; family: number }>>;
 
@@ -59,20 +60,57 @@ function isPublicIPv4(ip: string): boolean {
   return true;
 }
 
-/** True only for an address on the open internet. Anything unreadable is not public. */
+/**
+ * An IPv6 address as its eight 16-bit groups, or null. A dotted IPv4 tail
+ * (::ffff:127.0.0.1) is folded into the last two groups, so every spelling of
+ * the same address comes out the same.
+ */
+function ipv6Groups(ip: string): number[] | null {
+  let text = ip.toLowerCase();
+  const zone = text.indexOf('%');
+  if (zone >= 0) text = text.slice(0, zone);
+  const dotted = text.match(/^(.*:)(\d+\.\d+\.\d+\.\d+)$/);
+  if (dotted) {
+    const v4 = ipv4Parts(dotted[2]);
+    if (!v4) return null;
+    text = `${dotted[1]}${((v4[0] << 8) | v4[1]).toString(16)}:${((v4[2] << 8) | v4[3]).toString(16)}`;
+  }
+  const halves = text.split('::');
+  if (halves.length > 2) return null;
+  const read = (part: string) => (part ? part.split(':').map((g) => (/^[0-9a-f]{1,4}$/.test(g) ? parseInt(g, 16) : NaN)) : []);
+  const head = read(halves[0]);
+  const tail = halves.length === 2 ? read(halves[1]) : [];
+  if ([...head, ...tail].some((g) => Number.isNaN(g))) return null;
+  if (halves.length === 1) return head.length === 8 ? head : null;
+  const missing = 8 - head.length - tail.length;
+  if (missing < 1) return null;
+  return [...head, ...new Array(missing).fill(0), ...tail];
+}
+
+/**
+ * True only for an address on the open internet. Anything unreadable is not
+ * public. An IPv4 address carried inside an IPv6 one is judged as the IPv4
+ * address, however it is spelled: Node's URL parser writes [::ffff:127.0.0.1]
+ * as ::ffff:7f00:1, which a dotted-only check let through.
+ */
 export function isPublicAddress(ip: string): boolean {
   const kind = isIP(ip);
   if (kind === 4) return isPublicIPv4(ip);
   if (kind !== 6) return false;
-  const lower = ip.toLowerCase();
-  // An IPv4 address dressed as IPv6 is judged as the IPv4 address it carries.
-  const mapped = lower.match(/^(?:::ffff:|64:ff9b::)(\d+\.\d+\.\d+\.\d+)$/);
-  if (mapped) return isPublicIPv4(mapped[1]);
-  if (lower === '::' || lower === '::1') return false;
-  const first = parseInt(lower.split(':')[0] || '0', 16);
-  if ((first & 0xfe00) === 0xfc00) return false; // unique local fc00::/7
-  if ((first & 0xffc0) === 0xfe80) return false; // link-local fe80::/10
-  if ((first & 0xff00) === 0xff00) return false; // multicast
+  const g = ipv6Groups(ip);
+  if (!g) return false;
+  const v4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+  const zeros = (n: number) => g.slice(0, n).every((x) => x === 0);
+  if (zeros(8)) return false; // ::
+  if (zeros(7) && g[7] === 1) return false; // ::1
+  if (zeros(5) && g[5] === 0xffff) return isPublicIPv4(v4(g[6], g[7])); // ::ffff:a.b.c.d, mapped
+  if (zeros(6)) return isPublicIPv4(v4(g[6], g[7])); // ::a.b.c.d, the old compatible form
+  if (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0)) return isPublicIPv4(v4(g[6], g[7])); // NAT64
+  if (g[0] === 0x2002) return isPublicIPv4(v4(g[1], g[2])); // 6to4 carries one too
+  if ((g[0] & 0xfe00) === 0xfc00) return false; // unique local fc00::/7
+  if ((g[0] & 0xffc0) === 0xfe80) return false; // link-local fe80::/10
+  if ((g[0] & 0xffc0) === 0xfec0) return false; // old site-local fec0::/10
+  if ((g[0] & 0xff00) === 0xff00) return false; // multicast
   return true;
 }
 
@@ -95,6 +133,49 @@ export async function isPublicUrl(url: string, lookup: LookupFn = defaultLookup)
   } catch {
     return false;
   }
+}
+
+type LookupCallback = (
+  error: NodeJS.ErrnoException | null,
+  address: string | Array<{ address: string; family: number }>,
+  family?: number,
+) => void;
+
+/**
+ * The DNS lookup a socket uses at the moment it connects, answering only
+ * public addresses. Checking a name and then letting fetch look it up again
+ * left a gap a short-lived DNS answer could slip through, public for the check
+ * and loopback for the connect. With this
+ * the address the socket dials is the address that was checked.
+ */
+export function publicOnlyLookup(lookup: LookupFn) {
+  return (hostname: string, options: { all?: boolean } | number | undefined, callback: LookupCallback): void => {
+    lookup(hostname).then(
+      (addresses) => {
+        if (!addresses.length || !addresses.every((entry) => isPublicAddress(entry.address))) {
+          callback(Object.assign(new Error(`refused ${hostname}: not a public address`), { code: 'EREFUSED' }), '');
+          return;
+        }
+        if (typeof options === 'object' && options?.all) callback(null, addresses);
+        else callback(null, addresses[0].address, addresses[0].family);
+      },
+      (error: NodeJS.ErrnoException) => callback(error, ''),
+    );
+  };
+}
+
+const pinnedAgents = new WeakMap<LookupFn, Agent>();
+
+/** fetch with every connection's address checked by publicOnlyLookup. */
+function pinnedFetch(lookup: LookupFn): typeof fetch {
+  let agent = pinnedAgents.get(lookup);
+  if (!agent) {
+    agent = new Agent({ connect: { lookup: publicOnlyLookup(lookup) } });
+    pinnedAgents.set(lookup, agent);
+  }
+  const dispatcher = agent;
+  return ((input: string, init?: RequestInit) =>
+    undiciFetch(input, { ...(init ?? {}), dispatcher } as Parameters<typeof undiciFetch>[1])) as unknown as typeof fetch;
 }
 
 async function readCapped(response: Response, maxBytes: number): Promise<Buffer | null> {
@@ -126,7 +207,7 @@ export async function fetchPublic(url: string, options: PublicFetchOptions = {})
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
   const lookup = options.lookup ?? defaultLookup;
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = options.fetchImpl ?? pinnedFetch(lookup);
   const signal = AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
   let current = url;

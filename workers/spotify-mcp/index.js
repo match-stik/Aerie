@@ -378,7 +378,7 @@ async function handleMCP(request, env) {
   // initialized notification came back as an error object with no id.
   if (body.id === void 0 || body.id === null) return null;
   if (body.method === "initialize") {
-    return { jsonrpc: "2.0", id: body.id, result: { protocolVersion: "2025-03-26", capabilities: { tools: {} }, serverInfo: { name: "spotify-mcp", version: "1.1.1" } } };
+    return { jsonrpc: "2.0", id: body.id, result: { protocolVersion: "2025-03-26", capabilities: { tools: {} }, serverInfo: { name: "spotify-mcp", version: "1.2.0" } } };
   }
   if (body.method === "tools/list") {
     return { jsonrpc: "2.0", id: body.id, result: { tools: TOOLS } };
@@ -394,18 +394,54 @@ async function handleMCP(request, env) {
   return { jsonrpc: "2.0", id: body.id, error: { code: -32601, message: "Method not found" } };
 }
 __name(handleMCP, "handleMCP");
+// The lock (1.2.0). With no
+// MCP_SECRET set the worker answers anyone who has its address, the way it
+// always has. With MCP_SECRET set, /mcp needs it as an Authorization: Bearer
+// header or ?key= on the address, and so does /auth, because whoever opens
+// /auth can sign their own Spotify in over the owner's. /auth also leaves a
+// one-time state in KV for ten minutes, and /callback refuses any sign-in that
+// does not hand that state back, so a link nobody started here goes nowhere.
+function sameKey(given, expected) {
+  if (typeof given !== "string" || !given) return false;
+  const a = new TextEncoder().encode(given);
+  const b = new TextEncoder().encode(expected);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+__name(sameKey, "sameKey");
+function isUnlocked(request, url, env) {
+  const secret = env.MCP_SECRET;
+  if (!secret) return true;
+  if (request.method === "OPTIONS") return true;
+  const bearer = (request.headers.get("Authorization") || "").match(/^Bearer\s+(.+)$/i);
+  return sameKey(bearer ? bearer[1].trim() : "", secret) || sameKey(url.searchParams.get("key"), secret);
+}
+__name(isUnlocked, "isUnlocked");
+var STATE_SECONDS = 600;
 var index_default = {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if ((url.pathname === "/mcp" || url.pathname === "/auth") && !isUnlocked(request, url, env)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
     if (url.pathname === "/auth") {
+      const state = crypto.randomUUID();
+      await env.SPOTIFY_KV.put(`auth_state:${state}`, "1", { expirationTtl: STATE_SECONDS });
       const authUrl = new URL("https://accounts.spotify.com/authorize");
       authUrl.searchParams.set("client_id", env.SPOTIFY_CLIENT_ID);
       authUrl.searchParams.set("response_type", "code");
       authUrl.searchParams.set("redirect_uri", env.SPOTIFY_REDIRECT_URI);
       authUrl.searchParams.set("scope", SCOPES);
+      authUrl.searchParams.set("state", state);
       return Response.redirect(authUrl.toString(), 302);
     }
     if (url.pathname === "/callback") {
+      const state = url.searchParams.get("state") || "";
+      const known = state ? await env.SPOTIFY_KV.get(`auth_state:${state}`) : null;
+      if (!known) return new Response("This sign-in did not start here, or it took longer than ten minutes. Open the sign-in link again.", { status: 400 });
+      await env.SPOTIFY_KV.delete(`auth_state:${state}`);
       const code = url.searchParams.get("code");
       if (!code) return new Response("No code provided", { status: 400 });
       const response = await fetch("https://accounts.spotify.com/api/token", {

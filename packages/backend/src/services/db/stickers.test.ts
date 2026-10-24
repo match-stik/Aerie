@@ -94,3 +94,14 @@ test('a rename that collides leaves the old filename untouched too', () => {
   assert.equal(after?.name, 'kittenonsie');
   assert.equal(after?.filename, 'kittenonsie.webp', 'a refused update must not half-apply the new file either');
 });
+
+test('a sticker keeps a description of what it looks like, and a rename keeps it', () => {
+  const [only] = packWith(['hearteyes']);
+  assert.equal(getSticker(only.id)?.description ?? null, null, 'none until somebody writes one');
+  assert.equal(updateSticker(only.id, { description: '  hands clasped under his chin,   heart eyes ' }), true);
+  assert.equal(getSticker(only.id)?.description, 'hands clasped under his chin, heart eyes', 'kept tidy, on one line');
+  assert.equal(updateSticker(only.id, { name: 'heart_eyes' }), true);
+  assert.equal(getSticker(only.id)?.description, 'hands clasped under his chin, heart eyes');
+  assert.equal(updateSticker(only.id, { description: '' }), true);
+  assert.equal(getSticker(only.id)?.description ?? null, null, 'an empty description takes it away');
+});

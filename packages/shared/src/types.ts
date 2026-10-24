@@ -282,6 +282,9 @@ export interface Sticker {
   sort_order: number;
   url: string;
   created_at: string;
+  /** What the sticker looks like, in a few words, so a companion can pick one
+   *  without seeing it. Null until somebody writes one. */
+  description?: string | null;
 }
 
 export interface EmojiPack {

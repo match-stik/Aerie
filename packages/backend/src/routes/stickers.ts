@@ -259,7 +259,10 @@ function handleStickerUpdate(req: any, res: any) {
     : undefined;
 
   try {
-    updateSticker(id, { name: cleanName, aliases, filename: newFilename });
+    // description: what the sticker looks like, for the companions' shelf;
+    // left alone when the field is absent, '' clears it.
+    const description = typeof req.body?.description === 'string' ? req.body.description : undefined;
+    updateSticker(id, { name: cleanName, aliases, filename: newFilename, description });
   } catch (err) {
     // A pack cannot hold two stickers of the same name, and renaming onto one
     // that already exists is the COMMON case here — this screen's whole job is

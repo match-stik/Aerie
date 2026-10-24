@@ -1,7 +1,9 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { fetchPublic, isPublicAddress, isPublicUrl, type LookupFn } from './public-fetch.js';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { fetchPublic, isPublicAddress, isPublicUrl, publicOnlyLookup, type LookupFn } from './public-fetch.js';
 import { urlToImageBlock } from './visual-blocks.js';
 
 const resolvesTo = (address: string): LookupFn => async () => [{ address, family: address.includes(':') ? 6 : 4 }];
@@ -86,5 +88,48 @@ test('the image fetcher refuses a picture served on loopback', async () => {
     assert.equal(await urlToImageBlock(`http://127.0.0.1:${port}/pic.png`), null);
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('an IPv4 address inside an IPv6 one is judged as the IPv4 address, however it is spelled', async () => {
+  // ::ffff:7f00:1 is how Node's URL parser writes [::ffff:127.0.0.1].
+  for (const ip of ['::ffff:7f00:1', '::ffff:0a00:0001', '::FFFF:127.0.0.1', '0:0:0:0:0:ffff:7f00:1', '::7f00:1', '64:ff9b::7f00:1', '64:ff9b::a9fe:a9fe', '2002:7f00:1::', 'fec0::1', '::', '0:0:0:0:0:0:0:1']) {
+    assert.equal(isPublicAddress(ip), false, ip);
+  }
+  for (const ip of ['::ffff:808:808', '::ffff:8.8.8.8', '64:ff9b::808:808', '2002:808:808::1']) {
+    assert.equal(isPublicAddress(ip), true, ip);
+  }
+  assert.equal(new URL('http://[::ffff:127.0.0.1]/').hostname, '[::ffff:7f00:1]', 'the spelling Node really hands over');
+  assert.equal(await isPublicUrl('http://[::ffff:127.0.0.1]:3013/api/internal/journal', resolvesTo('8.8.8.8')), false);
+});
+
+test('the lookup a socket connects with refuses a name that now points inside', async () => {
+  const lookup = publicOnlyLookup(resolvesTo('127.0.0.1'));
+  const error = await new Promise<NodeJS.ErrnoException | null>((done) => lookup('rebind.example', { all: true }, (err) => done(err)));
+  assert.equal(error?.code, 'EREFUSED');
+  const ok = await new Promise<unknown>((done) => publicOnlyLookup(resolvesTo('8.8.8.8'))('x.example', { all: true }, (_err, address) => done(address)));
+  assert.deepEqual(ok, [{ address: '8.8.8.8', family: 4 }]);
+});
+
+test('a name that answers public for the check and loopback for the connect is never fetched', async () => {
+  let hits = 0;
+  const server = createServer((_req, res) => {
+    hits++;
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    res.end('inside');
+  });
+  await new Promise<void>((ready) => server.listen(0, '127.0.0.1', ready));
+  const { port } = server.address() as AddressInfo;
+  try {
+    // The rebinding trick: the first answer passes the check, every later one is this box.
+    let asked = 0;
+    const flip: LookupFn = async () => [{ address: asked++ === 0 ? '93.184.215.14' : '127.0.0.1', family: 4 }];
+    const result = await fetchPublic(`http://rebind.example:${port}/picture.png`, { lookup: flip, timeoutMs: 5000 });
+    assert.equal(result, null);
+    assert.equal(hits, 0, 'the loopback server was never reached');
+    assert.ok(asked >= 2, 'the connection looked the name up again and was refused');
+
+  } finally {
+    server.close();
   }
 });

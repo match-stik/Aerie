@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import * as cron from 'node-cron';
 import { parseBellOwners, sameBellBlock, ringBellInTurn, MAX_BELL_RECALLS } from './bell-owners.js';
-import { bellStatus, statusWordKey, statusWordOf } from './bell-status.js';
+import { bellStatus, statusHoldKey, statusHoldOf, statusWordKey, statusWordOf } from './bell-status.js';
 import { laneSwitchBefore, laneSwitchAfter, BELLS_SPLIT_LANES_KEY, LANES_BY_BELL_KEY } from './bell-lanes.js';
 import { ensureCompanionLanes } from './heartbeat/lane-keeper.js';
 import { isHeartbeatLaneWarm } from './heartbeat/supervisor.js';
@@ -1281,6 +1281,20 @@ export class Orchestrator {
     if (kept) setConfig(statusWordKey(wakeType), kept);
     else deleteConfig(statusWordKey(wakeType));
     olog(`${wakeType}: status word ${kept ? `'${kept}'` : 'cleared'}`);
+    return true;
+  }
+
+  /**
+   * How long a bell's word stays up after its turn ends, in minutes
+   * (services/bell-status.ts). 0 or null takes the hold away; false for a
+   * bell the house does not have.
+   */
+  setTaskStatusHold(wakeType: string, minutes: number | null): boolean {
+    if (!this.tasks.has(wakeType)) return false;
+    const kept = statusHoldOf(minutes);
+    if (kept) setConfig(statusHoldKey(wakeType), String(kept));
+    else deleteConfig(statusHoldKey(wakeType));
+    olog(`${wakeType}: status word hold ${kept ? `${kept} min` : 'cleared'}`);
     return true;
   }
 

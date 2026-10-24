@@ -25,6 +25,35 @@ which one is running; this worker has no BUILD marker).
 4. In Aerie, add the worker's `/mcp` address under Integrations > MCP. Any name
    with "spotify" in it (or in the address) is how the Spotify app finds it.
 
+## Locking it
+
+Out of the box the worker answers anyone who has its address: they could
+play, read your listening history and edit your playlists, and anyone who
+opened `/auth` could sign their own Spotify in over yours. Set one more
+secret, `MCP_SECRET`, to any long random string, and from then on:
+
+- `/mcp` answers 401 unless a call carries the key, as an
+  `Authorization: Bearer <key>` header or as `?key=<key>` on the address.
+- `/auth` needs the key too (`/auth?key=<key>`), and it leaves a one-time
+  state that Spotify hands back to `/callback`. A sign-in that did not start
+  at your own `/auth`, or took longer than ten minutes, is refused.
+
+Then give the key to everything that calls the worker:
+
+- In Aerie, put it in the Spotify server's API key field under
+  Integrations > MCP. The house sends it with every call and carries it onto
+  the sign-in link the Spotify app shows you.
+- A Claude Code lane's `.mcp.json`: add
+  `"headers": {"Authorization": "Bearer <key>"}` to the Spotify entry.
+- Codex (`~/.codex/config.toml`): add
+  `http_headers = { "Authorization" = "Bearer <key>" }` under the Spotify
+  server.
+- A claude.ai connector, or any app that only takes an address: use the
+  address with `?key=<key>` on the end.
+
+With `MCP_SECRET` unset nothing changes, so you can deploy first and lock
+when every caller has the key.
+
 To let the Android app wake Spotify on the phone when it is closed, add your
 app to the same Spotify app's settings as an Android package: its package name
 (the `applicationId` in `packages/phone/android/app/build.gradle`) and the SHA1
@@ -59,11 +88,15 @@ What changed from the base code:
   in again is open `/auth`, say yes, close the page; the
   `SPOTIFY_REFRESH_TOKEN` secret is only the fallback.
 
+- v1.2.0: the lock (see Locking it): `MCP_SECRET` gates `/mcp` and `/auth`,
+  and `/auth` leaves a one-time state in KV that `/callback` checks.
+
 `test.mjs` runs every new tool against a pretend Spotify.
 
 Bindings: KV `SPOTIFY_KV`; secrets `SPOTIFY_CLIENT_ID`,
-`SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REDIRECT_URI`, `SPOTIFY_REFRESH_TOKEN`.
-When the sign-in lapses, open `/auth` on the worker, say yes, and put the
+`SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REDIRECT_URI`, `SPOTIFY_REFRESH_TOKEN`, and
+`MCP_SECRET` once it is locked. When the sign-in lapses, open `/auth` on the
+worker (with `?key=` once it is locked), say yes, and put the
 token it shows into the worker's `SPOTIFY_REFRESH_TOKEN` on Cloudflare.
 
 Deploying: read the live code and settings first and keep a copy, upload

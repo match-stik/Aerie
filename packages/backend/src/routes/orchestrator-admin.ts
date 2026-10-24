@@ -125,7 +125,7 @@ router.patch('/orchestrator/tasks/:wakeType', async (req, res) => {
     }
 
     const { wakeType } = req.params;
-    const { enabled, cronExpr, companion, label, statusWord } = req.body;
+    const { enabled, cronExpr, companion, label, statusWord, statusHoldMinutes } = req.body;
 
     // null (or '') hands the bell back to the house — shared, thread default
     // decides. A slug hands it to one companion, who then rings in their own lane.
@@ -177,6 +177,19 @@ router.patch('/orchestrator/tasks/:wakeType', async (req, res) => {
         return;
       }
       if (!orchestrator.setTaskStatusWord(wakeType, statusWord)) {
+        res.status(404).json({ error: 'Unknown task' });
+        return;
+      }
+    }
+
+    // How long that word stays up after the bell's turn ends, in minutes.
+    // null or 0 takes the hold away.
+    if (statusHoldMinutes !== undefined) {
+      if (statusHoldMinutes !== null && (typeof statusHoldMinutes !== 'number' || !Number.isFinite(statusHoldMinutes) || statusHoldMinutes < 0)) {
+        res.status(400).json({ error: 'statusHoldMinutes must be a number of minutes, 0 or more, or null' });
+        return;
+      }
+      if (!orchestrator.setTaskStatusHold(wakeType, statusHoldMinutes)) {
         res.status(404).json({ error: 'Unknown task' });
         return;
       }

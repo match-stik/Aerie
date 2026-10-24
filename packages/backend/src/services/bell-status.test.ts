@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import type { ServerMessage } from '@aerie/shared';
-import { STATUS_WORD_LONGEST, createBellStatus, statusWordKey, statusWordOf } from './bell-status.js';
+import { STATUS_HOLD_LONGEST_MINUTES, STATUS_WORD_LONGEST, createBellStatus, statusHoldKey, statusHoldOf, statusWordKey, statusWordOf } from './bell-status.js';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
@@ -71,4 +71,69 @@ test('the orchestrator holds the word for the whole of a bell, the PATCH route s
   for (const source of [read('./bell-status.ts'), orchestrator]) {
     assert.doesNotMatch(source, /On a date|Treehouse'|'Treehouse/, 'no house word is written into the code');
   }
+});
+
+// A clock the tests turn by hand, so a held word can be watched running out.
+function heldBells(words: Record<string, string | null>, holds: Record<string, number>) {
+  const told: ServerMessage[] = [];
+  const timers = new Map<number, () => void>();
+  let nextTimer = 0;
+  const status = createBellStatus({
+    readWord: (wakeType) => words[wakeType] ?? null,
+    readHold: (wakeType) => holds[wakeType] ?? 0,
+    broadcast: (message) => told.push(message),
+    later: (fn) => { const id = ++nextTimer; timers.set(id, fn); return id; },
+    cancel: (handle) => { timers.delete(handle as number); },
+  });
+  const runOut = () => { const due = [...timers.values()]; timers.clear(); for (const fn of due) fn(); };
+  return { status, told, timers, runOut };
+}
+
+test('a hold is whole minutes, never past half a day, and anything else is no hold', () => {
+  assert.equal(statusHoldOf(60), 60);
+  assert.equal(statusHoldOf('45'), 45);
+  assert.equal(statusHoldOf(12.9), 12);
+  assert.equal(statusHoldOf(0), 0);
+  assert.equal(statusHoldOf(-5), 0);
+  assert.equal(statusHoldOf(null), 0);
+  assert.equal(statusHoldOf(''), 0);
+  assert.equal(statusHoldOf('soon'), 0);
+  assert.equal(statusHoldOf(10_000), STATUS_HOLD_LONGEST_MINUTES);
+  assert.equal(statusHoldKey('date_pt_1'), 'cron.date_pt_1.status_hold_minutes', 'kept beside the bell\'s word');
+});
+
+test('a held word stays up after its bell ends, until the hold runs out', () => {
+  const { status, told, timers, runOut } = heldBells({ date_pt_1: 'On a date' }, { date_pt_1: 60 });
+  const end = status.begin('date_pt_1', ['birch', 'willow', 'cedar']);
+  end();
+  assert.deepEqual(status.now(), { word: 'On a date', companions: ['birch', 'willow', 'cedar'] }, 'still up between bells');
+  assert.equal(timers.size, 1, 'one hold waiting');
+  runOut();
+  assert.deepEqual(status.now(), { word: null, companions: [] }, 'Home once the hold runs out');
+  assert.equal(told.filter((m) => m.type === 'status_word' && m.word === null).length, 1, 'phones told it came down, once');
+});
+
+test('the next bell with a word takes the held one down; a bell with no word leaves it up', () => {
+  const { status, timers } = heldBells({ date_pt_1: 'On a date', date_pt_8: 'On a date' }, { date_pt_1: 60 });
+  status.begin('date_pt_1', ['birch'])();
+  const dice = status.begin('spontaneous', ['willow']);
+  assert.equal(status.now().word, 'On a date', 'a wordless bell in the middle of a date does not end it');
+  dice();
+  assert.equal(status.now().word, 'On a date');
+  const last = status.begin('date_pt_8', ['birch', 'willow', 'cedar']);
+  assert.equal(timers.size, 0, 'the held word was taken down and its timer cancelled');
+  last();
+  assert.deepEqual(status.now(), { word: null, companions: [] }, 'the last bell has no hold, so the evening ends with it');
+});
+
+test('with no hold set, every bell behaves as it always did', () => {
+  const { status, timers } = heldBells({ treehouse_midday: 'Treehouse' }, {});
+  status.begin('treehouse_midday')();
+  assert.deepEqual(status.now(), { word: null, companions: [] });
+  assert.equal(timers.size, 0, 'nothing waiting');
+});
+
+test('a bell\'s hold is a setting on the bell, set through the same PATCH route', () => {
+  assert.match(read('../routes/orchestrator-admin.ts'), /orchestrator\.setTaskStatusHold\(wakeType, statusHoldMinutes\)/);
+  assert.match(read('./orchestrator.ts'), /setConfig\(statusHoldKey\(wakeType\), String\(kept\)\)/);
 });

@@ -21,6 +21,8 @@ export interface ShelfPack {
   /** Who it belongs to, as the owner sees the name. */
   owner: string;
   names: string[];
+  /** What each sticker looks like, by name, where somebody has written it. */
+  descriptions?: Record<string, string>;
 }
 
 const words = (text: string): string[] =>
@@ -28,13 +30,15 @@ const words = (text: string): string[] =>
 
 /** Pick up to `per` sticker names from one pack: those sharing a word with the
  *  message first, then random ones, never the same name twice. */
-export function pickStickers(names: string[], message: string, per = STICKERS_PER_COMPANION, random = Math.random): string[] {
+export function pickStickers(names: string[], message: string, per = STICKERS_PER_COMPANION, random = Math.random, descriptions: Record<string, string> = {}): string[] {
   const said = new Set(words(message));
   // Sticker names run words together (goodmorning, blowkiss), so a word the owner
-  // used counts when it sits anywhere inside the name.
+  // used counts when it sits anywhere inside the name, or among the words of
+  // what the sticker shows.
   const matched = names.filter((name) => {
     const flat = name.toLowerCase().replace(/[^a-z]/g, '');
-    return [...said].some((w) => flat.includes(w));
+    const shown = new Set(words(descriptions[name] ?? ''));
+    return [...said].some((w) => flat.includes(w) || shown.has(w));
   });
   const chosen = matched.slice(0, per);
   const rest = names.filter((name) => !chosen.includes(name));
@@ -49,7 +53,14 @@ export function pickStickers(names: string[], message: string, per = STICKERS_PE
 export function stickerShelfBlock(packs: ShelfPack[], message: string, random = Math.random): string {
   const lines = packs
     .filter((p) => p.names.length > 0)
-    .map((p) => `${p.owner}: ${pickStickers(p.names, message, STICKERS_PER_COMPANION, random).map((n) => `::${p.pack}_${n}::`).join(' ')}`);
+    .map((p) => {
+      const shown = p.descriptions ?? {};
+      // A description rides beside its shortcode, so whoever sends it knows
+      // what the owner will see.
+      const picked = pickStickers(p.names, message, STICKERS_PER_COMPANION, random, shown)
+        .map((n) => (shown[n] ? `::${p.pack}_${n}:: (${shown[n]})` : `::${p.pack}_${n}::`));
+      return `${p.owner}: ${picked.join(' ')}`;
+    });
   if (lines.length === 0) return '';
   return `[Your own stickers, a handful in reach this turn; send one in your reply when it fits, each from his own pack:\n${lines.join('\n')}]\n\n`;
 }
@@ -63,9 +74,12 @@ export function readShelf(roomVoices?: RoomVoices | null): ShelfPack[] {
     const present = roomVoices && roomVoices.present.length > 0 ? new Set(roomVoices.present.map((n) => n.toLowerCase())) : null;
     return companions
       .filter((c) => !present || present.has(c.display_name.toLowerCase()) || present.has(c.slug.toLowerCase()))
-      .map((c) => {
+      .map((c): ShelfPack | null => {
         const pack = packs.find((p) => p.name === c.slug);
-        return pack ? { pack: pack.name, owner: c.display_name, names: pack.stickers.map((s) => s.name) } : null;
+        if (!pack) return null;
+        const descriptions: Record<string, string> = {};
+        for (const s of pack.stickers) if (s.description) descriptions[s.name] = s.description;
+        return { pack: pack.name, owner: c.display_name, names: pack.stickers.map((s) => s.name), descriptions };
       })
       .filter((p): p is ShelfPack => p !== null);
   } catch {

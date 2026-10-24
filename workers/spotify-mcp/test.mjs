@@ -23,9 +23,9 @@ const results = [];
 async function check(name, fn) { try { await fn(); results.push(`ok   ${name}`); } catch (e) { results.push(`FAIL ${name}: ${e.message}`); } }
 const SONG = 'spotify:track:5gmf93vJq4IFwRP5GnA6oW', SONG2 = 'spotify:track:7voqYiZoYUyEJnZWWa7d6d';
 
-await check('version 1.1.0, recommendations gone, fourteen new tools listed', async () => {
+await check('version 1.2.0, recommendations gone, fourteen new tools listed', async () => {
   const init = await rpc('initialize', {});
-  assert.equal(init.result.serverInfo.version, '1.1.1');
+  assert.equal(init.result.serverInfo.version, '1.2.0');
   const names = (await rpc('tools/list', {})).result.tools.map((t) => t.name);
   assert.ok(!names.includes('spotify_get_recommendations'));
   for (const n of ['spotify_reorder_tracks', 'spotify_playlist_cover', 'spotify_player_state', 'spotify_devices', 'spotify_transfer', 'spotify_shuffle', 'spotify_repeat', 'spotify_volume', 'spotify_seek', 'spotify_saved_tracks', 'spotify_save', 'spotify_unsave', 'spotify_is_saved']) assert.ok(names.includes(n), n);
@@ -118,7 +118,12 @@ await check('a sign-in through /auth is kept in KV and used from then on, and th
   let deleted = [];
   const env2 = { ...env, SPOTIFY_CLIENT_ID: 'c', SPOTIFY_CLIENT_SECRET: 's', SPOTIFY_REDIRECT_URI: 'https://w.example/callback', SPOTIFY_REFRESH_TOKEN: 'old-secret', SPOTIFY_KV: { ...env.SPOTIFY_KV, async delete(k) { deleted.push(k); kv.delete(k); } } };
   scenario = (p) => p.includes('accounts.spotify.com') ? json({ refresh_token: 'fresh', access_token: 'a2', expires_in: 3600 }) : ok();
-  const page = await worker.fetch(new Request('https://w.example/callback?code=abc'), env2);
+  // A sign-in has to start at /auth (1.2.0): the state it leaves is what /callback checks.
+  const started = await worker.fetch(new Request('https://w.example/auth'), env2);
+  const state = new URL(started.headers.get('location')).searchParams.get('state');
+  assert.ok(state, '/auth hands Spotify a state');
+  assert.equal((await worker.fetch(new Request('https://w.example/callback?code=abc'), env2)).status, 400, 'a sign-in with no state is refused');
+  const page = await worker.fetch(new Request(`https://w.example/callback?code=abc&state=${state}`), env2);
   assert.equal(page.status, 200);
   assert.ok(!(await page.text()).includes('fresh'), 'the token is not shown on the page');
   assert.equal(kv.get('refresh_token'), 'fresh');

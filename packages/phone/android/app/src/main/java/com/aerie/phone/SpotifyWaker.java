@@ -204,13 +204,19 @@ final class SpotifyWaker {
         });
     }
 
-    /** A media PLAY key down and up, sent to Spotify only. */
+    /**
+     * A media PLAY key down and up, sent to Spotify only. Android skips a
+     * package that is in the stopped state (fresh install, or Force stop in
+     * Settings) for every broadcast unless the sender asks otherwise, so a
+     * force-stopped Spotify would never hear the key; the flag asks.
+     */
     private boolean mediaKey(JSArray steps, long started) {
         try {
             long now = SystemClock.uptimeMillis();
             for (int action : new int[] { KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP }) {
                 Intent key = new Intent(Intent.ACTION_MEDIA_BUTTON);
                 key.setPackage(SPOTIFY);
+                key.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
                 key.putExtra(Intent.EXTRA_KEY_EVENT, new KeyEvent(now, now, action, KeyEvent.KEYCODE_MEDIA_PLAY, 0));
                 app.sendBroadcast(key);
             }

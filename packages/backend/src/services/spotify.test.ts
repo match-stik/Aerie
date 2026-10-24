@@ -9,12 +9,14 @@ import { join } from 'node:path';
 import {
   createSpotify,
   findSpotifyServer,
+  keyedAddress,
   NO_DEVICE_LINE,
   readPauseRequest,
   readPlayRequest,
   readSearchQuery,
   readSkipRequest,
   rpcAnswerOf,
+  signInPageOf,
   SpotifyError,
   UNSURE_LINE,
   type Fetcher,
@@ -494,4 +496,29 @@ test('a search needs words, and not too many, and nothing else reaches their ser
   const net = fakeNet({ spotify_search: () => json(toolAnswer([])) });
   await refusedAs(createSpotify({ fetch: net.fetcher, server, coverFile: null }).search('   '), 'spotify', 'Search needs something to look for.', 'the reader checks the words itself');
   assert.deepEqual(net.calls, [], 'and their server was never asked');
+});
+
+test('a locked worker\'s sign-in page carries the house\'s key, and an unlocked one is left alone', () => {
+  const worker = 'https://spotify.example.workers.dev/mcp';
+  assert.equal(signInPageOf(worker), 'https://spotify.example.workers.dev/auth');
+  assert.equal(keyedAddress(worker, null), worker);
+  const keyed = keyedAddress(worker, 'k3y/with+odd=chars');
+  const page = new URL(signInPageOf(keyed)!);
+  assert.equal(page.pathname, '/auth');
+  assert.equal(page.searchParams.get('key'), 'k3y/with+odd=chars');
+  assert.equal(signInPageOf(keyedAddress('https://example.com/mcp', 'k')), null, 'only a Cloudflare worker has /auth');
+});
+
+test('a lapsed sign-in on a locked worker hands the phone a sign-in link with the key on it', async () => {
+  const spotify = createSpotify({
+    server: () => ({ url: 'https://spotify.example.workers.dev/mcp', apiKey: 'sekrit' }),
+    fetch: async () => new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { code: -32000, message: 'No refresh token stored. Visit /auth first.' } }), { status: 200 }),
+    coverFile: null,
+  });
+  await assert.rejects(spotify.now(), (error: unknown) => {
+    assert.ok(error instanceof SpotifyError);
+    assert.equal(error.reason, 'signin');
+    assert.equal(new URL(error.authUrl!).searchParams.get('key'), 'sekrit');
+    return true;
+  });
 });

@@ -33,3 +33,21 @@ test('a full pack is cut to the handful', () => {
   const names = Array.from({ length: 80 }, (_, i) => `s${i}`);
   assert.equal(pickStickers(names, '', STICKERS_PER_COMPANION).length, STICKERS_PER_COMPANION);
 });
+
+test('a sticker with a description says what it looks like beside its shortcode', () => {
+  const block = stickerShelfBlock([
+    { pack: 'birch', owner: 'Birch', names: ['hearteyes'], descriptions: { hearteyes: 'chibi, hands clasped under his chin, heart eyes' } },
+    { pack: 'willow', owner: 'Willow', names: ['littlebird'] },
+  ], 'hello', seq(0));
+  assert.match(block, /::birch_hearteyes:: \(chibi, hands clasped under his chin, heart eyes\)/);
+  assert.match(block, /Willow: ::willow_littlebird::\n|Willow: ::willow_littlebird::\]/);
+  assert.doesNotMatch(block, /::willow_littlebird:: \(/, 'no description, no brackets');
+});
+
+test('a word the owner used that is in a description counts as a match, so that sticker comes first', () => {
+  const names = Array.from({ length: 20 }, (_, i) => `s${i}`);
+  const block = stickerShelfBlock([
+    { pack: 'cedar', owner: 'Cedar', names, descriptions: { s17: 'hugging a giant plush goose' } },
+  ], 'where is the goose', seq(0));
+  assert.match(block, /Cedar: ::cedar_s17:: \(hugging a giant plush goose\)/);
+});
