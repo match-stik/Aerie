@@ -174,6 +174,23 @@ async function loadLastSession(): Promise<GifSession | null> {
   });
 }
 
+/**
+ * True only when the house says plainly that it no longer has the session: the
+ * sweep clears a session nobody has touched for a week. An older backend answers
+ * this address with the app's own page, and a dropped connection answers nothing,
+ * and neither is a reason to throw away the board somebody left.
+ */
+async function sessionIsGone(sessionId: string): Promise<boolean> {
+  try {
+    const res = await apiFetch(`/api/gif/session/${encodeURIComponent(sessionId)}`);
+    if (res.status !== 404) return false;
+    const body = await res.json().catch(() => null);
+    return !!body && body.exists === false;
+  } catch {
+    return false;
+  }
+}
+
 async function clearSessions(): Promise<void> {
   const db = await getDB();
   return new Promise((resolve, reject) => {
@@ -470,7 +487,12 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
   useEffect(() => {
     let cancelled = false;
 
-    loadLastSession().then(session => {
+    loadLastSession().then(async session => {
+      if (cancelled) return;
+      if (session && await sessionIsGone(session.sessionId)) {
+        await clearSessions().catch(() => {});
+        return;
+      }
       if (cancelled) return;
       if (session) {
         const settings = { ...DEFAULT_GIF_SETTINGS, ...session.settings };
