@@ -32,11 +32,11 @@
     "lodash-es": "4.18.1",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "undici": "6.28.1"
+    "undici": "6.29.1"
   },
   "overrides": {
     "lodash-es": "4.18.1",
-    "undici": "6.28.1",
+    "undici": "6.29.1",
     "qs": "^6.16.0",
     "nanoid": "^3.3.18",
     "@capacitor/android": "8.5.1",
