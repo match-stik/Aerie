@@ -73,6 +73,7 @@ import {
   useStreaming,
   usePresence,
   useStatusWord,
+  useStatuses,
   useConnectionState,
   useLoadingThread,
   useThreads,
@@ -121,6 +122,8 @@ import { barColorsFor } from './lib/system-bar-colors';
 import { lockSpotifyOf } from './lib/lock-spotify';
 import { lockCardsOf } from './lib/lock-cards';
 import { headerWord } from './lib/presence-word';
+import { liveStatus, refreshStatuses, useMinuteClock } from './lib/statuses';
+import { StatusSheet, StatusIcon } from './components/Statuses';
 import { lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, withClockAt, withHidden } from './lib/lock-clock';
 import { useLockUnread } from './aerie/lock-unread';
 import { homeSpotsOf, homeWidgetsOf } from './lib/home-widgets';
@@ -262,6 +265,13 @@ export default function App() {
   const ksIsStreaming = useIsStreaming();
   const ksPresence = usePresence();
   const statusWord = useStatusWord();
+  // Our statuses (lib/statuses.ts): the shared one shows under our faces, and
+  // tapping that line opens all of them. The minute clock lets one fade on screen.
+  const statuses = useStatuses();
+  const statusNow = useMinuteClock();
+  const sharedStatus = liveStatus(statuses.shared, statusNow);
+  const [showStatusSheet, setShowStatusSheet] = useState(false);
+  useEffect(() => { void refreshStatuses(); }, []);
   const ksConnection = useConnectionState();
   const ksLoadingThread = useLoadingThread();
   const ksThreads = useThreads();
@@ -1537,6 +1547,10 @@ export default function App() {
   const bubbleShared = useMemo(() => ({}), [
     threadCompanions, dbCompanions, activeTheme, theme.mode, elevenLabsApiKey,
     appSettings.customEmojis, appSettings.userAvatar, appSettings.userAvatarColor,
+    // The React tray's five and pack tabs live in every bubble, so a change in
+    // Settings has to redraw them (the owner's ask, Oct 26 2026: the owner had to close and
+    // reopen the app to see the five the owner'd just picked).
+    appSettings.quickReactions, emojiPacks,
     theme.bubbleFaces, theme.bubbleNames, theme.bubbleEdges, theme.bubbleQuietActions,
     theme.bubbleMyName, theme.bubbleTailMine, theme.bubbleTailOurs, theme.bubbleTailShape,
     theme.bubbleRings, theme.bubbleNameColors, ownerName,
@@ -1622,6 +1636,8 @@ export default function App() {
           isPrivateTab={false}
           onMediaLoad={() => bubbleHandlersRef.current.scrollToBottom(true)}
           customEmojis={appSettings.customEmojis}
+          emojiPacks={emojiPacks}
+          quickReactions={appSettings.quickReactions}
           look={bubbleLook}
           ownerName={ownerName}
           userAvatar={appSettings.userAvatar}
@@ -1679,6 +1695,8 @@ export default function App() {
     theme.mode,
     elevenLabsApiKey,
     appSettings.customEmojis,
+    emojiPacks,
+    appSettings.quickReactions,
     appSettings.userAvatar,
     appSettings.userAvatarColor,
     // The Bubbles switches redraw every bubble the moment one is flipped.
@@ -1998,6 +2016,7 @@ export default function App() {
             widgetSpots={homeSpotsOf(theme.homeWidgetSpots)}
             quietLine={!!theme.homeQuietLine}
             companions={dbCompanions.map((c) => ({ slug: c.slug, name: c.display_name, avatar: c.avatar_url, color: c.color }))}
+            customEmojis={appSettings.customEmojis}
             stickyNoteColors={theme.stickyNoteColors}
             onThemeChange={updateTheme}
           />
@@ -2089,6 +2108,8 @@ export default function App() {
             themeConfig={activeTheme}
             themeMode={theme.mode}
             onCompanionsChange={() => setCompanionsVersion((v) => v + 1)}
+            ownColorSlugs={appSettings.companionCardsOwnColor ?? []}
+            onOwnColorChange={(slugs) => updateAppSettings({ companionCardsOwnColor: slugs })}
           />
         )}
         {osState === 'treehouse' && (
@@ -2185,6 +2206,8 @@ export default function App() {
             themeAccent={theme.id === 'custom' ? theme.customColors?.[theme.mode]?.accent : undefined}
             apiBase={apiBase}
             companionNames={Object.values(contacts).map(c => c.name)}
+            userAvatar={appSettings.userAvatar}
+            userAvatarColor={appSettings.userAvatarColor}
           />
         )}
         {osState === 'games' && (
@@ -2296,13 +2319,31 @@ export default function App() {
                   </div>
                 ))}
               </div>
-                <span data-presence-line="" className={cn("flex items-center gap-1 text-[10px] font-semibold leading-none", colors.textMuted)}>
-                  <span
-                    aria-hidden
-                    className={cn("h-1.5 w-1.5 shrink-0 rounded-full", generating && "motion-safe:animate-pulse")}
-                    style={{ backgroundColor: theme.id === 'monochrome' ? (theme.mode === 'light' ? '#000000' : '#ffffff') : colors.accent }}
-                  />
-                  {headerWord(statusWord)}
+                {/* A bell's word first, then the status the three of us share,
+                    then Home. It wraps to two lines and stays no wider than the
+                    faces, so a long status never pushes the header's buttons off
+                    their screen (the owner's ask, Oct 26 2026). Tapping the line opens all of our statuses
+                    (components/Statuses.tsx) instead of the cards. */}
+                <span
+                  data-presence-line=""
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); setShowStatusSheet(true); }}
+                  className={cn("flex items-start gap-1 text-[10px] font-semibold leading-tight max-w-[9rem]", colors.textMuted)}
+                >
+                  {!statusWord.word?.trim() && sharedStatus?.icon ? (
+                    <StatusIcon
+                      icon={sharedStatus.icon}
+                      customEmojis={appSettings.customEmojis}
+                      className={cn("text-[11px] shrink-0", generating && "motion-safe:animate-pulse")}
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className={cn("h-1.5 w-1.5 shrink-0 rounded-full", generating && "motion-safe:animate-pulse")}
+                      style={{ backgroundColor: theme.id === 'monochrome' ? (theme.mode === 'light' ? '#000000' : '#ffffff') : colors.accent }}
+                    />
+                  )}
+                  <span className="line-clamp-2 break-words">{statusWord.word?.trim() ? headerWord(statusWord) : (sharedStatus?.text || headerWord(statusWord))}</span>
                 </span>
               </div>
               {!isSearching && (
@@ -2458,14 +2499,13 @@ export default function App() {
                 {renderedMessages}
 
 
-                <StreamingReply themeConfig={activeTheme} themeMode={theme.mode} />
+                <StreamingReply themeConfig={activeTheme} themeMode={theme.mode} voices={(threadCompanions.length > 0 ? threadCompanions : dbCompanions).map((c: any) => c.slug).filter(Boolean)} />
 
                 {(ksIsStreaming || awaitingResponse) && !isSending && (
                   <TypingIndicator
                     key="typing-indicator"
                     themeConfig={activeTheme}
                     themeMode={theme.mode}
-                    tail={bubbleLookOf(theme).tailOurs}
                     companions={bubbleLookOf(theme).dotColors ? (threadCompanions.length > 0 ? threadCompanions : dbCompanions).map((c) => ({ slug: c.slug, color: c.color })) : []}
                     accent={resolveThemeColors(colors).accent}
                     themeColors={activeTheme.palette ? (theme.mode === 'dark'
@@ -2561,6 +2601,7 @@ export default function App() {
             theme={theme}
             appSettings={appSettings}
             ownerName={ownerName}
+            emojiPacks={emojiPacks}
             onThemeChange={updateTheme}
             onSettingsChange={updateAppSettings}
             onClose={() => {
@@ -2569,13 +2610,34 @@ export default function App() {
             }}
           />
         )}
+        {/* All of our statuses, behind the line under our faces. */}
+        <StatusSheet
+          open={showStatusSheet}
+          onClose={() => setShowStatusSheet(false)}
+          colors={activeTheme[theme.mode]}
+          people={(dbCompanions.length > 0 ? dbCompanions : threadCompanions).map((c: any) => ({
+            slug: c.slug,
+            name: c.display_name || c.name || c.slug,
+            avatar: c.avatar_url || null,
+            sigil: c.emoji || null,
+            color: c.color || null,
+          }))}
+          statuses={statuses}
+          now={statusNow}
+          customEmojis={appSettings.customEmojis}
+          emojiPacks={emojiPacks}
+          owner={{ name: ownerName || 'You', avatar: appSettings.userAvatar || null, color: appSettings.userAvatarColor || null }}
+        />
         {showContactInfo && (
           <ContactInfo 
             themeConfig={activeTheme} 
             themeMode={theme.mode}  contacts={contacts} onUpdateContact={updateContact}
+            customEmojis={appSettings.customEmojis}
+            emojiPacks={emojiPacks}
             initialRows={dbCompanions}
             userAvatar={appSettings.userAvatar}
-            userAvatarColor={appSettings.userAvatarColor}
+            userAvatarColor={appSettings.ownerCardMatchesTheme ? undefined : appSettings.userAvatarColor}
+            companionCardsOwnColor={appSettings.companionCardsOwnColor}
             onCompanionAvatar={(slug, avatarUrl) => {
               setDbCompanions(prev => prev.map(c => (c.slug === slug ? { ...c, avatar_url: avatarUrl } : c)));
               setThreadCompanions(prev => prev.map(c => (c.slug === slug ? { ...c, avatar_url: avatarUrl } : c)));

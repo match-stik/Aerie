@@ -32,6 +32,7 @@ import {
 import * as pdfjsLib from 'pdfjs-dist';
 // @ts-ignore
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import { onDraftChange, readDraft, writeDraft } from '../lib/thread-drafts';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -137,7 +138,6 @@ interface ChatInputProps {
   onStartVoiceConversation?: () => void;
 }
 
-const DRAFT_KEY_PREFIX = 'aerie_draft_';
 
 export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig, themeMode, customEmojis, emojiPacks, replyTo, onCancelReply, threadId, sendIconId, isAtBottom = true, onJumpToLatest, generating = false, onStopGeneration, voiceConversationActive = false, onStartVoiceConversation }: ChatInputProps) {
   // Resolve once per render; falls back to the paper plane.
@@ -154,8 +154,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
     if (loadedThreadRef.current === threadId) return;
     loadedThreadRef.current = threadId;
     try {
-      const saved = localStorage.getItem(DRAFT_KEY_PREFIX + threadId);
-      setContent(saved || '');
+      setContent(readDraft(threadId));
     } catch {
       setContent('');
     }
@@ -164,13 +163,16 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
   useEffect(() => {
     if (!threadId) return;
     if (loadedThreadRef.current !== threadId) return;
-    try {
-      if (content) localStorage.setItem(DRAFT_KEY_PREFIX + threadId, content);
-      else localStorage.removeItem(DRAFT_KEY_PREFIX + threadId);
-    } catch {
-      /* localStorage full or unavailable — skip silently */
-    }
+    if (content === readDraft(threadId)) return;
+    writeDraft(threadId, content, 'chat');
   }, [content, threadId]);
+
+  // The companions widget on the home screen writes the same draft (lib/thread-
+  // drafts.ts), and this box stays mounted behind it, so take its words.
+  useEffect(() => onDraftChange((change) => {
+    if (change.from === 'chat' || change.threadId !== threadId) return;
+    setContent(change.text);
+  }), [threadId]);
 
   const [isVoiceNote, setIsVoiceNote] = useState(false);
   // attachment is the single inline GIF (a short remote URL); images and

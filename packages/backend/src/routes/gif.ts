@@ -352,9 +352,9 @@ function listSteps(sessionDir: string, filename: string): number[] {
     .sort((a, b) => a - b);
 }
 
-function saveStep(sessionDir: string, filename: string): void {
+function saveStep(sessionDir: string, filename: string): number | null {
   const framePath = join(sessionDir, filename);
-  if (!existsSync(framePath)) return;
+  if (!existsSync(framePath)) return null;
   const steps = listSteps(sessionDir, filename);
   const next = (steps[steps.length - 1] ?? 0) + 1;
   writeFileSync(join(sessionDir, stepFile(filename, next, 'frame')), readFileSync(framePath));
@@ -365,6 +365,55 @@ function saveStep(sessionDir: string, filename: string): void {
       try { unlinkSync(join(sessionDir, stepFile(filename, old, part))); } catch { /* already gone */ }
     }
   }
+  return next;
+}
+
+/**
+ * Put a frame back to a saved step, both halves, and drop that step and every
+ * one after it (they are newer than the picture being put back).
+ */
+function restoreStep(sessionDir: string, filename: string, n: number): boolean {
+  const frameStep = join(sessionDir, stepFile(filename, n, 'frame'));
+  if (!existsSync(frameStep)) return false;
+  const originalStep = join(sessionDir, stepFile(filename, n, 'original'));
+  const originalPath = join(sessionDir, `original-${filename}`);
+  writeFileSync(join(sessionDir, filename), readFileSync(frameStep));
+  if (existsSync(originalStep)) writeFileSync(originalPath, readFileSync(originalStep));
+  else if (existsSync(originalPath)) unlinkSync(originalPath);
+  for (const later of listSteps(sessionDir, filename).filter((m) => m >= n)) {
+    for (const part of ['frame', 'original'] as const) {
+      try { unlinkSync(join(sessionDir, stepFile(filename, later, part))); } catch { /* already gone */ }
+    }
+  }
+  return true;
+}
+
+/**
+ * THE GIF LAB'S OWN BACK A STEP, for a crop (the owner's ask, Oct 26 2026). Every crop saves a step for each frame it cuts and writes down
+ * which steps those were, newest last, in crop-steps.json beside the frames
+ * (a flat file, so deleting or sweeping the session takes it too). Undoing
+ * the last crop puts each of those frames back to its step.
+ */
+type CropRecord = { at: string; steps: Record<string, number> };
+const CROP_STEPS_FILE = 'crop-steps.json';
+const MAX_CROPS_KEPT = 20;
+
+function readCropSteps(sessionDir: string): CropRecord[] {
+  try {
+    const v = JSON.parse(readFileSync(join(sessionDir, CROP_STEPS_FILE), 'utf8'));
+    return Array.isArray(v) ? v.filter((r) => r && typeof r === 'object' && r.steps && typeof r.steps === 'object') : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCropSteps(sessionDir: string, records: CropRecord[]): void {
+  const path = join(sessionDir, CROP_STEPS_FILE);
+  if (records.length === 0) {
+    try { unlinkSync(path); } catch { /* none kept */ }
+    return;
+  }
+  writeFileSync(path, JSON.stringify(records.slice(-MAX_CROPS_KEPT)));
 }
 
 router.post('/gif/crop/:sessionId', async (req, res) => {
@@ -404,9 +453,11 @@ router.post('/gif/crop/:sessionId', async (req, res) => {
       }
     }
 
+    const cropSteps: Record<string, number> = {};
     for (const frame of frames) {
       keepAsItCameIn(sessionDir, frame);
-      if (filename) saveStep(sessionDir, frame);
+      const step = saveStep(sessionDir, frame);
+      if (step !== null) cropSteps[frame] = step;
       const framePath = join(sessionDir, frame);
       // The kept original is what the ghost shows and what a restore brush paints
       // back from. Cropping the frame without it left the whole uncropped picture
@@ -455,7 +506,9 @@ router.post('/gif/crop/:sessionId', async (req, res) => {
       }
     }
 
-    res.json({ ok: true, croppedFrames: frames.length });
+    const records = [...readCropSteps(sessionDir), { at: new Date().toISOString(), steps: cropSteps }];
+    writeCropSteps(sessionDir, records);
+    res.json({ ok: true, croppedFrames: frames.length, cropsToUndo: Math.min(records.length, MAX_CROPS_KEPT) });
   } catch (err: any) {
     console.error('[gif] crop error:', err);
     res.status(500).json({ error: err.message || 'Crop failed' });
@@ -477,6 +530,37 @@ router.post('/gif/crop/:sessionId', async (req, res) => {
  * Is local background removal available, and if not, what's missing?
  * GET /api/gif/cutout/status
  */
+/**
+ * Undo the last crop: POST /api/gif/crop/:sessionId/undo. Every frame that crop
+ * cut goes back to the picture it had just before, kept original included.
+ * Answers which frames changed and how many crops are left to undo.
+ */
+router.post('/gif/crop/:sessionId/undo', (req, res) => {
+  const { sessionId } = req.params;
+  if (!isPlainName(sessionId) || sessionId === 'uploads') {
+    res.status(400).json({ error: 'That is not a valid session.' });
+    return;
+  }
+  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  if (!existsSync(sessionDir)) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+  const records = readCropSteps(sessionDir);
+  const last = records.pop();
+  if (!last) {
+    res.status(409).json({ error: 'No crop left to undo', cropsToUndo: 0 });
+    return;
+  }
+  const restored: string[] = [];
+  for (const [frame, step] of Object.entries(last.steps)) {
+    if (!frame.startsWith('frame-') || frame.includes('..') || frame.includes('/')) continue;
+    if (restoreStep(sessionDir, frame, Number(step))) restored.push(frame);
+  }
+  writeCropSteps(sessionDir, records);
+  res.json({ ok: true, restored, cropsToUndo: records.length });
+});
+
 router.get('/gif/cutout/status', (_req, res) => {
   const runtime = cutoutRuntime();
   const ready = !!runtime.python && !!runtime.model
@@ -1754,7 +1838,7 @@ router.get('/gif/session/:sessionId', (req, res) => {
   }
   const now = new Date();
   try { utimesSync(sessionDir, now, now); } catch {}
-  res.json({ exists: true });
+  res.json({ exists: true, cropsToUndo: readCropSteps(sessionDir).length });
 });
 
 /**

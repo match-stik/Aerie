@@ -15,12 +15,14 @@ import type { ThemeConfig } from '../lib/theme';
 interface StickerPickerProps {
   onSelect: (insertText: string, sticker: BackendSticker, pack: BackendPack) => void;
   onClose: () => void;
-  themeConfig: ThemeConfig;
-  themeMode: 'light' | 'dark';
+  themeConfig?: ThemeConfig;
+  themeMode?: 'light' | 'dark';
+  /** The colors straight, for a room that holds only those (the game and story tables). */
+  colors?: ThemeConfig['light'];
 }
 
-export function StickerPicker({ onSelect, onClose, themeConfig, themeMode }: StickerPickerProps) {
-  const colors = themeConfig[themeMode];
+export function StickerPicker({ onSelect, onClose, themeConfig, themeMode, colors: given }: StickerPickerProps) {
+  const colors = given ?? themeConfig![themeMode ?? 'dark'];
   const initial = getStickerPacks();
   const [packs, setPacks] = useState<BackendPack[]>(initial);
   const [loading, setLoading] = useState(initial.length === 0);

@@ -14,6 +14,7 @@ export const useThreads = () => useAerie((s) => s.threads);
 export const useActiveThreadId = () => useAerie((s) => s.activeThreadId);
 export const usePresence = () => useAerie((s) => s.presence);
 export const useStatusWord = () => useAerie((s) => s.statusWord);
+export const useStatuses = () => useAerie((s) => s.statuses);
 export const useUnreadCounts = () => useAerie((s) => s.unreadCounts);
 export const useLastError = () => useAerie((s) => s.lastError);
 export const useContextUsage = () => useAerie((s) => s.contextUsage);

@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 import { useBackHandler } from '../lib/use-back-handler';
 import { openExternal } from '../lib/open-external';
-import { Message, ThemeMode, ContactProfile, CustomEmoji } from '../types';
+import { Message, ThemeMode, ContactProfile, CustomEmoji, EmojiPack } from '../types';
 import { ThemeConfig, contrastTextColor, resolveThemeColors } from '../lib/theme';
 import ReactMarkdown from 'react-markdown';
 import { rehypeActionLines } from '../lib/action-lines';
@@ -22,7 +22,9 @@ import { resolveStickerRef, apiFetch, requestMessageTts, requestMessageTtsStream
 import { copyToClipboard } from '../lib/clipboard';
 import { fileBlockIsHref, houseFileLink, resolveMessageHref } from '../lib/message-links';
 import { cleanForTTS } from '../lib/tts';
-import { STANDARD_EMOJIS as EXTRA_EMOJIS } from '../lib/emoji';
+import { EmojiBrowser, ReactionGlyph } from './EmojiBrowser';
+import { quickReactionsOf } from '../lib/quick-reactions';
+import { groupReactions } from '../lib/reaction-groups';
 import type { VoiceCompanion } from '../lib/voices';
 import { saveToDevice } from '../lib/download';
 import { thumbSrc } from '../lib/thumb';
@@ -186,6 +188,10 @@ interface MessageBubbleProps {
   isPrivateTab?: boolean;
   onMediaLoad?: () => void;
   customEmojis?: CustomEmoji[];
+  // Pack names and order for the React tray's tabs, the same as the emoji picker's.
+  emojiPacks?: EmojiPack[];
+  // The owner's five quick reactions from Settings (lib/quick-reactions.ts).
+  quickReactions?: string[];
   // Multi-voice rendering: which companion this bubble speaks as (shows the
   // avatar rail) and where the bubble sits in its voice group — non-last
   // bubbles hide the timestamp/reactions so the group reads as one turn.
@@ -204,13 +210,12 @@ interface MessageBubbleProps {
   centered?: boolean;
 }
 
-const EMOJIS = ['❤️', '👍', '🔥', '😂', '😮'];
-
 // ElevenLabs Voice IDs
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || "";
 
-export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, onReroll, rerollRemoves, onReply, onCopy, copyText, onJumpToReply, themeConfig, themeMode, elevenLabsApiKey, contacts, isPrivateTab, onMediaLoad, customEmojis, voice, groupPos = 'only', userAvatar, userAvatarColor, centered, look = DEFAULT_LOOK, ownerName }: MessageBubbleProps) {
+export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, onReroll, rerollRemoves, onReply, onCopy, copyText, onJumpToReply, themeConfig, themeMode, elevenLabsApiKey, contacts, isPrivateTab, onMediaLoad, customEmojis, emojiPacks, quickReactions, voice, groupPos = 'only', userAvatar, userAvatarColor, centered, look = DEFAULT_LOOK, ownerName }: MessageBubbleProps) {
   const [showReactions, setShowReactions] = useState(false);
+  const quickFive = quickReactionsOf(quickReactions);
   const [showCustomReactions, setShowCustomReactions] = useState(false);
   // Back closes the reaction sheet before it closes the chat.
   useBackHandler(showReactions, () => { setShowReactions(false); setShowCustomReactions(false); });
@@ -1570,9 +1575,9 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
 
                 {/* Preset row */}
                 <div className="flex items-center justify-around px-4 pb-3">
-                  {EMOJIS.map((emoji) => (
+                  {quickFive.map((emoji, i) => (
                     <button
-                      key={emoji}
+                      key={`${i}-${emoji}`}
                       onClick={() => {
                         onReact?.(emoji);
                         setShowReactions(false);
@@ -1580,7 +1585,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                       }}
                       className="hover:scale-125 transition-transform text-2xl leading-none"
                     >
-                      {emoji}
+                      <ReactionGlyph text={emoji} customEmojis={customEmojis} />
                     </button>
                   ))}
                   <button
@@ -1597,57 +1602,21 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                   </button>
                 </div>
 
+                {/* The same tray as the emoji picker: custom packs, then the
+                    standard sections, a tab each (EmojiBrowser). */}
                 {showCustomReactions && (
-                  <div className={cn('border-t flex-1 overflow-y-auto scrollbar-hide px-4 py-3 space-y-3', colors.panelBorder)}>
-                    <div>
-                      <div className={cn('mb-1.5 text-[10px] uppercase tracking-widest opacity-60', colors.textMuted)}>
-                        Emoji
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {EXTRA_EMOJIS.map((e) => (
-                          <button
-                            key={e}
-                            onClick={() => {
-                              onReact?.(e);
-                              setShowReactions(false);
-                              setShowCustomReactions(false);
-                            }}
-                            className="hover:scale-125 transition-transform text-xl leading-none w-8 h-8 flex items-center justify-center"
-                          >
-                            {e}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {customEmojis && customEmojis.length > 0 && (
-                      <div>
-                        <div className={cn('mb-1.5 text-[10px] uppercase tracking-widest opacity-60', colors.textMuted)}>
-                          Custom
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {customEmojis.map((emoji) => (
-                            <button
-                              key={emoji.id}
-                              onClick={() => {
-                                onReact?.(`:${emoji.shortcode}:`);
-                                setShowReactions(false);
-                                setShowCustomReactions(false);
-                              }}
-                              className="hover:scale-125 transition-transform p-0.5"
-                              title={`:${emoji.shortcode}:`}
-                            >
-                              <img
-                                src={emoji.url}
-                                alt={emoji.shortcode}
-                                className="h-7 w-auto object-contain rounded-sm"
-                                referrerPolicy="no-referrer"
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  <div className={cn('border-t flex-1 min-h-0 flex flex-col px-4 py-3', colors.panelBorder)}>
+                    <EmojiBrowser
+                      onSelect={(e) => {
+                        onReact?.(e);
+                        setShowReactions(false);
+                        setShowCustomReactions(false);
+                      }}
+                      colors={colors}
+                      customEmojis={customEmojis}
+                      emojiPacks={emojiPacks}
+                      gridClassName="max-h-56"
+                    />
                   </div>
                 )}
               </motion.div>
@@ -1658,12 +1627,42 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           {/* Displayed Reactions */}
           {message.reactions && message.reactions.length > 0 && isGroupLast && (
             <div className={cn(
-              "absolute -bottom-3 flex gap-0.5 border rounded-[var(--shape-control)] px-1.5 py-0.5 z-10",
+              "absolute -bottom-3 flex items-center gap-0.5 border rounded-[var(--shape-control)] px-1.5 py-0.5 z-10",
               colors.panelBg,
               colors.panelBorder,
               isUser ? "right-2" : "left-2"
             )}>
-              {message.reactions.map((r, i) => {
+              {groupReactions(message.reactions).map(({ emoji: r, count }, i) => {
+                // Every reaction sits in the same square, centered, so a Discord
+                // emote, one of the owner custom emojis and a plain emoji come out the
+                // same size on the same line (the owner's catch, Oct 26 2026: some looked
+                // smaller and didn't line up; the pictures were 14px boxes pinned
+                // to the top beside 18px lines of text).
+                const cell = "inline-flex h-4 w-4 items-center justify-center shrink-0";
+                // Used by more than one person: once, with how many beside it.
+                const withCount = (key: number, n: number, glyph: React.ReactNode) => (
+                  <span key={key} className="inline-flex items-center gap-[2px]">
+                    {glyph}
+                    {n > 1 && <span className={cn("text-[10px] leading-none tabular-nums font-semibold mr-[3px]", colors.textMuted)}>{n}</span>}
+                  </span>
+                );
+                // A server emote somebody reacted with on Discord rides as
+                // Discord writes it, <:name:id> or <a:name:id> when it moves
+                // (reaction-bridge.ts), and is drawn off Discord's own CDN.
+                const discordEmote = /^<(a?):(\w+):(\d+)>$/.exec(r);
+                if (discordEmote) {
+                  const [, animated, name, id] = discordEmote;
+                  return withCount(i, count,
+                    <span className={cell} title={`:${name}:`}>
+                      <img
+                        src={`https://cdn.discordapp.com/emojis/${id}.${animated ? 'gif' : 'png'}?size=48`}
+                        alt={`:${name}:`}
+                        className="h-full w-full object-contain"
+                        referrerPolicy="no-referrer"
+                      />
+                    </span>,
+                  );
+                }
                 // Custom-emote reactions ride as :shortcode: strings — look
                 // them up in the loaded customEmojis and render the image
                 // when we have a hit; otherwise fall back to plain text.
@@ -1672,20 +1671,20 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                   const code = r.slice(1, -1);
                   const emoji = customEmojis.find((e) => e.shortcode === code);
                   if (emoji) {
-                    return (
-                      <img
-                        key={i}
-                        src={emoji.url}
-                        alt={r}
-                        title={r}
-                        className="h-[14px] w-auto object-contain"
-                        referrerPolicy="no-referrer"
-                      />
+                    return withCount(i, count,
+                      <span className={cell} title={r}>
+                        <img
+                          src={emoji.url}
+                          alt={r}
+                          className="h-full w-full object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                      </span>,
                     );
                   }
                 }
-                return (
-                  <span key={i} className="text-[12px]">{r}</span>
+                return withCount(i, count,
+                  <span className={cn(cell, "text-[14px] leading-none")}>{r}</span>,
                 );
               })}
             </div>

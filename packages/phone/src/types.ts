@@ -191,6 +191,9 @@ export interface AppSettings {
   giphyApiKey?: string;
   elevenLabsApiKey?: string;
   customEmojis?: CustomEmoji[];
+  /** The owner's five quick reactions at the top of the React tray, in order; a
+   *  missing slot keeps the house default (lib/quick-reactions.ts). */
+  quickReactions?: string[];
   // Ordered list of app IDs to show on the home-screen dock. If unset,
   // HomeScreen falls back to the default DOCK_APPS from the registry.
   // Capped at 4 entries by the settings UI but the read path tolerates
@@ -204,4 +207,10 @@ export interface AppSettings {
   // the companion voice avatars. Syncs with the rest of appSettings.
   userAvatar?: string;
   userAvatarColor?: string;
+  // The owner's contact card wears the theme's accent like ours instead of the owner's ring
+  // color (the owner's ask, Oct 26 2026). Off keeps the owner's ring color on their card.
+  ownerCardMatchesTheme?: boolean;
+  // Companion slugs whose contact card wears his own color instead of the
+  // theme's accent, switched in the Companions app (the owner's ask, Oct 26 2026).
+  companionCardsOwnColor?: string[];
 }

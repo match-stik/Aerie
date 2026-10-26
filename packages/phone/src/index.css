@@ -617,6 +617,17 @@
   }
 }
 
+/* The companions widget's status line, going by (HomeWidgets.tsx Ticker): the row
+   is drawn twice, so sliding it half its width lands the second copy exactly
+   where the first began. */
+@keyframes aerie-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 1rem)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="aerie-ticker"] { animation: none !important; }
+}
+
 @keyframes glow-pulse {
   0%, 100% { box-shadow: 0 0 4px 1px var(--glow-color, currentColor); }
   50% { box-shadow: 0 0 16px 4px var(--glow-color, currentColor); }
@@ -624,6 +635,10 @@
 
 body {
   @apply bg-[#0A0A0A] overflow-hidden font-sans antialiased select-none;
+  /* Their message font, not only inside .aerie-root: trays and sheets portal
+     straight into body and were falling back to plain sans (the owner's ask, Oct 26
+     2026: 'Any tray that comes up has the sans serif font'). */
+  font-family: var(--font-body, var(--font-sans));
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }

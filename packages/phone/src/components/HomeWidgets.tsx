@@ -22,8 +22,11 @@ import {
   type Layout,
   type Spot,
 } from '../lib/home-widgets';
-import { inkFor, resolveNoteColor } from '../lib/note-colors';
+import { resolveNoteColor, paperFor, noteInk } from '../lib/note-colors';
 import { haptic } from '../lib/utils';
+import { liveStatus } from '../lib/statuses';
+import { StatusIcon } from './Statuses';
+import { onDraftChange, readDraft, writeDraft } from '../lib/thread-drafts';
 import { isDaytime, weatherIcon } from './LockClock';
 import { useWeather } from './useWeather';
 
@@ -79,10 +82,64 @@ function useNow(ms: number) {
   return now;
 }
 
-function CompanionsWidget({ companions, onOpen }: { companions: WidgetCompanion[]; onOpen: () => void }) {
+/** A row that scrolls sideways when it is wider than its room, and sits still when it fits. */
+function Ticker({ children, className, style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+  const outer = useRef<HTMLSpanElement | null>(null);
+  const inner = useRef<HTMLSpanElement | null>(null);
+  const [moving, setMoving] = useState(false);
+  const [seconds, setSeconds] = useState(12);
+  useEffect(() => {
+    const measure = () => {
+      const box = outer.current, row = inner.current;
+      if (!box || !row) return;
+      const wide = row.scrollWidth > box.clientWidth + 1;
+      setMoving(wide);
+      // About 30 px a second, whatever the length, so a long line is not a blur.
+      if (wide) setSeconds(Math.max(8, Math.round((row.scrollWidth + 32) / 30)));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(measure);
+    if (outer.current) watch.observe(outer.current);
+    if (inner.current) watch.observe(inner.current);
+    return () => watch.disconnect();
+  }, [children]);
+  return (
+    <span ref={outer} className={`relative block min-w-0 overflow-hidden whitespace-nowrap ${className ?? ''}`} style={style}>
+      <span
+        className="inline-flex items-center gap-8"
+        style={moving ? { animation: `aerie-ticker ${seconds}s linear infinite` } : undefined}
+      >
+        <span ref={inner} className="inline-flex items-center gap-2.5">{children}</span>
+        {moving && <span aria-hidden className="inline-flex items-center gap-2.5">{children}</span>}
+      </span>
+    </span>
+  );
+}
+
+function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: WidgetCompanion[]; customEmojis?: import('../types').CustomEmoji[]; onOpen: () => void }) {
   const { thread, last } = useLatestReply();
   const now = useNow(30_000);
-  const [draft, setDraft] = useState('');
+  // The same unsent draft as the chat's own box (lib/thread-drafts.ts): start
+  // an answer here, open the chat, and it is waiting there, and back again.
+  const threadId = thread?.id ?? null;
+  const [draft, setDraftState] = useState(() => readDraft(threadId));
+  useEffect(() => { setDraftState(readDraft(threadId)); }, [threadId]);
+  useEffect(() => onDraftChange((change) => {
+    if (change.from !== 'widget' && change.threadId === threadId) setDraftState(change.text);
+  }), [threadId]);
+  const setDraft = (text: string) => { setDraftState(text); writeDraft(threadId, text, 'widget'); };
+  // Where we are, at a glance (lib/statuses.ts): the shared status and any of
+  // ours that is set, on one line. All of us at Home says nothing, so the reply
+  // keeps its room.
+  const statuses = useAerie((s) => s.statuses);
+  const shared = liveStatus(statuses.shared, now);
+  const ours = companions
+    .map((c) => ({ c, s: liveStatus(statuses.companions[c.slug], now) }))
+    .filter((x): x is { c: WidgetCompanion; s: NonNullable<typeof x.s> } => !!x.s);
+  const anyStatus = !!shared || ours.length > 0;
+  // Two lines under the status ticker too, an opening action included; there is
+  // room for both (the owner's ask, Oct 26 2026).
   const lines = last ? replyLines(last.content, 2) : [];
   const send = () => {
     const text = draft.trim();
@@ -93,16 +150,41 @@ function CompanionsWidget({ companions, onOpen }: { companions: WidgetCompanion[
   };
   return (
     <div className="flex h-full flex-col gap-2 rounded-2xl p-3" style={surface}>
-      <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 flex-col gap-1 text-left">
+      {/* Holding focus on the draft (the same two lines as the send button
+          below) so the first tap opens the chat instead of only closing the
+          keyboard (the owner's catch, Oct 26 2026). The draft itself carries over through lib/thread-drafts. */}
+      <button type="button" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={onOpen} className="flex min-w-0 flex-1 flex-col gap-1 text-left">
         <span className="flex items-center gap-2">
           <Faces companions={companions} size={24} />
           <span className="min-w-0 flex-1 truncate text-base font-semibold">{thread?.name || 'Messages'}</span>
           {last && <span className="text-[11px]" style={{ color: 'var(--aerie-text-muted)' }}>{ageLabel(Date.parse(last.created_at), now)}</span>}
         </span>
+        {anyStatus && (
+          // The statuses go by in a line instead of squeezing side by side
+          // (the owner's ask, Oct 26 2026); a
+          // line that fits sits still.
+          <Ticker className="text-[11px]" style={{ color: 'var(--aerie-text-muted)' }}>
+            {shared && (
+              <span className="flex shrink-0 items-center gap-1">
+                {shared.icon && <StatusIcon icon={shared.icon} customEmojis={customEmojis} />}
+                <span>{shared.text}</span>
+              </span>
+            )}
+            {ours.map(({ c, s: st }) => (
+              <span key={c.slug} className="flex shrink-0 items-center gap-1">
+                {st.icon ? <StatusIcon icon={st.icon} customEmojis={customEmojis} /> : <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: c.color || 'currentColor' }} />}
+                <span><span className="font-semibold">{c.name}</span> {st.text}</span>
+              </span>
+            ))}
+          </Ticker>
+        )}
         {lines.length > 0 ? lines.map((l, i) => (
           <span
             key={i}
-            className={l.action ? 'truncate text-xs italic' : 'line-clamp-2 text-sm'}
+            // Under a status ticker each line gets one row, so the box keeps its
+            // padding under their answer field (the owner's ask, Oct 26 2026: two long lines
+            // 'shoved everything out of the box', and three left no room under it).
+            className={l.action ? 'truncate text-xs italic' : anyStatus ? 'truncate text-sm' : 'line-clamp-2 text-sm'}
             style={l.action ? { color: 'var(--aerie-text-muted)' } : undefined}
           >
             {l.text}
@@ -122,6 +204,12 @@ function CompanionsWidget({ companions, onOpen }: { companions: WidgetCompanion[
         />
         <button
           type="button"
+          // The press must not take the focus off the box: when it did, the
+          // keyboard dropped and the page moved under the owner thumb, so the first
+          // tap only closed the keyboard and the second one sent (the owner's ask, Oct 26
+          // 2026). Holding the focus keeps everything where it was.
+          onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={send}
           disabled={!draft.trim() || !thread}
           aria-label="Send"
@@ -137,7 +225,7 @@ function CompanionsWidget({ companions, onOpen }: { companions: WidgetCompanion[
 
 interface NoteRow { id: string | number; text: string; color: string; timestamp: string; sender: string | null }
 
-function NoteWidget({ companions, palette, onOpen }: { companions: WidgetCompanion[]; palette: string[]; onOpen: () => void }) {
+function NoteWidget({ companions, palette, mode, onOpen }: { companions: WidgetCompanion[]; palette: string[]; mode: 'light' | 'dark'; onOpen: () => void }) {
   const [notes, setNotes] = useState<NoteRow[]>([]);
   useEffect(() => {
     let gone = false;
@@ -154,14 +242,17 @@ function NoteWidget({ companions, palette, onOpen }: { companions: WidgetCompani
       </button>
     );
   }
-  const paint = resolveNoteColor(note.color, palette) || palette[0] || '#FDE68A';
+  // The same paper and ink the Notes app paints, so the fridge note and the
+  // board agree (the owner's ask, Oct 25 2026).
   const writer = companions.find((c) => c.slug.toLowerCase() === (note.sender || '').toLowerCase());
+  // Ours always wear our own colour on the fridge too, the same as the board.
+  const paint = paperFor(writer?.color || resolveNoteColor(note.color, palette) || palette[0] || '#FDE68A', mode);
   return (
     <button
       type="button"
       onClick={onOpen}
       className="flex h-full w-full flex-col justify-between p-3 text-left shadow-lg"
-      style={{ background: paint, color: inkFor(paint), transform: 'rotate(-2.5deg)', borderRadius: 6, fontFamily: "'Caveat', 'Segoe Print', 'Bradley Hand', cursive" }}
+      style={{ background: paint, color: noteInk(mode), textShadow: 'none', transform: 'rotate(-2.5deg)', borderRadius: 6, fontFamily: "'Caveat', 'Segoe Print', 'Bradley Hand', cursive" }}
     >
       <span className="line-clamp-5 text-base leading-snug">{note.text}</span>
       {/* Signed in the paper's own ink: a writer's color can be the
@@ -256,14 +347,18 @@ export function HomeWidgets({
   widgets,
   spots,
   companions,
+  customEmojis,
   notePalette,
+  themeMode = 'dark',
   onOpenAppId,
   onPlace,
 }: {
   widgets: HomeWidget[];
   spots: Layout;
   companions: WidgetCompanion[];
+  customEmojis?: import('../types').CustomEmoji[];
   notePalette: string[];
+  themeMode?: 'light' | 'dark';
   onOpenAppId: (id: string) => void;
   onPlace?: (layout: Record<HomeWidget, Spot>) => void;
 }) {
@@ -401,8 +496,8 @@ export function HomeWidgets({
           } : {}),
         };
         let body: React.ReactNode = null;
-        if (id === 'companions') body = <CompanionsWidget companions={companions} onOpen={() => onOpenAppId('messages')} />;
-        if (id === 'note') body = <NoteWidget companions={companions} palette={notePalette} onOpen={() => onOpenAppId('notes')} />;
+        if (id === 'companions') body = <CompanionsWidget companions={companions} customEmojis={customEmojis} onOpen={() => onOpenAppId('messages')} />;
+        if (id === 'note') body = <NoteWidget companions={companions} palette={notePalette} mode={themeMode} onOpen={() => onOpenAppId('notes')} />;
         if (id === 'weather') body = <WeatherWidget onOpen={() => onOpenAppId('weather')} />;
         if (id === 'letter') body = <LetterWidget companions={companions} onOpen={() => onOpenAppId('letters')} />;
         if (id === 'day') body = <DayWidget />;

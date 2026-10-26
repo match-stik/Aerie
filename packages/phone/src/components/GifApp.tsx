@@ -13,6 +13,7 @@ import type { ThemeConfig } from '../lib/theme';
 import { SegmentedControl } from '../ui';
 import { saveHref } from '../lib/download';
 import { useBackHandler } from '../lib/use-back-handler';
+import { cropsToUndo, sessionIsGone } from '../lib/gif-session';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -172,23 +173,6 @@ async function loadLastSession(): Promise<GifSession | null> {
     };
     request.onerror = () => reject(request.error);
   });
-}
-
-/**
- * True only when the house says plainly that it no longer has the session: the
- * sweep clears a session nobody has touched for a week. An older backend answers
- * this address with the app's own page, and a dropped connection answers nothing,
- * and neither is a reason to throw away the board somebody left.
- */
-async function sessionIsGone(sessionId: string): Promise<boolean> {
-  try {
-    const res = await apiFetch(`/api/gif/session/${encodeURIComponent(sessionId)}`);
-    if (res.status !== 404) return false;
-    const body = await res.json().catch(() => null);
-    return !!body && body.exists === false;
-  } catch {
-    return false;
-  }
 }
 
 async function clearSessions(): Promise<void> {
@@ -379,6 +363,9 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
   const [cropW, setCropW] = useState(100);
   const [cropH, setCropH] = useState(100);
   const [cropping, setCropping] = useState(false);
+  // How many crops the house can still take back (routes/gif.ts, crop-steps.json),
+  // so a crop can be undone without uploading the picture again (the owner's ask, Oct 26 2026).
+  const [cropUndos, setCropUndos] = useState(0);
   // Square lock — stickers and avatars are square far more often than not.
   const [cropSquare, setCropSquare] = useState(false);
   // Crop the one you are looking at, or the whole set. Hand-picked pictures need
@@ -501,6 +488,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
           : session.frames.map((_, index) => index);
 
         setSessionId(session.sessionId);
+        void cropsToUndo(session.sessionId).then((n) => { if (!cancelled) setCropUndos(n); });
         setFrames(session.frames);
         setFps(session.fps);
         setOutputWidth(session.outputWidth);
@@ -597,6 +585,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
     }
     await clearSessions();
     setSessionId(null);
+    setCropUndos(0);
     setFrames([]);
     setSelectedFrames(new Set());
     setOutputUrl(null);
@@ -634,6 +623,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
 
       const data = await res.json();
       setSessionId(data.sessionId);
+      setCropUndos(0);
       setFrames(data.frames);
       setSelectedFrames(new Set(data.frames.map((_: Frame, i: number) => i)));
     } catch (err: any) {
@@ -1138,6 +1128,8 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
         const data = await res.json();
         throw new Error(data.error || 'Crop failed');
       }
+      const cropped = await res.json().catch(() => null);
+      if (cropped && typeof cropped.cropsToUndo === 'number') setCropUndos(cropped.cropsToUndo);
 
       // Refresh frame URLs to bust cache
       setFrames(prev => prev.map(f => ({ ...f, url: `${f.url.split('?')[0]}?t=${Date.now()}` })));
@@ -1154,6 +1146,29 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
       setCropping(false);
     }
   }, [sessionId, frames, cropX, cropY, cropW, cropH, cropAllFrames, previewFrame]);
+
+  // Take the last crop back: every frame it cut gets the picture it had just before.
+  const undoCrop = useCallback(async () => {
+    if (!sessionId) return;
+    setCropping(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`/api/gif/crop/${sessionId}/undo`, { method: 'POST' });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        if (data && typeof data.cropsToUndo === 'number') setCropUndos(data.cropsToUndo);
+        throw new Error((data && data.error) || 'Undo failed');
+      }
+      setCropUndos(typeof data?.cropsToUndo === 'number' ? data.cropsToUndo : 0);
+      setFrames(prev => prev.map(f => ({ ...f, url: `${f.url.split('?')[0]}?t=${Date.now()}` })));
+      setFrameSizes({});
+      setOriginalDimensions(null);
+    } catch (err: any) {
+      setError(err.message || 'Undo failed');
+    } finally {
+      setCropping(false);
+    }
+  }, [sessionId]);
 
   // Put the chosen frames back the way they arrived. The route is named for the
   // cutout because that is where it was first needed, but it restores whatever
@@ -1830,6 +1845,16 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
             >
               <Crop className="w-4 h-4" />Crop Frames
             </button>
+            {cropUndos > 0 && (
+              <button
+                onClick={undoCrop}
+                disabled={cropping}
+                className={cn("mt-2 w-full py-2 rounded-xl text-sm flex items-center justify-center gap-2 border disabled:opacity-50", colors.panelBorder, colors.textMain)}
+              >
+                {cropping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
+                Undo last crop
+              </button>
+            )}
           </div>
         )}
 

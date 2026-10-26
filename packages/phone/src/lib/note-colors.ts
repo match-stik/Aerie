@@ -239,3 +239,41 @@ export function resolveNoteColor(stored: string | null | undefined, palette: str
   const i = nearestSwatchIndex(stored, palette);
   return i >= 0 ? palette[i] : stored;
 }
+
+// ── Paper, not paint ─────────────────────────────────────────────────────────
+//
+// A note's colour at full strength is fine as a swatch and too loud as a whole
+// card, and a card that picks dark writing on one note and light on the next
+// reads as a jumble (the owner's ask, Oct 25 2026: the full-strength board was violent on
+// the eyes, for the smeared shadow and the different text colours; then
+// softer, though not muted).
+//
+// So every note in a mode wears ONE ink, light at night and dark by day, and
+// the paper is fitted to it: the colour keeps its HUE, which tells one note
+// from another, sits in a lightness band the ink reads on, and keeps a middle
+// amount of chroma. If a colour still lands too close to the ink, the paper
+// steps away from it until the writing clears 4.5:1.
+const PAPER: Record<NoteMode, { lMin: number; lMax: number; cMax: number; ink: string }> = {
+  dark: { lMin: 0.42, lMax: 0.52, cMax: 0.13, ink: NOTE_INK_LIGHT },
+  light: { lMin: 0.84, lMax: 0.91, cMax: 0.1, ink: NOTE_INK_DARK },
+};
+
+/** The one writing colour every note wears in this mode. */
+export function noteInk(mode: NoteMode): string {
+  return PAPER[mode].ink;
+}
+
+/** The colour a note's paper is actually painted, from the colour it holds. */
+export function paperFor(hex: string, mode: NoteMode): string {
+  const c = hexToOklch(hex);
+  if (!c) return hex;
+  const { lMin, lMax, cMax, ink } = PAPER[mode];
+  let L = Math.min(lMax, Math.max(lMin, c.l));
+  const step = mode === 'dark' ? -0.01 : 0.01;
+  for (let i = 0; i < 40; i += 1) {
+    const paper = oklchToHex(L, fitChroma(L, Math.min(c.c, cMax), c.h), c.h);
+    if (contrastRatio(paper, ink) >= 4.5) return paper;
+    L += step;
+  }
+  return oklchToHex(L, fitChroma(L, Math.min(c.c, cMax), c.h), c.h);
+}

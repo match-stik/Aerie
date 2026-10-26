@@ -108,7 +108,19 @@ export type ServerMessage =
   // A companion's lane asked for the owner's toys. Only a phone that can reach toys
   // acts on it, and only that phone answers (POST /api/toys/ack), so a laptop
   // with the app open never answers for the owner.
-  | { type: 'toy_command'; command: ToyRemoteCommand };
+  | { type: 'toy_command'; command: ToyRemoteCommand }
+  /** Every status as it stands (services/statuses.ts): each companion's own line and icon, and the shared one under the faces. A status past its `until` has faded and is left out. */
+  | { type: 'statuses'; shared: StatusLine | null; companions: Record<string, StatusLine>; owner?: StatusLine | null };
+
+/** One status: a short line, an optional icon (an emoji or a :shortcode:), who set it, and when it fades. */
+export interface StatusLine {
+  text: string;
+  icon: string | null;
+  by: string;
+  setAt: string;
+  /** null for the owner's, which stays until the owner changes it. */
+  until: string | null;
+}
 
 // --- Message type guards ---
 

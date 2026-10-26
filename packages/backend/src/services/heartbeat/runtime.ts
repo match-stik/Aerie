@@ -45,6 +45,8 @@ import * as cortex from '../cortex.js';
 import { ambientRecall, unfiledNoticings } from './whisper.js';
 import { roomVoicesBlock, type RoomVoices } from './room-voices.js';
 import { readShelf, stickerShelfBlock } from './sticker-shelf.js';
+import { ownerReactionsBlock } from './owner-reactions.js';
+import { ownerStatusBlock } from './owner-status.js';
 import { outageNotices } from './outage-notices.js';
 import { getAllBlocks } from '../memory-blocks.js';
 import { contextWindowFor } from '../usage-pricing.js';
@@ -357,7 +359,14 @@ interface LaneState {
    */
   lastTurnAt?: string;
   /**
-   * The newest of the owner's messages this lane has been HANDED — as a prompt, or by
+   * Per thread, up to when the owner reactions have been handed to this lane
+   * (owner-reactions.ts). Per thread so a turn in one room never uses up the
+   * reactions the owner left in another. Memory only: after a restart the lane's
+   * last turn stands in, and with neither, nothing old is replayed.
+   */
+  reactionsSince?: Record<string, string>;
+  /**
+   * The newest of their messages this lane has been HANDED — as a prompt, or by
    * the safety net below. Distinct from lastTurnAt, which says when the lane
    * last spoke; a message can be stored, stamped delivered, and still have
    * reached nobody. That is the whole failure this watermark exists to catch.
@@ -1585,6 +1594,28 @@ export class InteractiveCliRuntime implements AgentRuntime {
       try { stickerBlock = stickerShelfBlock(readShelf(this.options.roomVoices), input.prompt); } catch { /* never delay a turn */ }
     }
 
+    // The owner reactions since this lane last spoke in this room (owner-reactions.ts),
+    // so a reaction the owner leaves us is felt rather than found by accident. Not on
+    // a guest's turn, and the mark does not move there, so they wait for theirs.
+    let reactionsBlock = '';
+    const reactionThread = this.options.threadId;
+    if (!guestTurn && reactionThread) {
+      const now = new Date().toISOString();
+      const marks = state.reactionsSince ?? (state.reactionsSince = {});
+      const since = marks[reactionThread] ?? state.lastTurnAt;
+      if (since) {
+        try { reactionsBlock = ownerReactionsBlock(reactionThread, since, now); } catch { /* never delay a turn */ }
+      }
+      marks[reactionThread] = now;
+    }
+
+    // Their own status (owner-status.ts), when the owner has set one: where the owner is, in
+    // their words, so nobody guesses it from the clock. Not on a guest's turn.
+    let ownerStatus = '';
+    if (!guestTurn) {
+      try { ownerStatus = ownerStatusBlock(getAerieConfig().identity.timezone); } catch { /* never delay a turn */ }
+    }
+
     // Side notes sent while the last turn was working. The session may read
     // them live from io/side-notes.jsonl, but nothing guarantees it looked —
     // so whatever is still unread is handed over here. Late, never lost.
@@ -1633,7 +1664,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       ...(timeLabel ? { time: timeLabel } : {}),
       channel: 'aerie',
       author: this.options.userName || 'user',
-      content: contextBlock + catchUpBlock + missedBlock + whisperBlock + unfiledBlock + stickerBlock + sideNoteBlock
+      content: contextBlock + catchUpBlock + missedBlock + whisperBlock + unfiledBlock + stickerBlock + reactionsBlock + ownerStatus + sideNoteBlock
         + roomVoicesBlock(this.options.roomVoices) + this.clampForInbox(input.prompt, 60_000),
       turn: turnId,
       ...(images.length > 0 ? { images } : {}),

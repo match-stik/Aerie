@@ -204,4 +204,15 @@ export type ServerMessage =
   | { type: 'story_update'; bookId: string | null }
   /** The word beside the dot under the faces while a bell that has one is running; null is Home. `companions` names whose cards show it, or is empty for every companion's. */
   | { type: 'status_word'; word: string | null; companions: string[] }
-  | { type: 'toy_command'; command: ToyRemoteCommand };
+  | { type: 'toy_command'; command: ToyRemoteCommand }
+  | { type: 'statuses'; shared: StatusLine | null; companions: Record<string, StatusLine>; owner?: StatusLine | null };
+
+/** One status (services/statuses.ts on the house): a short line, an optional icon, who set it, and when it fades. */
+export interface StatusLine {
+  text: string;
+  icon: string | null;
+  by: string;
+  setAt: string;
+  /** null for the owner's, which stays until the owner changes it. */
+  until: string | null;
+}

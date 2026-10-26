@@ -18,7 +18,7 @@ import { dispatchAgentTurn } from './agent/agent-dispatch.js';
 import { listAgentSessions } from './agent/session-list.js';
 import { deliverSideNoteToBusySession, busyHeartbeatSessionCount } from './heartbeat/supervisor.js';
 import { deliverSideNoteToBusyCodexLane } from './runtimes/codex-side-notes.js';
-import { ownMessagesRead } from './own-messages-read.js';
+import { ownMessagesRead, alreadyHandedOver } from './own-messages-read.js';
 import type { AgentRouting } from './agent/agent-route-selection.js';
 
 // Lazy-init: config isn't available at import time — defer until first use
@@ -298,6 +298,12 @@ export class AgentService {
     // Their own messages wait out whatever turn is running instead of being
     // dropped after 90 seconds (queueTimeoutFor says why).
     return queryQueue.enqueue(priority, async () => {
+      // Handed over already while it waited (the missed-net, in another
+      // turn): its own turn would answer it a second time.
+      if (alreadyHandedOver(opts?.messageId)) {
+        console.log(`[Queue] ${opts?.messageId} was handed over while it waited; its own turn is skipped`);
+        return '';
+      }
       // The owner's message is with the lane now: the turn on it is starting.
       ownMessagesRead([opts?.messageId]);
       agentState.presenceStatus = 'waking';

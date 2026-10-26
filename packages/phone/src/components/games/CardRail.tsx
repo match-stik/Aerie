@@ -25,6 +25,9 @@ import type { Message as PhoneMessage } from '../../types';
 import { getOwnSendIcon } from '../../lib/sendIcons';
 import { OWNER_SIGIL, getOwnerAvatar, useHouseRoster, type HouseCompanion } from '../../lib/house';
 import { cn } from '../../lib/utils';
+import { Sticker } from 'lucide-react';
+import { StickerPicker } from '../StickerPicker';
+import { isStickerImage, StickerImage, stickersToMarkdown, useStickerPacks } from '../RichWords';
 import type { ThemeConfig } from '../../lib/theme';
 
 interface RailMessage {
@@ -100,6 +103,8 @@ function RailAvatar({
 }
 
 function RailMarkdown({ children }: { children: string }) {
+  // Our stickers are pictures at the table too, not their codes (RichWords.tsx).
+  useStickerPacks();
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -114,9 +119,10 @@ function RailMarkdown({ children }: { children: string }) {
             {content}
           </code>
         ),
+        img: ({ src, alt }) => (isStickerImage(alt) ? <StickerImage src={typeof src === 'string' ? src : undefined} alt={alt} /> : <img src={typeof src === 'string' ? src : undefined} alt={alt ?? ''} className="max-w-full rounded-lg" />),
       }}
     >
-      {children}
+      {stickersToMarkdown(children)}
     </ReactMarkdown>
   );
 }
@@ -128,6 +134,16 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
   const [threadId, setThreadId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [draft, setDraft] = useState('');
+  // A sticker at the table, the same tray as chat, on a line of its own; Enter
+  // is a new line here and the button sends (the owner's ask, Oct 26 2026).
+  const [stickers, setStickers] = useState(false);
+  const draftBox = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const box = draftBox.current;
+    if (!box) return;
+    box.style.height = 'auto';
+    box.style.height = `${Math.min(Math.max(box.scrollHeight, 48), 140)}px`;
+  }, [draft]);
   const bottom = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -284,22 +300,45 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
       </div>
 
       <div className="flex gap-2 border-t p-3" style={{ borderColor: PANEL_BORDER }}>
-        <input
+        <textarea
+          ref={draftBox}
+          rows={1}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') void send(); }}
           onFocus={() => window.dispatchEvent(new CustomEvent('aerie:card-rail-typing', { detail: true }))}
           onBlur={() => window.dispatchEvent(new CustomEvent('aerie:card-rail-typing', { detail: false }))}
           placeholder={tableId ? 'say something' : 'deal a game first'}
           disabled={!tableId}
-          className="min-w-0 flex-1 rounded-2xl border px-4 py-3 text-[16px] leading-6 outline-none placeholder:opacity-60 disabled:opacity-55"
+          className="min-w-0 flex-1 resize-none rounded-2xl border px-4 py-3 text-[16px] leading-6 outline-none placeholder:opacity-60 disabled:opacity-55"
           style={{ backgroundColor: PANEL_SURFACE, borderColor: PANEL_BORDER, color: PANEL_TEXT }}
         />
         <button
           type="button"
+          onClick={() => setStickers(true)}
+          disabled={!tableId}
+          aria-label="Add a sticker"
+          title="Add a sticker"
+          className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full border disabled:opacity-30"
+          style={{ borderColor: PANEL_BORDER, color: PANEL_TEXT }}
+        >
+          <Sticker size={18} />
+        </button>
+        {stickers && (
+          <StickerPicker
+            colors={colors}
+            onSelect={(code) => {
+              setDraft((d) => (d.trim() ? `${d.replace(/\s+$/, '')}\n${code}\n` : `${code}\n`));
+              setStickers(false);
+              window.setTimeout(() => draftBox.current?.focus(), 50);
+            }}
+            onClose={() => setStickers(false)}
+          />
+        )}
+        <button
+          type="button"
           onClick={() => void send()}
           disabled={!draft.trim() || !tableId}
-          className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:opacity-30', colors.accentText)}
+          className={cn('flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full transition active:scale-95 disabled:opacity-30', colors.accentText)}
           style={{ backgroundColor: colors.accent }}
           aria-label="Speak into the Card Room"
         >

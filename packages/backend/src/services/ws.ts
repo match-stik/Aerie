@@ -67,6 +67,7 @@ import {
 import { handleMcpReconnect, handleMcpToggle } from './ws/handlers/mcp-handlers.js';
 import { handleCommandMessage } from './ws/handlers/command-handlers.js';
 import { bellStatus } from './bell-status.js';
+import { readStatuses } from './statuses.js';
 
 export { registry } from './ws/connection-registry.js';
 export type { ExtendedWebSocket } from './ws/connection-registry.js';
@@ -174,6 +175,15 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     // middle of a bell shows it (services/bell-status.ts).
     const statusWordMsg: ServerMessage = { type: 'status_word', ...bellStatus().now() };
     extWs.send(JSON.stringify(statusWordMsg));
+
+    // Every status as it stands (services/statuses.ts), for the line under the
+    // faces, the cards and the home widget.
+    try {
+      const statusesMsg: ServerMessage = { type: 'statuses', ...readStatuses() };
+      extWs.send(JSON.stringify(statusesMsg));
+    } catch {
+      // The phone also reads GET /api/statuses itself.
+    }
 
     // Send canvas list
     const canvases = listCanvases();

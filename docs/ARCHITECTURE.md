@@ -126,6 +126,13 @@ Every router module under `packages/backend/src/routes`:
   press's answer is not believed: the phone reads what is playing again after
   every press. Anything that cannot come back answers one plain sentence
   (`SpotifyProblem` in `@aerie/shared`), never a page.
+- `statuses.ts` — the owner's phone's side of the statuses: `GET /api/statuses`
+  (each companion's line and icon, the one they share under their faces, and
+  the owner's own) and `PUT /api/statuses/:who` (the owner changes one; empty
+  text clears it). The companions set theirs on the loopback door, `GET`/`POST
+  /api/internal/status`; `services/statuses.ts` keeps them in config, fades
+  each companion's back to Home six hours after it is set (the owner's stays
+  until changed), and tells the phone with `statuses`.
 - `stickers.ts` — sticker-pack CRUD and sticker lookup/upload/update/delete. A
   sticker's url is built from its filename, so every write picks a fresh one
   (`stickerFilenameFor` in `services/sticker-admin.ts`): new bytes at an

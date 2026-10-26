@@ -786,10 +786,14 @@ export function fitForWhite(color: string, toward = '#000000'): string {
   return `#${h(out.r)}${h(out.g)}${h(out.b)}`;
 }
 
-/** What a selected pill, tab or button is filled with: two tones like the
- *  user bubble so it isn't flat, both deep enough for white text. */
+/** What a selected pill, tab or button is filled with: two tones like the owner
+ *  bubble so it isn't flat, both deep enough for white text. The far end
+ *  only goes halfway to the second color, since the full turn read too tight
+ *  across a small tab (the owner's ask, Oct 26 2026). */
 export function selectedFill(from: string, to: string, page: string): string {
-  return `linear-gradient(135deg, ${fitForWhite(from, page)}, ${fitForWhite(to, page)})`;
+  const a = fitForWhite(from, page);
+  const b = fitForWhite(to, page);
+  return `linear-gradient(135deg, ${a}, color-mix(in srgb, ${a} 50%, ${b}))`;
 }
 
 export function contrastTextColor(color: string, fallback = '#ffffff', backdrop?: string): '#090807' | '#ffffff' {

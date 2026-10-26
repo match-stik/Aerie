@@ -198,6 +198,12 @@ export function markMessagesRead(threadId: string, beforeId: string, readAt: str
   resetStmt.run(threadId);
 }
 
+/** When one of us was handed this message of theirs, or null: not yet, not theirs, or no such row. */
+export function ownMessageReadAt(id: string): string | null {
+  const row = getDb().prepare(`SELECT read_at FROM messages WHERE id = ? AND role = 'user'`).get(id) as { read_at: string | null } | undefined;
+  return row?.read_at ?? null;
+}
+
 /**
  * The owner's own messages, stamped read because a companion has now been handed them:
  * a turn that starts on one, a side note handed over at the next turn, or a

@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { useEffect, useState } from 'react';
 import { Download, Loader2, Check, Smartphone } from 'lucide-react';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
@@ -20,6 +20,22 @@ interface StagedShell {
   notes?: string;
   bytes?: number;
 }
+
+/** The shell's own updater (AppUpdaterPlugin.java, app 1.48 on). */
+interface AppUpdaterBridge {
+  install(options: { versionCode: number }): Promise<{ state: string }>;
+  addListener(event: 'updateState', listener: (change: { state: string }) => void): Promise<PluginListenerHandle>;
+}
+const AppUpdater = registerPlugin<AppUpdaterBridge>('AppUpdater');
+
+/** What the update button says while the shell's own updater works. */
+const UPDATE_WORDS: Record<string, string> = {
+  starting: 'Starting…',
+  downloading: 'Downloading…',
+  'installer-open': 'Installer opened, tap again if it closed',
+  'needs-permission': 'Allow Aerie to install updates, then tap here again',
+  failed: "That didn't work, tap to try again",
+};
 
 /**
  * The Android shell's update lane, with a button on it.
@@ -40,6 +56,21 @@ export function AppUpdate({ themeConfig, themeMode }: Props) {
   const [loading, setLoading] = useState(true);
 
   const native = Capacitor.isNativePlatform();
+  // A shell that has its own updater fetches the update into its own storage
+  // and opens the installer itself, so nothing lands in the owner Downloads
+  // (Danielle's idea, Oct 25 2026). An older shell still gets the link.
+  const inApp = native && Capacitor.getPlatform() === 'android' && Capacitor.isPluginAvailable('AppUpdater');
+  const [updateState, setUpdateState] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!inApp) return;
+    let handle: PluginListenerHandle | null = null;
+    let gone = false;
+    AppUpdater.addListener('updateState', (change) => setUpdateState(change.state))
+      .then((h) => { if (gone) h.remove(); else handle = h; })
+      .catch(() => {});
+    return () => { gone = true; handle?.remove(); };
+  }, [inApp]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +141,35 @@ export function AppUpdate({ themeConfig, themeMode }: Props) {
             <Check size={12} style={{ color: colors.accent }} /> Nothing to install
           </div>
         ) : (
+          inApp ? (
+            <>
+              <button
+                type="button"
+                disabled={updateState === 'starting' || updateState === 'downloading'}
+                onClick={async () => {
+                  setUpdateState('starting');
+                  try {
+                    const started = await AppUpdater.install({ versionCode: stagedCode });
+                    setUpdateState(started.state);
+                  } catch {
+                    setUpdateState('failed');
+                  }
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold active:scale-[0.99] disabled:opacity-70"
+                style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
+              >
+                {updateState === 'starting' || updateState === 'downloading'
+                  ? <Loader2 size={14} className="animate-spin" />
+                  : <Download size={14} />}
+                {(updateState && UPDATE_WORDS[updateState]) || 'Update'}
+              </button>
+              <p className={cn('text-[10px] leading-relaxed', colors.textMuted)}>
+                Fetched straight into the app, so nothing lands in your Downloads,
+                and the installer opens on its own. The first time, Android asks
+                once whether Aerie may install updates.
+              </p>
+            </>
+          ) : (
           <>
             {/* An ordinary link, deliberately. The route already answers with
                 Content-Disposition, which is the one thing the shell's
@@ -129,6 +189,7 @@ export function AppUpdate({ themeConfig, themeMode }: Props) {
               notifications when the download finishes.
             </p>
           </>
+          )
         )}
       </div>
     </section>

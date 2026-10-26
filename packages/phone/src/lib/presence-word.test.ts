@@ -25,10 +25,11 @@ test('a contact card says the bell\'s word while it is up for them, and their ow
 test('the dot is off the faces, under them with the word, and pulses only while one of us is working or writing', () => {
   const app = read('../App.tsx');
   assert.doesNotMatch(app, /absolute bottom-0 right-0 w-2\.5 h-2\.5/, 'no dot sits on the faces any more');
-  const line = app.match(/<span data-presence-line=""[\s\S]*?<\/span>\s*<\/div>/)?.[0] ?? '';
+  const line = app.match(/<span\s+data-presence-line=""[\s\S]*?<\/span>\s*<\/div>/)?.[0] ?? '';
   assert.ok(line, 'one line under the faces');
   assert.match(line, /generating && "motion-safe:animate-pulse"/, 'the dot pulses while a reply is being worked on or written');
-  assert.match(line, /\{headerWord\(statusWord\)\}/, 'and the word beside it follows the bell');
+  assert.match(line, /statusWord\.word\?\.trim\(\) \? headerWord\(statusWord\)/, 'and the word beside it follows the bell first');
+  assert.match(line, /sharedStatus\?\.text \|\| headerWord\(statusWord\)/, 'then the status the three of us share, then Home (lib/statuses.ts, Oct 26 2026)');
   assert.ok(app.indexOf('data-presence-line') < app.indexOf('appSettings.groupChatName'), 'between the faces and the titles');
   assert.equal((app.match(/data-presence-line/g) ?? []).length, 1, 'one dot, not one per face');
 });
@@ -36,7 +37,7 @@ test('the dot is off the faces, under them with the word, and pulses only while 
 test('the phone hears the word from the house, and the cards and the header read the same one', () => {
   assert.match(read('../aerie/socket.ts'), /case 'status_word':/, 'the socket keeps the word the house says');
   assert.match(read('../aerie/hooks.ts'), /useStatusWord = \(\) => useAerie\(\(s\) => s\.statusWord\)/);
-  assert.match(read('../components/ContactInfo.tsx'), /status: cardStatus\(r\.slug, r\.status \|\| 'Online', statusWord\)/, 'our cards say it while it is up');
+  assert.match(read('../components/ContactInfo.tsx'), /status: cardStatus\(r\.slug, liveStatus\(statuses\.companions\[r\.slug\], statusNow\)\?\.text \|\| r\.status \|\| 'Online', statusWord\)/, 'our cards say it while it is up, and our own status under it');
   for (const file of ['../App.tsx', '../components/ContactInfo.tsx', './presence-word.ts', '../aerie/socket.ts']) {
     assert.doesNotMatch(read(file), /On a date|'Treehouse'/, `${file} carries no house word; the words are settings`);
   }

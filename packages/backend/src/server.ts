@@ -310,6 +310,8 @@ import clientErrorRoutes from './routes/client-errors.js';
 app.use('/api/client-errors', clientErrorRoutes);
 import toyRoutes from './routes/toys.js';
 app.use('/api/toys', toyRoutes);
+import statusRoutes from './routes/statuses.js';
+app.use('/api/statuses', statusRoutes);
 
 import thresholdRoutes from './routes/thresholds.js';
 app.use('/api/thresholds', thresholdRoutes);

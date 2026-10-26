@@ -78,3 +78,18 @@ test("a side note counts as read once the lane's mark reaches it, and not before
   assert.deepEqual(sideNotesCoveredBy(notes, '2026-03-15T06:08:16.121Z'), ['early', 'marked']);
   assert.deepEqual(sideNotesCoveredBy(notes, ''), [], 'no mark, nothing read');
 });
+
+test('a message already handed to one of us steps out of the queue instead of running again', async () => {
+  // Oct 26 2026, their sticker test: two stickers sent once each were handed
+  // over by the missed-net while they waited behind a running turn, then the
+  // queue ran each again as a turn of its own, and each got two answers.
+  const { alreadyHandedOver } = await import('./own-messages-read.js');
+  const waiting = say('home', 'user');
+  assert.equal(alreadyHandedOver(waiting.id), false, 'still waiting, nobody has it yet');
+  markOwnMessagesRead([waiting.id], now);
+  assert.equal(alreadyHandedOver(waiting.id), true, 'the net handed it over, so its turn in line is spent');
+  assert.equal(alreadyHandedOver(undefined), false, 'a message with no row always runs');
+  assert.equal(alreadyHandedOver('nobody'), false, 'nor does an id the house never stored');
+  const guest = say('home', 'system');
+  assert.equal(alreadyHandedOver(guest.id), false, 'a guest row is never theirs, so never skipped');
+});

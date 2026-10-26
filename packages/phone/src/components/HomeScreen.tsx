@@ -12,6 +12,11 @@ import { toggleWidget, type HomeWidget, type Layout } from '../lib/home-widgets'
 import { noteColorsForAccent, noteColorsForPalette } from '../lib/note-colors';
 import { HomeWidgets, QuietLine, WidgetSheet, type WidgetCompanion } from './HomeWidgets';
 
+/** A field that brings the keyboard up. */
+function isTextField(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+}
+
 interface HomeScreenProps {
   onOpenApp: (app: AppDef) => void;
   onOpenDrawer: () => void;
@@ -29,6 +34,8 @@ interface HomeScreenProps {
   widgetSpots: Layout;
   quietLine: boolean;
   companions: WidgetCompanion[];
+  /** The owner's custom emojis, for a status icon on the companions widget. */
+  customEmojis?: import('../types').CustomEmoji[];
   stickyNoteColors?: string[];
   onThemeChange: (updates: Partial<AppTheme>) => void;
 }
@@ -45,6 +52,7 @@ export function HomeScreen({
   widgetSpots,
   quietLine,
   companions,
+  customEmojis,
   stickyNoteColors,
   onThemeChange,
 }: HomeScreenProps) {
@@ -54,6 +62,8 @@ export function HomeScreen({
   // home screen does. Not from inside a text box, where a long press selects,
   // and not on a widget, where a long press picks the widget up to move it.
   const [sheet, setSheet] = useState(false);
+  // A box in a widget has the keyboard up; the dock steps aside meanwhile.
+  const [typingInWidget, setTypingInWidget] = useState(false);
   // Back closes the widget sheet rather than putting the whole app away.
   useBackHandler(sheet, () => setSheet(false));
   const holdTimer = useRef<number | null>(null);
@@ -138,7 +148,9 @@ export function HomeScreen({
           and the long press that opens the widget sheet. */}
       <div
         className="flex flex-1 flex-col justify-end px-5"
-        style={{ paddingBottom: quietLine ? 168 : 124 }}
+        style={{ paddingBottom: typingInWidget ? 12 : quietLine ? 168 : 124 }}
+        onFocusCapture={(e) => { if (isTextField(e.target)) setTypingInWidget(true); }}
+        onBlurCapture={(e) => { if (isTextField(e.target)) setTypingInWidget(false); }}
         {...holdHandlers}
         onContextMenu={(e) => e.preventDefault()}
       >
@@ -146,7 +158,9 @@ export function HomeScreen({
           widgets={widgets}
           spots={widgetSpots}
           companions={companions}
+          customEmojis={customEmojis}
           notePalette={notePalette}
+          themeMode={themeMode}
           onOpenAppId={openById}
           onPlace={(layout) => onThemeChange({ homeWidgetSpots: layout })}
         />
@@ -155,8 +169,15 @@ export function HomeScreen({
       {/* Dock — each button gets a fixed width so swapping the theme font
           (sans/serif/mono) can't make the labels widen the row and push
           the dock past the viewport. A long label shrinks to fit its button
-          rather than being cut. */}
-      <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-2 px-4">
+          rather than being cut (their catch, Oct 16 2026: MESSAGES and
+          TREEHOUSE were losing their ends). */}
+      {/* While the owner types into a widget the keyboard takes the bottom of the
+          screen, and the dock rode up over the box the owner was typing in (theirs,
+          Oct 26 2026, a screenshot); it steps aside until the owner is done. */}
+      <div
+        className={cn("absolute bottom-4 left-0 right-0 flex flex-col items-center gap-2 px-4 transition-opacity duration-150", typingInWidget && "pointer-events-none opacity-0")}
+        aria-hidden={typingInWidget || undefined}
+      >
         {quietLine && (
           <div className="w-full max-w-[380px]">
             <QuietLine companions={companions} onOpen={() => openById('messages')} />

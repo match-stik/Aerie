@@ -11,6 +11,7 @@ import { apiFetch } from '../aerie';
 import { ThemeConfig } from '../lib/theme';
 import { SecretInput } from './SecretInput';
 import { cn } from '../lib/utils';
+import { Toggle } from './Toggle';
 import { useBackHandler } from '../lib/use-back-handler';
 
 interface CompanionsAppProps {
@@ -18,6 +19,8 @@ interface CompanionsAppProps {
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
   onCompanionsChange?: () => void;
+  ownColorSlugs?: string[];
+  onOwnColorChange?: (slugs: string[]) => void;
 }
 
 interface Companion {
@@ -49,6 +52,8 @@ export function CompanionsApp({
   themeConfig,
   themeMode,
   onCompanionsChange,
+  ownColorSlugs = [],
+  onOwnColorChange,
 }: CompanionsAppProps) {
   const colors = themeConfig[themeMode];
 
@@ -497,6 +502,17 @@ export function CompanionsApp({
                           </div>
                         )}
                       </div>
+                      {onOwnColorChange && (
+                        <div className="col-span-2 flex items-center justify-between gap-3">
+                          <span className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>His status wears this color</span>
+                          <Toggle
+                            on={ownColorSlugs.includes(c.slug)}
+                            onClick={() => onOwnColorChange(ownColorSlugs.includes(c.slug) ? ownColorSlugs.filter((s) => s !== c.slug) : [...ownColorSlugs, c.slug])}
+                            colors={colors}
+                            ariaLabel={`${c.display_name}'s status line wears his own color instead of the theme's`}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Their own model. Empty means the house setting, which is

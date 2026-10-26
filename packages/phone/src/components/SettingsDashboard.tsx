@@ -28,7 +28,8 @@ import { AppShell } from "./AppShell";
 import Cropper from "react-easy-crop";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
-import { AppTheme, ThemeId, ThemeMode, AppSettings } from "../types";
+import { AppTheme, ThemeId, ThemeMode, AppSettings, EmojiPack } from "../types";
+import { QuickReactionsSetting } from "./QuickReactionsSetting";
 import { PALETTE_THEME_IDS, THEMES, resolveThemeColors, themeRadiusPx } from "../lib/theme";
 import { APPS, drawerColumnsOf, migrateAppIds, useAppName } from "../lib/apps";
 import { noteColorsForAccent, noteColorsForPalette } from '../lib/note-colors';
@@ -81,6 +82,8 @@ interface SettingsDashboardProps {
   onClose: () => void;
   /** The owner's name, for the bubble preview's label. */
   ownerName?: string;
+  /** The owner emoji packs, for the quick-reaction picker's tabs. */
+  emojiPacks?: EmojiPack[];
 }
 
 export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
@@ -90,6 +93,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   onSettingsChange,
   onClose,
   ownerName = "You",
+  emojiPacks,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -938,6 +942,15 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                         className="h-6 w-10 cursor-pointer rounded border-0 bg-transparent p-0"
                       />
                     </label>
+                    <div className="flex items-center gap-2">
+                      <span className={cn("text-[11px] font-bold uppercase tracking-widest", colors.textMuted)}>My status matches theirs</span>
+                      <Toggle
+                        on={!!appSettings.ownerCardMatchesTheme}
+                        onClick={() => onSettingsChange({ ownerCardMatchesTheme: !appSettings.ownerCardMatchesTheme })}
+                        colors={colors}
+                        ariaLabel="My contact card uses the theme's accent like theirs"
+                      />
+                    </div>
                   </div>
                 </div>
                 <input
@@ -1695,6 +1708,15 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                   </div>
                 </div>
               </section>
+
+              {/* The five at the top of the React tray. */}
+              <QuickReactionsSetting
+                colors={colors}
+                value={appSettings.quickReactions}
+                customEmojis={appSettings.customEmojis}
+                emojiPacks={emojiPacks}
+                onChange={(next) => onSettingsChange({ quickReactions: next })}
+              />
 
               </>)}
               {pane === 'home' && (<>

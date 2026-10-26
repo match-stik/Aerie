@@ -354,6 +354,16 @@ function handleMessage(event: MessageEvent): void {
       setState({ presence: msg.status });
       break;
 
+    case 'statuses':
+      setState({
+        statuses: {
+          shared: msg.shared && typeof msg.shared === 'object' ? msg.shared : null,
+          companions: msg.companions && typeof msg.companions === 'object' ? msg.companions : {},
+          owner: msg.owner && typeof msg.owner === 'object' ? msg.owner : null,
+        },
+      });
+      break;
+
     case 'status_word':
       setState({
         statusWord: {

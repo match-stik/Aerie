@@ -19,6 +19,7 @@ import { isHeartbeatLane } from '../services/compaction-log.js';
 import { basename, resolve, dirname, join } from 'path';
 import { getAllBlocks } from '../services/memory-blocks.js';
 import { driftAgainstBaseline, renderDrift, BASELINE_FILE } from '../services/heartbeat/block-drift.js';
+import { readStatuses, setStatus, SHARED, OWNER } from '../services/statuses.js';
 import { readPlayRequest, spotify } from '../services/spotify.js';
 import { wakeAndPlay } from '../services/spotify-wake.js';
 import { getPushService } from '../services/push.js';
@@ -2012,6 +2013,41 @@ router.post('/internal/story-shelf/keepsakes/:id/weave', (req, res) => {
   } catch (error) {
     answerStoryError(res, error, 'weave the keepsake');
   }
+});
+
+// Statuses (services/statuses.ts): a companion sets his own line and icon, or
+// with shared:true the one under the faces that the three of them share. An
+// empty text clears it. Each fades back to Home six hours after it was set.
+router.get('/internal/status', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  res.json({ ...readStatuses(), how: 'POST /api/internal/status { companion, text, icon? } sets yours; add shared: true to set the one under the faces that the companions share. text "" clears it. icon is one emoji or a custom :shortcode:. Each fades back to Home six hours after it is set; a bell\'s word still outranks it while the bell rings. owner is the owner status, set only from their phone, and stays until the owner changes it.' });
+});
+
+router.post('/internal/status', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const companion = typeof req.body?.companion === 'string' ? req.body.companion.trim() : '';
+  if (!companion) {
+    res.status(400).json({ ok: false, error: 'companion is your slug.' });
+    return;
+  }
+  if (companion === OWNER) {
+    res.status(403).json({ ok: false, error: 'The owner status is theirs to set, from their phone.' });
+    return;
+  }
+  const who = req.body?.shared === true ? SHARED : companion;
+  const result = setStatus(who, req.body ?? {}, companion);
+  if (!result.ok) {
+    res.status(400).json({ ok: false, error: result.error });
+    return;
+  }
+  console.log(`[Status] ${companion} set ${who === SHARED ? 'the shared status' : 'his status'}: ${typeof req.body?.text === 'string' && req.body.text.trim() ? req.body.text.trim().slice(0, 60) : '(cleared)'}`);
+  res.json({ ok: true, ...result.statuses });
 });
 
 // ---- Spotify on their phone, even when Spotify is closed ----

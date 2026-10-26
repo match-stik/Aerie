@@ -27,6 +27,7 @@ export {
   useActiveThreadId,
   usePresence,
   useStatusWord,
+  useStatuses,
   useUnreadCounts,
   useLastError,
   useContextUsage,

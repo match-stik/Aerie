@@ -18,7 +18,10 @@ import {
   Send,
   Shuffle,
   Waves,
+  Sticker,
 } from 'lucide-react';
+import { StickerPicker } from '../StickerPicker';
+import { isStickerImage, StickerImage, stickersToMarkdown, useStickerPacks } from '../RichWords';
 import { apiFetch, markRead } from '../../aerie';
 import type { Message as PhoneMessage } from '../../types';
 import { useHouseRoster, OWNER_SIGIL, getOwnerAvatar, type HouseCompanion } from '../../lib/house';
@@ -455,6 +458,8 @@ function RailAvatar({
 }
 
 function RailMarkdown({ children }: { children: string }) {
+  // Our stickers are pictures in the Fleet Room too, not their codes (RichWords.tsx).
+  useStickerPacks();
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -469,9 +474,10 @@ function RailMarkdown({ children }: { children: string }) {
             {content}
           </code>
         ),
+        img: ({ src, alt }) => (isStickerImage(alt) ? <StickerImage src={typeof src === 'string' ? src : undefined} alt={alt} /> : <img src={typeof src === 'string' ? src : undefined} alt={alt ?? ''} className="max-w-full rounded-lg" />),
       }}
     >
-      {children}
+      {stickersToMarkdown(children)}
     </ReactMarkdown>
   );
 }
@@ -613,6 +619,7 @@ const RailConversation = React.memo(function RailConversation({
 });
 
 export function BattleshipGame({
+  colors,
   rawColors,
 }: {
   colors: ThemeColors;
@@ -629,6 +636,16 @@ export function BattleshipGame({
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [chat, setChat] = useState('');
+  // A sticker in the room, the same tray as chat, on a line of its own; Enter
+  // is a new line and the button sends (the owner's ask, Oct 26 2026).
+  const [stickers, setStickers] = useState(false);
+  const chatBox = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const box = chatBox.current;
+    if (!box) return;
+    box.style.height = 'auto';
+    box.style.height = `${Math.min(Math.max(box.scrollHeight, 48), 140)}px`;
+  }, [chat]);
   const [railExpanded, setRailExpanded] = useState(false);
   const SendIcon = getOwnSendIcon();
   const railScrollRef = useRef<HTMLDivElement>(null);
@@ -1097,23 +1114,44 @@ export function BattleshipGame({
           )}
 
           <div className="mt-3 flex gap-2">
-            <input
+            <textarea
+              ref={chatBox}
+              rows={1}
               value={chat}
               onChange={(event) => setChat(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') void sendChat();
-              }}
               disabled={working || game.companionPending}
               maxLength={500}
               placeholder={game.companionPending ? 'The companions are answering…' : 'Speak into the room…'}
-              className="min-w-0 flex-1 rounded-2xl border px-4 py-3 text-[16px] leading-6 outline-none placeholder:opacity-60 disabled:opacity-55"
+              className="min-w-0 flex-1 resize-none rounded-2xl border px-4 py-3 text-[16px] leading-6 outline-none placeholder:opacity-60 disabled:opacity-55"
               style={{ backgroundColor: PANEL_SURFACE, borderColor: PANEL_BORDER, color: PANEL_TEXT }}
             />
             <button
               type="button"
+              onClick={() => setStickers(true)}
+              disabled={working || game.companionPending}
+              aria-label="Add a sticker"
+              title="Add a sticker"
+              className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full border disabled:opacity-30"
+              style={{ borderColor: PANEL_BORDER, color: PANEL_TEXT }}
+            >
+              <Sticker size={18} />
+            </button>
+            {stickers && (
+              <StickerPicker
+                colors={colors}
+                onSelect={(code) => {
+                  setChat((c) => (c.trim() ? `${c.replace(/\s+$/, '')}\n${code}\n` : `${code}\n`).slice(0, 500));
+                  setStickers(false);
+                  window.setTimeout(() => chatBox.current?.focus(), 50);
+                }}
+                onClose={() => setStickers(false)}
+              />
+            )}
+            <button
+              type="button"
               onClick={sendChat}
               disabled={working || game.companionPending || !chat.trim()}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full disabled:opacity-30"
+              className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full disabled:opacity-30"
               style={{ backgroundColor: rawColors.accent, color: rawColors.accentText }}
               aria-label="Speak into the Fleet Room"
             >

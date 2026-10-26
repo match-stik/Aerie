@@ -13,6 +13,7 @@ import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
 import { saveHref } from '../lib/download';
 import { useBackHandler } from '../lib/use-back-handler';
+import { sessionIsGone } from '../lib/gif-session';
 
 interface CutoutAppProps {
   themeConfig: ThemeConfig;
@@ -369,28 +370,42 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
   // because it holds actual frames; every picture here lives on the server under its
   // session id, so all this has to remember is the pointers and the colour settings —
   // small enough for localStorage and far simpler than a database.
+  // A picture the house has swept (a session untouched for a week) is not put
+  // back: the owner gets an empty page to start fresh on, like the GIF Lab, instead
+  // of tiles with no pictures in them (the owner's ask, Oct 26 2026).
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(CUTOUT_SESSION_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const raw = window.localStorage.getItem(CUTOUT_SESSION_KEY);
+        const saved = raw ? JSON.parse(raw) : null;
         if (saved?.sessionId && saved?.filename) {
-          setSessionId(saved.sessionId);
-          setFilename(saved.filename);
-          setImageUrl(saved.imageUrl || '');
-          setCut(!!saved.cut);
-          setBatch(Array.isArray(saved.batch) ? saved.batch : []);
-          if (saved.keyColour) setKeyColour(saved.keyColour);
-          if (typeof saved.tolerance === 'number') setTolerance(saved.tolerance);
-          if (typeof saved.softness === 'number') setSoftness(saved.softness);
-          if (typeof saved.greenScreen === 'boolean') setGreenScreen(saved.greenScreen);
-          if (saved.mode) setMode(saved.mode);
+          const savedBatch: BatchItem[] = Array.isArray(saved.batch) ? saved.batch : [];
+          const ids = [...new Set([saved.sessionId as string, ...savedBatch.map((b) => b.sessionId).filter(Boolean)])];
+          const gone = new Set<string>();
+          for (const id of ids) if (await sessionIsGone(id)) gone.add(id);
+          if (cancelled) return;
+          if (gone.has(saved.sessionId)) {
+            window.localStorage.removeItem(CUTOUT_SESSION_KEY);
+          } else {
+            setSessionId(saved.sessionId);
+            setFilename(saved.filename);
+            setImageUrl(saved.imageUrl || '');
+            setCut(!!saved.cut);
+            setBatch(savedBatch.filter((b) => !gone.has(b.sessionId)));
+            if (saved.keyColour) setKeyColour(saved.keyColour);
+            if (typeof saved.tolerance === 'number') setTolerance(saved.tolerance);
+            if (typeof saved.softness === 'number') setSoftness(saved.softness);
+            if (typeof saved.greenScreen === 'boolean') setGreenScreen(saved.greenScreen);
+            if (saved.mode) setMode(saved.mode);
+          }
         }
+      } catch {
+        // A private webview can refuse storage; the app still works, it just forgets.
       }
-    } catch {
-      // A private webview can refuse storage; the app still works, it just forgets.
-    }
-    setRestored(true);
+      if (!cancelled) setRestored(true);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {

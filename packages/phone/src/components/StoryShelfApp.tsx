@@ -23,7 +23,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { LibraryBig, Loader2, RefreshCw, Spool } from 'lucide-react';
+import { LibraryBig, Loader2, RefreshCw, Spool, Sticker } from 'lucide-react';
+import { StickerPicker } from './StickerPicker';
+import { isStickerImage, StickerImage, stickersToMarkdown, useStickerPacks } from './RichWords';
 import {
   STORY_LIMITS,
   type StoryBook,
@@ -488,6 +490,8 @@ const LABEL = 'text-[10px] font-bold uppercase tracking-[0.14em]';
 
 /** Words, drawn the way the journal draws them, whisper lines included. */
 function Words({ text, colors, className }: { text: string; colors: ThemeColors; className?: string }) {
+  // Our stickers are pictures here too, not their codes (RichWords.tsx).
+  useStickerPacks();
   return (
     <div className={cn('text-sm leading-relaxed [overflow-wrap:anywhere]', colors.textMain, className)}>
       <ReactMarkdown
@@ -496,9 +500,10 @@ function Words({ text, colors, className }: { text: string; colors: ThemeColors;
           p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
           // A "-# whisper" line, the same as chat and the journal draw it.
           h6: ({ children }) => <span className="block text-[11px] italic leading-snug opacity-60">{children}</span>,
+          img: ({ src, alt }) => (isStickerImage(alt) ? <StickerImage src={typeof src === 'string' ? src : undefined} alt={alt} /> : <img src={typeof src === 'string' ? src : undefined} alt={alt ?? ''} className="max-w-full rounded-lg" />),
         }}
       >
-        {text.replace(/(^|\n)-# +(.*)/g, (_line, start: string, whisper: string) => `${start}###### ${whisper}`)}
+        {stickersToMarkdown(text.replace(/(^|\n)-# +(.*)/g, (_line, start: string, whisper: string) => `${start}###### ${whisper}`))}
       </ReactMarkdown>
     </div>
   );
@@ -1360,6 +1365,14 @@ function talkSections(line: StoryTalkLine, companions: HouseCompanion[]) {
 function TableRail({ draftKey, sending, colors, onSend }: { draftKey: string; sending: boolean; colors: ThemeColors; onSend: Send }) {
   const [draft, setDraft] = useKeptDraft(draftKey);
   const box = useGrowingBox(draft, 40, 132);
+  // A sticker at the table, the same tray as chat, on a line of its own
+  // (the owner's ask, Oct 26 2026). Enter is already a new line here; Say it sends.
+  const [stickers, setStickers] = useState(false);
+  const addSticker = (code: string) => {
+    setDraft(draft.trim() ? `${draft.replace(/\s+$/, '')}\n${code}\n` : `${code}\n`);
+    setStickers(false);
+    window.setTimeout(() => box.current?.focus(), 50);
+  };
   const submit = async () => {
     const text = draft.trim();
     if (!text) return;
@@ -1377,6 +1390,16 @@ function TableRail({ draftKey, sending, colors, onSend }: { draftKey: string; se
         aria-label="Say something at the table"
         className={cn('min-h-[40px] flex-1 resize-none rounded-xl border bg-transparent px-3 py-2 text-[13px] outline-none', colors.panelBorder, colors.textMain)}
       />
+      <button
+        type="button"
+        onClick={() => setStickers(true)}
+        aria-label="Add a sticker"
+        title="Add a sticker"
+        className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border', colors.panelBorder, colors.textMuted)}
+      >
+        <Sticker size={16} />
+      </button>
+      {stickers && <StickerPicker colors={colors} onSelect={(code) => addSticker(code)} onClose={() => setStickers(false)} />}
       <button
         type="button"
         disabled={sending || !draft.trim()}

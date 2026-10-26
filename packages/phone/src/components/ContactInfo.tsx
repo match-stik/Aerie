@@ -3,10 +3,12 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { X, Camera, Phone, User, Check, Edit2, Plus, Minus } from 'lucide-react';
 import { motion } from 'motion/react';
 import Cropper from 'react-easy-crop';
-import { ContactProfile, ThemeMode } from '../types';
+import { ContactProfile, ThemeMode, CustomEmoji, EmojiPack } from '../types';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
-import { apiFetch, useStatusWord } from '../aerie';
+import { apiFetch, useStatusWord, useStatuses } from '../aerie';
+import { liveStatus, useMinuteClock } from '../lib/statuses';
+import { StatusEditor, StatusIcon } from './Statuses';
 import { cardStatus } from '../lib/presence-word';
 import { useBackHandler } from '../lib/use-back-handler';
 import getCroppedImg, { createImage } from '../lib/cropImage';
@@ -19,6 +21,7 @@ interface ContactInfoProps {
       wears what they picked rather than asking them to choose it twice. */
   userAvatar?: string;
   userAvatarColor?: string;
+  companionCardsOwnColor?: string[];
   userName?: string;
   contacts: Record<string, ContactProfile>;
   /** The roster the phone is ALREADY holding — it draws the faces at the top of a
@@ -34,12 +37,15 @@ interface ContactInfoProps {
   /** A picture changed on the owner's own card: it becomes the owner's avatar,
       the same one Settings sets. */
   onUpdateUserAvatar?: (image: string) => void;
+  /** The owner's custom emojis and packs, for a status icon and the icon picker. */
+  customEmojis?: CustomEmoji[];
+  emojiPacks?: EmojiPack[];
   onClose: () => void;
 }
 
 export const OWNER_CARD_ID = '__owner__';
 
-export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode, userAvatar, userAvatarColor, userName, contacts, initialRows, onUpdateContact, onCompanionAvatar, onUpdateUserAvatar, onClose }) => {
+export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode, userAvatar, userAvatarColor, companionCardsOwnColor, userName, contacts, initialRows, onUpdateContact, onCompanionAvatar, onUpdateUserAvatar, customEmojis, emojiPacks, onClose }) => {
   const contactIds = Object.keys(contacts);
   const [activeContact, setActiveContact] = useState<string>(contactIds[0] || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -58,12 +64,17 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
     id: string; slug: string; display_name: string;
     bio: string | null; status: string | null; phone: string | null; avatar_url: string | null;
     model: string | null; model_autonomous: string | null; effort: string | null;
+    color?: string | null;
   };
   // Seeded from what the phone already has, so the usual case has no gap to fill at
   // all — the card opens as us. The fetch below still runs and refreshes it.
   const [rows, setRows] = useState<CompanionRow[]>((initialRows as CompanionRow[]) || []);
   // The word under the faces, while a bell that has one is running; our cards say it too.
   const statusWord = useStatusWord();
+  // Each of ours, set by us or by the owner (lib/statuses.ts); a faded one is Home again.
+  const statuses = useStatuses();
+  const statusNow = useMinuteClock();
+  const [editingStatus, setEditingStatus] = useState(false);
   // "The house has answered" — true whether it answered with a roster or not.
   // Distinguishes a roster that is LATE from one that is genuinely absent.
   const [rosterLoaded, setRosterLoaded] = useState((initialRows?.length ?? 0) > 0);
@@ -111,7 +122,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
       image: r.avatar_url || localTwin?.image || '',
       bio: r.bio || '',
       // While a bell's word is up for them it says that instead (lib/presence-word.ts).
-      status: cardStatus(r.slug, r.status || 'Online', statusWord),
+      status: cardStatus(r.slug, liveStatus(statuses.companions[r.slug], statusNow)?.text || r.status || 'Online', statusWord),
       phone: r.phone || '',
     };
   }
@@ -121,7 +132,9 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
       name: userName || owner.name || 'You',
       image: userAvatar || '',
       bio: owner.bio,
-      status: owner.status,
+      // Their own status while the owner has one set (it stays until the owner changes it),
+      // and their card's resting word when the owner has none.
+      status: liveStatus(statuses.owner, statusNow)?.text || owner.status,
       phone: owner.phone,
     };
   }
@@ -144,7 +157,6 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
   const colors = themeConfig[themeMode];
   const baseAccent = colors.accent === '#000000' ? '#FFFFFF' : colors.accent;
   // The owner's ring color is the accent on their own card; ours stays the theme's.
-  const displayAccent = (isOwnerCard && userAvatarColor) ? userAvatarColor : baseAccent;
 
   const patchOwner = (updates: Record<string, string>) => {
     setOwner(prev => (prev ? { ...prev, ...updates } : prev));
@@ -155,6 +167,18 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
     }).catch(() => { /* the next open re-reads the truth */ });
   };
   const row = rows.find(r => r.slug === activeId) || null;
+  // A companion whose switch is on in the Companions app wears his own color
+  // here instead of the theme's accent.
+  const ownColor = !isOwnerCard && row?.color && companionCardsOwnColor?.includes(row.slug) ? row.color : null;
+  const displayAccent = (isOwnerCard && userAvatarColor) ? userAvatarColor : ownColor || baseAccent;
+  // The status on the open card, while it lasts, and whether a bell's word covers it.
+  const cardStatusLine = isOwnerCard
+    ? liveStatus(statuses.owner, statusNow)
+    : row ? liveStatus(statuses.companions[row.slug], statusNow) : null;
+  // Whose status the card's line changes: theirs on their card, his on his.
+  const statusWho = isOwnerCard ? 'owner' : row?.slug ?? null;
+  const bellUpForCard = !!statusWord.word?.trim() && !!row && (statusWord.companions.length === 0 || statusWord.companions.includes(row.slug));
+  useEffect(() => { setEditingStatus(false); }, [activeId]);
 
   // Keep the state in step with what is actually being shown, so edits and the
   // switcher act on the card the owner is looking at.
@@ -470,7 +494,19 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white/50 text-sm font-sans not-italic tracking-normal">Edit</span>
                 </h2>
               )}
-              <p className="text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2" style={{ color: displayAccent }}>
+              {/* His status, or theirs on their card: tap to change it
+                  (components/Statuses.tsx). The icon takes the dot's place
+                  while it lasts; a bell's word still wins while it is up for
+                  him. */}
+              <p
+                className={cn("text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2", statusWho && "cursor-pointer")}
+                style={{ color: displayAccent }}
+                onClick={() => { if (statusWho) setEditingStatus((v) => !v); }}
+                title={isOwnerCard ? 'Change your status' : row ? 'Change his status' : undefined}
+              >
+                {cardStatusLine?.icon && !(bellUpForCard && !isOwnerCard) ? (
+                  <StatusIcon icon={cardStatusLine.icon} customEmojis={customEmojis} className="text-sm normal-case tracking-normal" />
+                ) : (
                 <span 
                   className={cn(
                     "w-2 h-2 rounded-full animate-pulse",
@@ -481,8 +517,21 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                     boxShadow: themeConfig.id === 'monochrome' && themeMode === 'light' ? undefined : `0 0 10px ${displayAccent}80` 
                   }} 
                 />
+                )}
                 {current.status}
               </p>
+              {editingStatus && statusWho && (
+                <div className={cn("mt-3 p-3 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
+                  <StatusEditor
+                    who={statusWho}
+                    current={cardStatusLine}
+                    colors={colors}
+                    customEmojis={customEmojis}
+                    emojiPacks={emojiPacks}
+                    onDone={() => setEditingStatus(false)}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

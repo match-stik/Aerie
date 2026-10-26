@@ -4,7 +4,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronDown, TreePine, Users } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
-import { cn, parseInlineMarkdown } from '../lib/utils';
+import { cn } from '../lib/utils';
+import { InlineWithStickers } from './RichWords';
 import { splitWhispers } from '../lib/whisper-lines';
 import { splitMessageVoices } from '../lib/voices';
 import { apiFetch, markRead } from '../aerie';
@@ -122,7 +123,7 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
               key={i}
               className={run.whisper ? 'block whitespace-pre-wrap text-[11px] leading-snug opacity-60 italic' : 'block whitespace-pre-wrap'}
             >
-              {parseInlineMarkdown(run.text)}
+              <InlineWithStickers text={run.text} />
             </span>
           ))}
         </p>

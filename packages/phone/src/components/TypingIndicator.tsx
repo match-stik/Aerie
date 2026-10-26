@@ -9,9 +9,6 @@ import { accentTriad, inkOn } from '../lib/bubble-look';
 interface TypingIndicatorProps {
   themeConfig: ThemeConfig;
   themeMode: ThemeMode;
-  /** Which corner the companions' tails come from, so the dots match
-   *  companion bubbles (the Bubbles switches, lib/bubble-look.ts). */
-  tail?: 'top' | 'bottom';
   /** Who is in the room, in house order: one dot each in their own color
    *  Empty keeps the
    *  bubble's ink, as before. */
@@ -24,7 +21,7 @@ interface TypingIndicatorProps {
   themeColors?: string[];
 }
 
-export function TypingIndicator({ themeConfig, themeMode, tail = 'top', companions = [], accent, themeColors }: TypingIndicatorProps) {
+export function TypingIndicator({ themeConfig, themeMode, companions = [], accent, themeColors }: TypingIndicatorProps) {
   const colors = themeConfig[themeMode];
   const reduceMotion = useReducedMotion();
   // Each dot is fitted to the bubble it sits on, read off the page, so a
@@ -52,9 +49,10 @@ export function TypingIndicator({ themeConfig, themeMode, tail = 'top', companio
       transition={{ duration: reduceMotion ? 0 : 0.2 }}
       className="flex justify-start mb-6"
     >
+      {/* No tail: a tail points at whoever said something, and while the dots
+          are going nobody has yet (the owner's catch, Oct 26 2026). All four corners round. */}
       <div ref={bubbleRef} className={cn(
         "px-5 py-3.5 rounded-[var(--shape-bubble)] border backdrop-blur-md",
-        tail === 'bottom' ? "rounded-bl-none" : "rounded-tl-none",
         colors.compBubbleBg,
         colors.compBubbleText,
         colors.panelBorder
