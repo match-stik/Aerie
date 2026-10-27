@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import { spawn } from 'child_process';
-import { join, basename, extname } from 'path';
+import { join, basename, extname, resolve, sep } from 'path';
 import { mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync, writeFileSync, statSync, rmSync, utimesSync } from 'fs';
 import { randomUUID, createHash } from 'crypto';
 import multer from 'multer';
@@ -18,6 +18,19 @@ import { sweepGifWork } from '../services/gif-work-sweep.js';
 const router = Router();
 const DATA_DIR = join(process.cwd(), 'data');
 const GIF_WORK_DIR = join(DATA_DIR, 'gif-work');
+const GIF_WORK_ROOT = resolve(GIF_WORK_DIR);
+
+/**
+ * A path under the GIF working folder, or null if the parts would land
+ * anywhere else. Every route still checks its names first; this resolves the
+ * joined path and confirms it stays inside the folder, the form of the check a
+ * code scanner can follow, so new routes stop being reported as path traversal.
+ */
+function gifWorkPath(...parts: string[]): string | null {
+  const full = resolve(GIF_WORK_ROOT, ...parts);
+  if (!full.startsWith(GIF_WORK_ROOT + sep)) return null;
+  return full;
+}
 const CUTOUT_SCRIPT = join(process.cwd(), 'tools', 'cutout.py');
 const STILL_EXPORT_SCRIPT = join(process.cwd(), 'tools', 'still-export.py');
 const MASK_PAINT_SCRIPT = join(process.cwd(), 'tools', 'mask-paint.py');
@@ -209,7 +222,8 @@ router.get('/gif/frame/:sessionId/:filename', (req, res) => {
     res.status(400).json({ error: 'Invalid path' });
     return;
   }
-  const framePath = join(GIF_WORK_DIR, sessionId, filename);
+  const framePath = gifWorkPath(sessionId, filename);
+  if (!framePath) { res.status(400).json({ error: 'Invalid path' }); return; }
   if (!existsSync(framePath)) {
     res.status(404).json({ error: 'Frame not found' });
     return;
@@ -233,7 +247,8 @@ router.post('/gif/upload-frame', upload.single('file'), async (req, res) => {
     res.status(400).json({ error: 'Invalid session' });
     return;
   }
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   mkdirSync(sessionDir, { recursive: true });
 
   try {
@@ -291,7 +306,8 @@ router.post('/gif/save-frame/:sessionId/:filename', (req, res) => {
     return;
   }
 
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   if (!existsSync(sessionDir)) {
     res.status(404).json({ error: 'Session not found' });
     return;
@@ -430,7 +446,8 @@ router.post('/gif/crop/:sessionId', async (req, res) => {
     return;
   }
 
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   if (!existsSync(sessionDir)) {
     res.status(404).json({ error: 'Session not found' });
     return;
@@ -541,7 +558,8 @@ router.post('/gif/crop/:sessionId/undo', (req, res) => {
     res.status(400).json({ error: 'That is not a valid session.' });
     return;
   }
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   if (!existsSync(sessionDir)) {
     res.status(404).json({ error: 'Session not found' });
     return;
@@ -594,7 +612,8 @@ router.post('/gif/cutout/:sessionId/:filename', async (req, res) => {
     return;
   }
 
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   const framePath = join(sessionDir, filename);
   if (!existsSync(framePath)) {
     res.status(404).json({ error: 'Frame not found' });
@@ -652,7 +671,8 @@ router.post('/gif/undo/:sessionId/:filename', (req, res) => {
     res.status(400).json({ error: 'Invalid path' });
     return;
   }
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   const steps = existsSync(sessionDir) ? listSteps(sessionDir, filename) : [];
   const last = steps[steps.length - 1];
   if (last === undefined) {
@@ -682,7 +702,8 @@ router.post('/gif/cutout/:sessionId/:filename/revert', (req, res) => {
     res.status(400).json({ error: 'Invalid path' });
     return;
   }
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   const originalPath = join(sessionDir, `original-${filename}`);
   const pristinePath = join(sessionDir, `pristine-${filename}`);
   // Back to the picture as it came in when the house has it; a frame changed
@@ -725,7 +746,8 @@ router.post('/gif/still-export/:sessionId/:filename', async (req, res) => {
     return;
   }
 
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   const framePath = join(sessionDir, filename);
   if (!existsSync(framePath)) {
     res.status(404).json({ error: 'Frame not found' });
@@ -811,7 +833,8 @@ router.post(
       return;
     }
 
-    const sessionDir = join(GIF_WORK_DIR, sessionId);
+    const sessionDir = gifWorkPath(sessionId);
+    if (!sessionDir) { cleanup(); res.status(400).json({ error: 'Invalid session' }); return; }
     const framePath = join(sessionDir, filename);
     if (!existsSync(framePath)) {
       cleanup();
@@ -874,7 +897,8 @@ router.post('/gif/chroma-key/:sessionId/:filename', async (req, res) => {
     return;
   }
 
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   const framePath = join(sessionDir, filename);
   if (!existsSync(framePath)) {
     res.status(404).json({ error: 'Frame not found' });
@@ -1012,7 +1036,8 @@ router.post('/gif/create', async (req, res) => {
     return;
   }
 
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   if (!existsSync(sessionDir)) {
     res.status(404).json({ error: 'Session not found' });
     return;
@@ -1446,7 +1471,8 @@ router.post('/gif/optimize/:sessionId/:filename', async (req, res) => {
     return;
   }
 
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   const gifPath = join(sessionDir, filename);
   if (!existsSync(gifPath)) {
     res.status(404).json({ error: 'GIF not found' });
@@ -1568,7 +1594,8 @@ router.post('/gif/speed/:sessionId/:filename', async (req, res) => {
     return;
   }
 
-  const gifPath = join(GIF_WORK_DIR, sessionId, filename);
+  const gifPath = gifWorkPath(sessionId, filename);
+  if (!gifPath) { res.status(400).json({ error: 'Invalid path' }); return; }
   if (!existsSync(gifPath)) {
     res.status(404).json({ error: 'GIF not found' });
     return;
@@ -1581,7 +1608,7 @@ router.post('/gif/speed/:sessionId/:filename', async (req, res) => {
 
   try {
     const outputId = randomUUID();
-    const outputPath = join(GIF_WORK_DIR, sessionId, `${outputId}.gif`);
+    const outputPath = gifWorkPath(sessionId, `${outputId}.gif`) as string;
 
     // gifsicle --delay expects 1/100ths of a second
     // We use --scale-delay to multiply existing delays
@@ -1744,7 +1771,8 @@ router.post('/gif/add-text/:sessionId/:filename', async (req, res) => {
     return;
   }
 
-  const gifPath = join(GIF_WORK_DIR, sessionId, filename);
+  const gifPath = gifWorkPath(sessionId, filename);
+  if (!gifPath) { res.status(400).json({ error: 'Invalid path' }); return; }
   if (!existsSync(gifPath)) {
     res.status(404).json({ error: 'GIF not found' });
     return;
@@ -1752,7 +1780,7 @@ router.post('/gif/add-text/:sessionId/:filename', async (req, res) => {
 
   try {
     const outputId = randomUUID();
-    const outputPath = join(GIF_WORK_DIR, sessionId, `${outputId}.gif`);
+    const outputPath = gifWorkPath(sessionId, `${outputId}.gif`) as string;
 
     const { posX, posY } = textPositionExprs({ position, anchor, x, y });
 
@@ -1801,7 +1829,8 @@ router.get('/gif/output/:sessionId/:filename', (req, res) => {
     res.status(400).json({ error: 'Invalid path' });
     return;
   }
-  const gifPath = join(GIF_WORK_DIR, sessionId, filename);
+  const gifPath = gifWorkPath(sessionId, filename);
+  if (!gifPath) { res.status(400).json({ error: 'Invalid path' }); return; }
   if (!existsSync(gifPath)) {
     res.status(404).json({ error: 'GIF not found' });
     return;
@@ -1831,7 +1860,8 @@ router.get('/gif/session/:sessionId', (req, res) => {
     res.status(400).json({ error: 'That is not a valid session.' });
     return;
   }
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   if (!existsSync(sessionDir)) {
     res.status(404).json({ exists: false });
     return;
@@ -1850,7 +1880,8 @@ router.delete('/gif/session/:sessionId', (req, res) => {
     res.status(400).json({ error: 'Invalid path' });
     return;
   }
-  const sessionDir = join(GIF_WORK_DIR, sessionId);
+  const sessionDir = gifWorkPath(sessionId);
+  if (!sessionDir) { res.status(400).json({ error: 'Invalid session' }); return; }
   if (existsSync(sessionDir)) {
     // Same fault as the frame folder: require() is undefined in an ES module,
     // so the old cleanup emptied the folder and then never removed it.
