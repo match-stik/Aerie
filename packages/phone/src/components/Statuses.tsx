@@ -194,7 +194,7 @@ export function StatusSheet({ open, onClose, colors, people, statuses, now, cust
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-            className={cn('fixed inset-x-0 bottom-0 z-[91] rounded-t-3xl border-t p-4 max-h-[75vh] overflow-y-auto', colors.panelBg, colors.panelBorder)}
+            className={cn('fixed inset-x-0 bottom-0 z-[91] rounded-t-3xl border-t p-4 max-h-[75vh] overflow-y-auto scrollbar-hide', colors.panelBg, colors.panelBorder)}
             style={{ paddingBottom: 'calc(var(--sab, 0px) + 1rem)' }}
             onClick={(e) => e.stopPropagation()}
           >
