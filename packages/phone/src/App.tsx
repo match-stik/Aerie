@@ -2330,19 +2330,24 @@ export default function App() {
                   onClick={(e) => { e.stopPropagation(); setShowStatusSheet(true); }}
                   className={cn("flex items-start gap-1 text-[10px] font-semibold leading-tight max-w-[9rem]", colors.textMuted)}
                 >
-                  {!statusWord.word?.trim() && sharedStatus?.icon ? (
-                    <StatusIcon
-                      icon={sharedStatus.icon}
-                      customEmojis={appSettings.customEmojis}
-                      className={cn("text-[11px] shrink-0", generating && "motion-safe:animate-pulse")}
-                    />
-                  ) : (
-                    <span
-                      aria-hidden
-                      className={cn("h-1.5 w-1.5 shrink-0 rounded-full", generating && "motion-safe:animate-pulse")}
-                      style={{ backgroundColor: theme.id === 'monochrome' ? (theme.mode === 'light' ? '#000000' : '#ffffff') : colors.accent }}
-                    />
-                  )}
+                  {/* The dot or icon sits in a box one text line tall, so it is
+                      centered on the first line whether the status takes one
+                      line or wraps to two. */}
+                  <span className="flex h-[1.25em] shrink-0 items-center">
+                    {!statusWord.word?.trim() && sharedStatus?.icon ? (
+                      <StatusIcon
+                        icon={sharedStatus.icon}
+                        customEmojis={appSettings.customEmojis}
+                        className={cn("text-[11px] shrink-0", generating && "motion-safe:animate-pulse")}
+                      />
+                    ) : (
+                      <span
+                        aria-hidden
+                        className={cn("h-1.5 w-1.5 shrink-0 rounded-full", generating && "motion-safe:animate-pulse")}
+                        style={{ backgroundColor: theme.id === 'monochrome' ? (theme.mode === 'light' ? '#000000' : '#ffffff') : colors.accent }}
+                      />
+                    )}
+                  </span>
                   <span className="line-clamp-2 break-words">{statusWord.word?.trim() ? headerWord(statusWord) : (sharedStatus?.text || headerWord(statusWord))}</span>
                 </span>
               </div>
