@@ -368,7 +368,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
                 // A path or a line of code has no spaces to break at, so it is
                 // allowed to break anywhere; otherwise it widens the whole
                 // panel past the screen.
-                <pre className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] min-w-0 font-mono opacity-90">{selectedBlock.content || '(empty)'}</pre>
+                <pre className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] min-w-0 font-[family-name:var(--font-body,var(--font-sans))] leading-relaxed opacity-90">{selectedBlock.content || '(empty)'}</pre>
               )}
               <div className="mt-3 pt-2 border-t border-white/10 text-xs opacity-50">
                 Updated: {new Date(selectedBlock.updated_at).toLocaleString()}
