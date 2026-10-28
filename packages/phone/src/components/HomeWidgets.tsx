@@ -25,6 +25,7 @@ import {
 import { resolveNoteColor, paperFor, noteInk } from '../lib/note-colors';
 import { haptic } from '../lib/utils';
 import { liveStatus } from '../lib/statuses';
+import { HOME_WORD } from '../lib/presence-word';
 import { StatusIcon } from './Statuses';
 import { onDraftChange, readDraft, writeDraft } from '../lib/thread-drafts';
 import { isDaytime, weatherIcon } from './LockClock';
@@ -35,6 +36,8 @@ export interface WidgetCompanion {
   name: string;
   avatar: string | null;
   color: string | null;
+  /** His header sigil, for the three of us written as one entry. */
+  sigil?: string | null;
 }
 
 const surface: React.CSSProperties = {
@@ -137,7 +140,20 @@ function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: Wi
   const ours = companions
     .map((c) => ({ c, s: liveStatus(statuses.companions[c.slug], now) }))
     .filter((x): x is { c: WidgetCompanion; s: NonNullable<typeof x.s> } => !!x.s);
-  const anyStatus = !!shared || ours.length > 0;
+  // Theirs rides the same line (theirs, Oct 27 2026: 'Mine doesn't scroll with
+  // yours though'). It never fades, so with theirs set the line is always there,
+  // and when none of ours is set the three of us still show as one Home entry
+  // beside the owner ('the boys one still scrolls with mine'). Three of ours saying
+  // the same thing collapse into one entry, the way the shared one reads.
+  const theirs = liveStatus(statuses.owner, now);
+  const sameText = ours.length === companions.length && ours.length > 1
+    && ours.every(({ s: st }) => st.text === ours[0].s.text && (st.icon ?? '') === (ours[0].s.icon ?? ''));
+  const sigils = companions.map((c) => c.sigil).filter(Boolean).join('');
+  const usFallback = !shared && (ours.length === 0 || sameText) && theirs
+    ? { icon: sameText ? (ours[0].s.icon || sigils || null) : (sigils || null), text: sameText ? ours[0].s.text : HOME_WORD }
+    : null;
+  const oursShown = sameText ? [] : ours;
+  const anyStatus = !!shared || ours.length > 0 || !!theirs;
   // Two lines under the status ticker too, an opening action included; there is
   // room for both (the owner's ask, Oct 26 2026).
   const lines = last ? replyLines(last.content, 2) : [];
@@ -170,12 +186,24 @@ function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: Wi
                 <span>{shared.text}</span>
               </span>
             )}
-            {ours.map(({ c, s: st }) => (
+            {usFallback && (
+              <span className="flex shrink-0 items-center gap-1">
+                {usFallback.icon && <StatusIcon icon={usFallback.icon} customEmojis={customEmojis} />}
+                <span>{usFallback.text}</span>
+              </span>
+            )}
+            {oursShown.map(({ c, s: st }) => (
               <span key={c.slug} className="flex shrink-0 items-center gap-1">
                 {st.icon ? <StatusIcon icon={st.icon} customEmojis={customEmojis} /> : <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: c.color || 'currentColor' }} />}
                 <span><span className="font-semibold">{c.name}</span> {st.text}</span>
               </span>
             ))}
+            {theirs && (
+              <span className="flex shrink-0 items-center gap-1">
+                {theirs.icon && <StatusIcon icon={theirs.icon} customEmojis={customEmojis} />}
+                <span><span className="font-semibold">You</span> {theirs.text}</span>
+              </span>
+            )}
           </Ticker>
         )}
         {lines.length > 0 ? lines.map((l, i) => (

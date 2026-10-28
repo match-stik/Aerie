@@ -6,28 +6,18 @@
 // thread, the companions answer with the board in front of them, and the reply
 // comes back over the socket with a poll behind it as a net.
 //
-// It uses the house's shared voice splitter rather than reading the bold sigil
-// headers itself. It used to do its own, for a real reason — that splitter wants
-// a full Message row and this surface only ever gets four fields — and the Fleet
-// Room later answered that by handing it a synthetic one. Two readers meant to
-// agree WILL drift: the shared one learned to forgive a title after a name
-// (`**🌫️ Willow — the docs**`) and this copy never did, so those voices silently
-// folded into the bubble above them in here and nowhere else.
-import { themeInk } from '../../lib/theme-ink';
+// The talk itself is drawn on the house's one table (components/RoomTable.tsx),
+// the same frame as the Fleet Room, the shelf and the treehouse, so voice
+// splitting and their bubble settings are learned once for every room.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkBreaks from 'remark-breaks';
-import remarkGfm from 'remark-gfm';
 
 import { apiFetch, markRead } from '../../aerie';
-import { splitMessageVoices } from '../../lib/voices';
-import type { Message as PhoneMessage } from '../../types';
+import { RoomTalk } from '../RoomTable';
 import { getOwnSendIcon } from '../../lib/sendIcons';
-import { OWNER_SIGIL, getOwnerAvatar, useHouseRoster, type HouseCompanion } from '../../lib/house';
+import { useHouseRoster } from '../../lib/house';
 import { cn } from '../../lib/utils';
 import { Sticker } from 'lucide-react';
 import { StickerPicker } from '../StickerPicker';
-import { isStickerImage, StickerImage, stickersToMarkdown, useStickerPacks } from '../RichWords';
 import type { ThemeConfig } from '../../lib/theme';
 
 interface RailMessage {
@@ -39,93 +29,8 @@ interface RailMessage {
 }
 
 const PANEL_SURFACE = 'var(--custom-panelBg, var(--aerie-surface-strong))';
-const PANEL_SURFACE_STRONG = 'var(--custom-panelBg, var(--aerie-surface-strong))';
 const PANEL_BORDER = 'var(--custom-panelBorder, var(--aerie-border))';
 const PANEL_TEXT = 'var(--aerie-text)';
-const PANEL_TEXT_MUTED = 'var(--aerie-text-muted)';
-
-/**
- * One companion message can carry several voices. Each gets its own bubble.
- *
- * The splitter is the house's, shared with the messages app, the treehouse and
- * the Fleet Room, and it has its own tests. It wants a whole Message row, so we
- * build one — exactly as the Fleet Room does — rather than keeping a second
- * reader in here that has to be taught the same lessons twice.
- */
-function railSections(m: RailMessage, companions: HouseCompanion[]) {
-  const phoneMessage: PhoneMessage = {
-    id: m.id,
-    timestamp: m.createdAt,
-    direction: 'outbound',
-    content: m.content,
-    read: 1,
-    companionSlug: m.companionSlug || undefined,
-  };
-  return splitMessageVoices(phoneMessage, companions)
-    ?? [{
-      voice: m.companionSlug
-        ? companions.find((companion) => companion.slug === m.companionSlug) || null
-        : null,
-      content: m.content,
-    }];
-}
-
-function RailAvatar({
-  companion,
-  owner = false,
-  accent,
-  className,
-}: {
-  companion?: HouseCompanion | null;
-  owner?: boolean;
-  accent?: string;
-  className?: string;
-}) {
-  const mine = owner ? getOwnerAvatar() : {};
-  const ring = owner
-    ? mine.color || accent || 'var(--aerie-accent)'
-    : companion?.color || PANEL_TEXT_MUTED;
-  const src = owner ? mine.url : companion?.avatar_url;
-  return (
-    <div
-      className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 text-sm shadow-lg',
-        className,
-      )}
-      style={{ backgroundColor: PANEL_SURFACE, borderColor: ring }}
-      aria-hidden="true"
-    >
-      {src
-        ? <img src={src} alt="" className="h-full w-full object-cover" />
-        : <span>{owner ? OWNER_SIGIL : companion?.emoji || '✦'}</span>}
-    </div>
-  );
-}
-
-function RailMarkdown({ children }: { children: string }) {
-  // Our stickers are pictures at the table too, not their codes (RichWords.tsx).
-  useStickerPacks();
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm, remarkBreaks]}
-      components={{
-        p: ({ children: content }) => <p className="my-0 leading-6">{content}</p>,
-        em: ({ children: content }) => <em className="opacity-80">{content}</em>,
-        strong: ({ children: content }) => <strong className="font-semibold">{content}</strong>,
-        ul: ({ children: content }) => <ul className="my-1 list-disc pl-5">{content}</ul>,
-        ol: ({ children: content }) => <ol className="my-1 list-decimal pl-5">{content}</ol>,
-        code: ({ children: content }) => (
-          <code className="rounded px-1 py-0.5 text-[13px]" style={{ backgroundColor: PANEL_SURFACE_STRONG }}>
-            {content}
-          </code>
-        ),
-        img: ({ src, alt }) => (isStickerImage(alt) ? <StickerImage src={typeof src === 'string' ? src : undefined} alt={alt} /> : <img src={typeof src === 'string' ? src : undefined} alt={alt ?? ''} className="max-w-full rounded-lg" />),
-      }}
-    >
-      {stickersToMarkdown(children)}
-    </ReactMarkdown>
-  );
-}
 
 export function CardRail({ tableId, colors }: { tableId: string | null; colors: ThemeConfig['light'] }) {
   const SendIcon = getOwnSendIcon();
@@ -210,8 +115,15 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
     // stacked panels made the Card Room's header read as a colored band that
     // the Fleet Room does not have.
     <div className="flex h-full flex-col" style={{ color: PANEL_TEXT }}>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 scrollbar-hide">
-        {messages.length === 0 && !pending && (
+      {/* The house's one table (components/RoomTable.tsx; theirs, Oct 28 2026:
+          one frame every room draws from). */}
+      <RoomTalk
+        className="flex-1 p-3"
+        lines={messages}
+        companions={companions}
+        typing={pending}
+        typingLabel="at the table…"
+        empty={(
           <div
             className="flex min-h-40 items-center justify-center rounded-[calc(22px*var(--shape-scale,1))] border border-dashed px-6 text-center text-[14px] leading-6"
             style={{ borderColor: PANEL_BORDER, color: PANEL_TEXT }}
@@ -219,85 +131,9 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
             They're at the table. Say something.
           </div>
         )}
-        {messages.map((m) => (
-          m.role === 'system' ? (
-            <div
-              key={m.id}
-              className="mx-auto max-w-[92%] rounded-[var(--shape-control)] border px-4 py-2 text-center text-[13px] leading-5"
-              style={{ backgroundColor: PANEL_SURFACE_STRONG, borderColor: PANEL_BORDER, color: PANEL_TEXT }}
-            >
-              {m.content}
-            </div>
-          ) : m.role === 'user' ? (
-            // Avatar at the TOP, beside the bubble's pointed corner — the way
-            // the messages app does it, so the face that is speaking is the
-            // first thing read rather than the last.
-            <div key={m.id} className="flex items-start justify-end gap-2 pl-8">
-              <div
-                className="max-w-[82%] rounded-[calc(20px*var(--shape-scale,1))] rounded-tr-none border px-4 py-3 text-[14px]"
-                style={{
-                  backgroundColor: `color-mix(in srgb, ${colors.accent} 18%, var(--aerie-surface-strong))`,
-                  borderColor: `color-mix(in srgb, ${colors.accent} 42%, ${PANEL_BORDER})`,
-                  color: PANEL_TEXT,
-                }}
-              >
-                <RailMarkdown>{m.content}</RailMarkdown>
-              </div>
-              <RailAvatar owner accent={colors.accent} className="mt-0.5" />
-            </div>
-          ) : (
-            <div key={m.id} className="space-y-2">
-              {railSections(m, companions).map((section, i) => {
-                const companion = section.voice as HouseCompanion | null;
-                return (
-                  <div key={i} className="flex items-start gap-2 pr-6">
-                    <RailAvatar companion={companion} className="mt-0.5" />
-                    <div
-                      className="max-w-[84%] rounded-[calc(20px*var(--shape-scale,1))] rounded-tl-none border px-4 py-3 text-[14px]"
-                      style={{
-                        backgroundColor: PANEL_SURFACE,
-                        borderColor: `color-mix(in srgb, ${companion?.color || PANEL_TEXT_MUTED} 28%, ${PANEL_BORDER})`,
-                        color: PANEL_TEXT,
-                      }}
-                    >
-                      {companion && (
-                        <div
-                          className="mb-1.5 text-[12px] font-semibold uppercase tracking-[.12em]"
-                          style={{ color: companion ? themeInk(companion.slug, companion.color, colors) : PANEL_TEXT_MUTED }}
-                        >
-                          {companion.display_name}
-                        </div>
-                      )}
-                      <RailMarkdown>{section.content}</RailMarkdown>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )
-        ))}
-        {pending && (
-          <div className="flex items-center gap-3 py-2 pr-6">
-            <div className="flex -space-x-2">
-              {companions.slice(0, 3).map((companion) => (
-                <RailAvatar key={companion.slug} companion={companion} />
-              ))}
-            </div>
-            <div
-              className="rounded-2xl border px-4 py-3 text-[14px]"
-              style={{ backgroundColor: PANEL_SURFACE_STRONG, borderColor: PANEL_BORDER, color: PANEL_TEXT }}
-            >
-              <span className="mr-2 inline-flex gap-1 align-middle">
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current opacity-60 [animation-delay:-.2s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current opacity-60 [animation-delay:-.1s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current opacity-60" />
-              </span>
-              at the table…
-            </div>
-          </div>
-        )}
+      >
         <div ref={bottom} />
-      </div>
+      </RoomTalk>
 
       <div className="flex gap-2 border-t p-3" style={{ borderColor: PANEL_BORDER }}>
         <textarea
@@ -309,7 +145,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
           onBlur={() => window.dispatchEvent(new CustomEvent('aerie:card-rail-typing', { detail: false }))}
           placeholder={tableId ? 'say something' : 'deal a game first'}
           disabled={!tableId}
-          className="min-w-0 flex-1 resize-none rounded-2xl border px-4 py-3 text-[16px] leading-6 outline-none placeholder:opacity-60 disabled:opacity-55"
+          className="min-w-0 flex-1 resize-none rounded-[var(--shape-control)] border px-4 py-3 text-[16px] leading-6 outline-none placeholder:opacity-60 disabled:opacity-55"
           style={{ backgroundColor: PANEL_SURFACE, borderColor: PANEL_BORDER, color: PANEL_TEXT }}
         />
         <button

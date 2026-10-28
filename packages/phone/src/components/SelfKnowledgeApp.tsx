@@ -135,7 +135,7 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
       <button
         key={value}
         onClick={() => setFilter(value)}
-        className={cn('shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder, !active && colors.panelBg)}
+        className={cn('shrink-0 rounded-[var(--shape-chip)] px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder,)}
         style={active
           ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
           : { color: (accent && companions.some((c) => c.slug === value) ? themeInk(value, accent, colors, themeMode) : accent) || undefined }}
@@ -272,8 +272,8 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
         </button>
       }
     >
-      <div className={cn('p-3 rounded-2xl border backdrop-blur-md mb-4 flex items-center', colors.panelBg, colors.panelBorder)}>
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-1">
+      <div className={cn('overflow-hidden rounded-[var(--shape-control)] border backdrop-blur-md mb-4 flex items-center', embedded && 'pr-3', colors.panelBg, colors.panelBorder)}>
+        <div className="aerie-tabscroll flex gap-1.5 overflow-x-auto scrollbar-hide p-3 flex-1">
           {filterChip('review', 'To review', colors.accent, proposedCount)}
           {filterChip('accepted', 'Accepted')}
           {companions.map((c) => filterChip(c.slug, c.display_name, c.color))}

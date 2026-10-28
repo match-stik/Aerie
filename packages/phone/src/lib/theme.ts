@@ -883,6 +883,36 @@ function mix(c: string, n: number, base = 'transparent'): string {
   return `color-mix(in srgb, ${c} ${n}%, ${base})`;
 }
 
+/**
+ * A two-ended wash that fades into nothing in the middle with no crease.
+ *
+ * The old wash went straight from one color down to transparent and straight
+ * back up to the other, and the corner where the two straight ramps meet is
+ * something the eye sees as a line. Across a big card the corner is spread wide
+ * and melts; on a small pill or tile it lands as a hard diagonal (theirs, Oct 27
+ * 2026, five screenshots: 'that harsh blend on a lot of cards ... mostly the
+ * smaller ones? The bigger ones seem to fade better'). Easing each half
+ * (strength falls off as the distance to the middle to the power 1.5) meets the
+ * middle flat from both sides, so there is no corner left to see.
+ */
+export function easedWash(angle: number, from: string, fromPct: number, mid: number, to: string, toPct: number, steps = 6): string {
+  const stops: string[] = [];
+  for (let i = 0; i < steps; i += 1) {
+    const s = i / steps;
+    const at = Math.round(mid * s * 10) / 10;
+    const n = Math.round(fromPct * (1 - s) ** 1.5 * 10) / 10;
+    stops.push(`${mix(from, n)} ${at}%`);
+  }
+  stops.push(`transparent ${mid}%`);
+  for (let i = 1; i <= steps; i += 1) {
+    const u = i / steps;
+    const at = Math.round((mid + (100 - mid) * u) * 10) / 10;
+    const n = Math.round(toPct * u ** 1.5 * 10) / 10;
+    stops.push(`${mix(to, n)} ${at}%`);
+  }
+  return `linear-gradient(${angle}deg, ${stops.join(', ')})`;
+}
+
 /** The real colors behind the --pal-* variables for one palette and mode.
  *  Day uses soft paper by default, per the doc. */
 export function paletteVars(p: Palette, mode: ThemeMode): Record<string, string> {
@@ -906,7 +936,7 @@ export function paletteVars(p: Palette, mode: ThemeMode): Record<string, string>
       '--pal-bubble-text': '#FFFFFF',
       '--pal-accent-text': n.glow,
       // The doc's night recipe (AERIE-THEMES §3), one value per piece.
-      '--pal-panel-wash': `linear-gradient(150deg, ${mix(n.primary, 18)} 0%, transparent 48%, ${mix(n.velvet || n.secondary, 46)} 100%)`,
+      '--pal-panel-wash': easedWash(150, n.primary, 18, 48, n.velvet || n.secondary, 46),
       '--pal-panel-shadow': `inset 0 1px 0 ${mix(n.glow, 22)}, 0 12px 28px rgba(0, 0, 0, 0.3)`,
       '--pal-comp-bubble': `linear-gradient(160deg, ${mix(n.velvet || n.primary, n.velvet ? 34 : 18, n.surface)} 0%, ${mix(n.secondary, n.velvet ? 18 : 16, n.surface)} 100%)`,
       '--pal-comp-border': mix(n.primary, 28),
@@ -931,7 +961,7 @@ export function paletteVars(p: Palette, mode: ThemeMode): Record<string, string>
     '--pal-user-bubble-to': d.bubbleUser[1],
     '--pal-bubble-text': '#0B0B0B',
     '--pal-accent-text': d.primary,
-    '--pal-panel-wash': `linear-gradient(150deg, ${mix(d.primary, 12)} 0%, transparent 50%, ${d.wash} 100%)`,
+    '--pal-panel-wash': easedWash(150, d.primary, 12, 50, d.wash, 100),
     '--pal-panel-shadow': `inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 10px 26px ${mix(d.text, 10)}`,
     '--pal-comp-bubble': `linear-gradient(160deg, ${mix(d.primary, 12, d.soft.surface)} 0%, ${mix(d.secondary, 12, d.soft.surface)} 100%)`,
     '--pal-comp-border': mix(d.primary, 24),

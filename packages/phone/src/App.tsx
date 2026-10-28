@@ -5,6 +5,7 @@ import { runBackHandler } from './lib/back-stack';
 import { useBackHandler } from './lib/use-back-handler';
 import localforage from 'localforage';
 import { MessageBubble } from './components/MessageBubble';
+import { RoomBubbleContext, type RoomBubbleSettings } from './components/RoomBubble';
 import { TypingIndicator } from './components/TypingIndicator';
 import { ChatInput } from './components/ChatInput';
 import { Message, AppTheme, ContactProfile, AppSettings, CustomEmoji } from './types';
@@ -1941,6 +1942,19 @@ export default function App() {
     };
   }, []);
 
+  // Their bubble settings for every other room that shows messages
+  // (components/RoomBubble.tsx; theirs, Oct 27 2026).
+  const roomBubbleSettings: RoomBubbleSettings = {
+    themeConfig: activeTheme,
+    themeMode: theme.mode,
+    look: bubbleLookOf(theme),
+    ownerName,
+    userAvatar: appSettings.userAvatar,
+    userAvatarColor: appSettings.userAvatarColor,
+    customEmojis: appSettings.customEmojis,
+    emojiPacks: emojiPacks as any,
+  };
+
   return (
     <div
       className={cn(
@@ -2015,7 +2029,7 @@ export default function App() {
             widgets={homeWidgetsOf(theme.homeWidgets)}
             widgetSpots={homeSpotsOf(theme.homeWidgetSpots)}
             quietLine={!!theme.homeQuietLine}
-            companions={dbCompanions.map((c) => ({ slug: c.slug, name: c.display_name, avatar: c.avatar_url, color: c.color }))}
+            companions={dbCompanions.map((c) => ({ slug: c.slug, name: c.display_name, avatar: c.avatar_url, color: c.color, sigil: c.emoji || null }))}
             customEmojis={appSettings.customEmojis}
             stickyNoteColors={theme.stickyNoteColors}
             onThemeChange={updateTheme}
@@ -2113,15 +2127,17 @@ export default function App() {
           />
         )}
         {osState === 'treehouse' && (
-          <TreehouseApp
-            key="treehouse"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-            userAvatar={appSettings.userAvatar}
-            userAvatarColor={appSettings.userAvatarColor}
-            ownerName={ownerName}
-          />
+          <RoomBubbleContext.Provider value={roomBubbleSettings}>
+            <TreehouseApp
+              key="treehouse"
+              onClose={closeApp}
+              themeConfig={activeTheme}
+              themeMode={theme.mode}
+              userAvatar={appSettings.userAvatar}
+              userAvatarColor={appSettings.userAvatarColor}
+              ownerName={ownerName}
+            />
+          </RoomBubbleContext.Provider>
         )}
         {osState === 'radar' && (
           <RadarApp
@@ -2181,12 +2197,14 @@ export default function App() {
           />
         )}
         {osState === 'shelf' && (
-          <StoryShelfApp
-            key="shelf"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
+          <RoomBubbleContext.Provider value={roomBubbleSettings}>
+            <StoryShelfApp
+              key="shelf"
+              onClose={closeApp}
+              themeConfig={activeTheme}
+              themeMode={theme.mode}
+            />
+          </RoomBubbleContext.Provider>
         )}
         {osState === 'spotify' && (
           <SpotifyApp
@@ -2211,12 +2229,14 @@ export default function App() {
           />
         )}
         {osState === 'games' && (
-          <GamesApp
-            key="games"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
+          <RoomBubbleContext.Provider value={roomBubbleSettings}>
+            <GamesApp
+              key="games"
+              onClose={closeApp}
+              themeConfig={activeTheme}
+              themeMode={theme.mode}
+            />
+          </RoomBubbleContext.Provider>
         )}
         {osState === 'studio' && (
           <StudioApp

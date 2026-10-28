@@ -343,7 +343,7 @@ export function SignalLandingGame({ colors, rawColors, onExit }: { colors: any, 
 
   return (
     <div className="flex flex-col h-full items-center justify-center p-4">
-      <div className="w-full max-w-[340px] flex justify-between items-end mb-4 rounded-2xl border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="w-full max-w-[340px] flex justify-between items-end mb-4 rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         <div className="flex-1">
           <div className="text-[10px] uppercase tracking-widest opacity-60">Score</div>
           <div className="text-xl font-light leading-none mt-1">{score}</div>
@@ -359,7 +359,7 @@ export function SignalLandingGame({ colors, rawColors, onExit }: { colors: any, 
       </div>
 
       <div 
-        className="relative w-full max-w-[340px] aspect-[3/4] rounded-2xl overflow-hidden border" 
+        className="relative w-full max-w-[340px] aspect-[3/4] rounded-[var(--shape-control)] overflow-hidden border" 
         style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}
       >
         <canvas
@@ -390,7 +390,7 @@ export function SignalLandingGame({ colors, rawColors, onExit }: { colors: any, 
       {/* Controls */}
       <div className="w-full max-w-[340px] flex gap-2 mt-4">
         <button
-          className="flex-1 py-4 rounded-xl border flex justify-center items-center active:scale-95 transition-transform touch-none"
+          className="flex-1 py-4 rounded-[var(--shape-chip)] border flex justify-center items-center active:scale-95 transition-transform touch-none"
           style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder, color: rawColors.textMain }}
           onPointerDown={() => { if(!isPlaying && !gameOver) initGame(); state.current.isThrustingLeft = true; }}
           onPointerUp={() => state.current.isThrustingLeft = false}
@@ -399,7 +399,7 @@ export function SignalLandingGame({ colors, rawColors, onExit }: { colors: any, 
           <ChevronLeft size={24} />
         </button>
         <button
-          className="flex-[2] py-4 rounded-xl border flex justify-center items-center active:scale-95 transition-transform touch-none"
+          className="flex-[2] py-4 rounded-[var(--shape-chip)] border flex justify-center items-center active:scale-95 transition-transform touch-none"
           style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder, color: rawColors.accent }}
           onPointerDown={() => { if(!isPlaying && !gameOver) initGame(); state.current.isThrusting = true; }}
           onPointerUp={() => state.current.isThrusting = false}
@@ -408,7 +408,7 @@ export function SignalLandingGame({ colors, rawColors, onExit }: { colors: any, 
           <ArrowUp size={24} />
         </button>
         <button
-          className="flex-1 py-4 rounded-xl border flex justify-center items-center active:scale-95 transition-transform touch-none"
+          className="flex-1 py-4 rounded-[var(--shape-chip)] border flex justify-center items-center active:scale-95 transition-transform touch-none"
           style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder, color: rawColors.textMain }}
           onPointerDown={() => { if(!isPlaying && !gameOver) initGame(); state.current.isThrustingRight = true; }}
           onPointerUp={() => state.current.isThrustingRight = false}

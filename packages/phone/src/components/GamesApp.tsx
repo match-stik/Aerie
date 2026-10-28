@@ -101,7 +101,7 @@ function MemoryGame({ colors, rawColors, onExit }: { colors: any, rawColors: any
 
   return (
     <div className="flex flex-col h-full items-center justify-center p-4">
-      <div className="w-full max-w-[320px] flex justify-between items-end mb-4 rounded-2xl border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="w-full max-w-[320px] flex justify-between items-end mb-4 rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         <div className="flex-1">
           <div className="text-[10px] uppercase tracking-widest opacity-60">Moves</div>
           <div className="text-xl font-light leading-none mt-1">{moves}</div>
@@ -112,20 +112,20 @@ function MemoryGame({ colors, rawColors, onExit }: { colors: any, rawColors: any
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 w-full max-w-[320px] aspect-square mb-6 rounded-2xl border p-2 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="grid grid-cols-4 gap-2 w-full max-w-[320px] aspect-square mb-6 rounded-[var(--shape-control)] border p-2 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         {cards.map((card, i) => (
           <button
             key={card.id}
             onClick={() => handleCardClick(i)}
             className={cn(
-              "relative w-full h-full rounded-xl transition-all duration-300 preserve-3d",
+              "relative w-full h-full rounded-[var(--shape-chip)] transition-all duration-300 preserve-3d",
               (card.isFlipped || card.isMatched) ? "rotate-y-180" : "hover:scale-105 active:scale-95"
             )}
             style={{ perspective: '1000px' }}
           >
             <div 
               className={cn(
-                "absolute inset-0 w-full h-full rounded-xl backface-hidden flex items-center justify-center border"
+                "absolute inset-0 w-full h-full rounded-[var(--shape-chip)] backface-hidden flex items-center justify-center border"
               )}
               style={{
                 backgroundColor: rawColors.panelBg,
@@ -137,7 +137,7 @@ function MemoryGame({ colors, rawColors, onExit }: { colors: any, rawColors: any
             </div>
             <div 
               className={cn(
-                "absolute inset-0 w-full h-full rounded-xl backface-hidden flex items-center justify-center border rotate-y-180",
+                "absolute inset-0 w-full h-full rounded-[var(--shape-chip)] backface-hidden flex items-center justify-center border rotate-y-180",
                 card.isMatched ? "opacity-50" : ""
               )}
               style={{
@@ -233,7 +233,7 @@ function ReactionGame({ colors, rawColors, themeMode, themeConfig, onExit }: { c
 
   return (
     <div className="flex flex-col h-full items-center justify-center p-6">
-      <div className="w-full max-w-[320px] flex justify-between items-end mb-4 rounded-2xl border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="w-full max-w-[320px] flex justify-between items-end mb-4 rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         <div className="flex-1">
           <div className="text-[10px] uppercase tracking-widest opacity-60">Status</div>
           <div className="text-xl font-light leading-none mt-1 capitalize">{gameState === 'idle' ? 'Ready' : gameState}</div>
@@ -247,7 +247,7 @@ function ReactionGame({ colors, rawColors, themeMode, themeConfig, onExit }: { c
       <button
         onClick={handleClick}
         className={cn(
-          "w-full max-w-[320px] aspect-square rounded-3xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-4",
+          "w-full max-w-[320px] aspect-square rounded-[var(--shape-surface)] border-2 transition-all duration-200 flex flex-col items-center justify-center gap-4",
           gameState === 'idle' || gameState === 'result' || gameState === 'early' ? "hover:scale-[1.02] active:scale-95" : ""
         )}
         style={{
@@ -453,10 +453,18 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
   // Coming back from a game landed the user wherever the last scroll left this
   // container — bottom of a chat meant bottom of the games list. The menu is a
   // place you arrive at, so it starts at the top.
-  const menuScrollRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (activeGame === 'menu') menuScrollRef.current?.scrollTo({ top: 0 });
-  }, [activeGame]);
+  // The game a moment ago could scroll the app's own body as well as its own
+  // box, and with the exit animation the menu mounts after this effect would
+  // have run, so the menu resets both the moment it mounts (theirs, Oct 28 2026:
+  // backing out of a long game still landed at the bottom of the menu).
+  const menuScrollRef = useRef<HTMLDivElement | null>(null);
+  const setMenuScroll = (el: HTMLDivElement | null) => {
+    menuScrollRef.current = el;
+    if (!el) return;
+    el.scrollTop = 0;
+    const body = el.closest('.aerie-app-body');
+    if (body) body.scrollTop = 0;
+  };
 
   const handleBack = () => (activeGame === 'menu' ? onClose() : setActiveGame('menu'));
   // The phone's back gesture goes to this menu from inside a game, the same
@@ -482,17 +490,17 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
               exit={{ opacity: 0, x: -20 }}
               className="h-full p-4 flex flex-col gap-4"
             >
-              <div ref={menuScrollRef} className="grid grid-cols-1 gap-4 overflow-y-auto pb-20 scrollbar-hide">
+              <div ref={setMenuScroll} className="grid grid-cols-1 gap-4 overflow-y-auto pb-20 scrollbar-hide">
                 <button
                   onClick={() => setActiveGame('battleship')}
                   className={cn(
-                    "relative overflow-hidden rounded-3xl border p-6 text-left shadow-[0_16px_40px_rgba(0,0,0,.22)] transition-all hover:scale-[1.02] active:scale-95",
+                    "relative overflow-hidden rounded-[var(--shape-surface)] border p-6 text-left shadow-[0_16px_40px_rgba(0,0,0,.22)] transition-all hover:scale-[1.02] active:scale-95",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
                   <div className="relative flex items-center gap-4">
                     <div
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--shape-control)] border"
                       style={{
                         backgroundColor: `color-mix(in srgb, ${gameAccent} 16%, var(--aerie-surface))`,
                         borderColor: `color-mix(in srgb, ${gameAccent} 30%, var(--custom-panelBorder, var(--aerie-border)))`,
@@ -512,13 +520,13 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('cards')}
                   className={cn(
-                    "relative overflow-hidden rounded-3xl border p-6 text-left shadow-[0_16px_40px_rgba(0,0,0,.22)] transition-all hover:scale-[1.02] active:scale-95",
+                    "relative overflow-hidden rounded-[var(--shape-surface)] border p-6 text-left shadow-[0_16px_40px_rgba(0,0,0,.22)] transition-all hover:scale-[1.02] active:scale-95",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
                   <div className="relative flex items-center gap-4">
                     <div
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--shape-control)] border"
                       style={{
                         backgroundColor: `color-mix(in srgb, ${gameAccent} 16%, var(--aerie-surface))`,
                         borderColor: `color-mix(in srgb, ${gameAccent} 30%, var(--custom-panelBorder, var(--aerie-border)))`,
@@ -538,11 +546,11 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('memory')}
                   className={cn(
-                    "p-6 rounded-3xl border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
+                    "p-6 rounded-[var(--shape-surface)] border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
-                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
+                  <div className="h-12 w-12 rounded-[var(--shape-control)] flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
                     <BrainCircuit size={24} style={{ color: rawColors.accent }} />
                   </div>
                   <div>
@@ -554,11 +562,11 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('reaction')}
                   className={cn(
-                    "p-6 rounded-3xl border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
+                    "p-6 rounded-[var(--shape-surface)] border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
-                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
+                  <div className="h-12 w-12 rounded-[var(--shape-control)] flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
                     <Zap size={24} style={{ color: rawColors.accent }} />
                   </div>
                   <div>
@@ -570,11 +578,11 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('sweeper')}
                   className={cn(
-                    "p-6 rounded-3xl border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
+                    "p-6 rounded-[var(--shape-surface)] border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
-                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
+                  <div className="h-12 w-12 rounded-[var(--shape-control)] flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
                     <Grid3X3 size={24} style={{ color: rawColors.accent }} />
                   </div>
                   <div>
@@ -586,11 +594,11 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('passcode')}
                   className={cn(
-                    "p-6 rounded-3xl border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
+                    "p-6 rounded-[var(--shape-surface)] border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
-                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
+                  <div className="h-12 w-12 rounded-[var(--shape-control)] flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
                     <KeyRound size={24} style={{ color: rawColors.accent }} />
                   </div>
                   <div>
@@ -602,11 +610,11 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('ping')}
                   className={cn(
-                    "p-6 rounded-3xl border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
+                    "p-6 rounded-[var(--shape-surface)] border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
-                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
+                  <div className="h-12 w-12 rounded-[var(--shape-control)] flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
                     <CircleDot size={24} style={{ color: rawColors.accent }} />
                   </div>
                   <div>
@@ -618,11 +626,11 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('glide')}
                   className={cn(
-                    "p-6 rounded-3xl border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
+                    "p-6 rounded-[var(--shape-surface)] border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
-                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
+                  <div className="h-12 w-12 rounded-[var(--shape-control)] flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
                     <ActivitySquare size={24} style={{ color: rawColors.accent }} />
                   </div>
                   <div>
@@ -634,11 +642,11 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('landing')}
                   className={cn(
-                    "p-6 rounded-3xl border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
+                    "p-6 rounded-[var(--shape-surface)] border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
-                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
+                  <div className="h-12 w-12 rounded-[var(--shape-control)] flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
                     <ArrowDownToLine size={24} style={{ color: rawColors.accent }} />
                   </div>
                   <div>
@@ -650,11 +658,11 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('core')}
                   className={cn(
-                    "p-6 rounded-3xl border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
+                    "p-6 rounded-[var(--shape-surface)] border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
-                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
+                  <div className="h-12 w-12 rounded-[var(--shape-control)] flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
                     <ShieldAlert size={24} style={{ color: rawColors.accent }} />
                   </div>
                   <div>
@@ -666,11 +674,11 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
                 <button
                   onClick={() => setActiveGame('breach')}
                   className={cn(
-                    "p-6 rounded-3xl border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
+                    "p-6 rounded-[var(--shape-surface)] border flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-left",
                     colors.panelBg, colors.panelBorder
                   )}
                 >
-                  <div className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
+                  <div className="h-12 w-12 rounded-[var(--shape-control)] flex items-center justify-center shrink-0" style={{ backgroundColor: `${rawColors.accent}20` }}>
                     <Layers size={24} style={{ color: rawColors.accent }} />
                   </div>
                   <div>

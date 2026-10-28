@@ -18,6 +18,7 @@
 // every color is mixed in OKLCH from the theme's own variables, so the shelf
 // follows the owner's palette in daylight and at midnight alike.
 
+import { RoomTalk } from './RoomTable';
 import { themeInk } from '../lib/theme-ink';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -456,7 +457,7 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
 
 function Notice({ colors, children }: { colors: ThemeColors; children: ReactNode }) {
   return (
-    <div className={cn('rounded-2xl border px-4 py-6 text-center text-xs', colors.panelBg, colors.panelBorder, colors.textMuted)}>
+    <div className={cn('rounded-[var(--shape-control)] border px-4 py-6 text-center text-xs', colors.panelBg, colors.panelBorder, colors.textMuted)}>
       {children}
     </div>
   );
@@ -476,7 +477,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className={cn('mb-4 rounded-2xl border p-4', colors.panelBg, colors.panelBorder)}>
+    <section className={cn('mb-4 rounded-[var(--shape-control)] border p-4', colors.panelBg, colors.panelBorder)}>
       <header className="mb-1 flex items-baseline justify-between gap-3">
         <h3 className={cn('text-[10px] font-bold uppercase tracking-[0.14em]', colors.textMuted)}>{title}</h3>
         {count > 0 && <span className={cn('text-[10px] font-semibold tabular-nums', colors.textMuted)}>{count}</span>}
@@ -543,20 +544,6 @@ function Face({ companion, size }: { companion: VoiceCompanion; size: number }) 
       {companion.avatar_url
         ? <img src={companion.avatar_url} alt="" className="h-full w-full object-cover" />
         : <span className="text-[10px] leading-none">{companion.emoji || '✦'}</span>}
-    </span>
-  );
-}
-
-/** The owner's face beside their lines at the table, where the chat puts it beside theirs. */
-function OwnerFace({ url, color, size }: { url?: string; color?: string; size: number }) {
-  if (!url) return null;
-  return (
-    <span
-      aria-hidden
-      className="flex shrink-0 overflow-hidden rounded-full border"
-      style={{ width: size, height: size, borderColor: color ?? HAIRLINE, background: SHEET }}
-    >
-      <img src={url} alt="" className="h-full w-full object-cover" />
     </span>
   );
 }
@@ -896,7 +883,7 @@ function TitlePage({ book, from, colors, onPicture }: { book: StoryBook; from: s
       ? `${book.sceneCount} ${book.sceneCount === 1 ? 'page' : 'pages'} so far`
       : 'Not begun';
   return (
-    <section className={cn('rounded-2xl border p-4', colors.panelBg, colors.panelBorder)}>
+    <section className={cn('rounded-[var(--shape-control)] border p-4', colors.panelBg, colors.panelBorder)}>
       {book.coverUrl && (
         <div className="mb-4 overflow-hidden rounded-xl" style={{ boxShadow: PAPER_SHADOW }}>
           <Shot
@@ -953,7 +940,7 @@ function TitlePage({ book, from, colors, onPicture }: { book: StoryBook; from: s
 
 function BookThreads({ entries, colors, onOpenBook }: { entries: KeepsakeEntry[]; colors: ThemeColors; onOpenBook: (id: string) => void }) {
   return (
-    <section className={cn('rounded-2xl border p-3', colors.panelBg, colors.panelBorder)}>
+    <section className={cn('rounded-[var(--shape-control)] border p-3', colors.panelBg, colors.panelBorder)}>
       <h3 className={cn(LABEL, colors.textMuted)}>Threads</h3>
       <ul className="mt-2 flex flex-col gap-1.5">
         {entries.map((entry) => (
@@ -1011,7 +998,7 @@ function ScenePage({
   onWidgetMove: (value: string) => void;
 }) {
   return (
-    <section className={cn('rounded-2xl border p-4', colors.panelBg, colors.panelBorder)}>
+    <section className={cn('rounded-[var(--shape-control)] border p-4', colors.panelBg, colors.panelBorder)}>
       {page.imageUrl && (
         <div className="-mx-1 -mt-1 mb-3 overflow-hidden rounded-xl">
           <Shot src={thumbSrc(page.imageUrl, 768)} alt="" className="block w-full" onOpen={() => onPicture(page.imageUrl!)} />
@@ -1150,7 +1137,7 @@ function BookFoot({
   onSend: Send;
   onUnstage: () => void;
 }) {
-  const panel = cn('rounded-2xl border p-4', colors.panelBg, colors.panelBorder);
+  const panel = cn('rounded-[var(--shape-control)] border p-4', colors.panelBg, colors.panelBorder);
   const said = trouble && (
     <p className={cn('mt-3 text-[12px] italic leading-snug [overflow-wrap:anywhere]', colors.textMuted)}>{trouble}</p>
   );
@@ -1344,20 +1331,6 @@ function OwnWords({ draftKey, sending, colors, onSend }: { draftKey: string; sen
   );
 }
 
-/** One line said at the table, split into its voices the way chat splits it. */
-function talkSections(line: StoryTalkLine, companions: HouseCompanion[]) {
-  const message: PhoneMessage = {
-    id: line.id,
-    timestamp: line.createdAt,
-    direction: 'outbound',
-    content: line.content,
-    read: 1,
-    companionSlug: line.companionSlug ?? undefined,
-  };
-  return splitMessageVoices(message, companions)
-    ?? [{ voice: companions.find((companion) => companion.slug === line.companionSlug) ?? null, content: line.content }];
-}
-
 /**
  * The rail: what the owner says at the table while reading. It is talk, not a
  * move, so it never turns the page; they answer it here, under the page.
@@ -1413,25 +1386,6 @@ function TableRail({ draftKey, sending, colors, onSend }: { draftKey: string; se
   );
 }
 
-// Three dots where the next voice will sit, painted like the cards around them.
-function TableTyping({ colors }: { colors: ThemeColors }) {
-  return (
-    <div className="flex items-start gap-2" role="status" aria-label="Somebody at the table is writing">
-      <span aria-hidden className="w-[22px] shrink-0" />
-      <div className="flex items-center gap-1 rounded-xl px-3 py-2.5" style={{ background: CARD }}>
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            aria-hidden
-            className={cn('h-1.5 w-1.5 rounded-full motion-safe:animate-bounce', colors.textMuted)}
-            style={{ background: 'currentColor', animationDelay: `${i * 150}ms` }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function TableTalk({
   bookId,
   lines,
@@ -1463,43 +1417,21 @@ function TableTalk({
   // bottom, the way a chat window does, so a long evening of talk never
   // pushes the rail down the page.
   const talkBox = useRef<HTMLDivElement>(null);
-  const ownerFace = useMemo(() => getOwnerAvatar(), []);
-  // The dots show while somebody is writing here, and while the owner's line
-  // is the newest at the table, because a line said during a page turn waits
-  // for the turn to finish before anybody starts on it.
+  // The dots show while somebody is writing here, and while their line is the
+  // newest at the table, because a line said during a page turn waits for
+  // the turn to finish before anybody starts on it (their ask, Oct 9 2026: so I
+  // know that you're reading and responding to my message).
   const showTyping = typing || tableAwaiting(lines);
   useLayoutEffect(() => {
     const box = talkBox.current;
     if (box) box.scrollTop = box.scrollHeight;
   }, [latestId, showTyping]);
   return (
-    <section className={cn('rounded-2xl border p-3', colors.panelBg, colors.panelBorder)}>
+    <section className={cn('rounded-[var(--shape-control)] border p-3', colors.panelBg, colors.panelBorder)}>
       <h3 className={cn(LABEL, colors.textMuted)}>At the table</h3>
-      <div ref={talkBox} className="mt-2 flex max-h-[42vh] flex-col gap-2 overflow-y-auto">
-        {lines.flatMap((line) =>
-          line.role === 'user' ? [
-            <div key={line.id} className="flex items-start justify-end gap-2">
-              <div className="min-w-0 max-w-[85%] rounded-xl border px-2.5 py-1.5" style={{ background: CARD, borderColor: HAIRLINE }}>
-                <Words text={line.content} colors={colors} className="text-[13px] leading-snug" />
-              </div>
-              <OwnerFace url={ownerFace.url} color={ownerFace.color} size={22} />
-            </div>,
-          ] : talkSections(line, companions).map((section, index) => (
-            <div key={`${line.id}-${index}`} className="flex items-start gap-2">
-              {section.voice ? <Face companion={section.voice} size={22} /> : <span aria-hidden className="w-[22px] shrink-0" />}
-              <div className="min-w-0 flex-1 rounded-xl px-2.5 py-1.5" style={{ background: CARD }}>
-                {section.voice && (
-                  <div className="text-[10px] font-semibold" style={{ color: themeInk(section.voice.slug, section.voice.color, colors) }}>
-                    {section.voice.display_name}
-                  </div>
-                )}
-                <Words text={section.content} colors={colors} className="text-[13px] leading-snug" />
-              </div>
-            </div>
-          )),
-        )}
-        {showTyping && <TableTyping colors={colors} />}
-      </div>
+      {/* The house's one table (components/RoomTable.tsx; theirs, Oct 28 2026:
+          one frame every room draws from). */}
+      <RoomTalk scrollRef={talkBox} className="mt-2 max-h-[42vh]" lines={lines} companions={companions} typing={showTyping} />
       <TableRail draftKey={`aerie_table_draft_${bookId}`} sending={sending} colors={colors} onSend={onSend} />
     </section>
   );

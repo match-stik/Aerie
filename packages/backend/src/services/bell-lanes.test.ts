@@ -1,7 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { laneSwitchBefore, laneSwitchAfter, LANES_HOLD_MS } from './bell-lanes.js';
+import {
+  ringsOnceInSharedLane, laneSwitchBefore, laneSwitchAfter, LANES_HOLD_MS } from './bell-lanes.js';
 
 const now = new Date('2026-09-24T22:00:00Z');
 const inMinutes = (m: number) => new Date(now.getTime() + m * 60_000);
@@ -28,4 +29,16 @@ test('after the last bell of the night the switch goes back off', () => {
 
 test('if the owner already turned it off by hand, there is nothing to do', () => {
   assert.equal(laneSwitchAfter({ turnedOnByBell: true, multiLane: false, nextSplitBellAt: null, now }), 'leave');
+});
+
+test('with one shared head a several-owner bell rings once, not once per owner', () => {
+  assert.equal(ringsOnceInSharedLane({ multiLane: false, owners: 3 }), true);
+});
+
+test('with a lane each, the owners still take turns', () => {
+  assert.equal(ringsOnceInSharedLane({ multiLane: true, owners: 3 }), false);
+});
+
+test('a bell with one owner is never changed by this', () => {
+  assert.equal(ringsOnceInSharedLane({ multiLane: false, owners: 1 }), false);
 });

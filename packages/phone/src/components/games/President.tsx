@@ -115,7 +115,7 @@ export function PresidentBoard({ tableId, colors, onTableId }: PresidentBoardPro
         <button
           disabled={busy}
           onClick={deal}
-          className={cn('rounded-2xl border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
+          className={cn('rounded-[var(--shape-control)] border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
           style={{ backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }}
         >
           Deal a round
@@ -233,7 +233,7 @@ export function PresidentBoard({ tableId, colors, onTableId }: PresidentBoardPro
           <button
             disabled={!legal || busy}
             onClick={() => act('play', { cards: picked })}
-            className={cn('rounded-xl border px-4 py-1.5 text-[11px] transition active:scale-95 disabled:opacity-35',
+            className={cn('rounded-[var(--shape-chip)] border px-4 py-1.5 text-[11px] transition active:scale-95 disabled:opacity-35',
                           colors.panelBorder)}
             style={legal ? { backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent } : undefined}
           >
@@ -242,7 +242,7 @@ export function PresidentBoard({ tableId, colors, onTableId }: PresidentBoardPro
           <button
             disabled={leading || busy}
             onClick={() => act('pass')}
-            className={cn('rounded-xl border px-4 py-1.5 text-[11px] transition active:scale-95 disabled:opacity-35',
+            className={cn('rounded-[var(--shape-chip)] border px-4 py-1.5 text-[11px] transition active:scale-95 disabled:opacity-35',
                           colors.panelBorder)}
           >
             Pass
@@ -256,7 +256,7 @@ export function PresidentBoard({ tableId, colors, onTableId }: PresidentBoardPro
 
       <div className="flex justify-center pb-1">
         <button disabled={busy} onClick={deal}
-                className={cn('rounded-xl border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
+                className={cn('rounded-[var(--shape-chip)] border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
           {game.phase === 'done' ? 'Next round (the Scum pays)' : 'New round'}
         </button>
       </div>

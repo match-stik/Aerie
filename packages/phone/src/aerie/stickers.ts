@@ -3,6 +3,7 @@
 // MessageBubble inline-ref renderer. The backend persists packs +
 // stickers — we just mirror them client-side.
 
+import { useEffect, useState } from 'react';
 import { apiFetch } from './api';
 
 export interface BackendSticker {
@@ -79,6 +80,27 @@ export function getStickerPacks(): BackendStickerPack[] {
   return cachedPacks;
 }
 
+// A ref we don't know yet is usually a sticker made since the app opened
+// (theirs, Oct 27 2026: 'I still have to close the app and reopen it for them to
+// show up on your bubbles when you make new ones'). So a miss asks the house
+// for the list again, at most once every fifteen seconds, and the bubbles that
+// listen re-render when it lands. A ref that is simply wrong stays text.
+const MISS_REFRESH_MS = 15_000;
+let lastMissRefresh = 0;
+
 export function resolveStickerRef(ref: string): string | null {
-  return refIndex.get(ref) || null;
+  const url = refIndex.get(ref);
+  if (url) return url;
+  if (loaded && Date.now() - lastMissRefresh > MISS_REFRESH_MS) {
+    lastMissRefresh = Date.now();
+    void loadStickers(true);
+  }
+  return null;
+}
+
+/** Re-renders the caller whenever the sticker list changes. */
+export function useStickerVersion(): number {
+  const [version, setVersion] = useState(0);
+  useEffect(() => subscribeStickers(() => setVersion((v) => v + 1)), []);
+  return version;
 }

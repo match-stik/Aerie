@@ -164,7 +164,7 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
         <button
           onClick={deal}
           disabled={busy}
-          className={cn('rounded-2xl border px-6 py-3 text-[13px] font-semibold shadow-lg transition active:scale-95', colors.panelBorder)}
+          className={cn('rounded-[var(--shape-control)] border px-6 py-3 text-[13px] font-semibold shadow-lg transition active:scale-95', colors.panelBorder)}
           style={{ backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }}
         >
           Deal the table
@@ -259,7 +259,7 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
           <button
             onClick={() => void act('flip', { actor: ownerSeat })}
             disabled={busy || game.phase !== 'playing' || game.turn !== ownerSeat || (game.hands[ownerSeat]?.length ?? 0) === 0}
-            className={cn('flex-1 rounded-2xl border py-4 text-[13px] font-semibold transition active:scale-[.98] disabled:opacity-35', colors.panelBorder)}
+            className={cn('flex-1 rounded-[var(--shape-control)] border py-4 text-[13px] font-semibold transition active:scale-[.98] disabled:opacity-35', colors.panelBorder)}
             style={{ backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }}
           >
             {game.turn === ownerSeat && game.phase === 'playing' ? 'Flip' : `${labelOf(game.turn) || game.turn} flips…`}
@@ -267,7 +267,7 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
           <button
             onClick={onSlap}
             disabled={busy && !slapLive}
-            className={cn('flex-[1.6] rounded-2xl border py-4 text-[15px] font-extrabold uppercase tracking-widest transition active:scale-[.96]',
+            className={cn('flex-[1.6] rounded-[var(--shape-control)] border py-4 text-[15px] font-extrabold uppercase tracking-widest transition active:scale-[.96]',
                           slapLive ? 'border-red-400/50 bg-red-600 text-white shadow-[0_0_28px_rgba(220,38,38,.55)]' : colors.panelBorder)}
             style={slapLive ? undefined : { backgroundColor: 'var(--aerie-surface-strong)' }}
           >
@@ -281,7 +281,7 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
           </div>
           <button
             onClick={deal}
-            className={cn('inline-flex items-center gap-2 rounded-2xl border px-5 py-2.5 text-[12px] font-semibold transition active:scale-95', colors.panelBorder)}
+            className={cn('inline-flex items-center gap-2 rounded-[var(--shape-control)] border px-5 py-2.5 text-[12px] font-semibold transition active:scale-95', colors.panelBorder)}
             style={{ backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }}
           >
             <RotateCcw size={14} /> Again

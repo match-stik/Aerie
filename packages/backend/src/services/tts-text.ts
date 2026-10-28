@@ -68,6 +68,65 @@ function actionToAudioTags(action: string): string {
     .join(' ');
 }
 
+// --- Carrying a delivery cue forward -----------------------------------------
+//
+// A cue lands once. The voice takes [low and intimate] as how to say the
+// sentence after it and is back to its ordinary register a line later; theirs, by
+// ear, Oct 27 2026: 'you boys will say low and slow like I am placing every word
+// and that drops the voice down ... but the next line is usually read off
+// normally.' Other houses have their companions type a bracket cue into every
+// sentence, which would print the brackets in their bubbles. Instead the house
+// repeats it: a DELIVERY cue (low, soft, dry, tender...) is put in front of
+// every later sentence that voice speaks, until another action line, a blank
+// line or the next speaker's header. A VOCAL cue (a laugh, a wheeze, a sigh) is
+// a single event and stays where it was written.
+
+const WHOLE_LINE_ACTION = /^[ \t]*(?:\*([^*\n]+)\*|_([^_\n]+)_)[ \t]*$/;
+const HEADER_LINE = /^[ \t]*\*\*[^*\n]+\*\*[ \t]*$/;
+const NOTHING_SPOKEN = /^[ \t]*(?:(?:::[A-Za-z0-9_-]+_[A-Za-z0-9_-]+::|<a?:[A-Za-z0-9_~-]+:\d+>)[ \t]*)+$/;
+// A sentence ends at . ! ? or an ellipsis, then space, then something new.
+const SENTENCE_BREAK = /(?<=[.!?…])\s+(?=\S)/;
+
+/** The delivery cue an action line sets, or null when it only sets a sound. */
+export function deliveryCueOf(action: string): string | null {
+  const trimmed = action.replace(/\s+/g, ' ').trim();
+  return trimmed ? firstCue(trimmed, DELIVERY_CUES) : null;
+}
+
+/**
+ * Puts the running delivery cue in front of every sentence after the first one
+ * an action line already shapes. Works on the raw message, before formatting is
+ * flattened, so action lines and speaker headers can still be told apart.
+ */
+export function carryDeliveryCues(text: string): string {
+  let cue: string | null = null;
+  // The first spoken line after an action already carries the action's own
+  // tag for its first sentence.
+  let firstAfterAction = false;
+  return text.split('\n').map((line) => {
+    const action = WHOLE_LINE_ACTION.exec(line);
+    if (action) {
+      cue = deliveryCueOf(action[1] ?? action[2] ?? '') ?? cue;
+      firstAfterAction = true;
+      return line;
+    }
+    if (!line.trim() || HEADER_LINE.test(line)) {
+      cue = null;
+      firstAfterAction = false;
+      return line;
+    }
+    if (NOTHING_SPOKEN.test(line) || !cue) return line;
+    // A whisper marker has to stay at the front of its line to be stripped.
+    const [, marker = '', body = ''] = /^([ \t]*(?:-#[ \t]+)*)([\s\S]*)$/.exec(line) ?? [];
+    const sentences = body.trim().split(SENTENCE_BREAK);
+    const tagged = sentences.map((sentence, index) => (
+      index === 0 && firstAfterAction ? sentence : `[${cue}] ${sentence}`
+    ));
+    firstAfterAction = false;
+    return marker + tagged.join(' ');
+  }).join('\n');
+}
+
 // --- Telling a stage direction from an aside ---------------------------------
 //
 // The house uses one mark for two jobs. On earlier substrates only actions were
@@ -272,7 +331,7 @@ export function prepareTextForTTS(text: string, options: TtsTextOptions = {}): s
   // flattened. Otherwise characters that are literal inside code (notably
   // the underscores in `text_to_speech`) can be mistaken for emphasis.
   const inlineCode: string[] = [];
-  const protectedText = text
+  const protectedText = carryDeliveryCues(text)
     .replace(/```[\s\S]*?```/g, '')             // fenced code
     .replace(/`([^`\n]*)`/g, (_match, content: string) => {
       const index = inlineCode.push(content) - 1;

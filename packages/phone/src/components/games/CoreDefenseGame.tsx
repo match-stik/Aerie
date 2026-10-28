@@ -456,7 +456,7 @@ export function CoreDefenseGame({ colors, rawColors, onExit }: { colors: any, ra
 
   return (
     <div className="flex flex-col h-full items-center justify-center p-4">
-      <div className="w-full max-w-[340px] flex justify-between items-end mb-4 rounded-2xl border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="w-full max-w-[340px] flex justify-between items-end mb-4 rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         <div className="flex-1">
           <div className="text-[10px] uppercase tracking-widest opacity-60">Score</div>
           <div className="text-xl font-light leading-none mt-1">{score}</div>
@@ -468,7 +468,7 @@ export function CoreDefenseGame({ colors, rawColors, onExit }: { colors: any, ra
       </div>
 
       <div 
-        className="relative w-full max-w-[340px] aspect-[3/4] rounded-2xl overflow-hidden border" 
+        className="relative w-full max-w-[340px] aspect-[3/4] rounded-[var(--shape-control)] overflow-hidden border" 
         style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}
       >
         <canvas

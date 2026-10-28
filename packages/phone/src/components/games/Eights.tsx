@@ -118,7 +118,7 @@ export function EightsBoard({ tableId, colors, onTableId }: EightsBoardProps) {
         <button
           disabled={busy}
           onClick={deal}
-          className={cn('rounded-2xl border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
+          className={cn('rounded-[var(--shape-control)] border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
           style={{ backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }}
         >
           Deal a round
@@ -202,14 +202,14 @@ export function EightsBoard({ tableId, colors, onTableId }: EightsBoardProps) {
               key={s}
               disabled={busy}
               onClick={() => { const card = calling; setCalling(null); void act('play', { card, suit: s }); }}
-              className={cn('rounded-xl border px-3 py-1.5 text-[15px] transition active:scale-95', colors.panelBorder)}
+              className={cn('rounded-[var(--shape-chip)] border px-3 py-1.5 text-[15px] transition active:scale-95', colors.panelBorder)}
               style={{ color: s === 'hearts' || s === 'diamonds' ? '#c0392b' : undefined }}
             >
               {SUIT_MARK[s]}
             </button>
           ))}
           <button onClick={() => setCalling(null)}
-                  className={cn('rounded-xl border px-3 py-1.5 text-[11px] opacity-60', colors.panelBorder)}>
+                  className={cn('rounded-[var(--shape-chip)] border px-3 py-1.5 text-[11px] opacity-60', colors.panelBorder)}>
             back
           </button>
         </div>
@@ -236,7 +236,7 @@ export function EightsBoard({ tableId, colors, onTableId }: EightsBoardProps) {
 
       <div className="flex justify-center pb-1">
         <button disabled={busy} onClick={deal}
-                className={cn('rounded-xl border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
+                className={cn('rounded-[var(--shape-chip)] border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
           {game.phase === 'won' ? 'Another round' : 'New round'}
         </button>
       </div>

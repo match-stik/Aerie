@@ -2,7 +2,7 @@
 import * as cron from 'node-cron';
 import { parseBellOwners, sameBellBlock, ringBellInTurn, MAX_BELL_RECALLS } from './bell-owners.js';
 import { bellStatus, statusHoldKey, statusHoldOf, statusWordKey, statusWordOf } from './bell-status.js';
-import { laneSwitchBefore, laneSwitchAfter, BELLS_SPLIT_LANES_KEY, LANES_BY_BELL_KEY } from './bell-lanes.js';
+import { laneSwitchBefore, laneSwitchAfter, ringsOnceInSharedLane, BELLS_SPLIT_LANES_KEY, LANES_BY_BELL_KEY } from './bell-lanes.js';
 import { ensureCompanionLanes } from './heartbeat/lane-keeper.js';
 import { isHeartbeatLaneWarm } from './heartbeat/supervisor.js';
 import crypto from 'crypto';
@@ -1223,9 +1223,25 @@ export class Orchestrator {
       // Several owners: the bell rings in each one's own head in turn, and each
       // after the first is handed what the companions before them said. One at a
       // time, because each needs the last one's words.
+      if (owners.length > 1) await this.splitLanesForBell(wakeType, owners);
+      // With A Lane Each off the owners share one head, so the bell rings once
+      // there and that head answers for all of them (bell-lanes.ts).
+      if (ringsOnceInSharedLane({ multiLane: getAerieConfig().agent.multi_lane === true, owners: owners.length })) {
+        olog(`${wakeType}: ${owners.map((o) => o.slug).join(', ')} share one head tonight, ringing once`);
+        const response = await this.agent.processAutonomous(thread.id, fullPrompt + letterNotice, owners[0].id);
+        if (response.trim() === QUEUE_TIMEOUT_MESSAGE) {
+          olog(`TIMEOUT: ${wakeType} waited out its queue window and was dropped`);
+        } else if (response.trim()) {
+          updateThreadActivity(thread.id, new Date().toISOString(), true);
+          olog(`DONE: ${wakeType} (${response.length} chars, shared head)`);
+        } else {
+          olog(`DONE: ${wakeType} (passed in silence)`);
+        }
+        this.rejoinLanesAfterBell(wakeType);
+        return;
+      }
       if (owners.length > 1) {
         olog(`${wakeType}: ringing in ${owners.map((o) => o.slug).join(', ')}'s own lanes, in turn`);
-        await this.splitLanesForBell(wakeType, owners);
         const spoken = await ringBellInTurn(
           owners,
           async (owner, soFar, extra) => {

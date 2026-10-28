@@ -96,7 +96,7 @@ export function FieldNotesApp({ onClose, themeConfig, themeMode, embedded }: Fie
         )}
         <div className="min-w-0 flex-1">
           <div className="text-xs font-semibold" style={{ color: ink }}>{companion?.display_name || note.companion}</div>
-          <div className={cn('mt-0.5 text-sm leading-relaxed [overflow-wrap:anywhere]', colors.textMain)}>{note.text}</div>
+          <div className={cn('mt-0.5 text-sm leading-relaxed select-text [overflow-wrap:anywhere]', colors.textMain)}>{note.text}</div>
         </div>
       </div>
     );

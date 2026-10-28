@@ -3,6 +3,7 @@
 // Owns the single socket, heartbeat, reconnect, and the server-message handler.
 // Reactive state lives in store.ts; connection internals are module-local here.
 
+import { liveStreamIdFor } from './live-stream';
 import type { ClientMessage, ServerMessage, Message, ThreadSummary } from './protocol';
 import { withMissedReadMarks } from './read-marks';
 import { messagePreviewText } from '@aerie/shared';
@@ -548,10 +549,12 @@ function handleMessage(event: MessageEvent): void {
     case 'tool_use':
       lastStreamActivity = Date.now(); // tool chips are liveness on token-less lanes
       setState((st) => {
-        const streamId = st.streamingMessageId;
+        const streamId = liveStreamIdFor(st.streamingMessageId, st.presence, Date.now());
         if (!streamId) return {};
+        const opened = streamId !== st.streamingMessageId ? { streamingMessageId: streamId, streamingTokens: '' } : {};
         const events = st.toolEvents[streamId] || [];
         const next: Partial<typeof st> = {
+          ...opened,
           toolEvents: {
             ...st.toolEvents,
             [streamId]: [
@@ -571,10 +574,12 @@ function handleMessage(event: MessageEvent): void {
     case 'tool_result':
       lastStreamActivity = Date.now();
       setState((st) => {
-        const streamId = st.streamingMessageId;
+        const streamId = liveStreamIdFor(st.streamingMessageId, st.presence, Date.now());
         if (!streamId) return {};
+        const opened = streamId !== st.streamingMessageId ? { streamingMessageId: streamId, streamingTokens: '' } : {};
         const events = st.toolEvents[streamId] || [];
         return {
+          ...opened,
           toolEvents: {
             ...st.toolEvents,
             [streamId]: events.map((e) =>
@@ -588,10 +593,12 @@ function handleMessage(event: MessageEvent): void {
     case 'tool_progress':
       lastStreamActivity = Date.now();
       setState((st) => {
-        const streamId = st.streamingMessageId;
+        const streamId = liveStreamIdFor(st.streamingMessageId, st.presence, Date.now());
         if (!streamId) return {};
+        const opened = streamId !== st.streamingMessageId ? { streamingMessageId: streamId, streamingTokens: '' } : {};
         const events = st.toolEvents[streamId] || [];
         return {
+          ...opened,
           toolEvents: {
             ...st.toolEvents,
             [streamId]: events.map((e) => (e.toolId === msg.toolId ? { ...e, elapsed: msg.elapsed } : e)),
@@ -603,10 +610,12 @@ function handleMessage(event: MessageEvent): void {
     case 'thinking':
       lastStreamActivity = Date.now();
       setState((st) => {
-        const streamId = st.streamingMessageId;
+        const streamId = liveStreamIdFor(st.streamingMessageId, st.presence, Date.now());
         if (!streamId) return {};
+        const opened = streamId !== st.streamingMessageId ? { streamingMessageId: streamId, streamingTokens: '' } : {};
         const existing = st.thinkingEvents[streamId] || [];
         return {
+          ...opened,
           thinkingEvents: {
             ...st.thinkingEvents,
             [streamId]: [...existing, { content: msg.content, summary: msg.summary, textOffset: st.streamingTokens.length }],

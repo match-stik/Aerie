@@ -39,6 +39,7 @@ public class MainActivity extends BridgeActivity {
         } catch (ClassNotFoundException ignored) {
             // Built without the SDK: the Toys page reports no toy bridge.
         }
+        registerPlugin(CallVoicePlugin.class);
         AerieCrashReporter.install(this);
         super.onCreate(savedInstanceState);
         guardRenderProcess();

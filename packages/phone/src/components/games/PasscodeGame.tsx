@@ -97,7 +97,7 @@ export function PasscodeGame({ colors, rawColors, onExit }: { colors: any, rawCo
 
   return (
     <div key={gameId} className="flex flex-col h-full items-center justify-between p-4 pb-8">
-      <div className="w-full max-w-[320px] flex justify-between items-end mb-4 rounded-2xl border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="w-full max-w-[320px] flex justify-between items-end mb-4 rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         <div className="flex-1">
           <div className="text-[10px] uppercase tracking-widest opacity-60">Attempts</div>
           <div className="text-xl font-light leading-none mt-1">{guesses.length} / 6</div>
@@ -108,7 +108,7 @@ export function PasscodeGame({ colors, rawColors, onExit }: { colors: any, rawCo
         </div>
       </div>
 
-      <div className="grid grid-rows-6 gap-2 w-full max-w-[280px] mb-6 rounded-2xl border p-2 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="grid grid-rows-6 gap-2 w-full max-w-[280px] mb-6 rounded-[var(--shape-control)] border p-2 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         {Array(6).fill(0).map((_, rowIndex) => {
           const guess = guesses[rowIndex];
           const isCurrentRow = rowIndex === guesses.length;

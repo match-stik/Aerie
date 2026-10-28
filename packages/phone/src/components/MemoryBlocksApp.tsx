@@ -278,13 +278,13 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
   return (
     <AppShell embedded={embedded} title="Memory Blocks" icon={Layers} onClose={handleBack} themeConfig={themeConfig} themeMode={themeMode}>
       {/* Tab bar */}
-      <div className={cn("p-3 rounded-2xl border backdrop-blur-md mb-4 flex items-center", colors.panelBg, colors.panelBorder)}>
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-1 justify-center">
+      <div className={cn("overflow-hidden rounded-[var(--shape-control)] border backdrop-blur-md mb-4 flex items-center pr-3", colors.panelBg, colors.panelBorder)}>
+        <div className="aerie-tabscroll flex gap-1.5 overflow-x-auto scrollbar-hide p-3 flex-1 justify-center">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => { setTab(t.id); setOpResult(null); }}
-              className={cn('shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder, tab !== t.id && colors.panelBg)}
+              className={cn('shrink-0 rounded-[var(--shape-chip)] px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder,)}
               style={tab === t.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
             >
               {t.label}
@@ -368,7 +368,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
                 // A path or a line of code has no spaces to break at, so it is
                 // allowed to break anywhere; otherwise it widens the whole
                 // panel past the screen.
-                <pre className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] min-w-0 font-[family-name:var(--font-body,var(--font-sans))] leading-relaxed opacity-90">{selectedBlock.content || '(empty)'}</pre>
+                <pre className="text-sm whitespace-pre-wrap select-text [overflow-wrap:anywhere] min-w-0 font-[family-name:var(--font-body,var(--font-sans))] leading-relaxed opacity-90">{selectedBlock.content || '(empty)'}</pre>
               )}
               <div className="mt-3 pt-2 border-t border-white/10 text-xs opacity-50">
                 Updated: {new Date(selectedBlock.updated_at).toLocaleString()}

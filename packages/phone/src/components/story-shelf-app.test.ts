@@ -15,7 +15,7 @@ test('the Shelf is a room in the drawer, opened like any screen app', () => {
   assert.match(apps, /\{ id: STORY_SHELF_APP_ID, name: STORY_SHELF_NAME, icon: LibraryBig, category: 'Companion', kind: 'screen', screen: 'shelf' \}/);
   const shell = read('../App.tsx');
   assert.match(shell, /\| 'shelf'/, 'the OS knows the screen');
-  assert.match(shell, /osState === 'shelf' && \(\s*<StoryShelfApp/);
+  assert.match(shell, /osState === 'shelf' && \(\s*(?:<RoomBubbleContext\.Provider[^>]*>\s*)?<StoryShelfApp/);
   assert.match(read('../lib/story-shelf.ts'), /STORY_SHELF_NAME = 'The Shelf'/);
 });
 
@@ -85,7 +85,9 @@ test('the table talk is shown under the page, and reading it there counts as rea
 });
 
 test('the table holds its height and scrolls, newest at the bottom, and both boxes keep what the owner was typing', () => {
-  assert.match(app, /ref=\{talkBox\} className="[^"]*max-h-\[42vh\][^"]*overflow-y-auto/);
+  // The box is the house's one table (RoomTable.tsx), which scrolls; the room keeps its height.
+  assert.match(app, /<RoomTalk scrollRef=\{talkBox\} className="[^"]*max-h-\[42vh\][^"]*"/);
+  assert.match(read('./RoomTable.tsx'), /className=\{cn\('min-h-0 overflow-y-auto/);
   assert.match(app, /box\.scrollTop = box\.scrollHeight;\s*\}, \[latestId, showTyping\]\)/);
   assert.match(app, /draftKey=\{`aerie_table_draft_\$\{bookId\}`\}/);
   assert.match(app, /draftKey=\{`aerie_move_draft_\$\{book\.id\}`\}/);
@@ -94,8 +96,11 @@ test('the table holds its height and scrolls, newest at the bottom, and both box
 });
 
 test('the owner’s lines at the table wear their face, the way the chat puts it beside theirs', () => {
-  assert.match(app, /const ownerFace = useMemo\(\(\) => getOwnerAvatar\(\), \[\]\);/);
-  assert.match(app, /<Words text=\{line\.content\}[^\n]*\/>\s*<\/div>\s*<OwnerFace url=\{ownerFace\.url\} color=\{ownerFace\.color\} size=\{22\} \/>/);
+  // The owner's lines go through the chat's own bubble on the house's one table, which
+  // carries their face and side exactly as the chat does.
+  const table = read('./RoomTable.tsx');
+  assert.match(table, /<RoomBubble key=\{line\.id\} id=\{line\.id\} content=\{line\.content\} createdAt=\{line\.createdAt\} fromOwner \/>/);
+  assert.match(read('./RoomBubble.tsx'), /userAvatar=\{s\.userAvatar\}/);
 });
 
 test('the bible keeps its shape open and folds the rest, each part under its own heading', () => {
@@ -114,7 +119,8 @@ test("the table shows typing dots while the owner's line waits, or while a reply
   assert.match(app, /addEventListener\('aerie:thread-stream'/);
   assert.match(app, /removeEventListener\('aerie:thread-stream'/);
   assert.match(app, /const showTyping = typing \|\| tableAwaiting\(lines\);/);
-  assert.match(app, /\{showTyping && <TableTyping colors=\{colors\} \/>\}/);
+  assert.match(app, /typing=\{showTyping\}/);
+  assert.match(read('./RoomTable.tsx'), /\{typing && <RoomTyping companions=\{companions\} label=\{typingLabel\} \/>\}/);
   assert.doesNotMatch(app, /backdrop-blur/, 'the dots are painted like the rest of the room');
 });
 

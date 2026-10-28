@@ -312,6 +312,9 @@ import toyRoutes from './routes/toys.js';
 app.use('/api/toys', toyRoutes);
 import statusRoutes from './routes/statuses.js';
 app.use('/api/statuses', statusRoutes);
+// Favorites: each contact card's own shelf of favorite pictures (services/favorites.ts).
+import favoriteRoutes from './routes/favorites.js';
+app.use('/api/favorites', favoriteRoutes);
 
 import thresholdRoutes from './routes/thresholds.js';
 app.use('/api/thresholds', thresholdRoutes);

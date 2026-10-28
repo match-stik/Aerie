@@ -581,6 +581,14 @@
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
   }
+  /* A tab strip scrolls edge to edge inside its rounded card, and the tabs fade
+     out over the padding instead of being sliced off in a straight line (theirs,
+     Oct 28 2026: 'no square cut off on those tab cards'). The fade only covers
+     the padding, so a strip that fits is untouched. */
+  .aerie-tabscroll {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  }
   
   /* Glassmorphism Utilities */
   .glass {

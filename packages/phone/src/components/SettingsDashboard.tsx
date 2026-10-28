@@ -518,16 +518,16 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
         {/* Matches the pill-tab style used by Agent / Integrations /
             Status / Packs so all wrapper apps share the same visual
             grammar for tab navigation. */}
-        <div className={cn("p-3 rounded-2xl border mb-4 flex justify-center", colors.panelBg, colors.panelBorder)}>
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+        <div className={cn("overflow-hidden rounded-[var(--shape-control)] border mb-4 flex justify-center", colors.panelBg, colors.panelBorder)}>
+          <div className="aerie-tabscroll flex gap-1.5 overflow-x-auto scrollbar-hide p-3">
           {(["appearance", "data"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setPane(null); }}
               className={cn(
-                "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border capitalize",
+                "shrink-0 rounded-[var(--shape-chip)] px-3 py-1.5 text-xs font-medium transition-colors border capitalize",
                 colors.panelBorder,
-                activeTab !== tab && cn(colors.panelBg, colors.textMain),
+                activeTab !== tab && colors.textMain,
               )}
               style={
                 activeTab === tab

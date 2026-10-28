@@ -39,13 +39,13 @@ export function CommandCenterApp({ onClose, themeConfig, themeMode }: CommandCen
 
   return (
     <AppShell title="Command Center" icon={LayoutDashboard} onClose={onClose} themeConfig={themeConfig} themeMode={themeMode}>
-      <div className={cn("p-3 rounded-2xl border backdrop-blur-md mb-4 flex justify-center", colors.panelBg, colors.panelBorder)}>
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+      <div className={cn("overflow-hidden rounded-[var(--shape-control)] border backdrop-blur-md mb-4 flex justify-center", colors.panelBg, colors.panelBorder)}>
+        <div className="aerie-tabscroll flex gap-1.5 overflow-x-auto scrollbar-hide p-3">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={cn('shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder, tab !== t.id && colors.panelBg)}
+              className={cn('shrink-0 rounded-[var(--shape-chip)] px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder,)}
               style={tab === t.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               {t.label}

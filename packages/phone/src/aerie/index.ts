@@ -83,7 +83,7 @@ export {
   listEmojiPacks,
 } from './emojis';
 export type { BackendEmoji } from './emojis';
-export { loadStickers, getStickerPacks, resolveStickerRef } from './stickers';
+export { loadStickers, getStickerPacks, resolveStickerRef, useStickerVersion } from './stickers';
 export type { BackendSticker, BackendStickerPack } from './stickers';
 export { AerieProvider } from './AerieProvider';
 export { AerieLoginGate } from './AerieLoginGate';

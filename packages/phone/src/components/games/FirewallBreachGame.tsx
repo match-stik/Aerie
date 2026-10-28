@@ -549,7 +549,7 @@ export function FirewallBreachGame({ colors, rawColors, onExit }: { colors: any,
 
   return (
     <div className="flex flex-col h-full items-center p-4">
-      <div className="w-full max-w-[420px] flex justify-between items-end mb-4 rounded-2xl border px-4 py-3 backdrop-blur-md shrink-0" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="w-full max-w-[420px] flex justify-between items-end mb-4 rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md shrink-0" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         <div className="flex-1">
           <div className="text-[10px] uppercase tracking-widest opacity-60">Score</div>
           <div id="firewall-score" className="text-xl font-light leading-none mt-1">{score}</div>
@@ -566,7 +566,7 @@ export function FirewallBreachGame({ colors, rawColors, onExit }: { colors: any,
 
       <div className="flex-1 min-h-0 w-full flex justify-center">
       <div
-        className="relative h-full aspect-[2/3] max-w-full rounded-2xl overflow-hidden border"
+        className="relative h-full aspect-[2/3] max-w-full rounded-[var(--shape-control)] overflow-hidden border"
         style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}
       >
         <canvas
@@ -605,7 +605,7 @@ export function FirewallBreachGame({ colors, rawColors, onExit }: { colors: any,
       <div className="h-16 w-full max-w-[420px] mt-4 relative shrink-0">
         {isPlaying ? (
           <div 
-            className="absolute inset-0 rounded-2xl border-2 border-dashed flex items-center justify-center touch-none cursor-ew-resize backdrop-blur-md"
+            className="absolute inset-0 rounded-[var(--shape-control)] border-2 border-dashed flex items-center justify-center touch-none cursor-ew-resize backdrop-blur-md"
             style={{ borderColor: `${rawColors.accent}80`, backgroundColor: rawColors.panelBg, backgroundImage: `linear-gradient(0deg, ${rawColors.accent}1a, ${rawColors.accent}1a)` }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}

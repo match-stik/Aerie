@@ -148,6 +148,11 @@ Every router module under `packages/backend/src/routes`:
   `services/db/story-shelf.ts`, and the page turns and gallery lookups in
   `services/story-shelf.ts`. Every change is broadcast as `story_update`.
 - `studio.ts` — Studio backends/settings, drawers/folders, reference images, gallery metadata/files, generation, enhancement, and job status; mounted by `api.ts`.
+- `favorites.ts` — each contact card's shelf of favorite pictures: `GET`,
+  `POST /api/favorites/:card` and `DELETE /api/favorites/:card/:id`, where the
+  card is a companion slug or `owner`. A favorite only points at a Studio
+  gallery file or an uploaded file; the companions pick theirs on the loopback
+  door, `/api/internal/favorites`. Kept in config by `services/favorites.ts`.
 - `thresholds.ts` — place CRUD, proximity checks, visits, and place history.
 - `treehouse.ts` — Treehouse thread/messages and companion posting.
 - `toys.ts` — the owner's phone's side of the road from a lane to the toys:

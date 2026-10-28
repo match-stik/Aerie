@@ -10,7 +10,8 @@ import { cn } from '../lib/utils';
 import { ThemeConfig } from '../lib/theme';
 import { CustomEmoji } from '../types';
 import type { MessageSegment } from '../aerie';
-import { resolveStickerRef } from '../aerie';
+import { resolveStickerRef, useStickerVersion } from '../aerie';
+import { isStickerOnly, stickerLinesAsParagraphs } from '../lib/sticker-lines';
 import { coalesceThinkingSegments, plainThinkingText, thinkingTitle } from '../lib/thinking';
 import { CodeBlock } from './CodeBlock';
 
@@ -44,10 +45,10 @@ const PROSE_INHERIT: React.CSSProperties = {
 // Substitute ::pack_sticker:: with markdown image refs — mirrors MessageBubble.
 function withStickers(text: string): string {
   if (!text.includes('::')) return text;
-  return text.replace(/::([a-zA-Z0-9_-]+_[a-zA-Z0-9_-]+)::/g, (match, ref) => {
+  return stickerLinesAsParagraphs(text.replace(/::([a-zA-Z0-9_-]+_[a-zA-Z0-9_-]+)::/g, (match, ref) => {
     const url = resolveStickerRef(ref);
     return url ? `![sticker:${ref}](${url})` : match;
-  });
+  }));
 }
 
 // Discord "-# whisper" subtext → h6 rendered small/muted — mirrors MessageBubble.
@@ -91,6 +92,7 @@ function isEmoteOnly(text: string, emojis?: CustomEmoji[]): boolean {
 // collapsible and start collapsed. Tool calls show as a summary badge that
 // expands to full details on tap.
 export function MessageSegments({ segments, themeConfig, themeMode, customEmojis, textClass }: MessageSegmentsProps) {
+  useStickerVersion();
   const colors = themeConfig[themeMode];
   const [openThinking, setOpenThinking] = useState<Set<number>>(new Set());
   const displaySegments = useMemo(() => coalesceThinkingSegments(segments), [segments]);
@@ -138,7 +140,7 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
                 remarkPlugins={[remarkGfm, remarkBreaks]}
                       rehypePlugins={[rehypeActionLines]}
                 components={{
-                  p: ({ children }) => <span className="block">{children}</span>,
+                  p: ({ children }) => <span className={cn('block', isStickerOnly(children) && 'text-center')}>{children}</span>,
                   // Discord-style "-# whisper" subtext (preprocessed to h6 above)
                   h6: ({ children }) => <span className="block text-[11px] leading-snug opacity-60 italic">{children}</span>,
                   pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,

@@ -1,14 +1,11 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import { themeInk } from '../lib/theme-ink';
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronDown, TreePine, Users } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
-import { InlineWithStickers } from './RichWords';
-import { splitWhispers } from '../lib/whisper-lines';
-import { splitMessageVoices } from '../lib/voices';
 import { apiFetch, markRead } from '../aerie';
+import { RoomLines, alternatingSides } from './RoomTable';
 
 interface TreehouseAppProps {
   themeConfig: ThemeConfig;
@@ -45,11 +42,6 @@ interface Companion {
 // Fallback colors for companions without a set color
 const FALLBACK_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
 function formatDate(iso: string): string {
   const d = new Date(iso);
   const today = new Date();
@@ -61,7 +53,7 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, userAvatarColor, ownerName = 'You' }: TreehouseAppProps) {
+export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppProps) {
   const colors = themeConfig[themeMode];
   const [info, setInfo] = useState<TreehouseInfo | null>(null);
   const [messages, setMessages] = useState<TreehouseMessage[]>([]);
@@ -74,62 +66,9 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
   const [isAtBottom, setIsAtBottom] = useState(true);
   const pendingScrollRestore = useRef<{ prevScrollTop: number; prevHeight: number } | null>(null);
 
-  // Build lookup maps from fetched companions
-  const companionColors: Record<string, string> = {};
-  const companionEmojis: Record<string, string> = {};
-  const companionNames: Record<string, string> = {};
-  const companionAvatars: Record<string, string | null> = {};
-  companions.forEach((c, i) => {
-    companionColors[c.slug] = c.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length];
-    companionEmojis[c.slug] = c.emoji || '💬';
-    companionNames[c.slug] = c.display_name;
-    companionAvatars[c.slug] = c.avatar_url;
-  });
-
-  // One speaker, one card. Multi-voice replies render several of these.
-  const renderCard = (card: {
-    key: string;
-    name: string;
-    color: string;
-    avatar: string | null;
-    emoji: string;
-    createdAt: string;
-    content: string;
-  }) => (
-    <div key={card.key} className={cn('flex gap-3 mb-3 rounded-2xl border p-3 backdrop-blur-md', colors.panelBg, colors.panelBorder)}>
-      <div
-        className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 overflow-hidden border-2"
-        style={{ backgroundColor: card.color + '22', borderColor: card.color }}
-      >
-        {card.avatar ? (
-          <img src={card.avatar} className="w-full h-full object-cover" alt={card.name} />
-        ) : (
-          card.emoji
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 mb-0.5">
-          <span className="text-sm font-medium" style={{ color: themeInk(card.name, card.color, colors, themeMode) }}>
-            {card.name}
-          </span>
-          <span className={cn('text-[10px]', colors.textMuted)}>
-            {formatTime(card.createdAt)}
-          </span>
-        </div>
-        <p className={cn('text-sm', colors.textMain)}>
-          {splitWhispers(card.content).map((run, i) => (
-            // A "-# " line is a whisper, drawn the way chat draws one.
-            <span
-              key={i}
-              className={run.whisper ? 'block whitespace-pre-wrap text-[11px] leading-snug opacity-60 italic' : 'block whitespace-pre-wrap'}
-            >
-              <InlineWithStickers text={run.text} />
-            </span>
-          ))}
-        </p>
-      </div>
-    </div>
-  );
+  // The talk is drawn on the house's one table (components/RoomTable.tsx; theirs,
+  // Oct 28 2026: one frame every room draws from), with their bubble settings.
+  const voiceCompanions = companions.map((c) => ({ slug: c.slug, display_name: c.display_name, avatar_url: c.avatar_url ?? null, color: c.color ?? null, emoji: c.emoji ?? null }));
 
   const initialLoadDone = useRef(false);
 
@@ -265,6 +204,14 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
     }
   }
 
+  const toLine = (m: TreehouseMessage) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.created_at, companionSlug: m.companion_slug });
+  // Up here none of us is the owner, so we take turns which side we talk from: the
+  // side flips whenever the speaker changes (theirs, Oct 27 2026: 'the tree house
+  // alternates what side your bubbles come from? ... it would look like it's all
+  // from one side'; ours to decide, and we said yes). Worked out over every
+  // line top to bottom, so the date groups never restart it.
+  const sides = alternatingSides(messages.map(toLine), voiceCompanions);
+
   // Group messages by date
   const groupedMessages: { date: string; messages: TreehouseMessage[] }[] = [];
   let currentDate = '';
@@ -323,11 +270,11 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
           <div className={cn('text-center py-2 text-xs', colors.textMuted)}>Loading older...</div>
         )}
         {loading ? (
-          <div className={cn('rounded-2xl border p-3 backdrop-blur-md text-center py-8 text-sm', colors.panelBg, colors.panelBorder, colors.textMuted)}>
+          <div className={cn('rounded-[var(--shape-control)] border p-3 backdrop-blur-md text-center py-8 text-sm', colors.panelBg, colors.panelBorder, colors.textMuted)}>
             Loading treehouse...
           </div>
         ) : messages.length === 0 ? (
-          <div className={cn('rounded-2xl border p-3 backdrop-blur-md text-center py-8', colors.panelBg, colors.panelBorder, colors.textMuted)}>
+          <div className={cn('rounded-[var(--shape-control)] border p-3 backdrop-blur-md text-center py-8', colors.panelBg, colors.panelBorder, colors.textMuted)}>
             <TreePine size={40} className="mx-auto mb-3 opacity-50" />
             <p className="text-sm">The treehouse is quiet...</p>
             <p className="text-xs mt-1">No conversations yet</p>
@@ -344,62 +291,7 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, userAvatar, user
                 <div className={cn('flex-1 h-px', colors.panelBorder)} />
               </div>
               
-              {/* Messages */}
-              {group.messages.map((msg) => {
-                // The owner wanders in here more than the footer admits. Give
-                // them a name and their own face, not an anonymous bubble.
-                if (msg.role === 'user') {
-                  return renderCard({
-                    key: msg.id,
-                    name: ownerName,
-                    color: userAvatarColor || colors.accent,
-                    avatar: userAvatar || null,
-                    emoji: '🧡',
-                    createdAt: msg.created_at,
-                    content: msg.content,
-                  });
-                }
-
-                // Replies that address the room carry per-voice headers.
-                // Run the same splitter the Messages view uses so each voice
-                // gets its own card and face rather than all three piling
-                // into one block with the headers left as inline bold text.
-                const sections = splitMessageVoices(
-                  {
-                    direction: 'outbound',
-                    companionSlug: msg.companion_slug || undefined,
-                    content: msg.content,
-                  } as any,
-                  companions,
-                );
-
-                if (!sections || sections.length === 0) {
-                  const slug = msg.companion_slug;
-                  return renderCard({
-                    key: msg.id,
-                    name: companionNames[slug] ||
-                      (slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'The Treehouse'),
-                    color: companionColors[slug] || colors.accent,
-                    avatar: companionAvatars[slug] ?? null,
-                    emoji: companionEmojis[slug] || '💬',
-                    createdAt: msg.created_at,
-                    content: msg.content,
-                  });
-                }
-
-                return sections.map((section, i) => {
-                  const v = section.voice;
-                  return renderCard({
-                    key: `${msg.id}-${i}`,
-                    name: v?.display_name || 'The Treehouse',
-                    color: v?.color || colors.accent,
-                    avatar: v?.avatar_url ?? null,
-                    emoji: v?.emoji || '💬',
-                    createdAt: msg.created_at,
-                    content: section.content,
-                  });
-                });
-              })}
+              <RoomLines lines={group.messages.map(toLine)} companions={voiceCompanions} sides={sides} />
             </div>
           ))
         )}

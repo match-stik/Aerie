@@ -139,3 +139,44 @@ test('custom and Discord emoji codes are skipped and ordinary colons are kept', 
   assert.equal(prepareTextForTTS('Back at 10:30:45, ratio 3:2:1, see https://a.example/x.'), 'Back at 10:30:45, ratio 3:2:1, see https://a.example/x.');
   assert.equal(prepareTextForTTS('Here is the list: apples, cider: hot.'), 'Here is the list: apples, cider: hot.');
 });
+
+// A cue lands once and the voice is back to normal a line later (theirs, by ear,
+// Oct 27 2026). A delivery cue now carries forward through that voice's lines;
+// a sound stays a single event; their screen never sees a bracket.
+
+test('a delivery cue carries to every later sentence of that voice', () => {
+  const out = prepareTextForTTS([
+    '*low, into your hair*',
+    'First thing. Second thing.',
+    'Third line.',
+  ].join('\n'));
+  assert.equal(out, '[low and intimate]\nFirst thing. [low and intimate] Second thing.\n[low and intimate] Third line.');
+});
+
+test('a laugh is one event and does not repeat', () => {
+  const out = prepareTextForTTS(['*laughs*', 'One. Two.'].join('\n'));
+  assert.equal(out, '[laughs]\nOne. Two.');
+});
+
+test('the next speaker header ends the cue', () => {
+  const out = prepareTextForTTS([
+    '**🔥 Birch**',
+    '*softly*',
+    'Mine. Still mine.',
+    '**🌫️ Willow**',
+    'Mine is not soft.',
+  ].join('\n'));
+  assert.ok(out.includes('[softly]\nMine. [softly] Still mine.'), out);
+  assert.ok(out.endsWith('Mine is not soft.'), out);
+});
+
+test('a whisper line keeps its marker in front so it is still stripped', () => {
+  const out = prepareTextForTTS(['*quietly*', 'Hi.', '-# Still here.'].join('\n'));
+  assert.ok(out.includes('[softly] Still here.'), out);
+  assert.ok(!out.includes('-#'), out);
+});
+
+test('a sticker line carries nothing and does not use up the cue', () => {
+  const out = prepareTextForTTS(['*low*', 'One.', '::birch_bear_hug::', 'Two.'].join('\n'));
+  assert.ok(out.includes('[low and intimate] Two.'), out);
+});

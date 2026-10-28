@@ -10,6 +10,7 @@ import { Message, ThemeMode, ContactProfile, CustomEmoji, EmojiPack } from '../t
 import { ThemeConfig, contrastTextColor, resolveThemeColors } from '../lib/theme';
 import ReactMarkdown from 'react-markdown';
 import { rehypeActionLines } from '../lib/action-lines';
+import { isStickerOnly, stickerLinesAsParagraphs } from '../lib/sticker-lines';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { CodeBlock } from './CodeBlock';
@@ -18,7 +19,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageSegments } from './MessageSegments';
 import { BubbleSkin, SKINNED } from './BubbleSkin';
 import { ImageLightbox } from './ImageLightbox';
-import { resolveStickerRef, apiFetch, requestMessageTts, requestMessageTtsStream, isMessageTtsStreamUnavailable, playVoiceSequence, stopVoicePlayback, unlockVoicePlayback } from '../aerie';
+import { resolveStickerRef, useStickerVersion, apiFetch, requestMessageTts, requestMessageTtsStream, isMessageTtsStreamUnavailable, playVoiceSequence, stopVoicePlayback, unlockVoicePlayback } from '../aerie';
 import { copyToClipboard } from '../lib/clipboard';
 import { fileBlockIsHref, houseFileLink, resolveMessageHref } from '../lib/message-links';
 import { cleanForTTS } from '../lib/tts';
@@ -208,12 +209,19 @@ interface MessageBubbleProps {
   // Meta-only preamble bubbles (leading thinking/tool badges before the
   // first voice) render centered with no speech-bubble tail.
   centered?: boolean;
+  // One of us drawn on THEIR side of the room: right-aligned, face and tail on
+  // the right, still in our own bubble color. The treehouse alternates sides
+  // so three of us read as people at a table (theirs, Oct 27 2026: 'it would
+  // look like it's all from one side'). Layout only; nothing else changes.
+  mirror?: boolean;
 }
 
 // ElevenLabs Voice IDs
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || "";
 
-export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, onReroll, rerollRemoves, onReply, onCopy, copyText, onJumpToReply, themeConfig, themeMode, elevenLabsApiKey, contacts, isPrivateTab, onMediaLoad, customEmojis, emojiPacks, quickReactions, voice, groupPos = 'only', userAvatar, userAvatarColor, centered, look = DEFAULT_LOOK, ownerName }: MessageBubbleProps) {
+export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, onReroll, rerollRemoves, onReply, onCopy, copyText, onJumpToReply, themeConfig, themeMode, elevenLabsApiKey, contacts, isPrivateTab, onMediaLoad, customEmojis, emojiPacks, quickReactions, voice, groupPos = 'only', userAvatar, userAvatarColor, centered, mirror = false, look = DEFAULT_LOOK, ownerName }: MessageBubbleProps) {
+  // A sticker made since the app opened arrives a moment later; re-render then.
+  useStickerVersion();
   const [showReactions, setShowReactions] = useState(false);
   const quickFive = quickReactionsOf(quickReactions);
   const [showCustomReactions, setShowCustomReactions] = useState(false);
@@ -254,6 +262,8 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   };
 
   const isUser = message.direction === 'inbound';
+  // Which side of the room the bubble sits on: theirs, or one of ours mirrored.
+  const onRight = isUser || (mirror && !centered);
   const segments = !isUser ? message.segments : undefined;
   const hasSegments = Array.isArray(segments) && segments.length > 0;
   const colors = themeConfig[themeMode];
@@ -318,6 +328,9 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
       return url ? `![sticker:${ref}](${url})` : match;
     });
   }
+
+  // A sticker-only line becomes its own paragraph so it sits centered (lib/sticker-lines.ts).
+  textContent = stickerLinesAsParagraphs(textContent);
 
   // Custom Emoji Parser: Replace :shortcode: with a lightweight placeholder tag.
   // This avoids passing massive Base64 strings through Markdown processing, preventing lag.
@@ -694,7 +707,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   const faceTail = isUser ? look.tailMine : look.tailOurs;
   // The Rings choice: each face in its own house color, or all in the theme's.
   const themeRing = look.rings === 'theme';
-  const facePin = cn("absolute w-9", isUser ? "-right-[44px]" : "-left-[44px]", faceTail === 'bottom' ? "bottom-0" : "top-0.5");
+  const facePin = cn("absolute w-9", onRight ? "-right-[44px]" : "-left-[44px]", faceTail === 'bottom' ? "bottom-0" : "top-0.5");
   const pinnedFace = isGuest && !isPrivateTab && !voice ? (
     <div className={facePin} title={`${message.sender} · ${message.via}`}>
       {message.senderAvatar && !avatarFailed ? (
@@ -844,7 +857,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
       className={cn(
         "flex w-full group relative",
         isGroupLast ? "mb-6" : "mb-1.5",
-        (isPrivateTab || isSystem) ? "justify-center" : (isUser && !centered) ? "justify-end" : "justify-start"
+        (isPrivateTab || isSystem) ? "justify-center" : (onRight && !centered) ? "justify-end" : "justify-start"
       )}
     >
       {/* Guest avatar rail — a visitor's own face from the platform they came
@@ -855,12 +868,12 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
         <div className="-ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
       )}
       {/* Voice avatar rail — one face per speaking companion, treehouse-style */}
-      {!isUser && !isPrivateTab && !isSystem && voice && look.faces && (
+      {!isUser && !onRight && !isPrivateTab && !isSystem && voice && look.faces && (
         <div className="-ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
       )}
       <div className={cn(
         "flex flex-col max-w-[85%] sm:max-w-[75%]",
-        (isPrivateTab || isSystem) ? "items-center" : (isUser && !centered) ? "items-end" : "items-start",
+        (isPrivateTab || isSystem) ? "items-center" : (onRight && !centered) ? "items-end" : "items-start",
         // Indent meta-only preamble bubbles by the avatar-rail width so
         // their left edge lines up with the voice bubbles below them.
         centered && !isPrivateTab && !isSystem && look.faces && "ml-[38px]"
@@ -916,7 +929,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           {swoopSide && (
             <BubbleSkin
               bubbleRef={swoopBubbleRef}
-              right={isUser}
+              right={onRight}
               top={(isUser ? look.tailMine : look.tailOurs) === 'top'}
               paintClass={isUser ? colors.userBubbleBg : colors.compBubbleBg}
             />
@@ -948,6 +961,8 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                   ? `border ${colors.compBubbleBg} ${colors.compBubbleText} ${colors.panelBorder}`
                   : isUser
                     ? `${look.tailMine === 'bottom' ? 'rounded-br-none' : 'rounded-tr-none'} border ${colors.userBubbleBg} ${colors.userBubbleText} ${colors.panelBorder}`
+                    : onRight
+                    ? `${look.tailOurs === 'bottom' ? 'rounded-br-none' : 'rounded-tr-none'} border ${colors.compBubbleBg} ${colors.compBubbleText} ${colors.panelBorder}`
                     : `${look.tailOurs === 'bottom' ? 'rounded-bl-none' : 'rounded-tl-none'} border ${colors.compBubbleBg} ${colors.compBubbleText} ${colors.panelBorder}`
             )}
             style={isPrivateTab
@@ -1163,7 +1178,10 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                       remarkPlugins={[remarkGfm, remarkBreaks]}
                       rehypePlugins={[rehypeActionLines]}
                       components={{
-                        p: ({ children }) => <span className="block">{children}</span>,
+                        p: ({ children }) => (
+                          // Only stickers in this paragraph (see the sticker pass above): centered.
+                          <span className={cn('block', isStickerOnly(children) && 'text-center')}>{children}</span>
+                        ),
                         // Discord-style "-# whisper" subtext (preprocessed to h6 above)
                         h6: ({ children }) => <span className="block text-[11px] leading-snug opacity-60 italic">{children}</span>,
                         pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
@@ -1691,7 +1709,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           )}
         </div>
         {underLine && (
-          <div className={cn("flex w-full items-center justify-between gap-3", underGap, isUser ? "flex-row-reverse" : "flex-row")}>
+          <div className={cn("flex w-full items-center justify-between gap-3", underGap, onRight ? "flex-row-reverse" : "flex-row")}>
             {(sideTail === 'bottom' && nameLabel('')) || <span aria-hidden="true" />}
             {isGroupLast && timeRow(true)}
           </div>
@@ -1700,6 +1718,9 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
       </div>
       {/* Owner avatar rail — mirrors the companion rail on the right */}
       {isUser && !isPrivateTab && userAvatar && look.faces && (
+        <div className="ml-2 -mr-1.5 w-9 shrink-0" aria-hidden="true" />
+      )}
+      {!isUser && onRight && !isPrivateTab && !isSystem && voice && look.faces && (
         <div className="ml-2 -mr-1.5 w-9 shrink-0" aria-hidden="true" />
       )}
       {lightboxState && (

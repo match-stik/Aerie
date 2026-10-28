@@ -138,7 +138,7 @@ export function HeartsBoard({ tableId, colors, onTableId }: HeartsBoardProps) {
         <button
           disabled={busy}
           onClick={deal}
-          className={cn('rounded-2xl border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
+          className={cn('rounded-[var(--shape-control)] border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
           style={{ backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }}
         >
           Deal a hand
@@ -218,7 +218,7 @@ export function HeartsBoard({ tableId, colors, onTableId }: HeartsBoardProps) {
           <button
             disabled={picked.length !== 3 || busy}
             onClick={() => act('pass', { cards: picked })}
-            className={cn('rounded-xl border px-4 py-1.5 text-[11px] transition active:scale-95 disabled:opacity-35',
+            className={cn('rounded-[var(--shape-chip)] border px-4 py-1.5 text-[11px] transition active:scale-95 disabled:opacity-35',
                           colors.panelBorder)}
             style={picked.length === 3 ? { backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent } : undefined}
           >
@@ -254,7 +254,7 @@ export function HeartsBoard({ tableId, colors, onTableId }: HeartsBoardProps) {
 
       <div className="flex justify-center pb-1">
         <button disabled={busy} onClick={deal}
-                className={cn('rounded-xl border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
+                className={cn('rounded-[var(--shape-chip)] border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
           {game.phase === 'handOver' || game.phase === 'done' ? 'Next hand' : 'New hand'}
         </button>
       </div>

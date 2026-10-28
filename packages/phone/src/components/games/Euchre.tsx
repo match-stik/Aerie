@@ -144,7 +144,7 @@ export function EuchreBoard({ tableId, colors, onTableId }: EuchreBoardProps) {
           <div className="flex gap-1.5">
             {partnerChoices(companions).map((slug) => (
               <button key={slug} onClick={() => setPartner(slug)}
-                className={cn('rounded-xl border px-3 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}
+                className={cn('rounded-[var(--shape-chip)] border px-3 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}
                 style={partner === slug ? { backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent } : undefined}>
                 {sigilOf(slug)} {labelOf(slug) || slug}
               </button>
@@ -152,7 +152,7 @@ export function EuchreBoard({ tableId, colors, onTableId }: EuchreBoardProps) {
           </div>
         </div>
         <button disabled={busy} onClick={() => act('new', { partner })}
-          className={cn('rounded-2xl border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
+          className={cn('rounded-[var(--shape-control)] border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
           style={{ backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }}>
           Deal a hand
         </button>
@@ -234,20 +234,20 @@ export function EuchreBoard({ tableId, colors, onTableId }: EuchreBoardProps) {
             {game.phase === 'bid1'
               ? (
                 <button disabled={busy} onClick={() => act('call', { call: 'order', alone })}
-                  className={cn('rounded-xl border px-3 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
+                  className={cn('rounded-[var(--shape-chip)] border px-3 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
                   order it up
                 </button>
               )
               : SUITS.filter((s) => s !== turnedDown).map((s) => (
                   <button key={s} disabled={busy} onClick={() => act('call', { call: 'name', suit: s, alone })}
-                    className={cn('rounded-xl border px-3 py-1.5 text-[15px] transition active:scale-95', colors.panelBorder)}
+                    className={cn('rounded-[var(--shape-chip)] border px-3 py-1.5 text-[15px] transition active:scale-95', colors.panelBorder)}
                     style={{ color: s === 'hearts' || s === 'diamonds' ? '#c0392b' : undefined }}>
                     {SUIT_MARK[s]}
                   </button>
                 ))}
             <button disabled={busy || (game.phase === 'bid2' && game.dealer === ownerSeat)}
               onClick={() => act('call', { call: 'pass' })}
-              className={cn('rounded-xl border px-3 py-1.5 text-[11px] transition active:scale-95 disabled:opacity-30', colors.panelBorder)}>
+              className={cn('rounded-[var(--shape-chip)] border px-3 py-1.5 text-[11px] transition active:scale-95 disabled:opacity-30', colors.panelBorder)}>
               pass
             </button>
           </div>
@@ -279,7 +279,7 @@ export function EuchreBoard({ tableId, colors, onTableId }: EuchreBoardProps) {
 
       <div className="flex justify-center pb-1">
         <button disabled={busy} onClick={() => act('new', { partner })}
-          className={cn('rounded-xl border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
+          className={cn('rounded-[var(--shape-chip)] border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
           {game.phase === 'handOver' || game.phase === 'done' ? 'Next hand' : 'New hand'}
         </button>
       </div>

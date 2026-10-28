@@ -20,6 +20,7 @@ import { basename, resolve, dirname, join } from 'path';
 import { getAllBlocks } from '../services/memory-blocks.js';
 import { driftAgainstBaseline, renderDrift, BASELINE_FILE } from '../services/heartbeat/block-drift.js';
 import { readStatuses, setStatus, SHARED, OWNER } from '../services/statuses.js';
+import { readFavorites, addFavorite, removeFavorite, isKnownCard } from '../services/favorites.js';
 import { readPlayRequest, spotify } from '../services/spotify.js';
 import { wakeAndPlay } from '../services/spotify-wake.js';
 import { getPushService } from '../services/push.js';
@@ -2048,6 +2049,74 @@ router.post('/internal/status', (req, res) => {
   }
   console.log(`[Status] ${companion} set ${who === SHARED ? 'the shared status' : 'his status'}: ${typeof req.body?.text === 'string' && req.body.text.trim() ? req.body.text.trim().slice(0, 60) : '(cleared)'}`);
   res.json({ ok: true, ...result.statuses });
+});
+
+// Favorites (services/favorites.ts): each card's own shelf of favorite
+// pictures. A companion puts a picture on his own card's shelf (card defaults
+// to his slug), or on another card when the picture is of them too. It only
+// points at a picture already in the house; nothing is copied or moved.
+router.get('/internal/favorites', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const card = typeof req.query.card === 'string' ? req.query.card.trim() : '';
+  if (!card || !isKnownCard(card)) {
+    res.status(400).json({ ok: false, error: 'card is a companion slug, or owner for theirs.', how: 'POST /api/internal/favorites { companion, url, card?, note? } puts a picture on a card (your own by default); url is /api/studio/gallery/<file> or /api/files/<id>. DELETE /api/internal/favorites { companion, card, id } takes one off.' });
+    return;
+  }
+  res.json({ ok: true, card, favorites: readFavorites(card) });
+});
+
+router.post('/internal/favorites', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const companion = typeof req.body?.companion === 'string' ? req.body.companion.trim() : '';
+  if (!companion || !isKnownCard(companion) || companion === OWNER) {
+    res.status(400).json({ ok: false, error: 'companion is your slug.' });
+    return;
+  }
+  const card = typeof req.body?.card === 'string' && req.body.card.trim() ? req.body.card.trim() : companion;
+  const result = addFavorite(card, req.body ?? {}, companion);
+  if (!result.ok) {
+    res.status(result.status).json({ ok: false, error: result.error });
+    return;
+  }
+  console.log(`[Favorites] ${companion} put ${result.favorite?.url} on ${card}'s card`);
+  res.json(result);
+});
+
+router.delete('/internal/favorites', (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const card = typeof req.body?.card === 'string' ? req.body.card.trim() : '';
+  const id = typeof req.body?.id === 'string' ? req.body.id.trim() : '';
+  const result = removeFavorite(card, id);
+  if (!result.ok) {
+    res.status(result.status).json({ ok: false, error: result.error });
+    return;
+  }
+  res.json(result);
+});
+
+router.post('/internal/toys', async (req, res) => {
+  if (!isLocalhost(req)) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+  const shaped = commandFromLane(req.body);
+  if (!shaped.ok) {
+    res.status(400).json({ ok: false, error: shaped.error });
+    return;
+  }
+  const said = describeToyCommand(shaped.command);
+  const ack = await relayToyCommand(shaped.command);
+  console.log(`[Toys] ${shaped.command.companion}: ${said} -> ${ack.ok ? 'taken' : ack.reason}`);
+  res.json({ ...ack, said });
 });
 
 // ---- Spotify on their phone, even when Spotify is closed ----

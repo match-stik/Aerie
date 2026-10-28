@@ -196,16 +196,16 @@ export function CardRoom({ colors }: CardRoomProps) {
   // no bottom padding, and the rail was sitting flush against the table.
   const modeSwitch = (
     <div className="px-4 pt-2 pb-4">
-      <div className={cn('flex justify-center rounded-2xl border p-3 backdrop-blur-md',
+      <div className={cn('flex justify-center overflow-hidden rounded-[var(--shape-control)] border backdrop-blur-md',
                          colors.panelBg, colors.panelBorder)}>
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+        <div className="aerie-tabscroll flex gap-1.5 overflow-x-auto scrollbar-hide p-3">
           {([['table', 'The table'], ['klondike', 'Solitaire'], ['ratscrew', 'Rat Screw'], ['golf', 'Golf'], ['eights', 'Eights'], ['president', 'President'], ['hearts', 'Hearts'], ['spades', 'Spades'], ['euchre', 'Euchre']] as const).map(([id, label]) => (
             <button
               key={id}
               ref={mode === id ? activeTabRef : undefined}
               onClick={() => setMode(id)}
-              className={cn('shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
-                            colors.panelBorder, mode !== id && colors.panelBg)}
+              className={cn('shrink-0 whitespace-nowrap rounded-[var(--shape-chip)] border px-3 py-1.5 text-xs font-medium transition-colors',
+                            colors.panelBorder,)}
               style={mode === id
                 ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                 : undefined}
@@ -233,7 +233,7 @@ export function CardRoom({ colors }: CardRoomProps) {
             type="button"
             disabled={!g.ready}
             onClick={() => g.ready && setMode(g.id as 'klondike' | 'ratscrew' | 'golf' | 'eights' | 'president' | 'hearts' | 'spades' | 'euchre')}
-            className={cn('flex flex-col items-start gap-0.5 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[.98]',
+            className={cn('flex flex-col items-start gap-0.5 rounded-[var(--shape-control)] border px-3 py-2.5 text-left transition active:scale-[.98]',
                           colors.panelBorder, g.ready ? '' : 'opacity-40')}
             style={g.ready ? { backgroundColor: 'var(--aerie-surface-strong)' } : undefined}
           >
@@ -247,7 +247,7 @@ export function CardRoom({ colors }: CardRoomProps) {
 
   // One card behind the whole room, so nothing is ever painted straight onto
   // the wallpaper. The owner's call, and the reason the foundations were invisible.
-  const roomSurface = cn('mx-2 mb-2 min-h-0 flex-1 rounded-3xl border shadow-[0_10px_30px_rgba(0,0,0,.3)]',
+  const roomSurface = cn('mx-2 mb-2 min-h-0 flex-1 rounded-[var(--shape-surface)] border shadow-[0_10px_30px_rgba(0,0,0,.3)]',
                          colors.panelBg, colors.panelBorder);
 
   // The rail belongs to the ROOM, not to one game in it. It only ever hung off
@@ -258,24 +258,33 @@ export function CardRoom({ colors }: CardRoomProps) {
       {!railOpen && (
         <button
           onClick={() => setRailOpen(true)}
-          className={cn('flex items-center justify-center gap-2 border-t py-1.5 text-[10px] uppercase tracking-[.2em] opacity-60',
-                        colors.panelBorder)}
+          className={cn('mx-2 mb-2 flex shrink-0 items-center justify-center gap-2 rounded-[var(--shape-control)] border py-2.5 text-[10px] uppercase tracking-[.2em]',
+                        colors.panelBg, colors.panelBorder)}
         >
           <MessagesSquare size={12} /> talk to them
         </button>
       )}
       {/* The rail owns a fixed area, the way the Fleet Room's does. Sizing it
           off the flex column meant it grew the page instead of scrolling
-          inside itself. Expanded, it pops out over the whole screen. */}
+          inside itself. It is its own box under the game, like every other
+          room's talk (theirs, Oct 28 2026: 'a separate table below like the
+          rest'). Expanded, it pops out over the whole screen. */}
+      {/* Opened over the room it matches the Fleet Room's: a dark sheet behind,
+          the same 8px from the edges, and a solid face so the panel underneath
+          never shows through as a second edge (theirs, Oct 28 2026: 'the card
+          rooms tables don't match'). */}
+      {railOpen && railExpanded && <div className="fixed inset-0 z-[99]" style={{ backgroundColor: 'rgba(0,0,0,.72)' }} aria-hidden="true" />}
+      {railOpen && railExpanded && <div className="h-[340px] shrink-0" aria-hidden="true" />}
       {railOpen && (
         <section
           className={cn(
             'flex flex-col border shadow-[0_24px_70px_rgba(0,0,0,.48)]',
             railExpanded
-              ? 'fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] top-[calc(env(safe-area-inset-top)+68px)] z-[100] rounded-[calc(28px*var(--shape-scale,1))]'
-              : 'h-[340px] shrink-0 rounded-t-[calc(24px*var(--shape-scale,1))] border-x-0 border-b-0',
-            colors.panelBg, colors.panelBorder,
+              ? 'fixed inset-x-2 bottom-[max(12px,env(safe-area-inset-bottom))] top-[calc(env(safe-area-inset-top)+68px)] z-[100] rounded-[calc(28px*var(--shape-scale,1))]'
+              : 'mx-2 mb-2 h-[340px] shrink-0 rounded-[var(--shape-surface)]',
+            !railExpanded && colors.panelBg, colors.panelBorder,
           )}
+          style={railExpanded ? { backgroundColor: 'var(--custom-panelBg, var(--aerie-surface-strong))' } : undefined}
         >
           <div className={cn('flex items-center justify-between border-b px-3 py-2', colors.panelBorder)}>
             <div className="flex items-center gap-2">
@@ -286,7 +295,7 @@ export function CardRoom({ colors }: CardRoomProps) {
               <button
                 type="button"
                 onClick={() => setRailExpanded((v) => !v)}
-                className={cn('flex h-9 w-9 items-center justify-center rounded-xl border transition active:scale-95',
+                className={cn('flex h-9 w-9 items-center justify-center rounded-[var(--shape-chip)] border transition active:scale-95',
                               colors.panelBorder)}
                 aria-label={railExpanded ? 'Collapse the table talk' : 'Expand the table talk'}
               >
@@ -295,7 +304,7 @@ export function CardRoom({ colors }: CardRoomProps) {
               <button
                 type="button"
                 onClick={() => { setRailExpanded(false); setRailOpen(false); }}
-                className={cn('flex h-9 w-9 items-center justify-center rounded-xl border transition active:scale-95',
+                className={cn('flex h-9 w-9 items-center justify-center rounded-[var(--shape-chip)] border transition active:scale-95',
                               colors.panelBorder)}
                 aria-label="Hide the table talk"
               >
@@ -320,8 +329,8 @@ export function CardRoom({ colors }: CardRoomProps) {
             <KlondikeBoard tableId={table?.id ?? null} colors={colors}
                            onTableId={(id) => setTable((t) => (t ? { ...t, id } : t))} />
           </div>
-          {rail}
         </div>
+        {rail}
       </div>
     );
   }
@@ -335,8 +344,8 @@ export function CardRoom({ colors }: CardRoomProps) {
             <EuchreBoard tableId={table?.id ?? null} colors={colors}
                          onTableId={(id) => setTable((t) => (t ? { ...t, id } : t))} />
           </div>
-          {rail}
         </div>
+        {rail}
       </div>
     );
   }
@@ -350,8 +359,8 @@ export function CardRoom({ colors }: CardRoomProps) {
             <SpadesBoard tableId={table?.id ?? null} colors={colors}
                          onTableId={(id) => setTable((t) => (t ? { ...t, id } : t))} />
           </div>
-          {rail}
         </div>
+        {rail}
       </div>
     );
   }
@@ -365,8 +374,8 @@ export function CardRoom({ colors }: CardRoomProps) {
             <HeartsBoard tableId={table?.id ?? null} colors={colors}
                          onTableId={(id) => setTable((t) => (t ? { ...t, id } : t))} />
           </div>
-          {rail}
         </div>
+        {rail}
       </div>
     );
   }
@@ -380,8 +389,8 @@ export function CardRoom({ colors }: CardRoomProps) {
             <PresidentBoard tableId={table?.id ?? null} colors={colors}
                             onTableId={(id) => setTable((t) => (t ? { ...t, id } : t))} />
           </div>
-          {rail}
         </div>
+        {rail}
       </div>
     );
   }
@@ -395,8 +404,8 @@ export function CardRoom({ colors }: CardRoomProps) {
             <EightsBoard tableId={table?.id ?? null} colors={colors}
                          onTableId={(id) => setTable((t) => (t ? { ...t, id } : t))} />
           </div>
-          {rail}
         </div>
+        {rail}
       </div>
     );
   }
@@ -410,8 +419,8 @@ export function CardRoom({ colors }: CardRoomProps) {
             <GolfBoard tableId={table?.id ?? null} colors={colors}
                        onTableId={(id) => setTable((t) => (t ? { ...t, id } : t))} />
           </div>
-          {rail}
         </div>
+        {rail}
       </div>
     );
   }
@@ -425,8 +434,8 @@ export function CardRoom({ colors }: CardRoomProps) {
             <RatScrewBoard tableId={table?.id ?? null} colors={colors}
                            onTableId={(id) => setTable((t) => (t ? { ...t, id } : t))} />
           </div>
-          {rail}
         </div>
+        {rail}
       </div>
     );
   }
@@ -439,7 +448,7 @@ export function CardRoom({ colors }: CardRoomProps) {
       <div className={cn(roomSurface, 'flex flex-col overflow-hidden')}>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 scrollbar-hide">
       {error && (
-        <div className={cn('rounded-2xl border px-4 py-3 text-xs', colors.panelBg, colors.panelBorder)}>
+        <div className={cn('rounded-[var(--shape-control)] border px-4 py-3 text-xs', colors.panelBg, colors.panelBorder)}>
           {error}
         </div>
       )}
@@ -479,7 +488,7 @@ export function CardRoom({ colors }: CardRoomProps) {
       </div>
 
       {/* the middle: deck on the left, whatever is face up on the right */}
-      <div className={cn('flex items-center justify-center gap-8 rounded-3xl border py-5', colors.panelBg, colors.panelBorder)}>
+      <div className={cn('flex items-center justify-center gap-8 rounded-[var(--shape-surface)] border py-5', colors.panelBg, colors.panelBorder)}>
         <div className="flex flex-col items-center gap-1.5">
           <div className="relative h-[104px] w-[70px]">
             {table && table.deckRemaining > 0 ? (
@@ -566,8 +575,8 @@ export function CardRoom({ colors }: CardRoomProps) {
         </button>
       </div>
       </div>
-      {rail}
       </div>
+      {rail}
 
       <AnimatePresence>
         {zoom && (
@@ -580,7 +589,7 @@ export function CardRoom({ colors }: CardRoomProps) {
               layoutId={zoom}
               src={artUrl(zoom, true)}
               alt={zoom.replace('-', ' of ')}
-              className="max-h-full max-w-full rounded-xl shadow-[0_24px_80px_rgba(0,0,0,.6)]"
+              className="max-h-full max-w-full rounded-[var(--shape-chip)] shadow-[0_24px_80px_rgba(0,0,0,.6)]"
             />
           </motion.button>
         )}

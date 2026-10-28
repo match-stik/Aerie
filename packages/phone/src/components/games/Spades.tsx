@@ -133,7 +133,7 @@ export function SpadesBoard({ tableId, colors, onTableId }: SpadesBoardProps) {
               <button
                 key={slug}
                 onClick={() => setPartner(slug)}
-                className={cn('rounded-xl border px-3 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}
+                className={cn('rounded-[var(--shape-chip)] border px-3 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}
                 style={partner === slug ? { backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent } : undefined}
               >
                 {sigilOf(slug)} {labelOf(slug) || slug}
@@ -144,7 +144,7 @@ export function SpadesBoard({ tableId, colors, onTableId }: SpadesBoardProps) {
         <button
           disabled={busy}
           onClick={() => act('new', { partner })}
-          className={cn('rounded-2xl border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
+          className={cn('rounded-[var(--shape-control)] border px-5 py-2 text-[12px] transition active:scale-95', colors.panelBorder)}
           style={{ backgroundColor: 'var(--aerie-surface-strong)', color: colors.accent }}
         >
           Deal a hand
@@ -264,7 +264,7 @@ export function SpadesBoard({ tableId, colors, onTableId }: SpadesBoardProps) {
 
       <div className="flex justify-center pb-1">
         <button disabled={busy} onClick={() => act('new', { partner })}
-                className={cn('rounded-xl border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
+                className={cn('rounded-[var(--shape-chip)] border px-4 py-1.5 text-[11px] transition active:scale-95', colors.panelBorder)}>
           {game.phase === 'handOver' || game.phase === 'done' ? 'Next hand' : 'New hand'}
         </button>
       </div>

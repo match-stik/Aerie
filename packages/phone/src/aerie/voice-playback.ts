@@ -1,5 +1,13 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { apiFetch } from './api';
+import { isPageHidden } from './mic-hold';
+import {
+  CallVoice,
+  absoluteVoiceUrl,
+  callVoiceAvailable,
+  readBluetoothCall,
+  shouldUseCallLine,
+} from './call-line';
 
 export interface MessageTtsResponse {
   success: boolean;
@@ -33,6 +41,15 @@ let source: AudioBufferSourceNode | null = null;
 let fetchController: AbortController | null = null;
 let nativeAudio: HTMLAudioElement | null = null;
 let nativePlaybackController: AbortController | null = null;
+/** A reply is playing on the call line (call-line.ts), so a stop has to reach the native player. */
+let callLinePlaying = false;
+/** The phone reported a Bluetooth call while Aerie was hidden; cleared when Aerie is on screen again. */
+let bluetoothSeenWhileHidden = false;
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') bluetoothSeenWhileHidden = false;
+  });
+}
 let silentWavUrl: string | null = null;
 let playbackGeneration = 0;
 let contextTransition: Promise<void> = Promise.resolve();
@@ -211,6 +228,10 @@ export function stopVoicePlayback(): void {
   fetchController = null;
   nativePlaybackController?.abort();
   nativePlaybackController = null;
+  if (callLinePlaying) {
+    callLinePlaying = false;
+    void CallVoice.stop().catch(() => { /* an old APK or a closed app has nothing to stop */ });
+  }
   if (nativeAudio) {
     nativeAudio.pause();
     nativeAudio.removeAttribute('src');
@@ -278,6 +299,43 @@ async function playNativeVoiceSegment(
   });
 }
 
+/**
+ * One segment on the call line: the native player, marked as a voice call, so
+ * a car held in call mode by the open mic plays it instead of cutting it off.
+ */
+async function playCallLineSegment(
+  url: string,
+  controller: AbortController,
+  drainMs: number,
+): Promise<void> {
+  if (controller.signal.aborted) throw abortError();
+  const onAbort = () => {
+    void CallVoice.stop().catch(() => { /* nothing playing */ });
+  };
+  controller.signal.addEventListener('abort', onAbort, { once: true });
+  callLinePlaying = true;
+  try {
+    await CallVoice.play({ url: absoluteVoiceUrl(url, window.location.href) });
+  } catch (error) {
+    if (controller.signal.aborted) throw abortError();
+    throw error;
+  } finally {
+    controller.signal.removeEventListener('abort', onAbort);
+  }
+  if (controller.signal.aborted) throw abortError();
+  // No drain timer on this road. The drain exists so the mic is not reopened
+  // over the last of the reply, and while the page is hidden the call holds
+  // its mic open anyway (mic-hold.ts). A hidden WebView also throttles timers:
+  // on one drive (Oct 27 2026) the reply ended natively and the call only
+  // went back to listening once the owner tapped the dock and woke the page.
+  void drainMs;
+  void apiFetch('/api/client-errors', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ where: 'call-line', message: JSON.stringify({ segmentDone: true, pageHidden: isPageHidden(typeof document === 'undefined' ? undefined : document) }) }),
+  }).catch(() => {});
+}
+
 async function playNativeVoiceSequence(urls: string[], signal?: AbortSignal): Promise<void> {
   stopVoicePlayback();
   const generation = playbackGeneration;
@@ -289,16 +347,43 @@ async function playNativeVoiceSequence(urls: string[], signal?: AbortSignal): Pr
 
   try {
     if (signal?.aborted) throw abortError();
+    // Decided once per reply, from the phone's own answer about the route.
+    const pluginAvailable = callVoiceAvailable();
+    const pageHidden = isPageHidden(typeof document === 'undefined' ? undefined : document);
+    // Once the phone has said Bluetooth while hidden, the rest of the hidden
+    // stretch keeps the call line: on one drive (Oct 27 2026) one reply read
+    // the route as not-Bluetooth for a moment, took the music road, and the car
+    // cut it off mid-sentence. A page coming back on screen clears it.
+    const routeNow = pluginAvailable ? await readBluetoothCall() : false;
+    if (routeNow) bluetoothSeenWhileHidden = true;
+    const bluetoothCall = routeNow || (pluginAvailable && bluetoothSeenWhileHidden && isPageHidden(typeof document === 'undefined' ? undefined : document));
+    const callLine = shouldUseCallLine({ pluginAvailable, pageHidden, bluetoothCall });
+    // One line per reply in pm2's aerie-error.log, tagged where call-line, so a
+    // car call can be read afterwards: which road each reply took and why. The owner
+    // drive on Oct 27 2026 could not be read without it.
+    void apiFetch('/api/client-errors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        where: 'call-line',
+        message: JSON.stringify({ callLine, pluginAvailable, pageHidden, bluetoothCall, routeNow, segments: urls.length }),
+      }),
+    }).catch(() => {});
     for (let index = 0; index < urls.length; index += 1) {
       if (controller.signal.aborted || generation !== playbackGeneration) throw abortError();
       const isFinal = index === urls.length - 1;
-      await playNativeVoiceSegment(
-        audio,
-        urls[index],
-        controller,
-        isFinal ? ANDROID_FINAL_DRAIN_MS : ANDROID_INTER_SEGMENT_DRAIN_MS,
-      );
+      const drainMs = isFinal ? ANDROID_FINAL_DRAIN_MS : ANDROID_INTER_SEGMENT_DRAIN_MS;
+      if (callLine) await playCallLineSegment(urls[index], controller, drainMs);
+      else await playNativeVoiceSegment(audio, urls[index], controller, drainMs);
     }
+    // The other half of the call-line log: the reply finished playing, as the
+    // page sees it. A start with no end is a reply that never handed the call
+    // back to listening (one drive, Oct 27 2026: the dock stayed yellow).
+    void apiFetch('/api/client-errors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ where: 'call-line', message: JSON.stringify({ ended: true, callLine, pageHidden: isPageHidden(typeof document === 'undefined' ? undefined : document) }) }),
+    }).catch(() => {});
     if (controller.signal.aborted || generation !== playbackGeneration) throw abortError();
   } catch (error) {
     const interrupted = controller.signal.aborted
@@ -316,7 +401,10 @@ async function playNativeVoiceSequence(urls: string[], signal?: AbortSignal): Pr
     throw error;
   } finally {
     signal?.removeEventListener('abort', onExternalAbort);
-    if (nativePlaybackController === controller) nativePlaybackController = null;
+    if (nativePlaybackController === controller) {
+      nativePlaybackController = null;
+      callLinePlaying = false;
+    }
   }
 }
 

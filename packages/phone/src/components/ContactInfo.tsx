@@ -9,6 +9,7 @@ import { cn } from '../lib/utils';
 import { apiFetch, useStatusWord, useStatuses } from '../aerie';
 import { liveStatus, useMinuteClock } from '../lib/statuses';
 import { StatusEditor, StatusIcon } from './Statuses';
+import { FavoritesShelf } from './FavoritesShelf';
 import { cardStatus } from '../lib/presence-word';
 import { useBackHandler } from '../lib/use-back-handler';
 import getCroppedImg, { createImage } from '../lib/cropImage';
@@ -657,6 +658,17 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
               </p>
             )}
           </div>
+
+          {/* Favorites: this card's own shelf of favorite pictures, picked by
+              whoever the card belongs to, and by the owner (Oct 7 2026). */}
+          {statusWho && (
+            <FavoritesShelf
+              card={statusWho}
+              name={cards[activeId]?.name || 'this card'}
+              nameFor={(by) => by === 'owner' ? 'you' : (rows.find(r => r.slug === by)?.display_name || by)}
+              colors={colors}
+            />
+          )}
 
           {/* Lane — only for a contact the house actually has a row for. A
               plain contact card stays a plain contact card. */}

@@ -20,7 +20,7 @@ export function StatusIcon({ icon, fallback, customEmojis, className }: { icon: 
   const shown = icon || fallback;
   if (!shown) return null;
   return (
-    <span className={cn('inline-flex items-center justify-center leading-none', className)}>
+    <span className={cn('inline-flex items-center justify-center leading-none whitespace-nowrap', className)}>
       <ReactionGlyph text={shown} customEmojis={customEmojis} imgClassName="h-[1.1em] w-auto" />
     </span>
   );
@@ -57,7 +57,7 @@ export function StatusEditor({ who, current, colors, customEmojis, emojiPacks, f
         <button
           type="button"
           onClick={() => setPicking((v) => !v)}
-          className={cn('shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center text-xl', colors.panelBorder)}
+          className={cn('shrink-0 min-w-10 h-10 px-1.5 rounded-xl border flex items-center justify-center text-xl', colors.panelBorder)}
           style={picking ? { borderColor: colors.accent, background: `${colors.accent}25` } : undefined}
           title="Pick an icon"
         >
