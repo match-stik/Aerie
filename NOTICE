@@ -155,8 +155,9 @@ brain-mcp — https://github.com/mordechaipotash/brain-mcp
 ================================================================
 
 brain-mcp
-Originally developed by mordechaipotash. Cortex memory architecture
-foundation. Licensed under Apache License 2.0.
+Copyright (c) 2026 Mordechai Potash. Licensed under the MIT License.
+Cortex memory architecture foundation. See THIRD_PARTY_LICENSES.md for
+the complete MIT notice.
 
 Cortex keeps brain-mcp's memory architecture as its foundation and moves it
 onto a Cloudflare Worker with its own OAuth, domain-scoped storage,
