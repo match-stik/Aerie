@@ -37,7 +37,7 @@
   "overrides": {
     "lodash-es": "4.18.1",
     "undici": "6.29.1",
-    "qs": "^6.16.0",
+    "qs": "6.16.1",
     "nanoid": "^3.3.18",
     "@capacitor/android": "8.5.1",
     "@capacitor/core": "8.5.1",
