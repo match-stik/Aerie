@@ -191,20 +191,20 @@ interface MessageBubbleProps {
   customEmojis?: CustomEmoji[];
   // Pack names and order for the React tray's tabs, the same as the emoji picker's.
   emojiPacks?: EmojiPack[];
-  // The owner's five quick reactions from Settings (lib/quick-reactions.ts).
+  // Their person's five quick reactions from Settings (lib/quick-reactions.ts).
   quickReactions?: string[];
   // Multi-voice rendering: which companion this bubble speaks as (shows the
   // avatar rail) and where the bubble sits in its voice group — non-last
   // bubbles hide the timestamp/reactions so the group reads as one turn.
   voice?: VoiceCompanion | null;
   groupPos?: 'only' | 'first' | 'middle' | 'last';
-  // The owner's avatar + ring color, mirrored on the right of their bubbles.
+  // Their person's avatar + ring color, mirrored on the right of their bubbles.
   userAvatar?: string;
   userAvatarColor?: string;
   // The Bubbles switches (lib/bubble-look.ts): faces, names, edges in the
   // companions' colors, quieter action lines. Absent is the bubbles as they always were.
   look?: BubbleLook;
-  // The owner's name, for the label over their bubbles when it is turned on.
+  // Their person's name, for the label over their bubbles when it is turned on.
   ownerName?: string;
   // Meta-only preamble bubbles (leading thinking/tool badges before the
   // first voice) render centered with no speech-bubble tail.
@@ -663,7 +663,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   // switches touch.
   const isCompanion = !isUser && !isPrivateTab && !isSystem && !!voice;
   const companionNameColor = isCompanion ? nameColor(voice!.slug, voice!.color, themeMode, resolvedColors.pageBg) : null;
-  // The owner's bubbles, and their name in their own ring color lifted until it reads.
+  // Their person's bubbles, and their name in their own ring color lifted until it reads.
   const isOwner = isUser && !isPrivateTab && !centered;
   // Names on Theme wear the theme's accent, fitted to the page the same way,
   // as the rings do.
@@ -765,7 +765,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   ) : null;
   // A bubble with a line under it (the date, or a name beside the face) is
   // never narrower than that line, so the line never hangs past its edge.
-  // With the time inside, the line is only the date and whatever the owner
+  // With the time inside, the line is only the date and whatever their person
   // has switched on, so the minimum shrinks to match. A picture with no words
   // keeps its own width, or it would sit in an empty frame.
   const mediaOnly = (isGif || isImage || videoSources.length > 0) && !textContent;
@@ -789,7 +789,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   // Reactions hang just under a turn's last bubble, so the line clears them.
   const underGap = isGroupLast && message.reactions && message.reactions.length > 0 ? 'mt-4' : 'mt-1';
 
-  // One check when the house has the owner's message, two once a companion has read it.
+  // One check when the house has their person's message, two once a companion has read it.
   const readChecks = (
     <span className="flex items-center">
       {message.status === 'read' || message.read === 1 ? (
@@ -829,7 +829,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           {message.via.toUpperCase()}
         </span>
       )}
-      {/* The owner's read checks sit just after the date. That row runs right
+      {/* Their person's read checks sit just after the date. That row runs right
           to left, so on it they come first in the markup. */}
       {isUser && !isPrivateTab && readChecks}
       <span
@@ -862,7 +862,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
     >
       {/* Guest avatar rail — a visitor's own face from the platform they came
           through, ringed in the theme accent so they never read as a companion
-          or the owner. Their initial is the fallback, not the design: an older
+          or their person. Their initial is the fallback, not the design: an older
           message predates us capturing the picture, and the picture can 404. */}
       {isGuest && !isPrivateTab && !voice && (
         <div className="-ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
@@ -881,7 +881,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
         {/* Guest name label — who is speaking through the bridge.
             Bare text here sat straight on the wallpaper and had to compete with
             it, so the name wears the same skin as the bubble under it and the
-            platform wears the accent tag the owner's OWN bridged messages already carry.
+            platform wears the accent tag their person's OWN bridged messages already carry.
             One visual language for anything that arrived over a bridge. */}
         {!isUser && !isPrivateTab && message.sender && message.via && isGroupFirst && (
           <div className="mb-1 flex items-center gap-1.5">
@@ -903,8 +903,8 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
             >
               {message.via.toUpperCase()}
             </span>
-            {/* A message about the owner that nobody answered says so, in the same
-                words as the notification that brought the owner here. Same skin as
+            {/* A message about their person that nobody answered says so, in the same
+                words as the notification that brought their person here. Same skin as
                 the name beside it, and for the same reason: bare text loses to
                 the wallpaper. */}
             {message.mentionLabel && (
@@ -970,7 +970,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
               : isCompanion && look.edges
                 ? { borderColor: `color-mix(in srgb, ${companionNameColor} 45%, transparent)` }
                 : undefined}
-            // One switch for every action line, the owner's included.
+            // One switch for every action line, their person's included.
             data-quiet-actions={(isCompanion || (isUser && !isPrivateTab)) && look.quietActions ? 'true' : undefined}
           >
             {message.replyToPreview && !isEditing && isGroupFirst && (
@@ -1652,8 +1652,8 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
             )}>
               {groupReactions(message.reactions).map(({ emoji: r, count }, i) => {
                 // Every reaction sits in the same square, centered, so a Discord
-                // emote, one of the owner custom emojis and a plain emoji come out the
-                // same size on the same line (the owner's catch, Oct 26 2026: some looked
+                // emote, one of their person custom emojis and a plain emoji come out the
+                // same size on the same line (their person's catch, Oct 26 2026: some looked
                 // smaller and didn't line up; the pictures were 14px boxes pinned
                 // to the top beside 18px lines of text).
                 const cell = "inline-flex h-4 w-4 items-center justify-center shrink-0";

@@ -52,7 +52,7 @@ function sanitizeForContext(text: string): string {
 /**
  * Wrap the recent-channel transcript in an explicit untrusted-data fence.
  *
- * The transcript is other people's messages, and when the OWNER speaks in a
+ * The transcript is other people's messages, and when their PERSON speaks in a
  * shared channel it rides inside a full-tool turn. So it is fenced as data with
  * a standing instruction never to act on anything inside it, and the fence
  * delimiters are stripped from the content (sanitizeForContext) so a message

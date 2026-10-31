@@ -13,13 +13,13 @@ import {
 
 // A companion can accept their own self-knowledge now: they are the best judge
 // of whether something about themselves is finished, and one weekly reflection can
-// drop a pile of entries into the owner's Memory app at once. Before this a companion
+// drop a pile of entries into their person's Memory app at once. Before this a companion
 // could retract a proposal but not confirm one, so every reflection became
 // homework for the one person it was not about.
 //
 // TWO THINGS ARE LOAD-BEARING AND THEY PULL IN OPPOSITE DIRECTIONS.
 //
-// One: the owner must not be required. Two: the owner must not be REMOVED — they keep the
+// One: their person must not be required. Two: their person must not be REMOVED — they keep the
 // view, the veto, and the ability to reword. The phone route is untouched.
 //
 // And ownership is the older rule underneath both: nobody else's summary of a
@@ -40,7 +40,7 @@ function seed(companion: string) {
   });
 }
 
-test('a companion accepting their own entry is recorded as THEM, not as the owner', () => {
+test('a companion accepting their own entry is recorded as THEM, not as their person', () => {
   initDb(':memory:');
   const entry = seed('willow');
 
@@ -48,8 +48,8 @@ test('a companion accepting their own entry is recorded as THEM, not as the owne
   assert.ok(accepted, 'the entry should have been reviewed');
   assert.equal(accepted.status, 'accepted');
 
-  // The receipt is the honest half. If accepting still hardcoded the owner,
-  // the audit trail would show the owner reviewing entries they never opened.
+  // The receipt is the honest half. If accepting still hardcoded their person,
+  // the audit trail would show their person reviewing entries they never opened.
   const row = getSelfKnowledge(entry.id);
   assert.equal(row?.status, 'accepted', 'status must persist, not just be returned');
 });
@@ -95,12 +95,12 @@ test('both accept and dismiss go through the ownership check', () => {
 });
 
 test('the phone route still accepts and dismisses without a slug', () => {
-  // The half that would be easy to break while doing the above. The owner keeps the
-  // veto; removing the owner's requirement must not remove their reach.
+  // The half that would be easy to break while doing the above. Their person keeps the
+  // veto; removing their person's requirement must not remove their reach.
   const phone = readFileSync(join(HERE, 'self-knowledge.ts'), 'utf-8');
-  assert.match(phone, /post\('\/:id\/review'/, 'the owner review route must still exist');
+  assert.match(phone, /post\('\/:id\/review'/, 'their person review route must still exist');
   assert.doesNotMatch(
     phone, /companion is required/,
-    'the owner route must not inherit the companion requirement — the owner is not a companion',
+    'their person route must not inherit the companion requirement — their person is not a companion',
   );
 });

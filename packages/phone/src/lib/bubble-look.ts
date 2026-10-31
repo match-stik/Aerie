@@ -6,7 +6,7 @@
 // turned on. Kept free of imports so it can be tested.
 
 export interface BubbleLook {
-  /** Each companion's face beside their bubbles, and the owner's beside theirs. */
+  /** Each companion's face beside their bubbles, and their person's beside theirs. */
   faces: boolean;
   /** Each companion named in small capitals in their color: over their
    *  bubbles, or under them beside the face when their tails are at the bottom. */
@@ -15,7 +15,7 @@ export interface BubbleLook {
   edges: boolean;
   /** Action lines (the italics) a little quieter than the words. */
   quietActions: boolean;
-  /** The owner's own name in their color, over their bubbles, or under them
+  /** Their person's own name in their color, over their bubbles, or under them
    *  beside their face when their tail is at the bottom (a name up top reads
    *  strangely with the face down below). */
   myName: boolean;
@@ -33,7 +33,7 @@ export interface BubbleLook {
   /** The rings round every face: each in its own color as set in the house, or all in the theme's two-tone fill, the one
    *  selected things wear. A guest's ring stays the theme's accent either way. */
   rings: Rings;
-  /** Names, the companions' and the owner's, in their own colors, or in the theme's plain ink
+  /** Names, the companions' and their person's, in their own colors, or in the theme's plain ink
    *  On is how names have always looked. */
   nameColors: boolean;
   /** The typing dots in the companions' colors, one each, or in the bubble's ink

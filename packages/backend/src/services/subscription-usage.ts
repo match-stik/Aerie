@@ -68,9 +68,9 @@ export interface ClaudeUsage {
   /**
    * Set only when the live read failed and this is the last good reading:
    * when it was taken and why the fresh one could not be. At the cap is
-   * exactly when the read tends to fail and exactly when the owner most needs the
+   * exactly when the read tends to fail and exactly when their person most needs the
    * reset time, so a failure hands back what we last knew, labelled, rather
-   * than nothing (Oct 22 2026: the card showed the owner a 502 for the whole wait).
+   * than nothing (Oct 22 2026: the card showed their person a 502 for the whole wait).
    */
   stale?: { readAt: string; reason: string };
 }

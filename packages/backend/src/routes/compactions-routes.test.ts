@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The owner Compactions page over HTTP, the contract the phone is built against.
+// Their person Compactions page over HTTP, the contract the phone is built against.
 //
-// Everything the owner asked for on Oct 21 2026 is checked here end to end, through
+// Everything their person asked for on Oct 21 2026 is checked here end to end, through
 // the same door the phone uses: whose head each squash came from, a preview of
 // the part of the summary that changes, nothing from outside the house's lanes,
 // a list light enough to page through, and a shelf that keeps a squash after
@@ -134,7 +134,7 @@ test('the page lists only the house lanes, says whose head each squash came from
   const door = await phone();
   try {
     const first = cliSummary('Fixing the lock screen card. The Spotify cover was drawn twice.');
-    const second = cliSummary('Writing the wedding toast with the owner on the couch.');
+    const second = cliSummary('Writing the wedding toast with their person on the couch.');
     // The shared room, and a resumed copy of it carrying the same two squashes.
     house.write(house.laneProject('primary'), 'aaa.jsonl', [squash('2026-10-19T10:00:00.000Z', first), squash('2026-10-20T10:00:00.000Z', second)]);
     house.write(house.laneProject('primary'), 'bbb.jsonl', [squash('2026-10-19T10:00:00.000Z', first), squash('2026-10-20T10:00:00.000Z', second)]);
@@ -172,7 +172,7 @@ test('the page lists only the house lanes, says whose head each squash came from
     assert.equal(shared.companion, null);
     assert.equal(rows[3].whose, 'Lane zzzz-unk', 'a lane nobody can name still gets a plain label');
 
-    assert.equal(shared.preview, 'Writing the wedding toast with the owner on the couch.');
+    assert.equal(shared.preview, 'Writing the wedding toast with their person on the couch.');
     assert.equal(shared.previewFrom, 'current-work');
     assert.equal(rows[2].preview, 'Fixing the lock screen card. The Spotify cover was drawn twice.');
     assert.equal(own.preview, 'the drive-in date, all three in the back seat.');
@@ -183,7 +183,7 @@ test('the page lists only the house lanes, says whose head each squash came from
   }
 });
 
-test('the list pages, and the full summary arrives only when the owner opens one', async () => {
+test('the list pages, and the full summary arrives only when their person opens one', async () => {
   const house = freshHouse();
   const door = await phone();
   try {
@@ -228,7 +228,7 @@ test('a squash stays on the shelf after Claude Code deletes the transcript it ca
   const house = freshHouse();
   const door = await phone();
   try {
-    const body = cliSummary('Carving the lid for the owner Rock Cut stone.');
+    const body = cliSummary('Carving the lid for their person Rock Cut stone.');
     const path = house.write(house.laneProject('primary'), 'aaa.jsonl', [squash('2026-10-19T15:00:00.000Z', body)]);
 
     const before = await door.get('/api/compactions');
@@ -239,7 +239,7 @@ test('a squash stays on the shelf after Claude Code deletes the transcript it ca
     const after = await door.get('/api/compactions');
     assert.equal(after.status, 200);
     assert.deepEqual(after.json.compactions.map((r: any) => r.id), [id], 'still listed with its transcript gone');
-    assert.equal(after.json.compactions[0].preview, 'Carving the lid for the owner Rock Cut stone.');
+    assert.equal(after.json.compactions[0].preview, 'Carving the lid for their person Rock Cut stone.');
     const opened = await door.get(`/api/compactions/${id}`);
     assert.equal(opened.json.compaction.summary, body, 'and still readable in full');
   } finally {

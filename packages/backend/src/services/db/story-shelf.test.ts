@@ -177,7 +177,7 @@ test('a move is checked against the newest scene, and only one goes in before it
 
   scene(id, { text: 'The lamplighter turns.', choices: [] });
   const own = recordStoryMove(id, { text: '  I knock.  ' }).page;
-  assert.deepEqual([own.text, own.choiceId], ['I knock.', null], 'a move in the owner’s own words carries no choice');
+  assert.deepEqual([own.text, own.choiceId], ['I knock.', null], 'a move in their person’s own words carries no choice');
 });
 
 test('walking into a book asks for its opening once, and walking into a started book asks for nothing', () => {
@@ -275,7 +275,7 @@ test('keepsakes hang loose until they are woven into a second book', () => {
   refused(() => weaveStoryKeepsake('nope', { maker: 'example', toBookId: market.id }), 404, /no keepsake with that id/);
 });
 
-test('the shelf leads with the book the owner was in last, and the finished ones come after', () => {
+test('the shelf leads with the book their person was in last, and the finished ones come after', () => {
   freshHouse();
   const first = book({ title: 'First' });
   const second = book({ title: 'Second' });
@@ -319,7 +319,7 @@ test('the talk is everything said at the table during this book’s page turns, 
   scene(market.id);
   const move = recordStoryMove(market.id, { choiceId: 'c1' }).page;
   const opener = writeStoryTurnOpener({ bookId: market.id, pageId: move.id, kind: 'move', moveText: move.text, title: market.title });
-  assert.equal(opener.role, 'user', 'the move goes into the thread in the owner’s own words');
+  assert.equal(opener.role, 'user', 'the move goes into the thread in their person’s own words');
   assert.equal(opener.content, 'Go left');
   say('Ha.');
   say('Go on.');
@@ -329,7 +329,7 @@ test('the talk is everything said at the table during this book’s page turns, 
   say('Back again.');
 
   // A page turn used to wipe the table: only the newest turn's talk showed,
-  // and the owner read that as the talk being lost.
+  // and their person read that as the talk being lost.
   assert.deepEqual(storyTalk(market.id).map((line) => [line.content, line.companionSlug, line.role]), [
     ['Ready?', 'example', 'companion'],
     ['Ha.', 'example', 'companion'],
@@ -339,5 +339,5 @@ test('the talk is everything said at the table during this book’s page turns, 
   assert.deepEqual(storyTalk(lighthouse.id).map((line) => line.content), ['Lamp lit.'], 'another book’s turn keeps its own talk');
   assert.deepEqual(storyTalk(market.id, 2).map((line) => line.content), ['Go on.', 'Back again.'], 'past the limit, the newest lines are kept');
   const system = getDb().prepare("SELECT role, content FROM messages WHERE thread_id = ? AND role = 'system' ORDER BY sequence").all(threadId) as Array<{ content: string }>;
-  assert.ok(system.some((m) => m.content === 'Opened “The Lighthouse”.'), 'walking into a book is a line from the house, not words in the owner’s mouth');
+  assert.ok(system.some((m) => m.content === 'Opened “The Lighthouse”.'), 'walking into a book is a line from the house, not words in their person’s mouth');
 });

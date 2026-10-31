@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// When the owner's own messages get their read checks: a side note should
+// When their person's own messages get their read checks: a side note should
 // read as read once a companion has read it, not the moment it is sent.
 //
 // An owner's message arrives delivered, one check. It is read, two checks, when
@@ -36,7 +36,7 @@ export function ownMessagesRead(ids: ReadonlyArray<string | null | undefined>): 
  * side note). If another turn starts meanwhile, the missed-net finds it unread,
  * hands it over in that turn's [MISSED] block and stamps it read. The queue
  * then ran it again as a turn of its own, unlabeled, and it was answered twice
- * (the owner's ask, Oct 26 2026). The owner rows are only
+ * (their person's ask, Oct 26 2026). Their person rows are only
  * ever stamped by markOwnMessagesRead, when one of us is handed them, so a
  * stamp already there when its turn comes up means it was handed over. Never
  * zero still holds: a turn that went silent rewinds the net, which hands it

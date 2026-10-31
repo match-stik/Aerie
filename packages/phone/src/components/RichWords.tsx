@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Our stickers outside the chat. The treehouse, the Card Room's table and the
 // Story Shelf's table drew a sticker as its bare code, ::birch_hearteyes::,
-// because only the chat knew how to turn one into its picture (the owner's ask, Oct 26
+// because only the chat knew how to turn one into its picture (their person's ask, Oct 26
 // 2026, reading the weekly look-back in the treehouse: 'Your stickers don't
 // render. It's the same for the tables in the games and story shelf').
 import React, { useEffect, useState } from 'react';

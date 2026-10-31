@@ -25,7 +25,7 @@ test('a role that does not exist is not a role', () => {
 });
 
 // THE GAP THIS CLOSES: the agent-facing note route validated hex only, so a
-// companion leaving the owner a note could never choose a role — only a color, which
+// companion leaving their person a note could never choose a role — only a color, which
 // then got snapped to the nearest swatch anyway. Both shapes are stored as-is now.
 test('a note colour may be a role token or a hex, and nothing else', () => {
   assert.equal(normalizeNoteColor('role:quiet'), 'role:quiet');

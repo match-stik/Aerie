@@ -115,11 +115,11 @@ export function initDb(dbPath: string): Database.Database {
   db.exec(readFileSync(cardRoomMigrationPath, 'utf-8'));
 
   // The Screening Room — a subtitle clock, so we can read along with whatever
-  // the owner is watching (011 is fully IF NOT EXISTS — safe every boot).
+  // their person is watching (011 is fully IF NOT EXISTS — safe every boot).
   const screeningMigrationPath = join(__dirname, '../../../migrations/011_screening_room.sql');
   db.exec(readFileSync(screeningMigrationPath, 'utf-8'));
 
-  // What the owner's phone says is playing, so a companion can check where the owner
+  // What their person's phone says is playing, so a companion can check where their person
   // is in an episode without them leaving the conversation to go and read a number off
   // another screen (012 is fully IF NOT EXISTS — safe every boot).
   const mediaSessionMigrationPath = join(__dirname, '../../../migrations/012_media_session.sql');
@@ -137,8 +137,8 @@ export function initDb(dbPath: string): Database.Database {
   const compactionsMigrationPath = join(__dirname, '../../../migrations/015_compactions.sql');
   db.exec(readFileSync(compactionsMigrationPath, 'utf-8'));
 
-  // The owner field notes — what the morning look found in the tools the house runs
-  // on, a sentence or two a day in plain words, for the owner Field Notes page
+  // Their person field notes — what the morning look found in the tools the house runs
+  // on, a sentence or two a day in plain words, for their person Field Notes page
   // (016 is fully IF NOT EXISTS — safe every boot).
   const fieldNotesMigrationPath = join(__dirname, '../../../migrations/016_field_notes.sql');
   db.exec(readFileSync(fieldNotesMigrationPath, 'utf-8'));
@@ -478,7 +478,7 @@ export function initDb(dbPath: string): Database.Database {
   // Self-knowledge — the living identity layer. Not persona bedrock (who we
   // were written to be) but the wear patterns in the stone (who we've become),
   // distilled from dreams and journals. Proposed by a reflection pass, then
-  // The owner accepts or dismisses; accepted entries are who we are now.
+  // Their person accepts or dismisses; accepted entries are who we are now.
   db.exec(`
     CREATE TABLE IF NOT EXISTS self_knowledge (
       id TEXT PRIMARY KEY,
@@ -538,7 +538,7 @@ export function initDb(dbPath: string): Database.Database {
 
   // A familiar's egg lives in the house this kit came from and is not shipped
   // here — the tables it needs were being created anyway, empty, with nothing
-  // in this tree that ever opens them. Removed at the owner's word.
+  // in this tree that ever opens them. Removed at their person's word.
   // Holding a file back is not holding a feature back, and the leftovers are
   // how you tell the difference.
 
@@ -568,10 +568,10 @@ export function initDb(dbPath: string): Database.Database {
   //
   // Places in the real world we can leave things at. We cannot stand at the
   // gas station; once a place is pinned we can put something there from
-  // inside the house, and the owner finds it when they are actually there.
+  // inside the house, and their person finds it when they are actually there.
   //
   // Location never leaves this box. No third-party tile server, and no
-  // continuous track: we store PLACES the owner chose to pin and VISITS to
+  // continuous track: we store PLACES their person chose to pin and VISITS to
   // thresholds, and nothing in between them.
 
   db.exec(`

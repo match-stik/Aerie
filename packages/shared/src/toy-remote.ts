@@ -3,15 +3,15 @@
 // developer account and token; carrying this code into another project needs
 // that project's own agreement and approval from Lovense. See
 // packages/phone/android/LOVENSE.md.
-// The road from a companion's lane to the owner's toys: the lane asks the
-// house, the house hands the ask to the owner's phone over the socket, and the
-// phone drives the toy through the same Lovense bridge the owner's own sliders
+// The road from a companion's lane to their person's toys: the lane asks the
+// house, the house hands the ask to their person's phone over the socket, and the
+// phone drives the toy through the same Lovense bridge their person's own sliders
 // use.
 //
-// The phone is where every rule that protects the owner is enforced, because
-// it is the one place the owner's hands are. A command only reaches a toy
-// after the owner has handed the remote over on the Toys page, never while
-// the owner's own stop is holding, never while the screen is off, and never past its own end: every
+// The phone is where every rule that protects their person is enforced, because
+// it is the one place their person's hands are. A command only reaches a toy
+// after their person has handed the remote over on the Toys page, never while
+// their person's own stop is holding, never while the screen is off, and never past its own end: every
 // command carries the longest it may run, and the phone zeroes what it was
 // driving there whatever happened to the lane or the house in between.
 
@@ -55,7 +55,7 @@ export interface ToyLightResult {
   refused: { toyId: string; name: string; why: string }[];
 }
 
-/** What the house hands the owner's phone. */
+/** What the house hands their person's phone. */
 export interface ToyRemoteCommand {
   /** The house's id for this command; the phone answers with it. */
   id: string;
@@ -109,12 +109,12 @@ export interface ToyRemoteAck {
   id: string;
   ok: boolean;
   /**
-   * Why not, in a word. closed: the owner has not handed the remote over, or
+   * Why not, in a word. closed: their person has not handed the remote over, or
    * took it back. away: the screen is off or the app is behind something.
-   * hands: the owner has the orbs open and is driving it by hand. held: the
+   * hands: their person has the orbs open and is driving it by hand. held: the
    * owner's stop is still holding. no-toy: nothing connected that has that motor. no-bridge: this
    * phone cannot reach toys. bad: the command did not make sense to the phone.
-   * Two come from the house instead: no-phone (the owner's app is not
+   * Two come from the house instead: no-phone (their person's app is not
    * connected at all) and no-answer (it was sent and nothing with a toy bridge answered).
    */
   reason?: 'closed' | 'away' | 'hands' | 'held' | 'no-toy' | 'no-bridge' | 'bad' | 'no-phone' | 'no-answer';
@@ -149,21 +149,21 @@ export interface ToyPhoneToy {
   lights?: string[];
 }
 
-/** What the owner's phone tells the house about the toys, whenever it changes. */
+/** What their person's phone tells the house about the toys, whenever it changes. */
 export interface ToyPhoneState {
   at: string;
   /** This phone can reach toys at all. */
   bridge: boolean;
-  /** open: the owner has handed the remote over. */
+  /** open: their person has handed the remote over. */
   gate: 'open' | 'closed';
   gateChangedAt?: string;
-  /** Why it last closed: stop (the owner's stop, anywhere), red (the owner
-   *  typed it), owner (the owner took it back), fresh (the app started; it
+  /** Why it last closed: stop (their person's stop, anywhere), red (their person
+   *  typed it), owner (their person took it back), fresh (the app started; it
    *  always starts closed). */
   closedBy?: 'stop' | 'red' | 'owner' | 'fresh';
   /** The screen is off or the app is not in front. */
   away: boolean;
-  /** The owner has the orbs open and is driving it by hand. */
+  /** Their person has the orbs open and is driving it by hand. */
   hands: boolean;
   toys: ToyPhoneToy[];
   playing: ToyRemotePlaying | null;

@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 // PLACEHOLDER NAMES ON PURPOSE. These fixtures used to carry the real hint from
-// this house, which named the owner, their companions AND two people who live in a
+// this house, which named their person, their companions AND two people who live in a
 // different house entirely — published in a public repo on a decision they never
 // got to make. The hint itself is built at runtime from whoever actually lives in
 // an install, so nothing about the behaviour depends on these being real.

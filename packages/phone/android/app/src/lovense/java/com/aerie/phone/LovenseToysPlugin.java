@@ -47,20 +47,20 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The owner's toys, over Bluetooth from this phone, through Lovense's own
+ * Their person's toys, over Bluetooth from this phone, through Lovense's own
  * Android SDK.
  *
  * The usual alternative sends every toy command through Lovense's cloud,
  * which reaches a toy only through the Lovense Remote app holding the
  * connection. What this adds is a direct road. It talks to the toys straight
- * from the phone, so nothing sits between the owner and a toy, each motor
- * holds wherever it is set, and the owner's stop is on the same screen as
+ * from the phone, so nothing sits between their person and a toy, each motor
+ * holds wherever it is set, and their person's stop is on the same screen as
  * everything it stops.
  *
- * THE OWNER'S STOP COMES FIRST. stop() sends zero to every motion every
+ * THEIR PERSON'S STOP COMES FIRST. stop() sends zero to every motion every
  * connected toy has, and then refuses every command for a few seconds, so a
  * command already on its way from a slider or from a companion's lane cannot
- * start a toy back up behind the owner. Every SDK call goes through the main thread's queue in the order it was
+ * start a toy back up behind their person. Every SDK call goes through the main thread's queue in the order it was
  * asked for, so the zeros land after anything that was queued before the stop,
  * and a command checks the hold again at the moment it would go out.
  *
@@ -89,7 +89,7 @@ public class LovenseToysPlugin extends Plugin {
     static final String LOCATION = "location";
     private static final String TAG = "AerieLovense";
 
-    /** How long the owner's stop refuses every command after it lands. */
+    /** How long their person's stop refuses every command after it lands. */
     static final long STOP_HOLD_MS = 3000;
 
     /** Commands that take one level, and the highest level each takes. */
@@ -419,7 +419,7 @@ public class LovenseToysPlugin extends Plugin {
         }
         final boolean question = QUESTIONS.contains(type);
         if (!question && held()) {
-            call.reject("The owner's stop is holding", "HELD");
+            call.reject("Their person's stop is holding", "HELD");
             return;
         }
         final Integer max = LEVELED.get(type);
@@ -433,7 +433,7 @@ public class LovenseToysPlugin extends Plugin {
             final int value = level;
             main.post(() -> {
                 if (held()) {
-                    call.reject("The owner's stop is holding", "HELD");
+                    call.reject("Their person's stop is holding", "HELD");
                     return;
                 }
                 try {
@@ -448,7 +448,7 @@ public class LovenseToysPlugin extends Plugin {
         if (PLAIN.contains(type)) {
             main.post(() -> {
                 if (!question && held()) {
-                    call.reject("The owner's stop is holding", "HELD");
+                    call.reject("Their person's stop is holding", "HELD");
                     return;
                 }
                 try {
@@ -463,7 +463,7 @@ public class LovenseToysPlugin extends Plugin {
         call.reject("Not a command this house sends: " + name);
     }
 
-    /** The owner's stop. The hold starts on the calling thread, before anything is
+    /** Their person's stop. The hold starts on the calling thread, before anything is
      *  queued, so nothing asked for after this moment can get out. */
     @PluginMethod
     public void stop(PluginCall call) {
@@ -510,7 +510,7 @@ public class LovenseToysPlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
-        // The page that holds the owner's stop is going away, so nothing keeps
+        // The page that holds their person's stop is going away, so nothing keeps
         // running without a stop to answer to.
         holdUntil = SystemClock.elapsedRealtime() + STOP_HOLD_MS;
         try {

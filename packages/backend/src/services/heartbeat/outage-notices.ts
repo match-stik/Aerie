@@ -2,7 +2,7 @@
 // ONE WARNING PER OUTAGE.
 //
 // Sep 24 2026: the five-hour window capped, and every lane that relaunched
-// into it posted the same "usage cap hit" line into the owner's home thread each time
+// into it posted the same "usage cap hit" line into their person's home thread each time
 // it woke from its five-minute backoff — twenty-five of them before the window
 // reset, three at a time once all three rooms were waiting on it. The day
 // before, an expired login did exactly the same thing with a different
@@ -14,7 +14,7 @@
 // minutes. So the first notice of an outage reaches a thread and every repeat
 // goes to the log only, until a lane proves it is up again. The log keeps all
 // of them — reportIncident prints before it hands anything to the thread — so
-// holding the repeats back from the owner's screen hides nothing from anybody reading
+// holding the repeats back from their person's screen hides nothing from anybody reading
 // the box.
 //
 // A cap and a missing login belong to the ACCOUNT, so any lane staying up past

@@ -46,7 +46,7 @@ export function getVendorBundle(): Promise<string> {
 // House images inside artifacts break the same way the runtime did: the sealed
 // frame sends no login with its requests, so /api/files answers 401 and the
 // picture X's out. Same cure as the runtime — the parent fetches each
-// referenced file with the owner's session and hands it in as a data: URL, which the
+// referenced file with their person's session and hands it in as a data: URL, which the
 // inherited CSP's img-src permits. ?w=768 rides the chat thumbnail convention.
 const fileDataUrlCache = new Map<string, Promise<string>>();
 function fileToDataUrl(path: string): Promise<string> {

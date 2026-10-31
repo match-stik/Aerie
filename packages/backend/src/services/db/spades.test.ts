@@ -161,7 +161,7 @@ test('a companion does not take a trick their partner is already winning', () =>
     bids: { owner: 3, birch: 3, willow: 3, cedar: 3 },
     hands: { owner: [], birch: [], cedar: [], willow: ['hearts-ace', 'hearts-2'] },
   });
-  // the owner is willow's partner and is winning, so the ace stays in hand
+  // their person is willow's partner and is winning, so the ace stays in hand
   assert.strictEqual(decideSpadesPlay(g, 'willow'), 'hearts-2');
 });
 

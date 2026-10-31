@@ -72,7 +72,7 @@ export const OPENART_MODELS: Array<{ key: string; id: string; media: 'image' | '
  * output. They compose: a directive and a style can both be on at once, which
  * is exactly as intended.
  *
- * The sketch directive is the owner's own wording, kept verbatim.
+ * The sketch directive is their person's own wording, kept verbatim.
  */
 export const PROMPT_DIRECTIVES = [
   { name: 'None', directive: '' },

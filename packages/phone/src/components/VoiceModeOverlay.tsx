@@ -306,7 +306,7 @@ function AvatarStack({
 }
 
 function VoiceBars({ active, level }: { active: boolean; level: number }) {
-  // Three chunky bars, not five thin ones: the owner's call, made comparing the two
+  // Three chunky bars, not five thin ones: their person's call, made comparing the two
   // docks. The floating dock has drawn it this way from the start; this is the
   // in-app one coming to match it rather than the other way round.
   return (
@@ -403,7 +403,7 @@ export function VoiceModeOverlay({
     onPhaseChangeRef.current?.(next);
     // Android owns the persistent notification, while this sheet owns the
     // richer call surface. Keeping the phase in both places means the pocket
-    // call still reads as listening / speaking after the owner leaves Aerie.
+    // call still reads as listening / speaking after their person leaves Aerie.
     void updatePocketVoiceSession({ phase: next });
   }, []);
 

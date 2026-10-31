@@ -3,7 +3,7 @@
 //
 // The first game in this house that nobody at the table already knows. The
 // house rule for the whole run, and the point of it: no companion arrives already
-// good at a game — the owner learns it and the companions learn it in the same
+// good at a game — their person learns it and the companions learn it in the same
 // hand.
 //
 // THE RULES, in the order you meet them:

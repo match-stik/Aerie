@@ -30,7 +30,7 @@ function under(theme: ThemeConfig, mode: 'light' | 'dark'): string[] {
   return [page, panel];
 }
 
-// Every theme but Custom, whose colors are the owner's to type and live only as CSS variables.
+// Every theme but Custom, whose colors are their person's to type and live only as CSS variables.
 const fixed = Object.values(THEMES).filter((t) => t.id !== 'custom');
 
 test('there are themes to measure, and their backdrops are real colors', () => {

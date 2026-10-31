@@ -444,7 +444,7 @@ async function handleMessageSend(
   if (msg.threadId) {
     thread = getThread(msg.threadId);
   } else {
-    // No thread named: the owner's home thread when dailies are off, so a
+    // No thread named: their person's home thread when dailies are off, so a
     // reply never opens a room they are not standing in.
     thread = getFallbackThread();
     if (!thread && dailyThreadsEnabled()) {

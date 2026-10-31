@@ -18,10 +18,10 @@ test('a message with segments previews the text segments, not the content', () =
   const metadata = {
     segments: [
       { type: 'tool', toolId: 't1', toolName: 'Bash' },
-      { type: 'text', content: 'what the owner will actually see' },
+      { type: 'text', content: 'what their person will actually see' },
     ],
   };
-  assert.equal(messagePreviewText('[No response]', metadata), 'what the owner will actually see');
+  assert.equal(messagePreviewText('[No response]', metadata), 'what their person will actually see');
 });
 
 test('a turn that only did tool work has no preview at all', () => {

@@ -40,7 +40,7 @@ router.get('/download', (_req, res) => {
 
 /**
  * A sideloaded APK has no crash console anywhere. Without this the only report
- * of a native crash is the owner describing an app that vanished, so the shell
+ * of a native crash is their person describing an app that vanished, so the shell
  * posts its own stack on the way out and it lands here as evidence.
  */
 router.post('/crash', (req, res) => {

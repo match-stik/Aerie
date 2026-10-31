@@ -6,7 +6,7 @@
  * what needs the rest of the house: the companions' lane, Studio's gallery, and
  * the live update to the phone.
  *
- * A PAGE TURN IS A TURN IN THE WARM LANE. When the owner begins a new book, or
+ * A PAGE TURN IS A TURN IN THE WARM LANE. When their person begins a new book, or
  * makes a move, the companions are handed a turn in the shelf's own archived
  * thread. That thread names nobody to lead it, so the turn is thought in the
  * lane the evening is already happening in (see ensureStoryShelfThread). The
@@ -22,7 +22,7 @@
  * A TURN THAT COMES BACK EMPTY SAYS SO. The lane can answer without writing a
  * page: the turn timed out in its queue behind something else, the lane fell
  * over, or it simply wrote no page. Whatever happened, the book is left saying
- * why and the owner can ask again. A page that arrives late still counts, and clears
+ * why and their person can ask again. A page that arrives late still counts, and clears
  * the complaint.
  *
  * STUDIO IS LOADED LAZILY: image-gen restores and rewrites its job file the
@@ -197,7 +197,7 @@ export async function setStoryCoverFromGallery(input: { maker: unknown; bookId: 
 /**
  * Put a picture from the gallery on a scene already written. This is how a
  * scene can go up the moment its words are ready and its picture follow when
- * Studio finishes, so the owner is not kept waiting on the painting to read.
+ * Studio finishes, so their person is not kept waiting on the painting to read.
  */
 export async function hangStoryScenePicture(input: { maker: unknown; pageId: string; filename: unknown }): Promise<{
   page: StoryPage;
@@ -348,7 +348,7 @@ function ownerName(): string {
   } catch {
     /* config not loaded: say it plainly */
   }
-  return 'The owner';
+  return 'Their person';
 }
 
 function turnExtras(book: StoryBook): StoryTurnExtras {
@@ -477,10 +477,10 @@ async function runStoryTurn(lane: StoryLane, turn: QueuedTurn): Promise<void> {
   }
 }
 
-// ─── The owner's doors ───────────────────────────────────────────────
+// ─── Their person's doors ───────────────────────────────────────────────
 
 /**
- * The owner opened a book. A book with no opening yet hands the companions the
+ * Their person opened a book. A book with no opening yet hands the companions the
  * turn that writes it (the phone calls this for such a book only when they tap
  * Begin); a started book asks for nothing, because the bookmark is enough.
  */
@@ -490,14 +490,14 @@ export function openStoryBook(lane: StoryLane, bookId: string): { view: StoryBoo
   return { view: storyBookView(book.id)!, dispatched: dispatch };
 }
 
-/** The owner's move goes in, and the companions are handed the page turn that answers it. */
+/** Their person's move goes in, and the companions are handed the page turn that answers it. */
 export function makeStoryMove(lane: StoryLane, bookId: string, input: { choiceId?: unknown; text?: unknown }): StoryBookView {
   const { book, page } = recordStoryMove(bookId, input);
   queueStoryTurn(lane, { bookId: book.id, kind: 'move', pageId: page.id, retry: false });
   return storyBookView(book.id)!;
 }
 
-/** The turn handed to the lane when the owner says something at the table. Short on purpose: nothing about the book changed. */
+/** The turn handed to the lane when their person says something at the table. Short on purpose: nothing about the book changed. */
 export function buildStoryTablePrompt(book: Pick<StoryBook, 'id' | 'title' | 'genre'>, text: string, owner: string): string {
   return [
     `[THE STORY SHELF — ${owner} said this at the table while reading “${book.title}”]`,
@@ -549,7 +549,7 @@ async function answerAtTable(lane: StoryLane, book: StoryBook, text: string): Pr
 }
 
 /**
- * The owner said something at the table while reading. It is talk, not a move:
+ * Their person said something at the table while reading. It is talk, not a move:
  * it goes into the shelf's thread in their own words, the lane answers it as table
  * talk under the page, and the book does not change. It does not wait in the
  * page turns' line, because there is no page to wait for; the lane keeps its

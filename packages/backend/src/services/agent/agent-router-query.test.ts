@@ -35,11 +35,11 @@ test('absent or empty context adds nothing at all', () => {
   assert.strictEqual(platformFrameFor('discord', { rules: 'x' }), '');
 });
 
-// The owner's Codex side notes go into the owner's own turns and a wake, and
+// Their person's Codex side notes go into their person's own turns and a wake, and
 // never into a guest's, whose answer lands in a room the guest reads.
-test('the owner\'s codex side notes are handed over on the owner\'s turns and never on a guest\'s', () => {
-  assert.strictEqual(handsCodexSideNotes('codex-cli', undefined), true, 'the owner\'s phone and the wakes');
-  assert.strictEqual(handsCodexSideNotes('codex-cli', { kind: 'owner' }), true, 'the owner\'s own Discord turn');
+test('their person\'s codex side notes are handed over on their person\'s turns and never on a guest\'s', () => {
+  assert.strictEqual(handsCodexSideNotes('codex-cli', undefined), true, 'their person\'s phone and the wakes');
+  assert.strictEqual(handsCodexSideNotes('codex-cli', { kind: 'owner' }), true, 'their person\'s own Discord turn');
   for (const trust of ['full', 'standard', 'limited'] as const) {
     assert.strictEqual(handsCodexSideNotes('codex-cli', { kind: 'guest', trust }), false, trust);
   }

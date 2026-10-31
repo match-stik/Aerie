@@ -1,9 +1,9 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Who owns this house. The phone shows the owner's name and accent beside the
+// Who owns this house. The phone shows their person's name and accent beside the
 // companions' in Letters, the Treehouse and the pet ledger, and none of those
 // views should carry a name inside them.
 //
-// GET /api/companions reports the owner alongside the companions. A backend
+// GET /api/companions reports their person alongside the companions. A backend
 // that predates that field is still perfectly normal to be talking to — the
 // served UI updates on refresh while the backend only changes when it restarts
 // — so fall back to the identity in preferences and derive the slug the same
@@ -33,7 +33,7 @@ export function ownerFromCompanionsPayload(data: unknown): OwnerIdentity | null 
   return { slug: slug || ownerSlugFromName(name), name: name || 'You' };
 }
 
-/** Ask preferences instead — for backends that don't report the owner yet. */
+/** Ask preferences instead — for backends that don't report their person yet. */
 export async function fetchOwnerFromPreferences(): Promise<OwnerIdentity | null> {
   try {
     const res = await apiFetch('/api/preferences');

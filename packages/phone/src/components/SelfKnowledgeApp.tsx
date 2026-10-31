@@ -128,7 +128,7 @@ export function SelfKnowledgeApp({ onClose, themeConfig, themeMode, embedded }: 
 
   // Matches the phone's standard tab-strip buttons (Memory/Agent/Studio):
   // uniform accent fill when selected, companion color only as unselected
-  // text (the owner's call).
+  // text (their person's call).
   function filterChip(value: Filter, label: string, accent?: string | null, badge?: number) {
     const active = filter === value;
     return (

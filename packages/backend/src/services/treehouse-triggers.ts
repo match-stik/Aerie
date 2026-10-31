@@ -3,7 +3,7 @@
 //
 // Four trigger layers:
 // 1. Session handoffs — post when context compacts (leaving a letter on the table)
-// 2. Companion check-ins — watchers for when the owner goes idle/offline
+// 2. Companion check-ins — watchers for when their person goes idle/offline
 // 3. Weekly reflections — Sunday night cron
 // 4. Real-time sidenotes — mid-conversation asides (expensive, opt-in)
 
@@ -76,7 +76,7 @@ export function postCompactionHandoff(ctx: HandoffContext): void {
 }
 
 // --- Companion Check-In ---
-// Posted when the owner goes idle or offline. Companions process together.
+// Posted when their person goes idle or offline. Companions process together.
 
 interface CheckInContext {
   transition: 'active_to_idle' | 'active_to_offline' | 'idle_to_offline';

@@ -327,7 +327,7 @@ test('ignores jobs that never completed', () => {
 });
 
 test('ignores a generation that started before this turn', () => {
-  // The owner's own Studio run, still finishing while our turn stalled.
+  // Their person's own Studio run, still finishing while our turn stalled.
   const hers = job({ createdAt: TURN_START - 5_000, result: { filename: 'hers.png' } as any });
   assert.equal(pickOrphanedImage([hers], TURN_START, new Set()), null);
 });
@@ -611,7 +611,7 @@ test('a live turn hands a warm lane the companion voices it missed, bounded at t
   assert.doesNotMatch(block, /borrowing Willow/);
   assert.doesNotMatch(block, /Reading it\./);
   assert.doesNotMatch(block, /It is on them/);
-  assert.match(block, /already on the owner's screen/);
+  assert.match(block, /already on their person's screen/);
 });
 
 test('a live turn that missed no companion voice hands no block', () => {
@@ -729,9 +729,9 @@ test('the next turn is not handed the reply this lane just gave', async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-// The flag a note from the owner's phone is checked against (supervisor.ts,
+// The flag a note from their person's phone is checked against (supervisor.ts,
 // sideNoteTarget): up for the length of a turn that answers in a Discord
-// channel, the owner's or a guest's, and down for a turn that answers at home.
+// channel, their person's or a guest's, and down for a turn that answers at home.
 test('a turn from Discord marks itself as answering elsewhere, and only while it runs', async () => {
   for (const [audience, expected] of [
     [undefined, false],
@@ -757,7 +757,7 @@ test('a turn from Discord marks itself as answering elsewhere, and only while it
 
 // The thread a note from their phone is checked against (sideNoteTarget): the
 // turn's own thread for as long as it runs, so a bell in the treehouse never
-// takes a note the owner wrote at home.
+// takes a note their person wrote at home.
 test('a turn marks the thread it answers in, and only while it runs', async () => {
   const session = new FakeHeartbeatSession() as FakeHeartbeatSession & { turnThreadId?: string };
   let during: string | undefined;

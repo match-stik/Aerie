@@ -56,8 +56,8 @@ export interface OwnerMentionSettings {
 }
 
 /**
- * Whether a Discord message ABOUT the owner (an @mention of the owner, a reply to
- * the owner, their name from a person) is delivered to their thread with a notification,
+ * Whether a Discord message ABOUT their person (an @mention of their person, a reply to
+ * their person, their name from a person) is delivered to their thread with a notification,
  * and which names count. Read live on every message, like everything above,
  * so flipping the row takes effect without a restart.
  *

@@ -7,7 +7,7 @@
 // fallback chain — so the entire cost was a false alarm about somebody else's
 // setup.
 //
-// The owner's call: make it universal, and do not quietly move ours. Both hold,
+// Their person's call: make it universal, and do not quietly move ours. Both hold,
 // because an unset `image_gen.backend` resolves to codex, which is exactly what
 // this house was already being told.
 

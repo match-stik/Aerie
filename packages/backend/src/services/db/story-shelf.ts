@@ -3,14 +3,14 @@
  * The Story Shelf — choose-your-own-path books the companions write and run.
  *
  * A book goes on the shelf with its bible, the base story they wrote for it.
- * Its pages go in order: a scene is a companion's, a move is the owner's, and
+ * Its pages go in order: a scene is a companion's, a move is their person's, and
  * each scene answers the move before it. The companions write through the
- * loopback routes; the owner reads and moves from the phone, which never writes
+ * loopback routes; their person reads and moves from the phone, which never writes
  * a scene.
  *
  * WHO MAY WRITE. Any companion in the house, on any book. They write together,
  * so a scene carries its own author rather than the book carrying an owner. A
- * move is only ever the owner's, through the phone's door.
+ * move is only ever their person's, through the phone's door.
  *
  * ONE MOVE, THEN A SCENE. A move is only taken while the newest page is a
  * scene. That is also what stops a double tap from going in twice: the second
@@ -225,7 +225,7 @@ export function normalizeStoryChoices(raw: unknown): StoryChoice[] {
   return raw.map((entry, index) => {
     if (!isPlainObject(entry)) throw new StoryShelfError(400, CHOICES_SHAPE);
     const label = optionalStoryText(entry.label, `choice ${index + 1}'s label`, STORY_LIMITS.choiceLabel, true);
-    if (!label) throw new StoryShelfError(400, `choice ${index + 1} needs a label: the words the owner taps.`);
+    if (!label) throw new StoryShelfError(400, `choice ${index + 1} needs a label: the words their person taps.`);
     const id = entry.id === undefined || entry.id === null || entry.id === '' ? `c${index + 1}` : entry.id;
     if (typeof id !== 'string' || !CHOICE_ID.test(id) || id.length > STORY_LIMITS.choiceId) {
       throw new StoryShelfError(
@@ -343,7 +343,7 @@ function summarize(row: BookRow, marks: PageMark[]): StoryBookSummary {
     openedAt: row.opened_at,
     pageCount: marks.length,
     sceneCount: marks.filter((mark) => mark.kind === 'scene').length,
-    // Where the owner left off is the newest page: the scene to answer, or
+    // Where their person left off is the newest page: the scene to answer, or
     // their own move when the page answering it has not arrived yet.
     bookmark: newest ? { pageId: newest.id, at: newest.at } : null,
     awaiting: awaitingOf(row, marks),
@@ -361,7 +361,7 @@ export function getStoryBook(id: string): StoryBook | null {
 
 /**
  * Every book on the shelf. The ones being read come first, led by whichever
- * the owner was in last, so the book they put down is the first one they see; the
+ * their person was in last, so the book they put down is the first one they see; the
  * finished ones follow, newest finished first.
  */
 export function listStoryBooks(): StoryBookSummary[] {
@@ -406,7 +406,7 @@ export function listStoryKeepsakes(bookId?: string): StoryKeepsake[] {
 
 // ─── The companions' writes ──────────────────────────────────────────
 
-/** Put a new book on the shelf. Its opening is written when the owner begins it. */
+/** Put a new book on the shelf. Its opening is written when their person begins it. */
 export function createStoryBook(input: {
   maker: unknown;
   title: unknown;
@@ -555,10 +555,10 @@ export function weaveStoryKeepsake(keepsakeId: string, input: { maker: unknown; 
   return keepsakeView(keepsakeRow(row.id)!);
 }
 
-// ─── The owner's moves, and the page turns that answer them ──────────
+// ─── Their person's moves, and the page turns that answer them ──────────
 
 /**
- * The owner's move, checked against the newest scene. It is only taken while that
+ * Their person's move, checked against the newest scene. It is only taken while that
  * scene is on top, so a second tap is refused rather than going in twice, and
  * it marks the book as having a page turn on its way.
  */
@@ -607,7 +607,7 @@ export function recordStoryMove(bookId: string, input: { choiceId?: unknown; tex
 }
 
 /**
- * The owner opened a book. That is remembered, so the shelf leads with it.
+ * Their person opened a book. That is remembered, so the shelf leads with it.
  * A book with no opening and nothing on its way reserves its opening turn,
  * which the caller then sends; a started book needs nothing, because the
  * bookmark is enough.
@@ -701,7 +701,7 @@ export function ensureStoryShelfThread(): string {
   const at = now();
   createThread({ id, name: 'The Story Shelf', type: 'named', createdAt: at, sessionType: 'v2' });
 
-  // Everyone participates and nobody is primary — the same shape as the owner's
+  // Everyone participates and nobody is primary — the same shape as their person's
   // home thread, the Fleet Room and the Card Room, and deliberately so. That
   // column does two unrelated jobs: it says who leads a room, and it is what
   // the CLI session key resolves from (getDefaultCompanionForThread, read by
@@ -734,9 +734,9 @@ export function ensureStoryShelfThread(): string {
 
 /**
  * The line a page turn opens with in the shelf's thread, written as the turn
- * starts. The owner's move goes in as their own words, because that is what
+ * starts. Their person's move goes in as their own words, because that is what
  * it is. An opening, or a page asked for again, is a line from the house
- * instead: it is not something the owner said, and it should not be put in
+ * instead: it is not something their person said, and it should not be put in
  * their mouth.
  *
  * Every opener carries storyTurn in its metadata. That is how the table talk
@@ -775,9 +775,9 @@ const STORY_BOOK = "CASE WHEN json_valid(metadata) THEN json_extract(metadata, '
 const STORY_TABLE = "CASE WHEN json_valid(metadata) THEN json_extract(metadata, '$.storyTable') END";
 
 /**
- * A line the owner says at the table while reading. It is talk, not a move:
+ * A line their person says at the table while reading. It is talk, not a move:
  * it never turns a page, and it carries no storyTurn, so it never starts a
- * new stretch of table talk either. It goes in as the owner's own words.
+ * new stretch of table talk either. It goes in as their person's own words.
  */
 export function writeStoryTableTalk(bookId: string, text: string): Message {
   const threadId = ensureStoryShelfThread();
@@ -794,11 +794,11 @@ export function writeStoryTableTalk(bookId: string, text: string): Message {
 
 /**
  * Everything said at the table during this book's page turns: the companions'
- * lines in each of its turns, and the owner's own table talk for it, oldest
+ * lines in each of its turns, and their person's own table talk for it, oldest
  * first, the newest kept when there are more than the limit. A turn runs from
  * its opener to the next opener of any book, so a line said during another
  * book's turn stays with that book. It used to hold only the newest turn's
- * talk, so every page turned wiped the table, and the owner read that as the
+ * talk, so every page turned wiped the table, and their person read that as the
  * talk being lost.
  */
 export function storyTalk(bookId: string, limit = 200): StoryTalkLine[] {
@@ -830,7 +830,7 @@ export function storyTalk(bookId: string, limit = 200): StoryTalkLine[] {
     created_at: string;
     sequence: number;
   }>;
-  // The owner's own table lines name their book; a companion's line belongs to the
+  // Their person's own table lines name their book; a companion's line belongs to the
   // turn it was said in.
   const said = rows.filter((row) => row.role === 'user' || spans.some(([from, to]) => row.sequence > from && row.sequence < to));
   const slugs = new Map(listCompanions().map((companion) => [companion.id, companion.slug]));

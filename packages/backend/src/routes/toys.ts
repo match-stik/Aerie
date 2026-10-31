@@ -1,8 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The owner's phone's side of the road from a lane to the toys: what it says
+// Their person's phone's side of the road from a lane to the toys: what it says
 // about the toys whenever they change (POST /api/toys/state), and its answer
-// to each command a lane sent (POST /api/toys/ack). Behind the owner's login,
-// because only the owner's own phone has anything to say here.
+// to each command a lane sent (POST /api/toys/ack). Behind their person's login,
+// because only their person's own phone has anything to say here.
 
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';

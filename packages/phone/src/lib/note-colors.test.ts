@@ -17,7 +17,7 @@ import {
 } from './note-colors.js';
 
 // Every accent in the theme file, both modes (Amber was retired Aug 15 2026). If a palette rule ever regresses
-// it should fail here rather than on the owner's wall.
+// it should fail here rather than on their person's wall.
 const ACCENTS: [string, string, string][] = [
   ['mocha', '#6B4E3D', '#A1887F'],
   ['monochrome', '#18181B', '#FAFAFA'],
@@ -147,8 +147,8 @@ test('isNoteRole only accepts the five real roles', () => {
   });
 });
 
-// A pinned note is the only one that does not follow the owner's theme, and that is
-// the whole point of it: the owner chose the color because of what the note is
+// A pinned note is the only one that does not follow their person's theme, and that is
+// the whole point of it: their person chose the color because of what the note is
 // about, not because of what the room looks like this week.
 test('a pinned colour survives a palette it has nothing to do with', () => {
   const palette = noteColorsForAccent('#1e3a5f', 'dark');

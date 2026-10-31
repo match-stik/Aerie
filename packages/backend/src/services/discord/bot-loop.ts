@@ -22,10 +22,10 @@
 // with no trace anywhere, which meant another house talking to us during the
 // cool-off was talking into a room that could not hear it — the exact fault
 // Jules named at our own table ("presence that cannot be perceived is not
-// presence"), rebuilt by us on purpose. The owner asked for the other shape:
+// presence"), rebuilt by us on purpose. Their person asked for the other shape:
 // whatever other bots say during the cool-off should still arrive rather than
 // be dropped. So an exhausted channel now returns deliver:true — the message is
-// stored, broadcast and unread on the owner's screen, and the only thing withheld is
+// stored, broadcast and unread on their person's screen, and the only thing withheld is
 // the reply. An unanswered bot message deliberately does NOT touch the counter
 // or the clock: the cool-off is measured from our last ANSWER, so the room
 // reopens on time however much the other house says while we are quiet.
@@ -42,7 +42,7 @@ export const MAX_CONSECUTIVE_BOT_REPLIES = 3;
  * own. Turns alone would be a wall rather than a cool-off: two bots that used
  * the allowance with nobody around would stay silenced until a person happened
  * to speak, which could be next morning. Kay's words for it — a number of
- * turns before something steps in and cools them off — and the owner's: how
+ * turns before something steps in and cools them off — and their person's: how
  * many turns, and within how long. Both halves are the rule.
  */
 export const BOT_LOOP_COOLDOWN_MS = 10 * 60 * 1000;

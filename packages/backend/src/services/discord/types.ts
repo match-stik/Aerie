@@ -37,15 +37,15 @@ export interface PreflightResult {
   /**
    * Not allowed to be ANSWERED, but still to be heard: store it, broadcast it,
    * leave it unread, and generate nothing. Two things set this: the
-   * consecutive-bot cool-off, and a message about the owner that was not
+   * consecutive-bot cool-off, and a message about their person that was not
    * addressed to us (see ownerMention). Every other denial is a door and
    * stays one.
    */
   deliver?: boolean;
   /**
-   * Set alongside `deliver` when the message is ABOUT the owner rather than
-   * to us, and says why: a reply to the owner, an @mention of the owner, or their name.
-   * The gateway routes it to where the owner is reading and sends the owner a
+   * Set alongside `deliver` when the message is ABOUT their person rather than
+   * to us, and says why: a reply to their person, an @mention of their person, or their name.
+   * The gateway routes it to where their person is reading and sends their person a
    * notification. The cool-off never sets it.
    */
   ownerMention?: OwnerMentionReason;

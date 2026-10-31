@@ -60,7 +60,7 @@ interface LockScreenProps {
   /** Who can leave a note on the fridge, and the Notes app the note card opens. */
   writers?: LockWriter[];
   notesApp?: AppDef;
-  /** The Spotify card's switch (Settings > Lock screen, on unless the owner
+  /** The Spotify card's switch (Settings > Lock screen, on unless their person
    *  turned it off), and the Spotify app a tap on the card opens. */
   spotify?: boolean;
   spotifyApp?: AppDef;
@@ -209,7 +209,7 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
         </button>
       )}
 
-      {/* What is playing on the owner Spotify, on top of the other cards, while a
+      {/* What is playing on their person Spotify, on top of the other cards, while a
           song is playing or paused (Oct 20 2026). Settings turns it off. */}
       {spotify && (
         <LockSpotifyCard

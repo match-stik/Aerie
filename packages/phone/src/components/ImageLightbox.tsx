@@ -222,7 +222,7 @@ export function ImageLightbox({ src, images, startIndex = 0, alt, onClose }: Ima
 
       {/* Navigation arrows for multiple images. They sit in their own gutters
           beside the picture rather than over it (Oct 22 2026: the
-          arrows were getting in the way on the owner's images), so a viewer with more
+          arrows were getting in the way on their person's images), so a viewer with more
           than one picture keeps 56px of black either side for them. */}
       {hasMultiple && currentIndex > 0 && (
         <button

@@ -169,7 +169,7 @@ test('the phone plays, pauses and skips through the house, only with a session, 
     coverFile: null,
     log: () => {},
     fetch: async (url, init) => {
-      assert.equal(url, SERVER, 'a press only ever goes to the owner Spotify server');
+      assert.equal(url, SERVER, 'a press only ever goes to their person Spotify server');
       const { params } = JSON.parse(String(init?.body));
       asked.push({ tool: params.name, args: params.arguments });
       return toolAnswer('Done');
@@ -241,7 +241,7 @@ test('when a press cannot be taken the phone gets one plain sentence, never a pa
   console.error = () => {};
   try {
     const nowhere = await phone.post('/api/spotify/play', { trackUri: SONG });
-    assert.equal(nowhere.status, 409, 'nowhere to play is the state of the owner devices, not a broken server');
+    assert.equal(nowhere.status, 409, 'nowhere to play is the state of their person devices, not a broken server');
     assert.deepEqual(nowhere.json, { error: 'Open Spotify on your phone first, then try again.', reason: 'device' }, 'said as what to do');
 
     const lapsed = await phone.post('/api/spotify/pause');
@@ -279,7 +279,7 @@ test('the phone searches through the house, only with a session, and empty words
     server: () => ({ url: SERVER, apiKey: null }),
     coverFile: null,
     fetch: async (url, init) => {
-      assert.equal(url, SERVER, 'a search only ever goes to the owner Spotify server; these songs bring their own covers');
+      assert.equal(url, SERVER, 'a search only ever goes to their person Spotify server; these songs bring their own covers');
       const { params } = JSON.parse(String(init?.body));
       asked.push({ tool: params.name, args: params.arguments });
       return toolAnswer([{ name: 'Rain', artists: [{ name: 'Sleep Token' }], album: { name: 'Sundowning', uri: 'spotify:album:1ghzdXKc5kfvQbSpUgDpRS', images: [{ url: 'https://i.scdn.co/image/sundowning' }] }, uri: SONG }]);
@@ -370,7 +370,7 @@ test('the player, hearts and playlist building each reach the right tool, and a 
       ['spotify_reorder_tracks', { playlist_id: LIST, range_start: 3, insert_before: 1, range_length: 1 }],
       ['spotify_create_playlist', { name: 'Late drive', description: 'for the road', public: false }],
       ['spotify_update_playlist', { playlist_id: LIST, name: 'Later drive' }],
-    ], 'one call each, and a song moved down lands where the owner put it');
+    ], 'one call each, and a song moved down lands where their person put it');
 
     const before = asked.length;
     for (const [method, path, body] of [

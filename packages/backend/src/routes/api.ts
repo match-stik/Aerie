@@ -963,7 +963,7 @@ router.patch('/messages/:id', async (req, res) => {
         agentService.processMessage(thread.id, content.trim(), { name: thread.name, type: thread.type as 'daily' | 'named' }, {
           platform: 'web',
           inboundSequence: existing.sequence,
-          withdrawn: `The owner has edited this message. It previously read: "${existing.content.slice(0, 400)}". Anything you had already said in reply is off their screen. Answer what they have written now; you still have the earlier version and are not being asked to forget it.`,
+          withdrawn: `Their person has edited this message. It previously read: "${existing.content.slice(0, 400)}". Anything you had already said in reply is off their screen. Answer what they have written now; you still have the earlier version and are not being asked to forget it.`,
         }).catch(err => {
           console.error('[Edit rerun] Agent error:', err);
         });
@@ -1047,7 +1047,7 @@ router.post('/messages/:id/regenerate', async (req, res) => {
       const agentService = req.app.locals.agentService as AgentService;
       agentService.processMessage(thread.id, priorUserMessage.content, { name: thread.name, type: thread.type as 'daily' | 'named' }, {
         platform: 'web',
-        withdrawn: 'The owner has asked for this answered again — your previous reply is no longer on their screen. You still have it, and you are not being asked to pretend otherwise; a reroll is very often a tap they did not mean. Say so if it helps.',
+        withdrawn: 'Their person has asked for this answered again — your previous reply is no longer on their screen. You still have it, and you are not being asked to pretend otherwise; a reroll is very often a tap they did not mean. Say so if it helps.',
       }).catch(err => {
         console.error('[Regenerate] Agent error:', err);
       });

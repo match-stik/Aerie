@@ -80,9 +80,9 @@ interface SettingsDashboardProps {
     settings: Partial<Omit<AppSettings, "theme" | "contacts">>,
   ) => void;
   onClose: () => void;
-  /** The owner's name, for the bubble preview's label. */
+  /** Their person's name, for the bubble preview's label. */
   ownerName?: string;
-  /** The owner emoji packs, for the quick-reaction picker's tabs. */
+  /** Their person emoji packs, for the quick-reaction picker's tabs. */
   emojiPacks?: EmojiPack[];
 }
 
@@ -871,7 +871,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                       ))}
                     </div>
                   </section>
-                  {/* One look for every card on the lock screen (the owner idea, Oct 20 2026). */}
+                  {/* One look for every card on the lock screen (their person idea, Oct 20 2026). */}
                   <section className={cn("space-y-3 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
                     <h3 className={cn("micro-label", colors.accentText)}>Cards</h3>
                     <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
@@ -888,7 +888,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                 </>);
               })()}
               {pane === 'you' && (<>
-              {/* Your Avatar — the owner's bubble face + ring color, the
+              {/* Your Avatar — their person's bubble face + ring color, the
                   user-side counterpart of the companion voice avatars */}
               <section className={cn("space-y-4 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
                 <h3 className={cn("micro-label", colors.accentText)}>
@@ -1249,7 +1249,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                   { key: "bubbleNames", on: look.names, label: "Names", hint: `Each companion named ${look.tailOurs === "bottom" ? "under" : "over"} their bubbles, in their color` },
                   { key: "bubbleMyName", on: look.myName, label: "Your name", hint: `Your name ${look.tailMine === "bottom" ? "under" : "over"} your bubbles, in your ring color` },
                   { key: "bubbleEdges", on: look.edges, label: "Edges in companion colors", hint: "A companion bubble's thin border in that companion's color" },
-                  { key: "bubbleQuietActions", on: look.quietActions, label: "Quieter action lines", hint: "Every action line a little softer than the words, the owner's too" },
+                  { key: "bubbleQuietActions", on: look.quietActions, label: "Quieter action lines", hint: "Every action line a little softer than the words, their person's too" },
                 ];
                 const page = resolveThemeColors(colors).pageBg;
                 const sampleColor = nameColor(SAMPLE_COMPANION.slug, SAMPLE_COMPANION.color, theme.mode, page);
@@ -1404,7 +1404,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                         </span>
                       </span>
                     </div>
-                    {/* And one of the owner's, on the right. */}
+                    {/* And one of their person's, on the right. */}
                     <div className="flex justify-end gap-2" aria-hidden="true">
                       <span className="flex min-w-0 flex-col items-end">
                         {look.myName && look.tailMine === "top" && (

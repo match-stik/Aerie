@@ -22,11 +22,11 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import java.util.List;
 
 /**
- * Reads what the owner's phone is currently playing, so the Screening Room clock can
- * follow an episode instead of the owner having to drive it.
+ * Reads what their person's phone is currently playing, so the Screening Room clock can
+ * follow an episode instead of their person having to drive it.
  *
  * THIS IS AN INSTRUMENT BEFORE IT IS A FEATURE, and that is deliberate. Nothing
- * on this box can find out whether the owner's streaming app publishes a playback
+ * on this box can find out whether their person's streaming app publishes a playback
  * POSITION — some players do, some refuse, and the only way to know is to ask
  * the phone in their hand. So read() reports exactly what Android hands over,
  * including the honest answer "this player does not say", rather than quietly

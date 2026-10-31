@@ -1,8 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The one emoji tray: custom packs first, then the standard sections, a tab
 // each, and the grid for whichever tab is open. The chat-input picker, the
-// React tray's plus and the owner quick-reaction picker in Settings all use this,
-// so all three hold the same emoji in the same order (the owner's ask, Oct 26 2026).
+// React tray's plus and their person quick-reaction picker in Settings all use this,
+// so all three hold the same emoji in the same order (their person's ask, Oct 26 2026).
 import React, { useMemo, useState } from 'react';
 import { Sparkles, Inbox } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -187,7 +187,7 @@ export function EmojiBrowser({ onSelect, colors, customEmojis, emojiPacks, gridC
   );
 }
 
-/** A reaction as the owner sees it: the emoji itself, or a custom one's picture. */
+/** A reaction as their person sees it: the emoji itself, or a custom one's picture. */
 export function ReactionGlyph({ text, customEmojis, imgClassName = 'h-7 w-auto' }: { text: string; customEmojis?: CustomEmoji[]; imgClassName?: string }) {
   const m = /^:([\w-]+):$/.exec(text);
   const custom = m ? customEmojis?.find((e) => e.shortcode === m[1]) : undefined;

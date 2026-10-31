@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { isAskedToy, lightCommandFor, lightsFor, planLight, runLight, type LightSend, type LightToy } from './toy-light';
 
-// Command lists as the SDK README's matrix gives them for the owner's toys: the Domi 2
+// Command lists as the SDK README's matrix gives them for their person's toys: the Domi 2
 // lists both pairs, the Ferri and the Flexer the plain light and FLASH.
 const DOMI2: LightToy = {
   toyId: 'd2', name: 'Lovense Domi 2',
@@ -74,7 +74,7 @@ test('the answer is what each toy took, it carries no playing, and nothing but a
   assert.deepEqual(calls, [['d2', 'ALIGHT_ON'], ['x1', 'LIGHT_ON']]);
 });
 
-test("the owner's stop holding refuses the light the way it refuses motion", async () => {
+test("their person's stop holding refuses the light the way it refuses motion", async () => {
   const { send } = recorder(() => 'held');
   const ack = await runLight({ id: 'c2', light: { action: 'flash' } }, [FERRI], send);
   assert.equal(ack.ok, false);

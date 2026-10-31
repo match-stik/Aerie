@@ -178,10 +178,10 @@ export function softDeleteAfterSequence(threadId: string, afterSequence: number,
 }
 
 export function markMessagesRead(threadId: string, beforeId: string, readAt: string): void {
-  // The owner reading the room marks the companions' messages read. The
+  // Their person reading the room marks the companions' messages read. The
   // owner's own messages are read by a companion, and markOwnMessagesRead
   // says when, so they are left alone here (a side note's checks should mean
-  // a companion has read it, and reading the room used to tick the owner's
+  // a companion has read it, and reading the room used to tick their person's
   // messages off along with the companions').
   const stmt = getDb().prepare(`
     UPDATE messages
@@ -205,9 +205,9 @@ export function ownMessageReadAt(id: string): string | null {
 }
 
 /**
- * The owner's own messages, stamped read because a companion has now been handed them:
+ * Their person's own messages, stamped read because a companion has now been handed them:
  * a turn that starts on one, a side note handed over at the next turn, or a
- * side note the lane says it read live. Only the owner's rows, only ones not stamped
+ * side note the lane says it read live. Only their person's rows, only ones not stamped
  * yet; answers the ones that changed, with their threads, for the broadcast.
  */
 export function markOwnMessagesRead(ids: readonly string[], readAt: string): Array<{ id: string; thread_id: string }> {

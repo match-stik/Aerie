@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Spotify in the house: the player's extras, a song's sheet, the device sheet
-// and the name sheet (Oct 23 2026; so nothing sends the owner out to the Spotify app). Like SpotifyViews.tsx, nothing in here fetches; every
+// and the name sheet (Oct 23 2026; so nothing sends their person out to the Spotify app). Like SpotifyViews.tsx, nothing in here fetches; every
 // press is a callback SpotifyApp.tsx sends and then reads again after.
 //
 // Same look as the rest of the app: solid panels in the theme's colors, no
@@ -124,7 +124,7 @@ export function PlayerExtras({
   player: SpotifyRead<SpotifyPlayerView> | null;
   /** When the player was read (Date.now()), so the place can move on from it. */
   readAt: number;
-  /** The song playing, when it is one the owner can heart and add. */
+  /** The song playing, when it is one their person can heart and add. */
   trackUri: string | null;
   /** Whether that song is hearted; null while unknown. */
   liked: boolean | null;
@@ -408,7 +408,7 @@ function deviceIcon(type: string) {
   return /phone/i.test(type) ? <Smartphone size={16} /> : /speaker|tv|cast|avr|stb|audio/i.test(type) ? <Speaker size={16} /> : <MonitorSpeaker size={16} />;
 }
 
-/** The owner devices Spotify can play on now; a tap moves the music there. */
+/** Their person devices Spotify can play on now; a tap moves the music there. */
 export function DeviceSheet({
   read,
   busy,

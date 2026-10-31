@@ -79,10 +79,10 @@ interface PendingMessage {
 
 /**
  * Who said a line, as the Archivist should read it. Discord rows from anybody
- * but the owner are stored with role 'system' (services/discord/index.ts), so
+ * but their person are stored with role 'system' (services/discord/index.ts), so
  * reading the role alone showed every guest as 'System', with no name, the
  * most trusted label in the prompt (found Oct 22 2026, 807 such rows). A
- * guest is named from the row's own metadata and marked as not the owner; a
+ * guest is named from the row's own metadata and marked as not their person; a
  * real system row still reads as System.
  */
 function speakerFor(message: PendingMessage, userName: string): string {
@@ -563,7 +563,7 @@ export async function runMemoryExtraction(
   setConfig('memext.last_attempt_at', new Date().toISOString());
   // THE BILLING WITNESS. Two comments in this codebase say a Claude path
   // outside the warm CLI lane bills metered credits; the other reading is that
-  // the SDK rides the subscription. Rather than argue it, read the owner's weekly
+  // the SDK rides the subscription. Rather than argue it, read their person's weekly
   // before and after a sweep that used it. NOTE: the usage reader caches for
   // 60s, so a sweep shorter than that will report an unchanged number for a
   // boring reason — both readings are logged so a flat result is visible as
@@ -632,7 +632,7 @@ export async function runMemoryExtraction(
   return { processed, applied, failed: failures.length };
 }
 
-/** The owner's weekly Claude percentage, or null when it cannot be read. Used only as
+/** Their person's weekly Claude percentage, or null when it cannot be read. Used only as
  *  the before/after witness on the SDK lane — never to gate anything. */
 async function claudeWeeklyPercent(): Promise<number | null> {
   try {
@@ -652,7 +652,7 @@ let extractionTimer: ReturnType<typeof setInterval> | null = null;
  *  asking it to. Override with agent.archivist_interval_minutes. */
 export const DEFAULT_EXTRACTION_INTERVAL_MINUTES = 120;
 
-/** Explicit argument wins, then the owner's config, then the two-hour default. A
+/** Explicit argument wins, then their person's config, then the two-hour default. A
  *  configured zero or a typo must not turn the sweep into a tight loop. */
 export function resolveExtractionInterval(
   explicit: number | undefined,

@@ -22,12 +22,12 @@
  * carry on as if the break never happened, which is why a lane left to itself
  * never mentions one to the user.
  *
- * What changed on Oct 21 2026, at the owner ask:
+ * What changed on Oct 21 2026, at their person ask:
  *
  * It reads the house's LANES and nothing else. Claude Code keeps a project
- * folder for every session that runs on this box — the system tmp folder, the owner
+ * folder for every session that runs on this box — the system tmp folder, their person
  * terminal sessions, test walks — and the old reader walked all of them, so a
- * squash from the tmp folder sat on the owner page as one of ours. The banner check
+ * squash from the tmp folder sat on their person page as one of ours. The banner check
  * (isHeartbeatLane) already knew what a lane was; the page's reader simply
  * never asked it. Now the walk starts from data/heartbeat and opens only each
  * lane's own project folder.
@@ -124,7 +124,7 @@ export function compactionKey(e: Pick<CompactionEvent, 'project' | 'at' | 'summa
  * Reopening a room copies the ENTIRE transcript into a new file under a new
  * session id, and every compaction already in it rides along in the copy. So a
  * room resumed eight times puts the same squash on disk eight times, and a
- * reader that walks files hands the owner eight identical rows for one event. The owner saw
+ * reader that walks files hands their person eight identical rows for one event. Their person saw
  * that before we did — Sep 20 2026, a bunch in the memory app that look like
  * they're duplicated.
  *

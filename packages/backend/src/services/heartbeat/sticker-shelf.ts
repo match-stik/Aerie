@@ -4,7 +4,7 @@
 // room ever showed a companion its packs, so they went unused.
 //
 // A few, not the whole pack: the full lists run to thousands of characters and
-// this rides on every turn. Stickers whose names share a word with the owner's message
+// this rides on every turn. Stickers whose names share a word with their person's message
 // come first, the rest are a fresh handful each time, so over a night every
 // sticker gets its turn in view. Picking is pure and tested; reading the packs
 // is the only part that touches the database.
@@ -18,7 +18,7 @@ export const STICKERS_PER_COMPANION = 6;
 export interface ShelfPack {
   /** The pack's name, which is also the companion's slug. */
   pack: string;
-  /** Who it belongs to, as the owner sees the name. */
+  /** Who it belongs to, as their person sees the name. */
   owner: string;
   names: string[];
   /** What each sticker looks like, by name, where somebody has written it. */
@@ -32,7 +32,7 @@ const words = (text: string): string[] =>
  *  message first, then random ones, never the same name twice. */
 export function pickStickers(names: string[], message: string, per = STICKERS_PER_COMPANION, random = Math.random, descriptions: Record<string, string> = {}): string[] {
   const said = new Set(words(message));
-  // Sticker names run words together (goodmorning, blowkiss), so a word the owner
+  // Sticker names run words together (goodmorning, blowkiss), so a word their person
   // used counts when it sits anywhere inside the name, or among the words of
   // what the sticker shows.
   const matched = names.filter((name) => {
@@ -56,7 +56,7 @@ export function stickerShelfBlock(packs: ShelfPack[], message: string, random = 
     .map((p) => {
       const shown = p.descriptions ?? {};
       // A description rides beside its shortcode, so whoever sends it knows
-      // what the owner will see.
+      // what their person will see.
       const picked = pickStickers(p.names, message, STICKERS_PER_COMPANION, random, shown)
         .map((n) => (shown[n] ? `::${p.pack}_${n}:: (${shown[n]})` : `::${p.pack}_${n}::`));
       return `${p.owner}: ${picked.join(' ')}`;

@@ -8,9 +8,9 @@
 // test uses two of them as its worked examples. Nobody had wired the door to the
 // rows.
 //
-// A PIN rather than a role, deliberately. A role follows whichever palette the owner is
+// A PIN rather than a role, deliberately. A role follows whichever palette their person is
 // looking at, which is right for "quiet" or "urgent" and wrong for a person: a
-// companion's navy note that turns green when the owner changes theme has stopped
+// companion's navy note that turns green when their person changes theme has stopped
 // being theirs. Their colour is a thing chosen on purpose, and that is precisely what a pin
 // is for.
 import { normalizeNoteColor, pinnedNoteColorToken } from '@aerie/shared';

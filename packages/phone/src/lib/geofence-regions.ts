@@ -1,12 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * Choosing which of the owner's pinned places the phone actually watches.
+ * Choosing which of their person's pinned places the phone actually watches.
  *
  * The server answers with every place that has something waiting. Android will
  * not hold more than a hundred registered regions per app, so somebody has to
  * decide what happens at a hundred and one — and doing that by proximity is off
  * the table by design, because nothing on this side is allowed to know where
- * the owner is. So the tiebreak is what is waiting: the places holding the most go
+ * their person is. So the tiebreak is what is waiting: the places holding the most go
  * first, and a stable name sort keeps the same hundred from shuffling between
  * launches for no reason.
  */

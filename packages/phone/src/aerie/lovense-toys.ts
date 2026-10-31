@@ -3,11 +3,11 @@
 // developer account and token; carrying this code into another project needs
 // that project's own agreement and approval from Lovense. See
 // packages/phone/android/LOVENSE.md.
-// The page's half of the owner's toys: Lovense's Android SDK inside the app
+// The page's half of their person's toys: Lovense's Android SDK inside the app
 // (LovenseToysPlugin), reaching the toys over Bluetooth with no Lovense Remote
 // and no cloud in between.
 //
-// The owner's stop is the first thing here and the one call that never waits on
+// Their person's stop is the first thing here and the one call that never waits on
 // anything else: the native side starts its hold before it queues a single
 // zero, and refuses every motion for a few seconds after, so a slider still
 // sending or a command already on its way cannot start a toy back up.
@@ -38,7 +38,7 @@ export interface ToysStatus {
   /** Nearby-devices permission on Android 12 and up, location before it. */
   permitted: boolean;
   tokenSet: boolean;
-  /** How much longer the owner's last stop refuses commands, in ms. */
+  /** How much longer their person's last stop refuses commands, in ms. */
   holdMs: number;
   toys: LovenseToy[];
 }
@@ -82,7 +82,7 @@ export function hasToyBridge(): boolean {
   return Capacitor.getPlatform() === 'android' && Capacitor.isPluginAvailable('LovenseToys');
 }
 
-/** The owner's stop. Never debounced, never queued behind anything on this side. */
+/** Their person's stop. Never debounced, never queued behind anything on this side. */
 export async function stopAllToys(): Promise<{ stopped: number; holdMs: number } | null> {
   if (!hasToyBridge()) return null;
   return LovenseToys.stop();

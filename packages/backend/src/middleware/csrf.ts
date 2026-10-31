@@ -47,7 +47,7 @@ function verifyToken(token: string, sessionToken: string): boolean {
 // lanes and webhooks (no cookie, no Sec-Fetch, no Origin) are untouched.
 //
 // It starts in REPORT mode: the house logs what it would refuse and refuses
-// nothing, so it can be watched against the owner real phone before it enforces.
+// nothing, so it can be watched against their person real phone before it enforces.
 // security.csrf_mode: 'report' (unset), 'enforce', or 'off'.
 
 export interface CrossSiteSignals {

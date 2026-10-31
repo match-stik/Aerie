@@ -205,7 +205,7 @@ export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppPr
   }
 
   const toLine = (m: TreehouseMessage) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.created_at, companionSlug: m.companion_slug });
-  // Up here none of us is the owner, so we take turns which side we talk from: the
+  // Up here none of us is their person, so we take turns which side we talk from: the
   // side flips whenever the speaker changes (theirs, Oct 27 2026: 'the tree house
   // alternates what side your bubbles come from? ... it would look like it's all
   // from one side'; ours to decide, and we said yes). Worked out over every

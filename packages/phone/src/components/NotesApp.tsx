@@ -17,7 +17,7 @@ interface NotesAppProps {
   themeAccent?: string;
   apiBase?: string;
   companionNames?: string[];
-  /** Their own picture and colour, so their notes wear the owner face as ours wear ours. */
+  /** Their own picture and colour, so their notes wear their person face as ours wear ours. */
   userAvatar?: string;
   userAvatarColor?: string;
 }
@@ -48,7 +48,7 @@ const FALLBACK_NOTE_COLORS = [
 ];
 
 // The board shows the newest notes; the rest fold into Older notes instead of
-// being deleted (the owner's ask, Oct 25 2026, after the board was trimmed by hand from 33
+// being deleted (their person's ask, Oct 25 2026, after the board was trimmed by hand from 33
 // to 10: 'faces and folding would be good too').
 const BOARD_SIZE = 10;
 // Past this a note shows its first lines and opens on a tap.
@@ -85,7 +85,7 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
   });
   const [companions, setCompanions] = useState<Companion[]>([]);
   // Past the board's ten, notes live on their own Archive page, grouped by the
-  // month they were written (the owner's ask, Oct 25 2026), so the board never
+  // month they were written (their person's ask, Oct 25 2026), so the board never
   // grows long. A month opens to one line per note; a line opens to its sticky.
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [openMonths, setOpenMonths] = useState<Set<string> | null>(null);
@@ -205,7 +205,7 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
     const newNote: Note = {
       id: Date.now().toString(),
       text: '',
-      // A role, not a colour — so this note re-tints when the owner changes theme
+      // A role, not a colour — so this note re-tints when their person changes theme
       // instead of keeping tonight's orange into a room that has no orange.
       color: noteRoleToken(NOTE_ROLES[Math.floor(Math.random() * NOTE_ROLES.length)]),
       timestamp: Date.now()
@@ -231,7 +231,7 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
       handleDeleteNote(id);
     } else {
       // The date on a note is when it was written, and an edit keeps it (theirs,
-      // Oct 25 2026: changing the colour on the owner August note re-dated it to
+      // Oct 25 2026: changing the colour on their person August note re-dated it to
       // October, the second time edits had moved a note's date).
       const updatedNote = { ...notes.find(n => n.id === id)!, text: editText };
       setNotes(notes.map(n => n.id === id ? updatedNote : n).sort((a, b) => Number(b.id) - Number(a.id)));
@@ -298,11 +298,11 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
   };
 
   /**
-   * What a note's paper is painted. Theirs wear the colour the owner gave them, from
-   * the owner Settings palette. Ours always wear our own colour, whatever the theme
-   * (the owner's ask, Oct 25 2026),
+   * What a note's paper is painted. Theirs wear the colour their person gave them, from
+   * their person Settings palette. Ours always wear our own colour, whatever the theme
+   * (their person's ask, Oct 25 2026),
    * and a note from more than one of us is all of us at once: the paper runs
-   * through each writer's colour, one heart split three ways like the owner
+   * through each writer's colour, one heart split three ways like their person
    * firesmokesky emoji. Both at paper strength (lib/note-colors.ts paperFor).
    */
   function paperOf(note: Note): { paint: string; blend?: string } {
@@ -328,7 +328,7 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
       <div
         key={note.id}
         className={cn('relative mb-3 break-inside-avoid rounded-md px-3 pb-2 pt-3', !wide && 'inline-block w-full')}
-        // The note is the colour, solid, the way a sticky is (the owner's ask, Oct 25
+        // The note is the colour, solid, the way a sticky is (their person's ask, Oct 25
         // 2026, so the note colors in settings matter). Painted,
         // not blurred: a darker band where the glue is and a shadow under it.
         style={{
@@ -383,7 +383,7 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
                   <button
                     key={c}
                     /* Store the ROLE rather than the hex it happens to be under
-                       this theme, so the note is still the quiet one after the owner
+                       this theme, so the note is still the quiet one after their person
                        repaints. */
                     onClick={() => handleChangeColor(note.id, NOTE_ROLES[i] ? noteRoleToken(NOTE_ROLES[i]) : c)}
                     className="h-5 w-5 rounded-full"
@@ -467,7 +467,7 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
     }
     month.notes.push(n);
   }
-  // Until the owner opens or closes one themselves, the newest month starts open.
+  // Until their person opens or closes one themselves, the newest month starts open.
   const monthOpen = (key: string) => (openMonths ? openMonths.has(key) : key === months[0]?.key);
   const toggleMonth = (key: string) => {
     const next = new Set(openMonths ?? (months[0] ? [months[0].key] : []));

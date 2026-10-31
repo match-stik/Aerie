@@ -145,7 +145,7 @@ export function StudioJobTray({ onOpen, inStudio = false }: { onOpen: () => void
       {/* A red icon nobody can interrogate is a silence wearing a warning
           light — when a job fails, the reason stands beside the tray in
           words. Born from four quota-declined generations that exited clean
-          and left the owner reading pm2 logs for an answer the house already had.
+          and left their person reading pm2 logs for an answer the house already had.
 
           But the reason is whatever the backend hands back, and Codex hands
           back its whole invocation — flags, session id, and the ENTIRE prompt.

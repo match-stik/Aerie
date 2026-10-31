@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The lock screen's clock, in whichever face the owner picked, modeled on a
+// The lock screen's clock, in whichever face their person picked, modeled on a
 // phone's own Personalize page. The lock screen draws it over the wallpaper
 // and Settings draws the very same thing small, so the preview picked from
 // is never a different drawing from what the lock screen shows.
@@ -41,7 +41,7 @@ interface LockClockProps {
   size: LockSize;
   now: Date;
   weather: LockWeather | null;
-  /** Where the owner dragged this face's clock, or null for its own place. */
+  /** Where their person dragged this face's clock, or null for its own place. */
   at?: ClockAt | null;
   /** Given on the lock screen and nowhere else: holding the clock picks it
    *  up, and letting go leaves it where the finger is. */

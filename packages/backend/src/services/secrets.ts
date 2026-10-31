@@ -133,7 +133,7 @@ export const SECRETS: SecretDef[] = [
   },
   // The phone app talks to Lovense toys over Bluetooth itself, through
   // Lovense's Android SDK, with no Lovense Remote in between. The SDK will not
-  // start without the owner's developer token, and the phone asks the house for
+  // start without their person's developer token, and the phone asks the house for
   // it rather than carrying it inside the app file.
   {
     name: 'lovense_developer_token',

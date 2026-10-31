@@ -94,7 +94,7 @@ test('an unanswered window resolves to the fastest rolled hand', () => {
   resolveSlap(state);
   assert.strictEqual(state.phase, 'playing');
   assert.strictEqual(state.pile.length, 0);
-  assert.strictEqual(state.hands.owner.length, 0); // the owner never got it
+  assert.strictEqual(state.hands.owner.length, 0); // their person never got it
   assert.strictEqual(state.hands.birch.length, 2); // the fast hand took the pair
 });
 
@@ -130,7 +130,7 @@ test('a live tap still takes a window every companion missed', () => {
   flip(state, 'birch', OWNER);
   state.slap!.rolls = { birch: 4200, willow: 4400, cedar: 4100 };
   slap(state, 'owner', 2600);
-  assert.strictEqual(state.hands.owner.length, 2); // an unclaimed pattern is still the owner's
+  assert.strictEqual(state.hands.owner.length, 2); // an unclaimed pattern is still their person's
   assert.strictEqual(state.pile.length, 0);
 });
 
@@ -148,7 +148,7 @@ test('the dent rule: a face card demands a face card or the pile comes home', ()
 
 test('a face card answered with a face card passes the dent on', () => {
   const state = rigged({ owner: ['hearts-jack'], birch: ['spades-queen'], willow: ['clubs-4', 'diamonds-9'], cedar: ['diamonds-6'] });
-  flip(state, 'owner', OWNER); // dent: the owner is owed, birch pays
+  flip(state, 'owner', OWNER); // dent: their person is owed, birch pays
   flip(state, 'birch', OWNER); // queen answers — now willow owes birch two chances
   assert.strictEqual(state.dent!.owner, 'birch');
   assert.strictEqual(state.dent!.remaining, 2);

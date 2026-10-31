@@ -5,7 +5,7 @@ import { pickStickers, stickerShelfBlock, STICKERS_PER_COMPANION } from './stick
 
 const seq = (...values: number[]) => { let i = 0; return () => values[i++ % values.length]; };
 
-test("a sticker whose name shares a word with the owner's message comes first", () => {
+test("a sticker whose name shares a word with their person's message comes first", () => {
   const names = ['bear', 'blowkiss', 'bakecookies', 'armsout', 'behave', 'goodmorning', 'blushsweater'];
   const picked = pickStickers(names, 'well good morning to you', 3, seq(0));
   assert.equal(picked[0], 'goodmorning');
@@ -44,7 +44,7 @@ test('a sticker with a description says what it looks like beside its shortcode'
   assert.doesNotMatch(block, /::willow_littlebird:: \(/, 'no description, no brackets');
 });
 
-test('a word the owner used that is in a description counts as a match, so that sticker comes first', () => {
+test('a word their person used that is in a description counts as a match, so that sticker comes first', () => {
   const names = Array.from({ length: 20 }, (_, i) => `s${i}`);
   const block = stickerShelfBlock([
     { pack: 'cedar', owner: 'Cedar', names, descriptions: { s17: 'hugging a giant plush goose' } },

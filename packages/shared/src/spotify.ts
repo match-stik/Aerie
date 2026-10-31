@@ -1,12 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Spotify in the house: the shapes /api/spotify/... answers with.
 //
-// The owner listening, read through the house's Spotify MCP server, with a cover
-// picture on everything (GET), and since the owner ask that afternoon ("I want to be
+// Their person listening, read through the house's Spotify MCP server, with a cover
+// picture on everything (GET), and since their person ask that afternoon ("I want to be
 // able to play Spotify stuff", Oct 20 2026) three presses (POST): play a song
 // or a playlist or carry on, pause, and skip. Nothing queues, sets the volume
 // or seeks. Since Oct 21 2026 a tapped song starts inside its playlist or its
-// album and carries on through the rest of it (Oct 20), and the owner can search. The backend (services/spotify.ts) and the phone (lib/spotify.ts)
+// album and carries on through the rest of it (Oct 20), and their person can search. The backend (services/spotify.ts) and the phone (lib/spotify.ts)
 // code against these, so there is one contract.
 
 /** One song. */
@@ -20,13 +20,13 @@ export interface SpotifyTrack {
   cover: string | null;
   /**
    * The album it is on (spotify:album:<id>), when the answer said, so a tap
-   * can start that album at this song. The owner recent songs and a search say it;
+   * can start that album at this song. Their person recent songs and a search say it;
    * a playlist's songs do not, and are started inside their playlist instead.
    */
   albumUri?: string | null;
 }
 
-/** A song from the owner recent listening, with when it played (ISO), if Spotify said. */
+/** A song from their person recent listening, with when it played (ISO), if Spotify said. */
 export interface SpotifyRecentTrack extends SpotifyTrack {
   playedAt: string | null;
 }
@@ -42,9 +42,9 @@ export interface SpotifyNowView {
   track: SpotifyNowTrack | null;
   /**
    * How far into the song and how long it is, in ms, so the lock screen's card
-   * can look again when it should end. Passed on from the owner Spotify server's
+   * can look again when it should end. Passed on from their person Spotify server's
    * progress_ms and duration_ms since Oct 21 2026; absent when it did not say
-   * (or before the owner backend restart), and then nothing waits on a song's end.
+   * (or before their person backend restart), and then nothing waits on a song's end.
    */
   progressMs?: number | null;
   durationMs?: number | null;
@@ -58,7 +58,7 @@ export interface SpotifyPlaylist {
   uri: string | null;
   cover: string | null;
   /**
-   * Theirs to change (the owner owns it or it is collaborative), when their server said.
+   * Theirs to change (their person owns it or it is collaborative), when their server said.
    * Only these are offered for adding songs, renaming, moving and a picture.
    */
   mine?: boolean;
@@ -80,7 +80,7 @@ export interface SpotifyRecentView {
   tracks: SpotifyRecentTrack[];
 }
 
-/** The longest search the owner can send, in letters. */
+/** The longest search their person can send, in letters. */
 export const SPOTIFY_SEARCH_LONGEST = 100;
 
 /** GET /api/spotify/search?q=<words>: songs, best match first. `query` is the words as the house read them. */
@@ -146,7 +146,7 @@ export interface SpotifyPressAnswer {
  *  - `unset`: the house has no Spotify server switched on (Integrations > MCP).
  *  - `unreachable`: the server could not be reached, or answered nonsense.
  *  - `signin`: Spotify's sign-in on the server has lapsed; only its owner can renew it.
- *  - `device`: a press found nowhere to play: Spotify is not open on any of the owner devices.
+ *  - `device`: a press found nowhere to play: Spotify is not open on any of their person devices.
  *  - `spotify`: Spotify (or the server) answered with an error of its own.
  */
 export type SpotifyProblemReason = 'unset' | 'unreachable' | 'signin' | 'device' | 'spotify';
@@ -161,7 +161,7 @@ export interface SpotifyProblem {
 
 // ─── The player, their library and their playlists (Oct 23 2026) ─────────
 //
-// Since Oct 23 2026, so the owner never has to leave the app:
+// Since Oct 23 2026, so their person never has to leave the app:
 // hearting songs and their Liked Songs, shuffle, repeat, volume, jumping within
 // a song, choosing the device, and building playlists (new, add, remove,
 // move, rename, a picture). Each is a press like play: checked at the door,
@@ -238,7 +238,7 @@ export interface SpotifyMoveRequest { from: number; to: number }
 export interface SpotifyCoverRequest { image: string }
 
 /**
- * GET /api/spotify/connect: what the phone app needs to wake Spotify on the owner's
+ * GET /api/spotify/connect: what the phone app needs to wake Spotify on their person's
  * phone itself (Spotify's App Remote kit, Oct 23 2026): the Spotify app's client id and a redirect address registered to
  * it. Neither is a secret; both are read off the worker's own sign-in page.
  */

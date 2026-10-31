@@ -12,8 +12,8 @@
  *
  * TWO SOURCES, AND THE ORDER MATTERS.
  *
- * For a NAME, the owner's own history wins. If a user id already appears somewhere
- * with a display name, that is what the owner has been reading them as, and the old
+ * For a NAME, their person's own history wins. If a user id already appears somewhere
+ * with a display name, that is what their person has been reading them as, and the old
  * rows should join it rather than introduce a third spelling. Discord is only
  * consulted for someone who has never once been recorded with a name.
  *
@@ -48,8 +48,8 @@ const token = tokenRow
   ? (String(tokenRow.value).startsWith('"') ? JSON.parse(tokenRow.value) : tokenRow.value)
   : process.env.DISCORD_BOT_TOKEN;
 
-/** Guest rows only. The owner's own bridged messages are stored as 'user' and already
- *  render as the owner, so they are none of this script's business. */
+/** Guest rows only. Their person's own bridged messages are stored as 'user' and already
+ *  render as their person, so they are none of this script's business. */
 const GUESTS = `
   SELECT id, metadata, created_at
   FROM messages
@@ -64,7 +64,7 @@ if (rows.length === 0) {
   process.exit(0);
 }
 
-// The name each guest was most recently seen under, from the owner's own history.
+// The name each guest was most recently seen under, from their person's own history.
 const knownName = new Map();
 for (const r of rows) {
   const uid = String(r.meta.discordUserId);

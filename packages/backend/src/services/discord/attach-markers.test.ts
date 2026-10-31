@@ -21,7 +21,7 @@ test('a folder or a derived file that starts with the id is never the file', () 
   assert.equal(pickStoredFile(ID.slice(0, 8), [`${ID}.png`]), null, 'a part of an id is not the id');
 });
 
-test('the upload carries the name the owner gave it, ending in the stored extension', () => {
+test('the upload carries the name their person gave it, ending in the stored extension', () => {
   assert.equal(uploadName(`${ID}.png`, 'starlight-squish.png'), 'starlight-squish.png');
   assert.equal(uploadName(`${ID}.png`, 'starlight squish'), 'starlight squish.png');
   assert.equal(uploadName(`${ID}.png`, null), `${ID}.png`);

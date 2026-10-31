@@ -80,7 +80,7 @@ test('the lookback floor drops what is too far back', () => {
 });
 
 test('a negative offset holds the file back against the picture', () => {
-  // The file runs 40s ahead, so at clock 125s the owner is really seeing 85s.
+  // The file runs 40s ahead, so at clock 125s their person is really seeing 85s.
   const scene = sceneAt(row({ position_ms: 125_000, offset_ms: -40_000 }), 90_000);
   const texts = scene.cues.map((c) => c.text);
   assert.ok(texts.includes('A minute in.'));
@@ -92,7 +92,7 @@ test('pastEnd only once the clock has run off the end of the file', () => {
   assert.equal(sceneAt(row({ position_ms: 400_000 })).pastEnd, true);
 });
 
-// --- catching up on what went past between the owner's messages -----------
+// --- catching up on what went past between their person's messages -----------
 // The clamp must survive every one of these.
 
 test('the catch-up returns everything between the mark and the clock', () => {
@@ -102,7 +102,7 @@ test('the catch-up returns everything between the mark and the clock', () => {
 });
 
 test('THE CLAMP HOLDS: a catch-up cannot be asked to read forwards', () => {
-  const r = row({ position_ms: 70_000 });            // the owner is 1:10 in
+  const r = row({ position_ms: 70_000 });            // their person is 1:10 in
   // A floor ahead of the clock is the one way this could ever spoil anything.
   const scene = sceneSince(r, 999_000);
   assert.ok(scene.cues.every((c) => c.startMs <= 70_000), 'nothing past the clock');
@@ -118,11 +118,11 @@ test('a negative or absent mark reaches back to the start and no further', () =>
 
 test('a gap larger than the old five-minute cap is honoured in full', () => {
   // sceneAt tops out at MAX_LOOKBACK_MS. A catch-up must not, or a long silence
-  // of the owner's silently loses its middle — which is the whole fault this fixes.
+  // of their person's silently loses its middle — which is the whole fault this fixes.
   const r = row({ position_ms: 400_000 });
   const scene = sceneSince(r, 0);
   assert.ok(scene.lookbackMs > MAX_LOOKBACK_MS, 'the window is allowed to exceed the live cap');
-  assert.equal(scene.cues.length, 5, 'every cue the owner has watched, none they have not');
+  assert.equal(scene.cues.length, 5, 'every cue their person has watched, none they have not');
 });
 
 test('a screening counts as going on only when it was touched in the last few hours', async () => {

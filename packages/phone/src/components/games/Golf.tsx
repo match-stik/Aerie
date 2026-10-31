@@ -11,8 +11,8 @@
 // a matching pair in the same COLUMN cancels to nothing. Which is why the good
 // hand is the one you keep getting rid of.
 //
-// The companions take their turns server-side the moment the owner's turn ends, so
-// the board comes back with the table already moved round to the owner again.
+// The companions take their turns server-side the moment their person's turn ends, so
+// the board comes back with the table already moved round to their person again.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../../aerie';
 import { useHouseRoster } from '../../lib/house';
@@ -49,7 +49,7 @@ interface GolfBoardProps {
 
 export function GolfBoard({ tableId, colors, onTableId }: GolfBoardProps) {
   const { owner, loaded: rosterLoaded, labelOf, sigilOf } = useHouseRoster();
-  // The owner's seat is the house's answer (GET /api/companions), never a
+  // Their person's seat is the house's answer (GET /api/companions), never a
   // name in the code.
   const ownerSeat = owner?.slug ?? '';
   const [game, setGame] = useState<GolfGame | null>(null);
@@ -119,7 +119,7 @@ export function GolfBoard({ tableId, colors, onTableId }: GolfBoardProps) {
       return;
     }
     // A face-down slot can be swapped into as well; the flip is only offered
-    // when the owner is throwing the held card away.
+    // when their person is throwing the held card away.
     void act('place', { index });
   };
 
@@ -178,7 +178,7 @@ export function GolfBoard({ tableId, colors, onTableId }: GolfBoardProps) {
         })}
       </div>
 
-      {/* stock, discard, and whatever the owner is holding */}
+      {/* stock, discard, and whatever their person is holding */}
       <div className="flex items-center justify-center gap-4">
         <button
           disabled={!myTurn || !!holding || busy}
@@ -209,7 +209,7 @@ export function GolfBoard({ tableId, colors, onTableId }: GolfBoardProps) {
         )}
       </div>
 
-      {/* what the owner is being asked for, in words */}
+      {/* what their person is being asked for, in words */}
       <div className="text-center text-[11px] opacity-70">
         {game.phase === 'done'
           ? `${labelOf(game.winner ?? '') || game.winner} wins with ${game.scores?.[game.winner ?? ''] ?? ''}.`
@@ -225,7 +225,7 @@ export function GolfBoard({ tableId, colors, onTableId }: GolfBoardProps) {
           : ''}
       </div>
 
-      {/* the owner's six */}
+      {/* their person's six */}
       <div className="flex flex-col items-center gap-2">
         <div className="grid grid-cols-3 gap-1.5">
           {mine.map((slot, i) => (

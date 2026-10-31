@@ -67,7 +67,7 @@ test('a book’s stage says what the bottom of the page shows', () => {
   assert.deepEqual(bookStage(summary({ awaiting: 'scene' })), { stage: 'stalled', first: false, reason: 'No page has come back for that move yet.' });
   assert.deepEqual(bookStage(summary({ awaiting: 'move' })), { stage: 'your-move', finishing: false });
   assert.deepEqual(bookStage(summary({ awaiting: 'move', companionPending: true })), { stage: 'your-move', finishing: true },
-    'a page that has arrived is the owner’s to answer even while they are still finishing up');
+    'a page that has arrived is their person’s to answer even while they are still finishing up');
   assert.deepEqual(bookStage(summary({ status: 'finished', awaiting: 'nothing' })), { stage: 'the-end' });
 });
 
@@ -78,10 +78,10 @@ test('the shelf splits into the books being read and the finished ones, keeping 
   assert.deepEqual(finished.map((b) => b.id), ['b']);
 });
 
-test('a book in progress wears the owner’s thread at its bookmark: their own color, or red on a spicy book', () => {
+test('a book in progress wears their person’s thread at its bookmark: their own color, or red on a spicy book', () => {
   const started = summary({ sceneCount: 2, pageCount: 3, awaiting: 'move' });
-  assert.equal(bookmarkThread(started, 'oklch(0.7 0.18 50)'), 'oklch(0.7 0.18 50)', 'the thread is the owner’s color');
-  assert.equal(bookmarkThread(started), ORANGE_THREAD, 'and orange until the phone knows the owner’s color');
+  assert.equal(bookmarkThread(started, 'oklch(0.7 0.18 50)'), 'oklch(0.7 0.18 50)', 'the thread is their person’s color');
+  assert.equal(bookmarkThread(started), ORANGE_THREAD, 'and orange until the phone knows their person’s color');
   assert.equal(bookmarkThread(started, '  '), ORANGE_THREAD);
   assert.equal(bookmarkThread({ ...started, spicy: true }, 'oklch(0.7 0.18 50)'), RED_THREAD);
   assert.equal(bookmarkThread(summary()), null, 'a book not yet begun has no bookmark');
@@ -90,7 +90,7 @@ test('a book in progress wears the owner’s thread at its bookmark: their own c
   assert.match(RED_THREAD, /^oklch\(/);
 });
 
-test('the owner’s thread in a book is their own color, and red in a spicy one, begun or not', () => {
+test('their person’s thread in a book is their own color, and red in a spicy one, begun or not', () => {
   assert.equal(threadColor(summary(), 'oklch(0.7 0.18 50)'), 'oklch(0.7 0.18 50)');
   assert.equal(threadColor(summary()), ORANGE_THREAD);
   assert.equal(threadColor(summary({ spicy: true }), 'oklch(0.7 0.18 50)'), RED_THREAD);
@@ -133,7 +133,7 @@ test('a title too long for any size stops at the end of a word and says there is
 test('a book opens at its bookmark: the newest page', () => {
   assert.equal(bookmarkPageId(book([])), null);
   assert.equal(bookmarkPageId(book([page('p1', 'scene')])), 'p1');
-  assert.equal(bookmarkPageId(book([page('p1', 'scene'), page('p2', 'move')])), 'p2', 'the owner’s own move, when its answer is still coming');
+  assert.equal(bookmarkPageId(book([page('p1', 'scene'), page('p2', 'move')])), 'p2', 'their person’s own move, when its answer is still coming');
 });
 
 test('a widget may say one thing, a short move, and anything else is ignored', () => {
@@ -149,7 +149,7 @@ test('a widget may say one thing, a short move, and anything else is ignored', (
   assert.equal(readWidgetMove([{ type: 'story-move', value: 'x' }]), null);
 });
 
-test('a widget’s move is a choice when it names one, and the owner’s own words when it does not', () => {
+test('a widget’s move is a choice when it names one, and their person’s own words when it does not', () => {
   const choices = [{ id: 'c1', label: 'Go left' }, { id: 'c2', label: 'Wait' }];
   assert.deepEqual(widgetMove('c2', choices), { choiceId: 'c2', label: 'Wait' });
   assert.deepEqual(widgetMove('I pick the lock', choices), { text: 'I pick the lock' });
@@ -222,7 +222,7 @@ test('a bible with no headings stays whole and open, and a capital word inside a
   assert.deepEqual(bibleSections('   ', 'Empty'), []);
 });
 
-test("the owner's line at the table is waiting while it is the newest there and younger than a page turn may run", () => {
+test("their person's line at the table is waiting while it is the newest there and younger than a page turn may run", () => {
   const now = Date.parse('2026-03-03T20:00:00.000Z');
   const line = (role: 'user' | 'companion', minutesAgo: number) => ({ role, createdAt: new Date(now - minutesAgo * 60_000).toISOString() });
   assert.equal(tableAwaiting([], now), false, 'an empty table waits on nothing');

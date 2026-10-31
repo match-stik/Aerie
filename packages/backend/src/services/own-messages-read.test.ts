@@ -2,14 +2,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-// THE CHECKS ON THE OWNER'S MESSAGES MEAN A COMPANION READ THEM.
+// THE CHECKS ON THEIR PERSON'S MESSAGES MEAN A COMPANION READ THEM.
 //
-// Two things used to tick the owner's messages off with nobody reading them:
-// the house stamped each one read the instant it arrived, and the owner
+// Two things used to tick their person's messages off with nobody reading them:
+// the house stamped each one read the instant it arrived, and their person
 // reading the companions' replies stamped everything above them read, the
 // owner's own messages included. So a side note showed two checks before any
-// companion had seen it. These hold the new rules: the owner's reading touches
-// only companion rows, and the owner's rows are stamped only by
+// companion had seen it. These hold the new rules: their person's reading touches
+// only companion rows, and their person's rows are stamped only by
 // markOwnMessagesRead, once a companion is handed them.
 
 const { initDb, getDb } = await import('./db/init.js');
@@ -28,15 +28,15 @@ function say(threadId: string, role: 'user' | 'companion' | 'system', id = `m${+
 }
 const readAt = (id: string) => (getDb().prepare('SELECT read_at FROM messages WHERE id = ?').get(id) as { read_at: string | null }).read_at;
 
-test('the owner reading the room ticks off companion messages and leaves the owner\'s alone', () => {
+test('their person reading the room ticks off companion messages and leaves their person\'s alone', () => {
   const owners = say('home', 'user');
   const companions = say('home', 'companion');
   markMessagesRead('home', companions.id, now);
-  assert.equal(readAt(companions.id), now, 'the companion message is read once the owner has seen it');
-  assert.equal(readAt(owners.id), null, 'the owner\'s waits for a companion');
+  assert.equal(readAt(companions.id), now, 'the companion message is read once their person has seen it');
+  assert.equal(readAt(owners.id), null, 'their person\'s waits for a companion');
 });
 
-test('the owner\'s message is stamped once, only the owner\'s, and a guest\'s is never ticked', () => {
+test('their person\'s message is stamped once, only their person\'s, and a guest\'s is never ticked', () => {
   const owners = say('home', 'user');
   const guest = say('home', 'system');
   const changed = markOwnMessagesRead([owners.id, guest.id, owners.id, 'nobody'], now);

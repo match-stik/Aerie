@@ -1,13 +1,13 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * What the owner's Codex account can actually run — read rather than remembered.
+ * What their person's Codex account can actually run — read rather than remembered.
  *
  * CODEX_MODELS in model-catalog.ts is written out by hand because a CLI has no
  * models endpoint to ask. That is true of the CLI and NOT true of the account:
  * the Codex CLI itself fetches the list from chatgpt.com and leaves it on disk
  * at ~/.codex/models_cache.json, refreshed on its own schedule. So there is a
  * local witness, and the hand-typed list has been drifting away from it — the
- * picker once offered the owner gpt-5.4, gpt-5.4-mini and gpt-5.3-codex-spark, none
+ * picker once offered their person gpt-5.4, gpt-5.4-mini and gpt-5.3-codex-spark, none
  * of which their account had had for some time.
  *
  * This reads that cache. It is deliberately not a network call: Codex owns the
@@ -22,7 +22,7 @@ import { join } from 'path';
 import type { ModelInfo } from './model-catalog.js';
 
 /**
- * Slugs the account exposes that are not the owner's to pick. gpt-reserve is the
+ * Slugs the account exposes that are not their person's to pick. gpt-reserve is the
  * fallback pool the provider routes to under pressure; codex-auto-review is
  * the internal reviewer the CLI drives itself. Both answer as models and
  * neither is a choice — an explicit list rather than a heuristic, so a new

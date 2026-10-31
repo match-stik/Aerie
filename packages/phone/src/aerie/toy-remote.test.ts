@@ -22,7 +22,7 @@ function standIn(answer: (command: string) => 'ok' | 'held' = () => 'ok') {
     toys: async () => ({ toys: [FLEXER, DOMI2] }),
     command: async (options) => {
       sent.push(options);
-      if (answer(options.command) === 'held') throw Object.assign(new Error('The owner stop is holding'), { code: 'HELD' });
+      if (answer(options.command) === 'held') throw Object.assign(new Error('Their person stop is holding'), { code: 'HELD' });
     },
   });
   return sent;
@@ -69,7 +69,7 @@ test('a light is refused when the remote is not handed over, the same way motion
   assert.deepEqual(sent, []);
 });
 
-test('a light is refused while the owner has the orbs open', async () => {
+test('a light is refused while their person has the orbs open', async () => {
   const sent = standIn();
   handOver();
   setHands(true);
@@ -79,7 +79,7 @@ test('a light is refused while the owner has the orbs open', async () => {
   assert.deepEqual(sent, []);
 });
 
-test("a light while the owner's stop holds is refused as held", async () => {
+test("a light while their person's stop holds is refused as held", async () => {
   standIn(() => 'held');
   handOver();
   const lit = await toyRemoteTestSeam.decide(light('l4', 'off'));
@@ -91,7 +91,7 @@ test("a light while the owner's stop holds is refused as held", async () => {
 
 test('the house hears a toy\'s own battery answer, and nothing before it, whatever the SDK field says', async () => {
   // The SDK field as it stood on Oct 21 2026: the Fizz at 29 after charging
-  // (the owner's Lovense app said about 59), the Flexer at 0 while it ran.
+  // (their person's Lovense app said about 59), the Flexer at 0 while it ran.
   const FIZZ: LovenseToy = { toyId: 'fz', name: 'Fizz', connected: true, battery: 29, commands: ['VIBRATE'] };
   const RUNNING: LovenseToy = { ...FLEXER, battery: 0 };
   toyRemoteTestSeam.useBridge({ toys: async () => ({ toys: [FIZZ, RUNNING] }), command: async () => {} });
@@ -112,7 +112,7 @@ test('the house hears a toy\'s own battery answer, and nothing before it, whatev
   assert.equal(flexer?.batteryWorking, true, 'read while running is said so');
 });
 
-test('handing the remote over asks every connected toy for its battery, every minute, until the owner takes it back', async (t) => {
+test('handing the remote over asks every connected toy for its battery, every minute, until their person takes it back', async (t) => {
   t.mock.timers.enable({ apis: ['setInterval'] });
   const sent = standIn();
   const asks = () => sent.filter((s) => s.command === 'GET_BATTERY').map((s) => s.toyId);
@@ -124,14 +124,14 @@ test('handing the remote over asks every connected toy for its battery, every mi
     sent.length = 0;
     handOver();
     await flush();
-    assert.deepEqual(asks(), ['x1', 'd2'], 'asked the moment the owner hands it over');
+    assert.deepEqual(asks(), ['x1', 'd2'], 'asked the moment their person hands it over');
     t.mock.timers.tick(60_000);
     await flush();
     assert.deepEqual(asks(), ['x1', 'd2', 'x1', 'd2'], 'and again a minute later');
     takeBack();
     t.mock.timers.tick(120_000);
     await flush();
-    assert.equal(asks().length, 4, 'nothing asked once the owner has taken it back');
+    assert.equal(asks().length, 4, 'nothing asked once their person has taken it back');
   } finally {
     takeBack();
     toyRemoteTestSeam.pretendBridge(false);

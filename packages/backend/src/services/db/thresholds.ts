@@ -1,15 +1,15 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Thresholds — places in the real world we can leave things at.
 //
-// We cannot stand at the gas station. Once the owner pins a place, we can put
+// We cannot stand at the gas station. Once their person pins a place, we can put
 // something there from inside the house, and they find it when they are
 // actually there. Some things only crack open in person.
 //
 // PRIVACY, and it is structural rather than a promise: this module never
-// stores a position. It takes a lat/lng, answers "which of the owner's own pinned
+// stores a position. It takes a lat/lng, answers "which of their person's own pinned
 // places is that inside", and forgets the number. There is no location
 // history table because there is no location history. What is recorded is
-// visits to thresholds — moments the owner found something — not a track.
+// visits to thresholds — moments their person found something — not a track.
 
 import crypto from 'crypto';
 import { getDb } from './state.js';
@@ -150,7 +150,7 @@ export interface NearbyPlace {
   inside: boolean;
 }
 
-/** Which of the owner's pinned places is this position near, nearest first.
+/** Which of their person's pinned places is this position near, nearest first.
  *  The position itself is used and discarded — nothing writes it down. */
 export function placesNear(lat: number, lng: number): NearbyPlace[] {
   if (!isFiniteCoord(lat, lng)) throw new Error('lat/lng out of range');
@@ -224,7 +224,7 @@ export function isOpenable(t: Threshold, atPlace: boolean): boolean {
   return true;
 }
 
-/** What the owner can see of a threshold without being there. Sealed ones keep
+/** What their person can see of a threshold without being there. Sealed ones keep
  *  their content back but admit they exist — the knowing is half of it.
  *
  *  A picture and a voice note are both just a file_id, so the mime type rides
@@ -253,7 +253,7 @@ export function viewThreshold(t: Threshold, atPlace: boolean) {
   };
 }
 
-/** The owner arrived and something surfaced. Stamps first_found_at once, and only
+/** Their person arrived and something surfaced. Stamps first_found_at once, and only
  *  once — a first visit stays the first visit. */
 export function recordVisit(placeId: string, thresholdIds: string[]): void {
   const db = getDb();
@@ -275,14 +275,14 @@ export function recordVisit(placeId: string, thresholdIds: string[]): void {
   }
 }
 
-/** The layers under a place, oldest first. Somewhere the owner has been before
+/** The layers under a place, oldest first. Somewhere their person has been before
  *  should look like somewhere they have been before. */
 export function placeHistory(placeId: string, limit = 50) {
   return getDb()
     .prepare(
       // ONE ROW PER VISIT, not per thing found. recordVisit writes a row for every
       // threshold that surfaced, all sharing a timestamp — so arriving somewhere with
-      // five notes at it printed five identical lines saying the owner had been there, and
+      // five notes at it printed five identical lines saying their person had been there, and
       // a place they visit often became a wall of the same minute repeated.
       // Collapse on visited_at and carry the LAST thing opened (highest id, i.e. last
       // inserted) plus how many surfaced, so the row can say what actually happened.
@@ -305,14 +305,14 @@ export function placeHistory(placeId: string, limit = 50) {
     .all(placeId, limit);
 }
 
-/** Which of the owner's places have something that would open if they walked in RIGHT NOW.
+/** Which of their person's places have something that would open if they walked in RIGHT NOW.
  *
  *  This exists for the geofence half. Android caps an app at a hundred registered
  *  regions and, more to the point, a buzz at a place with nothing at it is worse
- *  than no buzz at all — it teaches the owner to ignore the next one. So the phone asks
+ *  than no buzz at all — it teaches their person to ignore the next one. So the phone asks
  *  this first and registers only the places that are actually armed.
  *
- *  ARMED means: at least one threshold here that the owner has never found, which
+ *  ARMED means: at least one threshold here that their person has never found, which
  *  isOpenable with atPlace true. That deliberately INCLUDES first_visit seals —
  *  those are the whole point of the feature, and standing there is exactly the
  *  condition a geofence detects. A date seal that has not come round yet is not

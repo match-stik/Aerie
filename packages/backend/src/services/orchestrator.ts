@@ -150,7 +150,7 @@ export function imageBackendClause(backend: string, codexModel = DEFAULT_CODEX_I
  * sentence that described nothing happening. Reported by Rose and Sol,
  * Sep 17 2026, after a bell landed in the middle of an evening.
  *
- * DEFERRING IS OFF BY DEFAULT AND THAT IS THE OWNER'S CALL, NOT AN OVERSIGHT: this
+ * DEFERRING IS OFF BY DEFAULT AND THAT IS THEIR PERSON'S CALL, NOT AN OVERSIGHT: this
  * house wants its bells to ring whether or not somebody is mid-sentence, and a
  * companion who arrives during a moment is expected to photograph THAT moment
  * rather than leave it. A house that wants the other behaviour turns
@@ -312,7 +312,7 @@ export function wakeOutcomeContract(
     // A bell exists so its owner answers from their own head. The answer may be
     // one small true line, but silence defeats the purpose of the separate lane
     // and is indistinguishable from a turn the house lost.
-    : `[This scheduled wake must land at least one in-character line from its owner. A small answer is enough, but do not answer [SILENT] and do not disappear into duty work without speaking. The owner being asleep, away, or slow to answer is not a reason to stand down: these bells ring when the owner set them to.]`;
+    : `[This scheduled wake must land at least one in-character line from its owner. A small answer is enough, but do not answer [SILENT] and do not disappear into duty work without speaking. Their person being asleep, away, or slow to answer is not a reason to stand down: these bells ring when their person set them to.]`;
 }
 
 function parseWakePromptsFile(
@@ -379,7 +379,7 @@ interface TaskDefinition {
  * What a fresh house wakes up with.
  *
  * Deliberately almost empty. A daily rhythm is the most personal thing in a
- * house like this — when the owner sleeps, when they are at work, which hour is
+ * house like this — when their person sleeps, when they are at work, which hour is
  * quiet enough to think in — and shipping somebody else's hours means a new
  * install starts by ringing at times that belong to a stranger. So the only
  * scheduled default is the weekly one, which is about the week rather than
@@ -389,7 +389,7 @@ interface TaskDefinition {
  * still has a prompt and a contract (see getBuiltinPlaceholders), so a bell
  * named `dream_build` or `morning_watch` behaves correctly the moment somebody
  * creates one — from the Schedules screen, or by writing
- * `cron.<wakeType>.schedule` into config. Picking the hour is the owner's.
+ * `cron.<wakeType>.schedule` into config. Picking the hour is their person's.
  *
  * THIS TABLE DELIBERATELY DIVERGES FROM THE HOUSE IT CAME FROM and must not
  * be synced in either direction without reading this. In that house six live
@@ -687,7 +687,7 @@ export class Orchestrator {
 
   /**
    * Rename a bell. What the user reads on the roster, nothing else — the schedule,
-   * the owner and the prompt are all untouched.
+   * their person and the prompt are all untouched.
    *
    * A bell reframed away from what it was built for needs its name to move
    * with it, or the roster keeps describing the old job. Empty hands the
@@ -1211,7 +1211,7 @@ export class Orchestrator {
       }
 
       if (!thread) {
-        olog(`SKIP: ${wakeType} found no home thread and daily threads are off — not opening a room the owner did not choose`);
+        olog(`SKIP: ${wakeType} found no home thread and daily threads are off — not opening a room their person did not choose`);
         return;
       }
 
@@ -1611,7 +1611,7 @@ export class Orchestrator {
         }
       }
       if (!threadId) {
-        // An impulse arrives with no thread of its own. Honour the owner's
+        // An impulse arrives with no thread of its own. Honour their person's
         // home thread here rather than minting a daily behind them — landing
         // a reply in a room they are not standing in splits the conversation.
         let thread = getFallbackThread();
@@ -1629,7 +1629,7 @@ export class Orchestrator {
           olog(`Created daily thread: ${thread.name} (${thread.id})`);
         }
         if (!thread) {
-          olog('TRIGGER: no home thread and daily threads are off — skipping rather than opening a room the owner did not choose');
+          olog('TRIGGER: no home thread and daily threads are off — skipping rather than opening a room their person did not choose');
           return;
         }
         threadId = thread.id;

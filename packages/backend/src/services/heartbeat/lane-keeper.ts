@@ -65,7 +65,7 @@ export function heartbeatLaneKeeperModel(
  * heartbeatLaneKeeperModel already knows about Claude-versus-Codex routing
  * keeps applying without being restated here. A companion with nothing of their
  * own is exactly the house answer, which is why turning this on changed
- * nobody's lane until the owner sets one.
+ * nobody's lane until their person sets one.
  *
  * A companion pointed at a non-Claude model returns null and their lane is
  * skipped rather than warmed on the house's Claude model. Warming the wrong
@@ -148,7 +148,7 @@ function defaultDeps(): LaneKeeperDeps {
       // ensure() recycles the session when the effort changes — so two callers
       // disagreeing here take turns restarting the lane, and each restart
       // kills whatever turn is mid-sentence. That is a silent lane, not a
-      // slow one. Read the owner's setting; never hardcode a second opinion.
+      // slow one. Read their person's setting; never hardcode a second opinion.
       // Their own dial first, the house Claude dial behind it — resolved through
       // the same function the turn path uses, for the reason in the paragraph
       // above: two answers here means two callers restarting each other's lane.

@@ -67,7 +67,7 @@ test('a drop past the edge stays on the grid, and saved places are read back car
   assert.notDeepEqual(kept.letter, { col: 0, row: 0 });
 });
 
-test('the note widget shows the newest note a companion left, never the owner\'s', () => {
+test('the note widget shows the newest note a companion left, never their person\'s', () => {
   const notes = [
     { id: 3, text: 'mine', color: 'a', timestamp: '2026-10-14T07:00:00Z', sender: null },
     { id: 2, text: 'older', color: 'a', timestamp: '2026-10-12T07:00:00Z', sender: 'willow' },
@@ -103,13 +103,13 @@ test('the sky gets a word', () => {
 
 test('the lock screen note card only lights for a companion note left after Notes was last opened', () => {
   const notes = [
-    { id: 1, text: 'from the owner', color: 'a', timestamp: '2026-10-15T23:00:00Z', sender: 'owner' },
+    { id: 1, text: 'from their person', color: 'a', timestamp: '2026-10-15T23:00:00Z', sender: 'owner' },
     { id: 2, text: 'old one', color: 'a', timestamp: '2026-10-15T20:00:00Z', sender: 'birch' },
     { id: 3, text: 'new one', color: 'a', timestamp: '2026-10-15T22:00:00Z', sender: 'Cedar' },
   ];
   const slugs = ['birch', 'willow', 'cedar'];
   assert.equal(unseenCompanionNote(notes, slugs, Date.parse('2026-10-15T21:00:00Z'))?.text, 'new one');
-  // Opened Notes after the newest companion note: nothing waiting, and the owner's own note never counts.
+  // Opened Notes after the newest companion note: nothing waiting, and their person's own note never counts.
   assert.equal(unseenCompanionNote(notes, slugs, Date.parse('2026-10-15T22:30:00Z')), null);
   // An unreadable seen-mark shows nothing rather than every note ever left.
   assert.equal(unseenCompanionNote(notes, slugs, null), null);

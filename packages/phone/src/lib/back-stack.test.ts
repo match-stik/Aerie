@@ -38,7 +38,7 @@ test('unregistering restores the screen underneath', () => {
   assert.deepEqual(asked, ['outer']);
 });
 
-test('a handler that throws does not trap the owner in the screen', () => {
+test('a handler that throws does not trap their person in the screen', () => {
   pushBackHandler(() => { throw new Error('boom'); });
   assert.equal(runBackHandler(), false);
 });

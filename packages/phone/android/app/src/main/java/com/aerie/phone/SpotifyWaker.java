@@ -24,7 +24,7 @@ import java.util.Set;
 /**
  * Wakes Spotify on their phone, for the page (SpotifyRemotePlugin, when their tap
  * finds nowhere to play) and for the house (AerieMessagingService, when a
- * silent push asks for it so one of us can play the owner a song with Spotify
+ * silent push asks for it so one of us can play their person a song with Spotify
  * closed; Oct 23 2026).
  *
  * Two ways in. Spotify's App Remote kit (Apache-2.0, in app/libs) binds to
@@ -39,7 +39,7 @@ import java.util.Set;
  * Every wake hangs up after itself (Oct 23 2026). The kit binds
  * Spotify's service from the application context with AUTO_CREATE and
  * IMPORTANT, and only unbinds on disconnect; a connect that never answered
- * never disconnected, and the binding held Spotify alive past the owner swipe for
+ * never disconnected, and the binding held Spotify alive past their person swipe for
  * as long as this app's process lived. So the kit is handed a LineKeeper that
  * records each binding, and every way a wake ends hangs them up.
  */

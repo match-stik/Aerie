@@ -7,7 +7,7 @@
 // Two houses answer this page. Since Oct 21 2026 the house serves it from its
 // shelf: each row has an id, says whose head the squash came from, and
 // previews the part of the summary that changes, and the full text has its own
-// address. The house from before that (running until the owner restart) answers the
+// address. The house from before that (running until their person restart) answers the
 // same address with every row carrying the first four hundred characters of
 // its summary, and opens one by sending them all in full. Both are read here,
 // and every answer is checked for its shape before it is believed: an older
@@ -106,7 +106,7 @@ function rowOf(raw: unknown): CompactionRow | null {
       cut: false,
     };
   }
-  // The house from before the owner restart: the top of the summary, and no strays.
+  // The house from before their person restart: the top of the summary, and no strays.
   if (typeof raw.summary !== 'string' || !isLaneProject(project)) return null;
   return {
     key: `${sessionId}|${at}`,
@@ -183,9 +183,9 @@ export async function loadCompactions(fetcher: Fetcher): Promise<CompactionRow[]
 }
 
 /**
- * One summary in full, for when the owner opens it: from its own address on the
+ * One summary in full, for when their person opens it: from its own address on the
  * house of today, or the old way (every summary in full, matched by session
- * and stamp) on the house from before the owner restart. Null when it cannot be had;
+ * and stamp) on the house from before their person restart. Null when it cannot be had;
  * the preview is still on the row.
  */
 export async function loadSummary(fetcher: Fetcher, row: CompactionRow): Promise<string | null> {

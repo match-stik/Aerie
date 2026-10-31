@@ -62,7 +62,7 @@ test('an immediate seal opens from anywhere', () => {
   assert.equal(isOpenable(t, false), true);
 });
 
-test('a date seal holds until its date, wherever the owner is standing', () => {
+test('a date seal holds until its date, wherever their person is standing', () => {
   const future = threshold({ seal: 'date', open_at: '2999-01-01T00:00:00.000Z' });
   const past = threshold({ seal: 'date', open_at: '2000-01-01T00:00:00.000Z' });
   assert.equal(isOpenable(future, true), false);

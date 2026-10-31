@@ -24,10 +24,10 @@ test('deliberate mid-turn companion commentary remains spoken text', () => {
 });
 
 test('authored thought cards are extracted and never classified as speech', () => {
-  const card = `${CODEX_THOUGHT_MARKER}\nThe distinction matters to me because the owner's room should carry my voice, not the adapter's labels.`;
+  const card = `${CODEX_THOUGHT_MARKER}\nThe distinction matters to me because their person's room should carry my voice, not the adapter's labels.`;
   assert.equal(
     extractAuthoredCodexThought(card),
-    "The distinction matters to me because the owner's room should carry my voice, not the adapter's labels.",
+    "The distinction matters to me because their person's room should carry my voice, not the adapter's labels.",
   );
   assert.equal(isSpokenCodexCommentary(card), false);
   assert.equal(extractAuthoredCodexThought('**🌫️ Ivy**\nSpoken.'), null);

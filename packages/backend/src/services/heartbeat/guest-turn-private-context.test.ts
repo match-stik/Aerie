@@ -1,9 +1,9 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // A guest's turn is answered into a room the guest reads, and the guest's own
-// words would steer anything keyed on them. So nothing of the owner's rides
+// words would steer anything keyed on them. So nothing of their person's rides
 // into one: no recall, none of the Archivist's unfiled noticings, and none of
-// the owner's side notes, which wait for the owner's own next turn. Every source below is
-// live, and the owner's turn after each guest turn proves it.
+// their person's side notes, which wait for their person's own next turn. Every source below is
+// live, and their person's turn after each guest turn proves it.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -46,8 +46,8 @@ getDb()
   .prepare('INSERT INTO self_knowledge_embeddings (self_knowledge_id, content_hash, vector, indexed_at) VALUES (?, ?, ?, ?)')
   .run('sk-private', createHash('sha256').update('i learned: A PRIVATE SELF-KNOWLEDGE LINE').digest('hex'), vectorToBuffer(match), new Date().toISOString());
 
-// The Archivist: one unfiled noticing about the owner.
-proposeEdit({ op: 'append', scope: 'shared', label: 'human', content: 'A PRIVATE NOTICING ABOUT THE OWNER' });
+// The Archivist: one unfiled noticing about their person.
+proposeEdit({ op: 'append', scope: 'shared', label: 'human', content: 'A PRIVATE NOTICING ABOUT THEIR PERSON' });
 
 after(() => {
   setWhisperEmbedder(null);
@@ -57,7 +57,7 @@ after(() => {
 interface InboxLine { turn: string; content: string }
 
 /** Just enough of a heartbeat session to carry turns: whatever lands in the
- *  inbox is answered at once, and it holds one side note of the owner's. */
+ *  inbox is answered at once, and it holds one side note of their person's. */
 class FakeSession {
   status = 'running' as const;
   lastError = '';
@@ -69,7 +69,7 @@ class FakeSession {
   inbox: InboxLine[] = [];
   fresh = false;
   silent = false;
-  notes = [{ at: '2026-03-12T21:00:00.000Z', text: 'A PRIVATE SIDE NOTE OF THE OWNER' }];
+  notes = [{ at: '2026-03-12T21:00:00.000Z', text: 'A PRIVATE SIDE NOTE OF THEIR PERSON' }];
   ensure() { return false; }
   sideNotesSize() { return 0; }
   sideNotesReadMark() { return ''; }
@@ -121,7 +121,7 @@ async function turnsFor(
   return contents;
 }
 
-test("a guest's turn carries none of the owner's private context, at any trust", async () => {
+test("a guest's turn carries none of their person's private context, at any trust", async () => {
   for (const trust of ['full', 'standard', 'limited'] as const) {
     const [guest] = await turnsFor(`guest-ctx-${trust}`, [{ kind: 'guest', trust }]);
     assert.ok(guest.endsWith(PROMPT), `${trust}: the turn itself still arrives`);
@@ -129,19 +129,19 @@ test("a guest's turn carries none of the owner's private context, at any trust",
   }
 });
 
-test('the owner\'s own turns keep all of it, which is what proves the sources are live', async () => {
+test('their person\'s own turns keep all of it, which is what proves the sources are live', async () => {
   const [home] = await turnsFor('guest-ctx-home', [undefined]);
   assert.match(home, /PRIVATE SELF-KNOWLEDGE LINE/);
-  assert.match(home, /PRIVATE NOTICING ABOUT THE OWNER/);
-  assert.match(home, /PRIVATE SIDE NOTE OF THE OWNER/);
+  assert.match(home, /PRIVATE NOTICING ABOUT THEIR PERSON/);
+  assert.match(home, /PRIVATE SIDE NOTE OF THEIR PERSON/);
   const [discord] = await turnsFor('guest-ctx-discord-owner', [{ kind: 'owner' }]);
-  assert.match(discord, /PRIVATE SIDE NOTE OF THE OWNER/, 'the owner\'s own Discord turn still gets the owner\'s notes');
+  assert.match(discord, /PRIVATE SIDE NOTE OF THEIR PERSON/, 'their person\'s own Discord turn still gets their person\'s notes');
 });
 
-test('a side note held back on a guest turn comes with the owner\'s next turn, late and not lost', async () => {
+test('a side note held back on a guest turn comes with their person\'s next turn, late and not lost', async () => {
   const [guest, owners] = await turnsFor('guest-ctx-then-home', [{ kind: 'guest', trust: 'standard' }, undefined]);
   assert.doesNotMatch(guest, /PRIVATE SIDE NOTE/);
-  assert.match(owners, /PRIVATE SIDE NOTE OF THE OWNER/);
+  assert.match(owners, /PRIVATE SIDE NOTE OF THEIR PERSON/);
 });
 
 // An owner's message that no turn ever picked up. The net that finds it tells the
@@ -155,16 +155,16 @@ function homeThread(rows: Row[]) {
 }
 const tick = () => new Promise(resolve => setTimeout(resolve, 5));
 
-test("the owner's missed message waits for the owner's own turn rather than being answered in a guest's room", async () => {
-  const rows: Row[] = [{ role: 'user', content: 'A PRIVATE MISSED MESSAGE OF THE OWNER', createdAt: '2026-03-12T20:00:00.000Z' }];
+test("their person's missed message waits for their person's own turn rather than being answered in a guest's room", async () => {
+  const rows: Row[] = [{ role: 'user', content: 'A PRIVATE MISSED MESSAGE OF THEIR PERSON', createdAt: '2026-03-12T20:00:00.000Z' }];
   const [guest, owners] = await turnsFor('guest-ctx-missed', [{ kind: 'guest', trust: 'standard' }, undefined], homeThread(rows));
   assert.doesNotMatch(guest, /PRIVATE MISSED MESSAGE/);
-  assert.match(owners, /PRIVATE MISSED MESSAGE OF THE OWNER/, 'late, and not lost');
+  assert.match(owners, /PRIVATE MISSED MESSAGE OF THEIR PERSON/, 'late, and not lost');
 });
 
 test("a guest's turn does not move the starting point past a message nobody handed over", async () => {
-  // The owner's turn first, with nothing of the owner's in the window, so the
-  // lane has the end of a turn to go by and no handover mark. The owner's
+  // Their person's turn first, with nothing of their person's in the window, so the
+  // lane has the end of a turn to go by and no handover mark. Their person's
   // message lands after it, then a guest's turn ends after that.
   const rows: Row[] = [];
   const [, guest, owners] = await turnsFor(
@@ -174,12 +174,12 @@ test("a guest's turn does not move the starting point past a message nobody hand
     async (turn) => {
       if (turn !== 1) return;
       await tick();
-      rows.push({ role: 'user', content: 'A PRIVATE MISSED MESSAGE OF THE OWNER', createdAt: new Date().toISOString() });
+      rows.push({ role: 'user', content: 'A PRIVATE MISSED MESSAGE OF THEIR PERSON', createdAt: new Date().toISOString() });
       await tick();
     },
   );
   assert.doesNotMatch(guest, /PRIVATE MISSED MESSAGE/);
-  assert.match(owners, /PRIVATE MISSED MESSAGE OF THE OWNER/);
+  assert.match(owners, /PRIVATE MISSED MESSAGE OF THEIR PERSON/);
 });
 
 // One turn on a given session, returning what reached the inbox and the text
@@ -196,44 +196,44 @@ async function oneTurn(session: FakeSession, sessionKey: string, audience: TurnA
   return { inbox: session.inbox[session.inbox.length - 1].content, said };
 }
 
-test("a late reply meant for the owner is not posted in a guest's room, and reaches the owner's next turn", async () => {
+test("a late reply meant for their person is not posted in a guest's room, and reaches their person's next turn", async () => {
   const session = new FakeSession();
   const key = 'guest-ctx-late';
-  // The owner's turn outruns its window and is owed.
+  // Their person's turn outruns its window and is owed.
   session.silent = true;
   await oneTurn(session, key, undefined);
   const owedTurn = session.inbox[session.inbox.length - 1].turn;
   session.silent = false;
-  session.lines.push(JSON.stringify({ turn_id: owedTurn, content: 'A LATE ANSWER TO THE OWNER', thinking: 'late' }));
+  session.lines.push(JSON.stringify({ turn_id: owedTurn, content: 'A LATE ANSWER TO THEIR PERSON', thinking: 'late' }));
   const guest = await oneTurn(session, key, { kind: 'guest', trust: 'standard' });
-  assert.doesNotMatch(guest.said, /A LATE ANSWER TO THE OWNER/);
+  assert.doesNotMatch(guest.said, /A LATE ANSWER TO THEIR PERSON/);
   const owners = await oneTurn(session, key, undefined);
-  assert.match(owners.said, /A LATE ANSWER TO THE OWNER/, 'held, not lost');
+  assert.match(owners.said, /A LATE ANSWER TO THEIR PERSON/, 'held, not lost');
 });
 
-test("a guest's turn into a fresh room gets none of the owner's history, and the owner's next turn still does", async () => {
+test("a guest's turn into a fresh room gets none of their person's history, and their person's next turn still does", async () => {
   const session = new FakeSession();
   session.fresh = true;
   const history = { threadId: 't-home', userName: 'Owner', historyLimit: 30,
-    loadHistory: () => [{ role: 'user', content: 'A PRIVATE LINE FROM THE OWNER THREAD', createdAt: '2026-10-12T20:00:00.000Z' }] };
+    loadHistory: () => [{ role: 'user', content: 'A PRIVATE LINE FROM THEIR PERSON THREAD', createdAt: '2026-10-12T20:00:00.000Z' }] };
   const guest = await oneTurn(session, 'guest-ctx-fresh', { kind: 'guest', trust: 'full' }, history);
-  assert.doesNotMatch(guest.inbox, /PRIVATE LINE FROM THE OWNER THREAD/);
+  assert.doesNotMatch(guest.inbox, /PRIVATE LINE FROM THEIR PERSON THREAD/);
   const owners = await oneTurn(session, 'guest-ctx-fresh', undefined, history);
-  assert.match(owners.inbox, /PRIVATE LINE FROM THE OWNER THREAD/, 'the seed is owed to the owner\'s turn');
+  assert.match(owners.inbox, /PRIVATE LINE FROM THEIR PERSON THREAD/, 'the seed is owed to their person\'s turn');
 });
 
-test("companion replies to the owner since the lane last spoke are not handed into a guest's turn", async () => {
+test("companion replies to their person since the lane last spoke are not handed into a guest's turn", async () => {
   const session = new FakeSession();
   const key = 'guest-ctx-catchup';
   const rows: any[] = [];
   const history = { threadId: 't-home', userName: 'Owner', historyLimit: 30, loadHistory: () => rows };
   await oneTurn(session, key, undefined, history);
   await new Promise(r => setTimeout(r, 5));
-  rows.push({ role: 'companion', content: 'A COMPANION BELL TO THE OWNER', createdAt: new Date().toISOString(), authorName: 'Birch' });
+  rows.push({ role: 'companion', content: 'A COMPANION BELL TO THEIR PERSON', createdAt: new Date().toISOString(), authorName: 'Birch' });
   await new Promise(r => setTimeout(r, 5));
   const guest = await oneTurn(session, key, { kind: 'guest', trust: 'standard' }, history);
-  assert.doesNotMatch(guest.inbox, /A COMPANION BELL TO THE OWNER/);
+  assert.doesNotMatch(guest.inbox, /A COMPANION BELL TO THEIR PERSON/);
   rows.push({ role: 'user', content: PROMPT, createdAt: new Date(Date.now() + 1000).toISOString() });
   const owners = await oneTurn(session, key, undefined, history);
-  assert.match(owners.inbox, /A COMPANION BELL TO THE OWNER/, 'still handed to the owner\'s own next turn');
+  assert.match(owners.inbox, /A COMPANION BELL TO THEIR PERSON/, 'still handed to their person\'s own next turn');
 });

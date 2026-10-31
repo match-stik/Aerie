@@ -90,7 +90,7 @@ export function getPet(): VirtualPet {
   return { ...pet, ...decayed, updated_at: new Date().toISOString() };
 }
 
-/** Apply an action as an actor (the owner's slug or a companion's). Same deltas as the phone. */
+/** Apply an action as an actor (their person's slug or a companion's). Same deltas as the phone. */
 export function applyPetAction(actor: string, action: PetAction): { pet: VirtualPet; event: PetEvent } {
   const pet = getPet();
   const next = {

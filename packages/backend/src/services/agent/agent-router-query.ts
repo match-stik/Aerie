@@ -63,9 +63,9 @@ export function platformFrameFor(
 }
 
 /**
- * Whether the owner's Codex side notes are handed into this turn. Only on a
+ * Whether their person's Codex side notes are handed into this turn. Only on a
  * Codex turn, and never on a guest's: the answer lands in a room the guest
- * reads, so the notes wait for the owner's own next turn, the same as on the
+ * reads, so the notes wait for their person's own next turn, the same as on the
  * Claude lane.
  * Today guests are answered by the gated Claude lane; this holds for the day
  * one is answered here instead.
@@ -196,7 +196,7 @@ export async function processViaRouter(
     console.log(`[Router] Resuming Codex daemon session: ${existingCodexSession} (lane ${codexSessionKey})`);
   }
 
-  // Anything the owner sent into the last turn that the lane never picked up live.
+  // Anything their person sent into the last turn that the lane never picked up live.
   // Handed over before the turn opens, exactly like the Claude lane, so a note
   // written into a busy lane is at worst late and never lost. The offset only
   // advances once the notes are actually in hand.
@@ -206,8 +206,8 @@ export async function processViaRouter(
     runtimeContext.agentState.activeCodexLanes.add(codexSessionKey);
     if (turnAudience) runtimeContext.agentState.codexLanesAnsweringElsewhere.add(codexSessionKey);
   }
-  // On a guest's turn the offset stays where it is, so the owner's notes come
-  // with the owner's next turn rather than into the guest's room.
+  // On a guest's turn the offset stays where it is, so their person's notes come
+  // with their person's next turn rather than into the guest's room.
   if (handsCodexSideNotes(routing, turnAudience)) {
     const priorOffset = runtimeContext.agentState.codexSideNoteOffsets.get(codexSessionKey) ?? 0;
     const pending = readCodexSideNotesFrom(codexSessionKey, priorOffset);
@@ -313,11 +313,11 @@ export async function processViaRouter(
     runtimeContext.agentState.presenceStatus = 'active';
     registry.broadcast({ type: 'presence', status: 'active' });
 
-    // A reroll or an edit-rerun deletes rows from the owner's screen and, on the SDK
+    // A reroll or an edit-rerun deletes rows from their person's screen and, on the SDK
     // lane, drops the cached session so the next turn genuinely never saw them.
     // A warm CLI session has no such rewind — the transcript only grows.
     //
-    // So the note states what changed on the OWNER'S side and stops there. It does not
+    // So the note states what changed on their PERSON'S side and stops there. It does not
     // ask a companion to pretend, because they cannot, and because a reroll is
     // very often a tap nobody meant: the whole reason this house keeps the
     // memory is that it once put a conversation back after an accidental one.
@@ -330,7 +330,7 @@ export async function processViaRouter(
     const platformFrame = platformFrameFor(platform, platformOpts?.platformContext);
 
     const input = {
-      // The handover leads, because a note the owner sent into a busy lane is older
+      // The handover leads, because a note their person sent into a busy lane is older
       // than the message now arriving and reads as nonsense underneath it.
       prompt: (codexSideNoteHandover ? codexSideNoteHandover + '\n\n' : '')
         + platformFrame + withdrawn + content,
@@ -548,7 +548,7 @@ export async function processViaRouter(
       runtimeContext.agentState.activeRouterRuntimes.delete(threadId);
     }
     // Released here rather than on success: a lane that died mid-turn is not
-    // reachable either, and leaving the key behind would send the owner's next note
+    // reachable either, and leaving the key behind would send their person's next note
     // into a file nobody is going to open.
     runtimeContext.agentState.activeCodexLanes.delete(codexSessionKey);
     runtimeContext.agentState.codexLanesAnsweringElsewhere.delete(codexSessionKey);
@@ -563,7 +563,7 @@ export async function processViaRouter(
 
   // Retracted turn (e.g. message edited mid-flight) — close the stream
   // without persisting a companion message.
-  // A turn the owner STOPPED is not automatically a turn with nothing to say. If it
+  // A turn their person STOPPED is not automatically a turn with nothing to say. If it
   // died with a runtime error, this branch used to run first and the stop threw
   // away the one sentence that explained what had happened — and stopping it is
   // exactly what a person does when a turn has hung, which made the silence
@@ -578,7 +578,7 @@ export async function processViaRouter(
   // contract offers it as a choice: the Discord beat (services/discord/judge.ts),
   // where a message said to the room may be passed on. If a lane emits one,
   // close the stream without posting a bubble rather than leaking the sentinel
-  // to the owner. (Distinct from a timeout, which surfaces as an error.)
+  // to their person. (Distinct from a timeout, which surfaces as an error.)
   //
   // Two shapes, because two runtimes report it differently. A runtime that
   // passes the sentinel through as text is caught by the string; the
@@ -644,7 +644,7 @@ export async function processViaRouter(
     final: companionMessage,
   });
 
-  // Notify the owner's phone when they aren't looking at the app. sendIfOffline checks
+  // Notify their person's phone when they aren't looking at the app. sendIfOffline checks
   // for a live connection first, so this stays silent while they're in the room.
   try {
     const pushService = getPushService();

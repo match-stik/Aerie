@@ -174,7 +174,7 @@ test('the old house has no address for a press, and that asks for a restart', as
     'no house at all could not be reached');
   const out = pressHouse({ '/api/spotify/pause': [() => json({ error: 'Unauthorized' }, 401)] });
   assert.deepEqual(await sendPress(out.fetcher, { kind: 'pause' }), { ok: false, trouble: { kind: 'problem', message: SIGNED_OUT_LINE } },
-    'a lapsed session asks the owner to sign in');
+    'a lapsed session asks their person to sign in');
   const gateway = pressHouse({ '/api/spotify/pause': [() => new Response('<html>502</html>', { status: 502 })] });
   assert.deepEqual(await sendPress(gateway.fetcher, { kind: 'pause' }), { ok: false, trouble: { kind: 'problem', message: UNREACHABLE_LINE } },
     'a page from in front of a house that is down');
@@ -233,7 +233,7 @@ test('after a press the phone waits a moment, looks once, and believes what it s
   assert.deepEqual(old.outcome, { now: playingNow(SONG), trouble: { kind: 'restart' } }, 'the old house asks for its restart');
 });
 
-test('what counts as the change the owner pressed for', () => {
+test('what counts as the change their person pressed for', () => {
   const stopped: SpotifyNowView = { playing: false, track: null };
   const cases: Array<[SpotifyPress, SpotifyNowView | null, SpotifyNowView, boolean, string]> = [
     [{ kind: 'song', uri: SONG }, playingNow(OTHER), playingNow(SONG), true, 'their song, playing'],
@@ -310,14 +310,14 @@ test('the keeper: one press at a time, every press button waiting while it is ou
   assert.equal(keeper.state().notice, null, 'a press that worked says nothing');
 });
 
-test("the keeper: a press's sentence only when the look does not show what the owner asked for, and never on a page the owner has left", async () => {
+test("the keeper: a press's sentence only when the look does not show what their person asked for, and never on a page their person has left", async () => {
   const NOWHERE = 'Open Spotify on your phone first, then try again.';
   const refused = () => json({ error: NOWHERE, reason: 'device' }, 409);
   const stuck = keeperHouse([() => json(nowOf(SONG_A))], refused);
   const shown = createSpotifyNow(stuck.fetcher, instant);
   await shown.look();
   await shown.press({ kind: 'next' }, 'now:next');
-  assert.deepEqual(shown.state().notice, { where: 'now:next', trouble: { kind: 'problem', message: NOWHERE, device: true } }, 'refused and nothing moved: said by the button the owner pressed');
+  assert.deepEqual(shown.state().notice, { where: 'now:next', trouble: { kind: 'problem', message: NOWHERE, device: true } }, 'refused and nothing moved: said by the button their person pressed');
   shown.quiet();
   assert.equal(shown.state().notice, null, 'a refresh takes it away');
 
@@ -333,7 +333,7 @@ test("the keeper: a press's sentence only when the look does not show what the o
   const out = gone.press({ kind: 'next' }, 'now:next');
   gone.leave();
   await out;
-  assert.equal(gone.state().notice, null, 'the owner left the page while it was out: nothing said');
+  assert.equal(gone.state().notice, null, 'their person left the page while it was out: nothing said');
 });
 
 test('the keeper: an older read of what is playing never replaces a newer one', () => {

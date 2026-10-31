@@ -32,7 +32,7 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, State> 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(report),
     }).catch(() => {
-      // Offline, or the house is down. The card still gives the owner a way back.
+      // Offline, or the house is down. The card still gives their person a way back.
     });
   }
 

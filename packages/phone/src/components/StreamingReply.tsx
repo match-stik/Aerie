@@ -25,7 +25,7 @@ export function StreamingReply({ themeConfig, themeMode, voices }: StreamingRepl
   const { messageId, tokens } = useStreaming();
   const segments = useStreamingSegments();
   // The working phrase turns over every few seconds while tools run, slow
-  // enough to read (the owner's ask, Oct 26 2026).
+  // enough to read (their person's ask, Oct 26 2026).
   const [tick, setTick] = useState(0);
   const working = !!segments?.some((s) => s.type === 'tool');
   useEffect(() => {
@@ -79,7 +79,7 @@ export function StreamingReply({ themeConfig, themeMode, voices }: StreamingRepl
           if (seg.type === 'tool') {
             // One chip for all of them, where the first one was: a phrase in
             // our voices and the count, instead of each tool scrolling past
-            // (the owner's ask, Oct 26 2026). The finished message still says N tools used.
+            // (their person's ask, Oct 26 2026). The finished message still says N tools used.
             if (nonTextSegments.findIndex((s) => s.type === 'tool') !== i) return null;
             const phrases = phrasesFor(voices);
             const phrase = phrases[(phraseStart(messageId, phrases.length) + tick) % phrases.length] || 'Working';

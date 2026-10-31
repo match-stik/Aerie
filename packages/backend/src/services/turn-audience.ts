@@ -2,14 +2,14 @@
 
 // Who a turn came from, as far as the tools are concerned.
 //
-// The warm lane answers a Discord guest from the same room as the owner, with
+// The warm lane answers a Discord guest from the same room as their person, with
 // the same tools, and until this existed every turn reached the lane stamped
-// as the owner's: a guest's words rode inside it as plain text. The house now
+// as their person's: a guest's words rode inside it as plain text. The house now
 // says who is asking when it hands a turn over, and the lane's tool gate
 // (hooks/gate.cjs, written by heartbeat/provision.ts) reads it.
 //
-// Only the owner's turns and the house's own wakes carry no audience, and
-// those are the owner's. Anything that can carry a non-owner sets it
+// Only their person's turns and the house's own wakes carry no audience, and
+// those are their person's. Anything that can carry a non-owner sets it
 // explicitly, every time.
 
 export type GuestTrust = 'full' | 'standard' | 'limited';
@@ -43,7 +43,7 @@ export function isTurnAudience(value: unknown): value is TurnAudience {
  * CLI gate does — shell_exec, codex_exec, the memory writes and read_file are
  * all powerful — so a guest turn on that path gets NO tools. Returns a refusal
  * to hand back in place of running the tool, or null when the caller may run it.
- * The owner and the house's own wakes (no audience) run everything.
+ * Their person and the house's own wakes (no audience) run everything.
  */
 export function guestToolRefusal(
   audience: TurnAudience | undefined,

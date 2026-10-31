@@ -189,7 +189,7 @@ export async function unlockVoicePlayback(): Promise<boolean> {
  * Two short rising notes the moment the microphone actually opens.
  *
  * Driving, the phone is face-down in the console and the listening indicator
- * is useless. The cue that works in a car is one the owner can hear, so it rides
+ * is useless. The cue that works in a car is one their person can hear, so it rides
  * the same output the companions' voices do — through the car speakers if
  * that is where the call is. Quiet on purpose, and never fatal.
  */
@@ -327,7 +327,7 @@ async function playCallLineSegment(
   // over the last of the reply, and while the page is hidden the call holds
   // its mic open anyway (mic-hold.ts). A hidden WebView also throttles timers:
   // on one drive (Oct 27 2026) the reply ended natively and the call only
-  // went back to listening once the owner tapped the dock and woke the page.
+  // went back to listening once their person tapped the dock and woke the page.
   void drainMs;
   void apiFetch('/api/client-errors', {
     method: 'POST',
@@ -359,7 +359,7 @@ async function playNativeVoiceSequence(urls: string[], signal?: AbortSignal): Pr
     const bluetoothCall = routeNow || (pluginAvailable && bluetoothSeenWhileHidden && isPageHidden(typeof document === 'undefined' ? undefined : document));
     const callLine = shouldUseCallLine({ pluginAvailable, pageHidden, bluetoothCall });
     // One line per reply in pm2's aerie-error.log, tagged where call-line, so a
-    // car call can be read afterwards: which road each reply took and why. The owner
+    // car call can be read afterwards: which road each reply took and why. Their person
     // drive on Oct 27 2026 could not be read without it.
     void apiFetch('/api/client-errors', {
       method: 'POST',

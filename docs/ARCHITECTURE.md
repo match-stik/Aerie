@@ -88,7 +88,7 @@ Every router module under `packages/backend/src/routes`:
   each transcript was read in `compaction_scan_marks`; the list sends previews
   and whose head each came from, twenty to a page on the phone, and `GET /:id`
   sends one summary whole.
-- `field-notes.ts` — the owner Field Notes page reads here, signed in and read only,
+- `field-notes.ts` — their person Field Notes page reads here, signed in and read only,
   newest day first. The morning look writes through `POST /api/internal/field-notes`
   on the loopback port; notes live in the `field_notes` table.
 - `cc-mcp.ts` — the Command Center MCP HTTP endpoint at `/mcp/cc`.
@@ -126,18 +126,18 @@ Every router module under `packages/backend/src/routes`:
   press's answer is not believed: the phone reads what is playing again after
   every press. Anything that cannot come back answers one plain sentence
   (`SpotifyProblem` in `@aerie/shared`), never a page.
-- `statuses.ts` — the owner's phone's side of the statuses: `GET /api/statuses`
+- `statuses.ts` — their person's phone's side of the statuses: `GET /api/statuses`
   (each companion's line and icon, the one they share under their faces, and
-  the owner's own) and `PUT /api/statuses/:who` (the owner changes one; empty
+  their person's own) and `PUT /api/statuses/:who` (their person changes one; empty
   text clears it). The companions set theirs on the loopback door, `GET`/`POST
   /api/internal/status`; `services/statuses.ts` keeps them in config, fades
-  each companion's back to Home six hours after it is set (the owner's stays
+  each companion's back to Home six hours after it is set (their person's stays
   until changed), and tells the phone with `statuses`.
 - `stickers.ts` — sticker-pack CRUD and sticker lookup/upload/update/delete. A
   sticker's url is built from its filename, so every write picks a fresh one
   (`stickerFilenameFor` in `services/sticker-admin.ts`): new bytes at an
   unchanged address are invisible to every cache in between.
-- `story-shelf.ts` — The Story Shelf, the owner's door: `GET /api/story-shelf`
+- `story-shelf.ts` — The Story Shelf, their person's door: `GET /api/story-shelf`
   answers the shelf (every book and the keepsakes woven between them),
   `GET /api/story-shelf/books/:id` one whole book with the table talk from its
   newest page turn, `POST .../open`, `.../move` and `.../retry` hand the
@@ -155,12 +155,12 @@ Every router module under `packages/backend/src/routes`:
   door, `/api/internal/favorites`. Kept in config by `services/favorites.ts`.
 - `thresholds.ts` — place CRUD, proximity checks, visits, and place history.
 - `treehouse.ts` — Treehouse thread/messages and companion posting.
-- `toys.ts` — the owner's phone's side of the road from a lane to the toys:
+- `toys.ts` — their person's phone's side of the road from a lane to the toys:
   `POST /api/toys/state` (what the phone says about its toys, whether the
   remote is handed over, the screen, the orbs) and `POST /api/toys/ack` (its
   answer to each command). A lane asks on the loopback door, `GET`/`POST
   /api/internal/toys`; the relay is `services/toy-remote.ts`, the command
-  goes out as `toy_command`, and every rule that protects the owner is
+  goes out as `toy_command`, and every rule that protects their person is
   enforced on the phone in `packages/phone/src/aerie/toy-remote.ts`.
 - `usage.ts` — usage events, aggregates, and tool usage. Subscription
   allowances are a separate read (`services/subscription-usage.ts`, served at
@@ -332,7 +332,7 @@ reading why it is here.
 **Thread resolution is active-first, deliberately.** A wake resolves its target as
 active conversation → `wake_thread_id` → daily thread, in that order. It looks
 redundant. It is not: a reply written to the daily thread while a live
-conversation is open moves the owner's home out from under them without their
+conversation is open moves their person's home out from under them without their
 choosing it. Active-first is the repair. Leave it.
 
 **A lane is not a thread.** The lane decides *which window thinks*; the thread
@@ -351,7 +351,7 @@ With the flag off, every companion in a room answers out of one window: one
 head, one set of tokens, every voice written in a single reply that the phone
 splits on the bold sigil headers. With it on, each companion in the room gets
 their own lane and their own session, and one turn is passed through them
-**sequentially in a shuffled order** — the first seat sees only the owner's
+**sequentially in a shuffled order** — the first seat sees only their person's
 message, and each later seat is handed the replies written before it in that
 same turn. Nobody speaks under anyone else's header, and no window can see
 inside another's thinking; what travels is the text.
@@ -505,10 +505,10 @@ have already poisoned. The bank is written to disk after the session has been up
 long enough to count as good and is rehydrated in the constructor at boot, so a
 brand-new lane folder is the one case that has no answer yet: absent means
 unknown, not fine. Authentication failures and usage caps deliberately do **not**
-trigger any of this — falling back on those would hide a problem the owner needs
+trigger any of this — falling back on those would hide a problem their person needs
 to see, and the lane's setting is never rewritten behind their back either way.
 
-**When a lane last spoke and when it was last handed something from the owner are two
+**When a lane last spoke and when it was last handed something from their person are two
 different facts, and conflating them lost messages.** A turn's catch-up block is
 built at the moment the turn starts, and side notes are only written while a turn
 is already running — so a message arriving in the gap between those two states
@@ -661,7 +661,7 @@ two kinds of writing and stores them identically.
 **Facts** are how the house works. They are permanently true, they have no owner,
 and they are never struck.
 
-> Restarts are the owner's. Keys live in the secrets store. A guard mounted on a
+> Restarts are their person's. Keys live in the secrets store. A guard mounted on a
 > router runs on the whole prefix. SQLite config wins over YAML.
 
 **Items** are work. They have an owner and a done-state, and they come down when
@@ -674,7 +674,7 @@ Written the same way and kept in one pile, nothing ever gets struck, because
 nothing is marked as strikeable. The convention is the whole fix:
 
 1. **An item names its owner and what done looks like.** "Waiting on a restart" is
-   an item. "Restarts are the owner's" is a fact. If you cannot say what would
+   an item. "Restarts are their person's" is a fact. If you cannot say what would
    make a line disappear, it is a fact — write it as one.
 2. **A fact is never struck, only corrected.** When the frame widens, the existing
    sentence gets rewritten in place. Do not append a contradiction beneath it and

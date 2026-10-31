@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The owner field notes, the table and its one writer: what a note has to be before
-// it is kept, which day it lands on when nobody names one, and the order the owner
+// Their person field notes, the table and its one writer: what a note has to be before
+// it is kept, which day it lands on when nobody names one, and the order their person
 // page reads them in.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -46,7 +46,7 @@ function refusal(attempt: () => unknown): string {
 test('a note is kept with who wrote it, its words trimmed, on the day it was written on their calendar', () => {
   freshHouse();
   // Half past three in the morning on the world clock is half past ten the
-  // night before in the owner's timezone, and that is the day the owner lived it on.
+  // night before in their person's timezone, and that is the day their person lived it on.
   const at = new Date('2026-10-23T03:30:00.000Z');
   const note = addFieldNote({ companion: 'example', text: '  Nothing the house runs on changed today.\n ' }, at);
   assert.deepEqual(Object.keys(note), ['id', 'day', 'companion', 'text', 'createdAt']);
@@ -70,7 +70,7 @@ test('a day can be named, and has to be a real date written YYYY-MM-DD', () => {
   assert.equal(listFieldNotes().length, 3, 'nothing refused was kept');
 });
 
-test('nothing is kept that is not a note for the owner: nobody, a stranger, no words, or too many', () => {
+test('nothing is kept that is not a note for their person: nobody, a stranger, no words, or too many', () => {
   freshHouse();
   assert.match(refusal(() => addFieldNote({ text: 'Who wrote this?' })), /companion/);
   assert.match(refusal(() => addFieldNote({ companion: '   ', text: 'Who wrote this?' })), /companion/);
@@ -84,14 +84,14 @@ test('nothing is kept that is not a note for the owner: nobody, a stranger, no w
   assert.equal(FIELD_NOTE_MAX_CHARS, 600);
   const longest = addFieldNote({ companion: 'example', text: `  ${'a'.repeat(FIELD_NOTE_MAX_CHARS)}  ` });
   assert.equal(longest.text.length, 600, 'six hundred is allowed, counted after trimming');
-  // A character is what the owner would count, so an emoji is one, not two.
+  // A character is what their person would count, so an emoji is one, not two.
   const fires = '🔥'.repeat(FIELD_NOTE_MAX_CHARS);
   assert.equal(fires.length, 1200, 'two code units each, which is the case being checked');
   assert.equal(addFieldNote({ companion: 'other', text: fires }).text, fires);
   assert.match(refusal(() => addFieldNote({ companion: 'other', text: `${fires}🔥` })), /601 characters/);
 });
 
-test('the owner page reads the newest day first, and the newest written first within a day', () => {
+test('their person page reads the newest day first, and the newest written first within a day', () => {
   freshHouse();
   const write = (companion: string, day: string, at: string) =>
     addFieldNote({ companion, text: `${companion} on ${day}.`, day }, new Date(at)).id;

@@ -37,7 +37,7 @@ test('a note round-trips and the offset consumes it', () => {
   assert.ok(first.newOffset > 0);
 
   // The same offset read again is empty — this is what stops a note being
-  // handed over twice and read as the owner repeating themselves.
+  // handed over twice and read as their person repeating themselves.
   assert.deepEqual(readCodexSideNotesFrom(lane, first.newOffset).notes, []);
 });
 
@@ -85,14 +85,14 @@ test('delivery only happens when exactly one lane is busy', () => {
   const lane = freshLane();
   // Nobody home — the message must take the normal queued path.
   assert.equal(deliverSideNoteToBusyCodexLane(new Set(), 'hello'), false);
-  // Two lanes running: there is no way to know which room the owner is in, and the
+  // Two lanes running: there is no way to know which room their person is in, and the
   // wrong companion is worse than waiting.
   assert.equal(deliverSideNoteToBusyCodexLane(new Set([lane, 'other-lane']), 'hello'), false);
   assert.equal(deliverSideNoteToBusyCodexLane(new Set([lane]), 'hello'), true);
   assert.deepEqual(readCodexSideNotesFrom(lane, 0).notes.map((n) => n.text), ['hello']);
 });
 
-test('a Codex lane answering in a Discord channel does not take a note from the owner\'s phone', () => {
+test('a Codex lane answering in a Discord channel does not take a note from their person\'s phone', () => {
   const lane = freshLane();
   assert.equal(deliverSideNoteToBusyCodexLane(new Set([lane]), 'hello', new Set([lane])), false);
   assert.deepEqual(readCodexSideNotesFrom(lane, 0).notes, [], 'it queues instead');

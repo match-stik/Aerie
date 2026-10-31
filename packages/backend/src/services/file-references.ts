@@ -4,7 +4,7 @@
  * "Clean orphans" in the Files app keeps. Anything not in here is deleted, so
  * a table that holds a file id and is missing from this list loses its files.
  * An outside audit found three missing, all live: read-aloud audio
- * (message_tts), the voice notes left at the owner's places (thresholds) and the
+ * (message_tts), the voice notes left at their person's places (thresholds) and the
  * Press's page thumbnails (press_spreads.thumbnail_file_id). The test beside
  * this file walks every table for a column that names a file, so a fourth
  * cannot be added quietly.

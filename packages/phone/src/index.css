@@ -644,7 +644,7 @@
 body {
   @apply bg-[#0A0A0A] overflow-hidden font-sans antialiased select-none;
   /* Their message font, not only inside .aerie-root: trays and sheets portal
-     straight into body and were falling back to plain sans (the owner's ask, Oct 26
+     straight into body and were falling back to plain sans (their person's ask, Oct 26
      2026: 'Any tray that comes up has the sans serif font'). */
   font-family: var(--font-body, var(--font-sans));
   -webkit-touch-callout: none;
@@ -729,7 +729,7 @@ select optgroup {
 /* The gradient pulls each bubble toward a pole colour as it falls. That was
    tuned when the bubbles also carried a blur behind them; with the glass gone
    the dilution is the only thing washing them out, so both ends keep more of
-   the bubble's own colour now -- about seven points at the far end. The owner's call,
+   the bubble's own colour now -- about seven points at the far end. Their person's call,
    and deliberately small: enough to read as the theme colour, not enough to
    flatten the gradient into a block. */
 /* PAINTED GLASS.
@@ -747,7 +747,7 @@ select optgroup {
        same family of surfaces
      - a hairline of light along the top edge and a soft one of shadow along the
        bottom, which is what actually sells glass to the eye
-   A grain layer was tried here and taken out again -- the owner's call. Undo is
+   A grain layer was tried here and taken out again -- their person's call. Undo is
    deleting the ::before rule and the box-shadow. */
 .aerie-theme-user-bubble,
 .aerie-theme-comp-bubble {
@@ -988,7 +988,7 @@ select optgroup {
 
 /* The chat header and composer keep their pre-reskin opaque theme
    surfaces (classes still on the elements) — the glass band clashed
-   with the status-bar fill and the owner vetoed it. */
+   with the status-bar fill and their person vetoed it. */
 
 /* Headers stay opaque in the frame color: white in Daylight, black in
    Midnight, the same hex the status bar is painted, with the page color

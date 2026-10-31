@@ -7,7 +7,7 @@ import { clampPillPoint, parsePillPoint, samePillBox, PILL_MARGIN } from './pill
 // it measures while a companion is playing.
 const box = { width: 180, height: 40, viewportWidth: 412, viewportHeight: 915, insetTop: 32, insetBottom: 24 };
 
-test('a point in the open stays where the owner put it', () => {
+test('a point in the open stays where their person put it', () => {
   assert.deepEqual(clampPillPoint({ x: 200, y: 500 }, box), { x: 200, y: 500 });
 });
 

@@ -21,7 +21,7 @@ import {
 /** The drawer id of the app. */
 export const SPOTIFY_APP_ID = 'spotify';
 
-/** Their words for it, from the brief: the routes exist only after the owner restart. */
+/** Their words for it, from the brief: the routes exist only after their person restart. */
 export const RESTART_LINE = 'Spotify needs the house restarted once.';
 export const UNREACHABLE_LINE = 'Spotify could not be reached just now.';
 export const SIGNED_OUT_LINE = 'The house asked you to sign in again.';
@@ -131,8 +131,8 @@ export function loadSpotifyPlaylist(fetcher: Fetcher, id: string): Promise<Spoti
 }
 
 /**
- * Songs for what the owner typed (Oct 20 2026).
- * Only when the owner asks, never as the owner types, so their server is asked once a search.
+ * Songs for what their person typed (Oct 20 2026).
+ * Only when their person asks, never as their person types, so their server is asked once a search.
  */
 export function searchSpotify(fetcher: Fetcher, words: string): Promise<SpotifyRead<SpotifySearchView>> {
   return readSpotify(fetcher, `/api/spotify/search?q=${encodeURIComponent(words.trim())}`, isSearchView);
@@ -159,7 +159,7 @@ export function troubleLine(trouble: SpotifyTrouble): string {
 
 // ─── Telling it ──────────────────────────────────────────────────────
 
-/** How many songs, the way the owner would say it. Empty when Spotify did not say. */
+/** How many songs, the way their person would say it. Empty when Spotify did not say. */
 export function songCount(count: number | null | undefined): string {
   if (typeof count !== 'number') return '';
   return count === 1 ? '1 song' : `${count} songs`;
@@ -200,12 +200,12 @@ export function largerCover(url: string | null | undefined): string | null {
 // the song, carrying on through the rest. Only a song with neither is asked for
 // alone, the way every song used to be.
 //
-// A PRESS'S ANSWER IS NOT BELIEVED. The owner Spotify server has called a press that
+// A PRESS'S ANSWER IS NOT BELIEVED. Their person Spotify server has called a press that
 // worked an error (Oct 3 2026), so after every press the phone gives Spotify a
 // moment, reads what is playing once, and shows that. A press's sentence is
-// shown only when that read does not show what the owner asked for.
+// shown only when that read does not show what their person asked for.
 
-/** What the owner pressed. */
+/** What their person pressed. */
 export type SpotifyPress =
   /** A song; with `playlistUri` or `albumUri`, that playlist or album started at the song. */
   | { kind: 'song'; uri: string; playlistUri?: string; albumUri?: string }
@@ -224,24 +224,24 @@ export type SpotifyPressResult = { ok: true } | { ok: false; trouble: SpotifyTro
 export interface SpotifyPressOutcome {
   /** What is playing, read after the press; null when that read did not come back, so the screen keeps what it had. */
   now: SpotifyNowView | null;
-  /** The one sentence to show by the button the owner pressed, or null. */
+  /** The one sentence to show by the button their person pressed, or null. */
   trouble: SpotifyTrouble | null;
 }
 
 /** How long Spotify is given to move before the phone looks. */
 export const PRESS_SETTLE_MS = 1500;
-/** How long a freshly woken Spotify is given to show up as the owner device before the press goes again. */
+/** How long a freshly woken Spotify is given to show up as their person device before the press goes again. */
 export const WAKE_SETTLE_MS = 1200;
 
 type PressFetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
-/** A song the owner can tap: only a Spotify song address, never an episode or a local file. */
+/** A song their person can tap: only a Spotify song address, never an episode or a local file. */
 export function playableSong(uri: string | null | undefined): uri is string {
   return isPlayableTrackUri(uri);
 }
 
 /**
- * The press a tap on a song makes, or null for a song the owner cannot tap: inside
+ * The press a tap on a song makes, or null for a song their person cannot tap: inside
  * the playlist it was tapped in, else inside its album when Spotify said which,
  * else the song alone.
  */
@@ -315,7 +315,7 @@ export async function sendPress(fetcher: PressFetcher, press: SpotifyPress): Pro
   return { ok: false, trouble: { kind: 'problem', message: UNREACHABLE_LINE } };
 }
 
-/** Whether what is playing shows the change the owner pressed for. */
+/** Whether what is playing shows the change their person pressed for. */
 export function pressShows(press: SpotifyPress, before: SpotifyNowView | null, after: SpotifyNowView): boolean {
   const uri = after.track?.uri ?? null;
   const was = before?.track?.uri ?? null;
@@ -368,8 +368,8 @@ export async function pressAndLook(
 // The Spotify app and the lock screen's card (Oct 20 2026) both show what is playing and press it,
 // through this one keeper, so the two cannot drift: one press at a time, every
 // press button waiting while it is out, the one look after it (pressAndLook),
-// and a press's sentence only when that look does not show what the owner asked for,
-// never on a page the owner has since left. Every read of what is playing is numbered
+// and a press's sentence only when that look does not show what their person asked for,
+// never on a page their person has since left. Every read of what is playing is numbered
 // as it starts, and an older one never replaces a newer one on screen: the look
 // after a press can land before a read that started earlier does.
 
@@ -394,7 +394,7 @@ export interface SpotifyNowKeeper {
   look(): Promise<void>;
   /** A press, the one way; a second one while it is out is not sent. */
   press(what: SpotifyPress, where: string): Promise<void>;
-  /** The owner left the page: a sentence still on its way is not shown, and one showing goes. */
+  /** Their person left the page: a sentence still on its way is not shown, and one showing goes. */
   leave(): void;
   /** Take a press's sentence away (a refresh). */
   quiet(): void;

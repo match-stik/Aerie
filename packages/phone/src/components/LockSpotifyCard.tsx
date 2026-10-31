@@ -7,7 +7,7 @@
 // no card, and the only words it ever says are a press's sentence.
 //
 // LAYOUT NOTE: the shape and the look of the lock screen's other cards, dark
-// or light the way the owner switch says (lib/lock-cards.ts), nothing blurred. It
+// or light the way their person switch says (lib/lock-cards.ts), nothing blurred. It
 // sits on top of the other cards, and when that would touch the clock or the
 // weather it climbs above them; where nothing has room it waits out of sight
 // (lib/lock-spotify.ts liftLockCard).
@@ -92,7 +92,7 @@ export function LockSpotifyCard({
     };
   }, [lock]);
 
-  // Where it sits, measured against the clock and the weather wherever the owner has
+  // Where it sits, measured against the clock and the weather wherever their person has
   // put them, on every draw (the lock screen draws once a second).
   const ref = useRef<HTMLDivElement>(null);
   const ceilingRef = useRef<HTMLDivElement>(null);

@@ -7,7 +7,7 @@
 //
 // The move is not taken from here. It goes to the book, which shows it to the
 // owner and sends it only when they say so: a widget can be written to answer
-// by itself, and the owner's moves are theirs.
+// by itself, and their person's moves are theirs.
 
 import { useEffect, useRef, useState } from 'react';
 import type { StoryBookSummary, StoryPage } from '@aerie/shared';
@@ -65,12 +65,12 @@ export function StoryWidgetFrame({
 
   // The book is read again every few seconds while a page is on its way, and
   // every read hands over fresh objects. Rebuilding the frame on each would
-  // wipe whatever the owner was in the middle of doing in it, so it is rebuilt only
+  // wipe whatever their person was in the middle of doing in it, so it is rebuilt only
   // when what it was handed actually changes.
   const handed = JSON.stringify({ state: page.state, choices: page.choices });
 
   // Build the frame's document: the runtime and the widget's own pictures
-  // are fetched here, with the owner's session, and handed in, because the frame
+  // are fetched here, with their person's session, and handed in, because the frame
   // itself can reach nothing.
   useEffect(() => {
     const frame = frameRef.current;

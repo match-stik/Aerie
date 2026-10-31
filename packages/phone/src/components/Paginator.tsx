@@ -62,7 +62,7 @@ export function Paginator({
   if (pageCount <= 1) return null;
 
   /**
-   * Turning a page from the numbers at the bottom used to leave the owner standing at
+   * Turning a page from the numbers at the bottom used to leave their person standing at
    * the bottom of the new page, so the top of it was already scrolled past
    * (Oct 22 2026). Take the list's own scroller back up to where it starts.
    */

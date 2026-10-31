@@ -7,7 +7,7 @@ import type { Threshold } from './thresholds.js';
 // ARMED IS A PROMISE ABOUT A BUZZ, SO IT HAS TO BE EXACTLY RIGHT.
 //
 // A geofence that fires at a place with nothing at it is worse than no geofence:
-// it teaches the owner to ignore the next one, and the next one might be the voice note
+// it teaches their person to ignore the next one, and the next one might be the voice note
 // somebody left for them. So the rule armedPlaces uses — never found, and
 // isOpenable with atPlace true — is asserted here rather than trusted.
 //

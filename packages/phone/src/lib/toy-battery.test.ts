@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The owner toys' batteries: only a toy's own answer is a level, absent is not 0,
+// Their person toys' batteries: only a toy's own answer is a level, absent is not 0,
 // and the asking runs while something wants it and stops when nothing does.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';

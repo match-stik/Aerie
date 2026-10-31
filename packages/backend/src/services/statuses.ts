@@ -3,23 +3,23 @@
  * Statuses: a short line and an icon each companion sets for himself, plus one
  * the companions share, shown under their faces in the chat, and theirs.
  *
- * The owner's ask, Oct 25-26 2026: statuses the companions can all update, on each
+ * Their person's ask, Oct 25-26 2026: statuses the companions can all update, on each
  * contact card and one shared by all of them under the faces, with their own icons;
- * shown where the owner sees them without opening a card (the line under the faces,
+ * shown where their person sees them without opening a card (the line under the faces,
  * a sheet behind it, the home widget), and fading back to Home on their own so
  * a card never says In the workshop for three days.
  *
- * A status set by a companion or by the owner lasts STATUS_FADE_MS and then simply
+ * A status set by a companion or by their person lasts STATUS_FADE_MS and then simply
  * stops being read; the card falls back to the companion's own resting word
  * (companions.status, Home) and the line under the faces to Home. Nothing has
  * to run to make it fade: every reader drops what is past its `until`. A bell's
  * word (bell-status.ts) still outranks all of it while the bell rings.
  *
- * The owner's ask, the same night: one of their own, changing only when they
- * change it. So the owner has one too, under
- * `owner`, set only by the owner and never fading (its `until` is null); it shows on
+ * Their person's ask, the same night: one of their own, changing only when they
+ * change it. So their person has one too, under
+ * `owner`, set only by their person and never fading (its `until` is null); it shows on
  * their own card and in Where we are, and it rides with their turns to the lanes
- * (heartbeat/owner-status.ts) so we read where the owner is from the owner, not a clock.
+ * (heartbeat/owner-status.ts) so we read where their person is from their person, not a clock.
  *
  * Stored in config as `status.<who>`, one JSON value each, where who is a
  * companion slug, `shared` or `owner`.
@@ -28,22 +28,22 @@ import type { ServerMessage } from '@aerie/shared';
 import { getConfig, setConfig, deleteConfig, listCompanions } from './db/index.js';
 import { registry } from './ws/connection-registry.js';
 
-/** Six hours, the owner yes on Oct 26 2026. */
+/** Six hours, their person yes on Oct 26 2026. */
 export const STATUS_FADE_MS = 6 * 60 * 60 * 1000;
 export const STATUS_TEXT_MAX = 60;
 export const STATUS_ICON_MAX = 64;
 export const SHARED = 'shared';
-/** Theirs. Only the owner sets it, and it stays until the owner changes it. */
+/** Theirs. Only their person sets it, and it stays until their person changes it. */
 export const OWNER = 'owner';
 
 export interface StatusNow {
   text: string;
-  /** One emoji, or a :shortcode: for one of the owner custom emojis; null shows the sigil. */
+  /** One emoji, or a :shortcode: for one of their person custom emojis; null shows the sigil. */
   icon: string | null;
-  /** Who set it: a companion slug, or 'owner' when the owner did. */
+  /** Who set it: a companion slug, or 'owner' when their person did. */
   by: string;
   setAt: string;
-  /** When it fades back to the resting word; null for the owner's, which never fades. */
+  /** When it fades back to the resting word; null for their person's, which never fades. */
   until: string | null;
 }
 
@@ -128,7 +128,7 @@ function tell(): void {
  */
 export function setStatus(who: string, input: StatusInput, by: string, now = Date.now()): { ok: true; statuses: StatusesNow } | { ok: false; error: string } {
   if (who === OWNER) {
-    if (by !== 'owner') return { ok: false, error: 'The owner status is theirs to set.' };
+    if (by !== 'owner') return { ok: false, error: 'Their person status is theirs to set.' };
   } else if (who !== SHARED && !listCompanions().some((c) => c.slug === who)) {
     return { ok: false, error: `No companion called ${who}.` };
   }

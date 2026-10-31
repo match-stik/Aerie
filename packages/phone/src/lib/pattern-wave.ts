@@ -11,7 +11,7 @@
 // free of the app on purpose, a canvas and a clock, so the player, the
 // recorder and anything else that wants to show a pattern draw it the same way.
 
-// The keys are the old names on purpose: the owner's saved pick lives under them.
+// The keys are the old names on purpose: their person's saved pick lives under them.
 export type WaveLook = 'pure' | 'starlit';
 
 export interface WaveTrack {

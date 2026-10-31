@@ -50,7 +50,7 @@ test('playing: the cover big (the 640 picture, the 300 one behind it), the song 
   assert.match(html, />1 song</);
   const covers = html.match(/<img\b[^>]*>/g) ?? [];
   assert.equal(covers.length, 3, `three covers drawn: ${covers.join(' ')}`);
-  assert.ok(covers.every((tag) => /referrerpolicy="no-referrer"/i.test(tag)), `every cover goes without the owner address: ${covers.join(' ')}`);
+  assert.ok(covers.every((tag) => /referrerpolicy="no-referrer"/i.test(tag)), `every cover goes without their person address: ${covers.join(' ')}`);
 });
 
 test('nothing playing: one plain line where the cover would be, and the rest of the page still there', () => {
@@ -118,7 +118,7 @@ test('it plays only through the house: no timer, nothing queued, no volume, no s
   assert.match(views, /playlistUri=\{listUri\}/, 'a playlist hands its own address to its songs');
   assert.equal((views.match(/onPress\?\.\(play, where\)/g) ?? []).length, 2, 'both kinds of song row press what songPress decided');
   assert.match(app, /searchSpotify\(apiFetch, words\)/, 'a search reads through the house');
-  assert.doesNotMatch(app, /onChange=\{[^}]*searchSpotify/, 'and never as the owner types');
+  assert.doesNotMatch(app, /onChange=\{[^}]*searchSpotify/, 'and never as their person types');
   assert.match(views, /onPress\?\.\(\{ kind: 'playlist', uri: listUri, songs \}, 'playlist'\)/, 'the Play button plays its own playlist');
 });
 
@@ -196,7 +196,7 @@ test('while a press is out every press button waits, and only the pressed one tu
   assert.equal(tags.length, 5, `five press buttons: ${tags.join(' ')}`);
   assert.ok(tags.every((tag) => /\bdisabled=""/.test(tag)), `every one waits: ${tags.join(' ')}`);
   assert.equal(times(html, 'animate-spin'), 1, 'one turns');
-  assert.match(html, /aria-label="Next song"(?:(?!<\/button>).)*animate-spin/, 'the one the owner pressed');
+  assert.match(html, /aria-label="Next song"(?:(?!<\/button>).)*animate-spin/, 'the one their person pressed');
   const looking = playingHome(true, { pressing: null, notice: null });
   assert.ok(pressButtons(looking).every((tag) => /\bdisabled=""/.test(tag)), 'drawn with nothing to press with, every button waits');
 });
@@ -222,7 +222,7 @@ test("a press's sentence is shown by the button that made it, once", () => {
   const first = weddingSongs(notice('song:0'));
   assert.equal(times(first, NOWHERE), 1, 'once, for a song');
   const at = first.indexOf(NOWHERE);
-  assert.ok(at > first.indexOf('aria-label="Play Villain"') && at < first.indexOf('aria-label="Play Beauty"'), 'under the song the owner pressed, not another');
+  assert.ok(at > first.indexOf('aria-label="Play Villain"') && at < first.indexOf('aria-label="Play Beauty"'), 'under the song their person pressed, not another');
   const byList = weddingSongs(notice('playlist'));
   assert.equal(times(byList, NOWHERE), 1, 'once, for the playlist');
   assert.ok(byList.indexOf(NOWHERE) < byList.indexOf('aria-label="Play Villain"'), 'by the Play button, above the songs');

@@ -1,22 +1,22 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The Shelf: choose-your-own-path books the companions write and run for the owner.
+// The Shelf: choose-your-own-path books the companions write and run for their person.
 //
-// The owner reads and moves; they write. The shelf is read from GET /api/story-shelf
+// Their person reads and moves; they write. The shelf is read from GET /api/story-shelf
 // and an open book from GET /api/story-shelf/books/:id, and both are read
 // again whenever the house says the shelf changed (story_update), when the
 // phone wakes, every few seconds while a page is on its way, and when the
 // owner taps refresh.
 //
-// A book never begun waits for the owner to tap Begin, which is what asks them
+// A book never begun waits for their person to tap Begin, which is what asks them
 // for its opening. A started book opens at the bookmark, the newest page, and
-// asks for nothing. A move is a choice the owner taps, their own words, or what
+// asks for nothing. A move is a choice their person taps, their own words, or what
 // a scene's widget hands up and they confirm; each one hands the companions a page turn,
 // and the page that answers it arrives on its own time.
 //
 // LAYOUT NOTE: AppShell paints no background and a wallpaper can be busy, so
 // every word in here sits on a panel. The glass is painted, never blurred, and
 // every color is mixed in OKLCH from the theme's own variables, so the shelf
-// follows the owner's palette in daylight and at midnight alike.
+// follows their person's palette in daylight and at midnight alike.
 
 import { RoomTalk } from './RoomTable';
 import { themeInk } from '../lib/theme-ink';
@@ -84,7 +84,7 @@ type Trouble = 'asleep' | 'unreachable' | null;
 type Door = 'open' | 'move' | 'retry' | 'talk';
 type Send = (door: Door, body?: Record<string, unknown>) => Promise<boolean>;
 
-/** A move a widget handed up, waiting for the owner to say it is theirs. */
+/** A move a widget handed up, waiting for their person to say it is theirs. */
 interface StagedMove {
   label: string;
   body: { choiceId: string } | { text: string };
@@ -123,7 +123,7 @@ function placeAtTop(body: HTMLElement | null, element: HTMLElement | undefined, 
 export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfAppProps) {
   const colors = themeConfig[themeMode];
   const { companions } = useHouseRoster();
-  // The owner's own color is the thread they carry: read from the same place
+  // Their person's own color is the thread they carry: read from the same place
   // the table reads their face.
   const ownerThread = useMemo(() => getOwnerAvatar().color ?? null, []);
 
@@ -139,7 +139,7 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
   const [staged, setStaged] = useState<StagedMove | null>(null);
 
   // The book on screen, readable at once by the reads below, which must not
-  // land a book the owner has already left.
+  // land a book their person has already left.
   const openIdRef = useRef<string | null>(null);
 
   // Only the newest read may land. A burst of changes can put two reads in
@@ -257,7 +257,7 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
   }, [loadShelf, loadBook]);
 
   // The socket is the fast path and this is the net. A page turn can take
-  // minutes, and a dropped socket would otherwise leave the owner watching "they are
+  // minutes, and a dropped socket would otherwise leave their person watching "they are
   // writing" with the page already written.
   const pagePending = Boolean(view && view.book.id === openId && view.book.companionPending);
   useEffect(() => {
@@ -304,7 +304,7 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
     setMoveTrouble(null);
   }, []);
 
-  // The shelf comes back where the owner left it.
+  // The shelf comes back where their person left it.
   useLayoutEffect(() => {
     if (openId) return;
     const body = scroller();
@@ -313,7 +313,7 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
 
   // A book opens at the bookmark. After that, a page that arrives (or the
   // owner's own move going in) is brought into view; a read that changes
-  // nothing leaves the owner where they are.
+  // nothing leaves their person where they are.
   const pageRefs = useRef(new Map<string, HTMLElement>());
   const placedFor = useRef<string | null>(null);
   const lastMark = useRef<string | null>(null);
@@ -353,7 +353,7 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
     onClose();
   };
 
-  // ─── The owner's doors ─────────────────────────────────────────────
+  // ─── Their person's doors ─────────────────────────────────────────────
 
   const send: Send = async (door, body = {}) => {
     const id = openIdRef.current;
@@ -381,7 +381,7 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
     }
   };
 
-  // A widget's move is shown to the owner first, and goes in only when they send it.
+  // A widget's move is shown to their person first, and goes in only when they send it.
   const stageWidgetMove = useCallback((value: string, choices: StoryChoice[]) => {
     const move = widgetMove(value, choices);
     setStaged('choiceId' in move
@@ -732,7 +732,7 @@ function Spine({
 }
 
 /**
- * The owner's thread on a book in progress, as a ribbon marker: it comes out
+ * Their person's thread on a book in progress, as a ribbon marker: it comes out
  * of the foot of the book from behind the cloth, as if from between the pages,
  * and falls over the shelf's edge the way a real one does, with a notched
  * tail. It sits under the spine in the book's wrapper, and the row stands in
@@ -915,7 +915,7 @@ function TitlePage({ book, from, colors, onPicture }: { book: StoryBook; from: s
         <p className={cn('mt-3 text-[14px] italic leading-relaxed [overflow-wrap:anywhere]', colors.textMain)}>{book.blurb}</p>
       )}
       {/* The shape stays open and every other part folds under its own heading,
-          so the owner can see how the story is built without reading what it
+          so their person can see how the story is built without reading what it
           hides. bibleSections decides which is which. */}
       <details className="mt-3">
         <summary className={cn('cursor-pointer select-none text-[11px] font-semibold', colors.textMuted)}>Their bible for this book</summary>
@@ -988,7 +988,7 @@ function ScenePage({
   book: StoryBook;
   /** The newest scene: it carries the state card. */
   latest: boolean;
-  /** The newest scene while the move is the owner's: its widget can be used. */
+  /** The newest scene while the move is their person's: its widget can be used. */
   live: boolean;
   author: string;
   companions: HouseCompanion[];
@@ -1039,7 +1039,7 @@ function SceneText({ page, companions, colors }: { page: StoryPage; companions: 
 }
 
 /**
- * The owner's move, a quiet note in their own thread's color. Labeled for what
+ * Their person's move, a quiet note in their own thread's color. Labeled for what
  * it was, a choice or their own words, because "your move" on a page already
  * turned reads as the book still waiting on them.
  */
@@ -1199,7 +1199,7 @@ function BookFoot({
     );
   }
 
-  // The owner's move.
+  // Their person's move.
   return (
     <section className={panel}>
       {staged && (
@@ -1256,7 +1256,7 @@ function BookFoot({
 }
 
 /**
- * A box that keeps what the owner was typing, the way the chat's composer does: the
+ * A box that keeps what their person was typing, the way the chat's composer does: the
  * draft lives in localStorage under its own key, so leaving the book, the app
  * going to the background, or the page coming back from the house does not
  * cost them the sentence. Sending it clears it.
@@ -1332,14 +1332,14 @@ function OwnWords({ draftKey, sending, colors, onSend }: { draftKey: string; sen
 }
 
 /**
- * The rail: what the owner says at the table while reading. It is talk, not a
+ * The rail: what their person says at the table while reading. It is talk, not a
  * move, so it never turns the page; they answer it here, under the page.
  */
 function TableRail({ draftKey, sending, colors, onSend }: { draftKey: string; sending: boolean; colors: ThemeColors; onSend: Send }) {
   const [draft, setDraft] = useKeptDraft(draftKey);
   const box = useGrowingBox(draft, 40, 132);
   // A sticker at the table, the same tray as chat, on a line of its own
-  // (the owner's ask, Oct 26 2026). Enter is already a new line here; Say it sends.
+  // (their person's ask, Oct 26 2026). Enter is already a new line here; Say it sends.
   const [stickers, setStickers] = useState(false);
   const addSticker = (code: string) => {
     setDraft(draft.trim() ? `${draft.replace(/\s+$/, '')}\n${code}\n` : `${code}\n`);

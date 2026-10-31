@@ -1,11 +1,11 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The road from the owner's phone to the house.
+// The road from their person's phone to the house.
 //
 // Android will tell an app what is currently playing, but only ON THE DEVICE.
 // Nothing on a server can ask. So the phone reads it and posts it here, and a
-// companion can then look at where the owner is in an episode without them leaving
+// companion can then look at where their person is in an episode without them leaving
 // the conversation to go and fetch a number off another screen. That was the
-// whole of the ask: not a button, not a panel — the owner should not have to do
+// whole of the ask: not a button, not a panel — their person should not have to do
 // anything at all.
 
 import { Router } from 'express';
@@ -24,7 +24,7 @@ router.post('/media/session', (req, res) => {
     res.json({ success: true, stored: false, reason: 'nothing playing' });
     return;
   }
-  // The owner choice (asked Oct 22 2026): media.listen 'screening' means the house
+  // Their person choice (asked Oct 22 2026): media.listen 'screening' means the house
   // keeps nothing their phone reports unless a screening is going on. Unset, or
   // 'always', keeps the old behavior: every reading is stored.
   if (getConfig('media.listen') === 'screening' && !screeningIsLive(currentScreening())) {

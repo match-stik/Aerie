@@ -44,7 +44,7 @@ const rankOf = (c: CardId) => c.slice(c.indexOf('-') + 1);
 const suitOf = (c: CardId) => c.slice(0, c.indexOf('-'));
 const rankValue = (c: CardId) => RANKS.indexOf(rankOf(c));
 
-/** The same rule the server enforces, so the owner's hand can show what is allowed. */
+/** The same rule the server enforces, so their person's hand can show what is allowed. */
 function legalFor(game: HeartsGame, hand: CardId[]): CardId[] {
   if (!hand.length) return [];
   const firstTrick = game.trickNumber === 0;
@@ -71,7 +71,7 @@ interface HeartsBoardProps {
 
 export function HeartsBoard({ tableId, colors, onTableId }: HeartsBoardProps) {
   const { owner, loaded: rosterLoaded, labelOf, sigilOf } = useHouseRoster();
-  // The owner's seat is the house's answer (GET /api/companions), never a
+  // Their person's seat is the house's answer (GET /api/companions), never a
   // name in the code.
   const ownerSeat = owner?.slug ?? '';
   const [game, setGame] = useState<HeartsGame | null>(null);
@@ -227,7 +227,7 @@ export function HeartsBoard({ tableId, colors, onTableId }: HeartsBoardProps) {
         </div>
       )}
 
-      {/* the owner's hand */}
+      {/* their person's hand */}
       <div className="flex flex-wrap items-end justify-center gap-1 pb-1">
         {mine.map((card) => {
           const ok = passingNow || (myTurn && legal.includes(card));

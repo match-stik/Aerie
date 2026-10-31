@@ -25,7 +25,7 @@ test('the deck that ships is the ordinary one', () => {
   assert.deepEqual(DEFAULT_BATTLESHIP_FLEET.map(s => s.length), [4, 3, 3, 2, 2]);
 });
 
-test('a fleet the owner chose is honoured and changes only the names and colours', () => {
+test('a fleet their person chose is honoured and changes only the names and colours', () => {
   const fleet = fleetFromOverride(RENAMED);
   assert.deepEqual(fleet.map(s => s.name), RENAMED.map(s => s.name));
   assert.deepEqual(fleet.map(s => s.length), DEFAULT_BATTLESHIP_FLEET.map(s => s.length));

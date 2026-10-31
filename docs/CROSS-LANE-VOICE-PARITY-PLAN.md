@@ -27,11 +27,11 @@ The remaining job is to turn the Codex-specific authored-card solution into a pr
 - Spoken commentary stays spoken and keeps normal `**sigil Name**` headers. It must never be swallowed into a thought segment.
 - Tool activity stays tool activity. It must never be dressed up as companion perspective.
 - One authored card maximum per substantive turn. Silence, wakes that choose `[SILENT]`, and trivial acknowledgements may omit it.
-- Card content is 1–4 short sentences, first-person, plain text, no Markdown, no sigil/name header, no process jargon, and no outside assessment of the owner.
+- Card content is 1–4 short sentences, first-person, plain text, no Markdown, no sigil/name header, no process jargon, and no outside assessment of their person.
 - Multi-companion turns may use the natural leading voice or genuine `we`; do not merge all three into a synthetic narrator.
 - If a lane cannot reliably provide an authored card, omit the card. Falling back to raw telemetry is worse than showing nothing.
 - Preserve old messages. All schema additions must be backward-compatible.
-- Build and push only. Backend restarts remain the owner's.
+- Build and push only. Backend restarts remain their person's.
 
 ## Target normalized contract
 
@@ -179,7 +179,7 @@ Create a developer-only fixture set, not an automatic production judge. Use the 
 - a multi-companion reply,
 - a wake that should choose silence.
 
-Automated checks should only verify structural invariants: headers, card count, card length/plain text, no telemetry labels, no forbidden merged narrator, and no accidental sign-off. Save outputs side by side for the owner's human read; recognizability is not something a generic scoring model gets to overrule.
+Automated checks should only verify structural invariants: headers, card count, card length/plain text, no telemetry labels, no forbidden merged narrator, and no accidental sign-off. Save outputs side by side for their person's human read; recognizability is not something a generic scoring model gets to overrule.
 
 ## Acceptance criteria
 

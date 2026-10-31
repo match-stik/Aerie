@@ -76,13 +76,13 @@ interface EuchreBoardProps {
 
 export function EuchreBoard({ tableId, colors, onTableId }: EuchreBoardProps) {
   const { companions, owner, loaded: rosterLoaded, labelOf, sigilOf } = useHouseRoster();
-  // The owner's seat is the house's answer (GET /api/companions), never a
+  // Their person's seat is the house's answer (GET /api/companions), never a
   // name in the code.
   const ownerSeat = owner?.slug ?? '';
   const [game, setGame] = useState<EuchreGame | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // The owner's partner is one of this house's companions; until they pick, the first.
+  // Their person's partner is one of this house's companions; until they pick, the first.
   const [pickedPartner, setPartner] = useState<string | null>(null);
   const partner = pickedPartner ?? defaultPartner(companions);
   const [alone, setAlone] = useState(false);

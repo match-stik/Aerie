@@ -405,7 +405,7 @@ function restoreStep(sessionDir: string, filename: string, n: number): boolean {
 }
 
 /**
- * THE GIF LAB'S OWN BACK A STEP, for a crop (the owner's ask, Oct 26 2026). Every crop saves a step for each frame it cuts and writes down
+ * THE GIF LAB'S OWN BACK A STEP, for a crop (their person's ask, Oct 26 2026). Every crop saves a step for each frame it cuts and writes down
  * which steps those were, newest last, in crop-steps.json beside the frames
  * (a flat file, so deleting or sweeping the session takes it too). Undoing
  * the last crop puts each of those frames back to its step.

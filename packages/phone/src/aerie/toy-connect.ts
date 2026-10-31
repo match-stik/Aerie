@@ -1,10 +1,10 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The owner taps on Connect, followed by one tracker for the whole app
+// Their person taps on Connect, followed by one tracker for the whole app
 // (lib/toy-connect.ts says why), and the connection log they leave in the
 // house's error log (lib/toy-connect-log.ts says how it stays small).
 //
 // It listens from the moment the app starts with the toy bridge, not from
-// when the Toys page opens, so a tap is followed to its end even if the owner leaves
+// when the Toys page opens, so a tap is followed to its end even if their person leaves
 // the page in the middle of it, and leaving and coming back is in the record.
 // Read the lines in pm2's aerie-error.log: [client-error] with "toy-connect".
 
@@ -52,7 +52,7 @@ export function startToyConnectWatch(): void {
   void LovenseToys.addListener('searchFinished', () => tracker.search('finished'));
 }
 
-/** The owner tapped Connect on a toy. */
+/** Their person tapped Connect on a toy. */
 export function startToyConnect(toyId: string, ctx: ConnectContext): void {
   startToyConnectWatch();
   tracker.start(toyId, ctx);

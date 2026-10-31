@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { shouldUseCallLine, absoluteVoiceUrl } from './call-line';
 
-// The call line is only for the case that cut the owner off: Aerie hidden, the call
+// The call line is only for the case that cut their person off: Aerie hidden, the call
 // holding the mic, the car on Bluetooth. Anywhere else the music line stays.
 
 test('hidden, over Bluetooth, with the plugin: the call line', () => {

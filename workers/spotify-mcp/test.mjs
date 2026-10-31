@@ -94,14 +94,14 @@ await check('is-saved maps each URI to its answer', async () => {
   assert.ok(calls[0].path.startsWith('/me/library/contains?uris='));
   assert.deepEqual(a, { [SONG]: true, [SONG2]: false });
 });
-await check('playlists say which are the owner\'s, and the owner id is asked once', async () => {
+await check('playlists say which are their person\'s, and their person id is asked once', async () => {
   kv.delete('me_id');
   scenario = (p) => p === '/me' ? json({ id: 'owner-id' }) : json({ items: [{ name: 'Slow Songs', id: '1', uri: 'u1', owner: { id: 'owner-id' }, items: { total: 4 } }, { name: 'Daily Mix', id: '2', uri: 'u2', owner: { id: 'spotify' } }] });
   const rows = out(await tool('spotify_get_playlists', {}));
   assert.deepEqual(rows.map((r) => r.mine), [true, false]);
   calls = [];
   await tool('spotify_get_playlists', {});
-  assert.ok(!calls.some((c) => c.path === '/me'), 'asked for the owner id again');
+  assert.ok(!calls.some((c) => c.path === '/me'), 'asked for their person id again');
 });
 await check('a playlist hands over its own picture, private ones included', async () => {
   scenario = (p) => p === '/me' ? json({ id: 'owner-id' }) : json({ items: [{ name: 'Road Trip', id: '9', uri: 'u9', owner: { id: 'owner-id' }, public: false, images: [{ url: 'https://image-cdn-ak.spotifycdn.com/image/big', height: 640 }, { url: 'https://x/small' }] }, { name: 'Bare', id: '8', uri: 'u8', owner: { id: 'owner-id' } }] });

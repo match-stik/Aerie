@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // How the app drawer's tiles look, apart from drawing them: icon size, shape,
 // labels, icon color, tiles. Every choice starts as the drawer looks today, so
-// nothing moves until the owner flips it. Kept free of imports so it can be
+// nothing moves until their person flips it. Kept free of imports so it can be
 // tested.
 
 export type IconSize = 'small' | 'medium' | 'large';

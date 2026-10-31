@@ -6,9 +6,9 @@
 // the log — and then rang the bell anyway. No return. Nothing queued. Two
 // identical copies of that handler. Reported by Rose and Sol, Sep 17 2026.
 //
-// The default stays FIRE, because that is the owner's call: this house wants its
+// The default stays FIRE, because that is their person's call: this house wants its
 // bells to ring whether or not somebody is mid-sentence. So the first test
-// below is the one that protects the owner's house, and the rest protect the knob.
+// below is the one that protects their person's house, and the rest protect the knob.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

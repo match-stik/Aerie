@@ -33,7 +33,7 @@ test('app BACKGROUNDED: still connected, and that is exactly why the old test wa
   const r = new ConnectionRegistry();
   r.add('user', fakeSocket({ tabVisible: false }));
   assert.equal(r.isUserConnected(), true, 'the socket survives backgrounding — this is the trap');
-  assert.equal(r.isUserTabVisible(), false, 'the owner cannot see it, so the push must go');
+  assert.equal(r.isUserTabVisible(), false, 'their person cannot see it, so the push must go');
 });
 
 test('app fully closed: no connection at all, push goes', () => {
@@ -42,7 +42,7 @@ test('app fully closed: no connection at all, push goes', () => {
   assert.equal(r.isUserTabVisible(), false);
 });
 
-test('a socket that is not OPEN cannot claim the owner is looking', () => {
+test('a socket that is not OPEN cannot claim their person is looking', () => {
   const r = new ConnectionRegistry();
   r.add('user', fakeSocket({ readyState: CLOSED, tabVisible: true }));
   assert.equal(r.isUserTabVisible(), false, 'isUserTabVisible filters on readyState; isUserConnected does not');
@@ -52,5 +52,5 @@ test('two devices, one visible: the visible one wins and no push goes', () => {
   const r = new ConnectionRegistry();
   r.add('user', fakeSocket({ tabVisible: false }));
   r.add('user', fakeSocket({ tabVisible: true }));
-  assert.equal(r.isUserTabVisible(), true, 'if any live device is showing it, the owner has seen it');
+  assert.equal(r.isUserTabVisible(), true, 'if any live device is showing it, their person has seen it');
 });

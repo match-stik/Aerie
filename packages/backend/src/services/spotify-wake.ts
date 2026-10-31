@@ -15,8 +15,8 @@ import { SpotifyError, type SpotifyReader } from './spotify.js';
  * How long their phone gets to show up in Spotify after the push. The first
  * real wake (Oct 23 2026) found their phone 57 seconds after the push was sent,
  * with the phone's own wake taking 9 of them, so 30 seconds gave up just
- * before it got there; FCM can hold a data push that long even with the owner
- * phone awake in the owner hand.
+ * before it got there; FCM can hold a data push that long even with their person
+ * phone awake in their person hand.
  */
 export const WAKE_WAIT_MS = 120_000;
 /** How often Spotify's device list is read while waiting. */

@@ -209,7 +209,7 @@ test('a session with only an error notice still reports why', async () => {
   assert.match(usage.endedWith!, /not-a-model/);
 });
 
-// The missed-inbound replay is the owner's own words, but it is not what named the
+// The missed-inbound replay is their person's own words, but it is not what named the
 // session — taking its first line put a raw stamped
 // "Name (ISO timestamp): ..." line on the Status app as a title.
 test('the missed-message replay loses the title to what they actually said', () => {
@@ -219,7 +219,7 @@ test('the missed-message replay loses the title to what they actually said', () 
       message: { content: [
         'Stop hook feedback:',
         '[1:53 PM] #aerie Owner: ',
-        '[MISSED — 2 messages from the owner reached no turn at all.]',
+        '[MISSED — 2 messages from their person reached no turn at all.]',
         'Owner (2026-08-21T05:51:59.209Z): That can wait for now, let us look at the settings page.',
         'Owner (2026-08-21T05:55:21.818Z): I think it is only the header, to be honest.',
         '[End of missed messages.]',
@@ -235,14 +235,14 @@ test('the missed-message replay loses the title to what they actually said', () 
 });
 
 // ...but a turn whose only content IS the replay still gets named, with the
-// timestamp furniture stripped. The owner's words beat no words.
+// timestamp furniture stripped. Their person's words beat no words.
 test('a replay-only turn falls back to the replayed words, unstamped', () => {
   const head = JSON.stringify({
     type: 'user', isMeta: true,
     message: { content: [
       'Stop hook feedback:',
       '[1:53 PM] #aerie Owner: ',
-      '[MISSED — 1 message from the owner reached no turn at all.]',
+      '[MISSED — 1 message from their person reached no turn at all.]',
       'Owner (2026-08-21T05:51:59.209Z): That can wait for now, let us look at the settings page.',
       '[End of missed messages.]',
     ].join('\n') },

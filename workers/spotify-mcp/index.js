@@ -103,8 +103,8 @@ function artistNames(media) {
 }
 __name(artistNames, "artistNames");
 
-// The owner's own Spotify user id, so a playlist can say whether it is theirs to change.
-// Since Feb 2026 only playlists the owner owns or collaborates on return their items.
+// Their person's own Spotify user id, so a playlist can say whether it is theirs to change.
+// Since Feb 2026 only playlists their person owns or collaborates on return their items.
 async function myUserId(env) {
   const cached = await env.SPOTIFY_KV.get("me_id");
   if (cached) return cached;
@@ -139,16 +139,16 @@ var TOOLS = [
   { name: "spotify_reorder_tracks", description: "Move songs within a playlist: the range_length songs starting at range_start go before the song now at insert_before (0-based)", inputSchema: { type: "object", properties: { playlist_id: { type: "string" }, range_start: { type: "number" }, insert_before: { type: "number" }, range_length: { type: "number", default: 1 } }, required: ["playlist_id", "range_start", "insert_before"] } },
   { name: "spotify_playlist_cover", description: "Set a playlist's picture: a base64 JPEG, 256 KB at most once encoded", inputSchema: { type: "object", properties: { playlist_id: { type: "string" }, image_base64: { type: "string" } }, required: ["playlist_id", "image_base64"] } },
   { name: "spotify_player_state", description: "What the player is doing: playing or paused, shuffle, repeat, volume, position and which device", inputSchema: { type: "object", properties: {} } },
-  { name: "spotify_devices", description: "The owner's devices Spotify can play on right now", inputSchema: { type: "object", properties: {} } },
+  { name: "spotify_devices", description: "Their person's devices Spotify can play on right now", inputSchema: { type: "object", properties: {} } },
   { name: "spotify_transfer", description: "Move playback to a device (from spotify_devices)", inputSchema: { type: "object", properties: { device_id: { type: "string" }, play: { type: "boolean", default: true } }, required: ["device_id"] } },
   { name: "spotify_shuffle", description: "Shuffle on or off", inputSchema: { type: "object", properties: { state: { type: "boolean" } }, required: ["state"] } },
   { name: "spotify_repeat", description: "Repeat the song (track), the playlist or album (context), or off", inputSchema: { type: "object", properties: { state: { type: "string", enum: ["track", "context", "off"] } }, required: ["state"] } },
   { name: "spotify_volume", description: "Set the volume, 0 to 100", inputSchema: { type: "object", properties: { percent: { type: "number" } }, required: ["percent"] } },
   { name: "spotify_seek", description: "Jump to a point in the song, in milliseconds from the start", inputSchema: { type: "object", properties: { position_ms: { type: "number" } }, required: ["position_ms"] } },
-  { name: "spotify_saved_tracks", description: "The owner's Liked Songs, newest first", inputSchema: { type: "object", properties: { limit: { type: "number", default: 50 }, offset: { type: "number", default: 0 } } } },
-  { name: "spotify_save", description: "Heart songs (or albums) into the owner's library, by Spotify URI", inputSchema: { type: "object", properties: { uris: { type: "array", items: { type: "string" } } }, required: ["uris"] } },
-  { name: "spotify_unsave", description: "Take songs (or albums) out of the owner's library, by Spotify URI", inputSchema: { type: "object", properties: { uris: { type: "array", items: { type: "string" } } }, required: ["uris"] } },
-  { name: "spotify_is_saved", description: "Whether each of these Spotify URIs is in the owner's library", inputSchema: { type: "object", properties: { uris: { type: "array", items: { type: "string" } } }, required: ["uris"] } }
+  { name: "spotify_saved_tracks", description: "Their person's Liked Songs, newest first", inputSchema: { type: "object", properties: { limit: { type: "number", default: 50 }, offset: { type: "number", default: 0 } } } },
+  { name: "spotify_save", description: "Heart songs (or albums) into their person's library, by Spotify URI", inputSchema: { type: "object", properties: { uris: { type: "array", items: { type: "string" } } }, required: ["uris"] } },
+  { name: "spotify_unsave", description: "Take songs (or albums) out of their person's library, by Spotify URI", inputSchema: { type: "object", properties: { uris: { type: "array", items: { type: "string" } } }, required: ["uris"] } },
+  { name: "spotify_is_saved", description: "Whether each of these Spotify URIs is in their person's library", inputSchema: { type: "object", properties: { uris: { type: "array", items: { type: "string" } } }, required: ["uris"] } }
 ];
 async function handleTool(name, args, env) {
   switch (name) {
@@ -178,7 +178,7 @@ async function handleTool(name, args, env) {
       } catch (error) {
         // With no device named, Spotify plays only on an ACTIVE one, and a phone with the app
         // open but nothing played on it yet is available without being active. On that refusal,
-        // name one of the owner's available devices (the active one, else a phone, else the first) and
+        // name one of their person's available devices (the active one, else a phone, else the first) and
         // ask once more. Nothing available at all still answers with Spotify's own refusal.
         if (args.device_id || !/NO_ACTIVE_DEVICE/.test(String(error && error.message))) throw error;
         const listed = await spotifyFetch(env, "/me/player/devices");
@@ -398,7 +398,7 @@ __name(handleMCP, "handleMCP");
 // MCP_SECRET set the worker answers anyone who has its address, the way it
 // always has. With MCP_SECRET set, /mcp needs it as an Authorization: Bearer
 // header or ?key= on the address, and so does /auth, because whoever opens
-// /auth can sign their own Spotify in over the owner's. /auth also leaves a
+// /auth can sign their own Spotify in over their person's. /auth also leaves a
 // one-time state in KV for ten minutes, and /callback refuses any sign-in that
 // does not hand that state back, so a link nobody started here goes nowhere.
 function sameKey(given, expected) {

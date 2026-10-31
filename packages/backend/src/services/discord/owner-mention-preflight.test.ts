@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Preflight's half of owner mentions: exactly where a message would be turned
-// away for not addressing us, a message about the owner is delivered instead,
+// away for not addressing us, a message about their person is delivered instead,
 // heard and not answered. Everything above that line must keep winning exactly
 // as it did before, which is what most of these tests are for.
 
@@ -97,7 +97,7 @@ function batchOf(
 const run = (b: MessageBatch) => preflight(b, pairing);
 const switchedOn = () => setConfig('discord.owner_mentions', 'true');
 
-test('switched off, a message about the owner is turned away exactly as before', async () => {
+test('switched off, a message about their person is turned away exactly as before', async () => {
   setConfig('discord.owner_mentions', 'false');
   const result = await run(batchOf([discordMessage({ content: `<@${OWNER}> hi`, mentioned: [OWNER] })]));
   assert.equal(result.allowed, false);
@@ -106,7 +106,7 @@ test('switched off, a message about the owner is turned away exactly as before',
   assert.equal(result.ownerMention, undefined);
 });
 
-test('switched on, an @mention of the owner is heard, not answered, and says why', async () => {
+test('switched on, an @mention of their person is heard, not answered, and says why', async () => {
   switchedOn();
   const result = await run(batchOf([discordMessage({ content: `<@${OWNER}> hi`, mentioned: [OWNER] })]));
   assert.equal(result.allowed, false, 'nobody answers it');
@@ -115,7 +115,7 @@ test('switched on, an @mention of the owner is heard, not answered, and says why
   assert.match(result.reason, /mention/);
 });
 
-test('a reply to the owner and their name from a person are heard too, each named for what it was', async () => {
+test('a reply to their person and their name from a person are heard too, each named for what it was', async () => {
   switchedOn();
   const reply = await run(batchOf([discordMessage({ content: 'agreed', repliedTo: OWNER, mentioned: [OWNER] })]));
   assert.equal(reply.deliver, true);
@@ -191,7 +191,7 @@ test("a delivery spends none of a bot's turns", async () => {
   const result = await run(batchOf([
     discordMessage({ authorId: BOT, bot: true, content: `<@${OWNER}> look`, mentioned: [OWNER] }),
   ]));
-  assert.equal(result.ownerMention, 'mention', "a known bot's explicit mention of the owner counts");
+  assert.equal(result.ownerMention, 'mention', "a known bot's explicit mention of their person counts");
   assert.equal(botRepliesUsed(CHANNEL), 0, 'nothing was answered, so nothing was counted');
 });
 
@@ -202,7 +202,7 @@ test('a known bot saying their name is still just turned away', async () => {
   assert.equal(result.deliver, undefined);
 });
 
-test('their own message is never delivered back to the owner as one about the owner', async () => {
+test('their own message is never delivered back to their person as one about their person', async () => {
   switchedOn();
   const result = await run(batchOf([
     discordMessage({ authorId: OWNER, content: `Owner here <@${OWNER}>`, mentioned: [OWNER] }),
@@ -211,7 +211,7 @@ test('their own message is never delivered back to the owner as one about the ow
   assert.equal(result.deliver, undefined);
 });
 
-test('a later message in the same batch can be the one about the owner', async () => {
+test('a later message in the same batch can be the one about their person', async () => {
   switchedOn();
   const result = await run(batchOf([
     discordMessage({ content: 'hey' }),

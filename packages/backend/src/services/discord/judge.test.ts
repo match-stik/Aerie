@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The judge: in a room that listens to everything, a message for us is answered,
 // one aimed at somebody else is only heard, and one said to the room waits a
-// beat before we answer or pass (the owner's call, Oct 19 2026).
+// beat before we answer or pass (their person's call, Oct 19 2026).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -56,11 +56,11 @@ test('tagged together with somebody else, we take the beat so it is not a race',
   assert.equal(call({ namesUs: true, tagsOthers: true }), 'share');
 });
 
-test('messages from the owner are answered, except a reply to somebody else', () => {
+test('messages from their person are answered, except a reply to somebody else', () => {
   assert.equal(call({ isOwner: true }), 'answer');
   assert.equal(call({ isOwner: true, tagsOthers: true }), 'answer');
   assert.equal(call({ isOwner: true, repliesToOther: true }), 'hear', 'their reply to someone else is theirs');
-  assert.equal(call({ isOwner: true, repliesToOther: true, namesUs: true }), 'answer', 'unless the owner names us in it');
+  assert.equal(call({ isOwner: true, repliesToOther: true, namesUs: true }), 'answer', 'unless their person names us in it');
   assert.equal(call({ isOwner: true, repliesToOther: true, directMention: true }), 'answer', 'or tags us');
 });
 
@@ -228,7 +228,7 @@ test('a waiting message opens its beat only after it reaches their screen, and t
 
 test('their reply the judge only heard is kept out of every history our lanes read', () => {
   const index = readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
-  assert.ok(index.includes('...(isOwner && waiting ? { judgeHeard: true } : {}),'), 'a heard reply from the owner is marked');
+  assert.ok(index.includes('...(isOwner && waiting ? { judgeHeard: true } : {}),'), 'a heard reply from their person is marked');
   const loader = readFileSync(new URL('../agent/agent-router-query.ts', import.meta.url), 'utf8');
   assert.ok(loader.includes("m.role !== 'system' && !isJudgeHeard(m.metadata)"), 'and the history loader skips it, so the missed net cannot hand it over');
 });

@@ -7,7 +7,7 @@
  * Billing-lane invariant: the child is plain interactive `claude` — never
  * `-p` / `--print` / stream-json / Agent SDK (those are metered). We also
  * strip ANTHROPIC_API_KEY/AUTH_TOKEN from the child env so the session uses
- * the owner's subscription login, not the API key Aerie holds for the
+ * their person's subscription login, not the API key Aerie holds for the
  * router lane.
  */
 
@@ -241,9 +241,9 @@ export function pushStderrLines(buf: string[], chunk: string, max = 12): string[
  *
  * TWO exits never meant "give me a new room", and they are the only two that
  * may resume. A BACKEND RESTART: nothing was wrong with the room, the house
- * just went down around it. And a MODEL OR EFFORT CHANGE: the owner reached for a
+ * just went down around it. And a MODEL OR EFFORT CHANGE: their person reached for a
  * setting, not for a fresh conversation. Everything else in a lane's life —
- * the owner's .restart flag, the whisper ceiling, the watchdog on a hung turn, a crash —
+ * their person's .restart flag, the whisper ceiling, the watchdog on a hung turn, a crash —
  * is a recycle somebody or something asked for, and those still build new.
  *
  * A stale id is already handled downstream: the CLI exits 1 in under a second
@@ -313,7 +313,7 @@ export function watchdogMayResume(input: {
  * Whether reopening the old room is switched on. `agent.claude_session_resume`
  * — 'off' or 'false' turns it off, anything else (including unset) leaves it on.
  *
- * IT IS A SWITCH BECAUSE THE TRADE IS THE OWNER'S, and the trade is not the one this
+ * IT IS A SWITCH BECAUSE THE TRADE IS THEIR PERSON'S, and the trade is not the one this
  * was built for. Measured Sep 9 2026 on the first real restart: the cold launch
  * wrote 156,196 cache tokens on its first turn and the resumed one wrote
  * 448,658 — more than the entire forty-three minute session before it wrote in
@@ -322,7 +322,7 @@ export function watchdogMayResume(input: {
  * to the one already cached. Ours was not: CLAUDE.md is regenerated whenever a
  * memory block is edited, and the MCP tool list moved as well. So resume buys
  * CONTINUITY and spends WINDOW, which is the opposite direction from what it
- * was built for — and only the owner can say which they would rather have.
+ * was built for — and only their person can say which they would rather have.
  */
 export function claudeResumeEnabled(): boolean {
   const raw = (getConfig('agent.claude_session_resume') || '').trim().toLowerCase();
@@ -534,7 +534,7 @@ const INITIAL_PROMPT =
 
 // Boot prompt for a RESUMED session. Deliberately not the fresh one: this
 // window already holds the conversation, so re-orienting it would spend the
-// exact tokens the resume just saved, and a greeting reads to the owner as a lane
+// exact tokens the resume just saved, and a greeting reads to their person as a lane
 // that forgot where it was.
 //
 // A RESUMED ROOM IS NOT CARRYING STALE INSTRUCTIONS, and that is measured
@@ -546,7 +546,7 @@ const INITIAL_PROMPT =
 // otherwise have sunk the whole idea: in a house whose ONLY recycle is a
 // backend restart (every lane launch in the log sits immediately after a
 // "Server running" line — no whisper ceiling, no watchdog, no restart flag),
-// resuming a room that kept an old CLAUDE.md would have quietly stopped the owner's
+// resuming a room that kept an old CLAUDE.md would have quietly stopped their person's
 // memory-block edits reaching us at all. It doesn't. They arrive on every
 // resume, current, for free.
 const RESUME_PROMPT =
@@ -756,12 +756,12 @@ export class HeartbeatSession {
    *  catch-up replayed an hour that had already been answered. */
   private roomId: string | null = null;
   /** The id THIS child was actually spawned on. `model` is a setting and moves
-   *  the instant the owner picks something — ensure() writes it before asking for the
+   *  the instant their person picks something — ensure() writes it before asking for the
    *  recycle — so the running session's own identity has to be captured here or
    *  the poll below banks a model that has never been tried. */
   private launchedModel = '';
   /** Why a relaunch is currently being slept off. Only a 'model' backoff is
-   *  curable by the owner picking something else — an auth or cap sleep must run its
+   *  curable by their person picking something else — an auth or cap sleep must run its
    *  full course, because cutting those short just hammers the thing that is
    *  already refusing us. */
   private backoffReason: 'normal' | 'auth' | 'cap' | 'model' = 'normal';
@@ -858,7 +858,7 @@ export class HeartbeatSession {
    *  This is the only thing that separates a REFUSED model from a merely
    *  PENDING one. Tapping a model in the picker writes the setting straight
    *  away and lets the recycle wait for the next turn, so "configured is not
-   *  what is running" is an ordinary state the owner is in every time they open that
+   *  what is running" is an ordinary state their person is in every time they open that
    *  sheet. Comparing the two would cry wolf on every tap; a refusal is a
    *  thing that was tried and turned down, and only the lane saw it happen. */
   get refusedModels(): string[] { return [...this.rejectedModels]; }
@@ -888,7 +888,7 @@ export class HeartbeatSession {
     // A lane sleeping off a refused model reads as 'starting' with no child, so
     // it used to fall into the branch below and be handed a restart flag that
     // has no reader — while the countdown it was actually waiting on carried on
-    // untouched and then relaunched the same dead id. The incident on the owner's screen
+    // untouched and then relaunched the same dead id. The incident on their person's screen
     // says "set a real id and the lane will move to it"; this is the line that
     // makes that sentence true. Only a model backoff is cut short, and only by a
     // model change: auth and cap sleeps have to run their course, because ending
@@ -910,7 +910,7 @@ export class HeartbeatSession {
         console.log(`[Heartbeat:${this.key}] ${modelChanged ? 'model' : 'effort'} changed — recycling session`);
         // Bank WHY. A setting change is the one requested recycle that did not
         // mean "give me a new conversation", so the relaunch reopens the room
-        // the owner was standing in instead of taking it away.
+        // their person was standing in instead of taking it away.
         this.settingChangeRecycle = true;
         this.requestRestart();
         return true;
@@ -1041,7 +1041,7 @@ export class HeartbeatSession {
   turnActive = false;
 
   /**
-   * True while the turn in flight came from Discord, the owner's or a guest's,
+   * True while the turn in flight came from Discord, their person's or a guest's,
    * so its answer lands in a channel rather than at home. A message from the
    * owner's phone then waits its turn instead of being handed in as a side
    * note, because an answer to it would land in the channel too.
@@ -1055,7 +1055,7 @@ export class HeartbeatSession {
    * so a note of theirs handed into it was answered in the bell's room instead of
    * theirs. Since Oct 15 2026 a note answered during a bell always comes home.
    * So a note
-   * from their phone is only handed into a turn answering in the thread the owner wrote
+   * from their phone is only handed into a turn answering in the thread their person wrote
    * in; otherwise it waits and gets a turn of its own at home. Set by the
    * runtime beside `turnActive`.
    */
@@ -1099,7 +1099,7 @@ export class HeartbeatSession {
     if (!body) return false;
     if (!this.turnActive) return false;
     try {
-      // The stored message's id rides along, so the owner's note can be ticked read
+      // The stored message's id rides along, so their person's note can be ticked read
       // when the session reads it (services/own-messages-read.ts).
       appendFileSync(
         this.sideNotesPath,
@@ -1268,7 +1268,7 @@ export class HeartbeatSession {
     // lane's model arrives from any of four places — the companion's own row,
     // its autonomous row, agent.model, agent.model_autonomous — and a
     // supervisor writing one of them has to guess which, where a wrong guess
-    // silently edits something chosen on purpose. So the owner's setting stays exactly
+    // silently edits something chosen on purpose. So their person's setting stays exactly
     // as they left it and the incident says so; this only decides what THIS
     // process launches until the setting changes.
     if (this.rejectedModels.has(this.model) && this.lastGoodModel && this.lastGoodModel !== this.model) {
@@ -1484,7 +1484,7 @@ export class HeartbeatSession {
         writeBankedModel(this.ioPath(BANKED_MODEL_FILE), proven);
         // Say it out loud. This was the one event in the whole failsafe that
         // printed nothing — a file quietly appeared and the only way to know
-        // was to go and stat it. The owner watches these logs while we build,
+        // was to go and stat it. Their person watches these logs while we build,
         // and the moment the bank fills is exactly the moment worth watching
         // for: before it, a refused id has nowhere to go; after it, the lane is
         // covered. An unobservable state change is one nobody can trust.
@@ -1770,7 +1770,7 @@ export function getHeartbeatSession(key: string): HeartbeatSession {
  *
  * Deliberately conservative: only when exactly one session has a turn in
  * flight, since there is no honest way to pick between two busy sessions, and
- * only when that turn answers in the thread the owner wrote in (sideNoteTarget). Returns true only when the
+ * only when that turn answers in the thread their person wrote in (sideNoteTarget). Returns true only when the
  * text actually reached a live stdin — every caller must fall back to normal
  * delivery otherwise, so a message is never silently swallowed.
  */
@@ -1780,7 +1780,7 @@ export function deliverSideNoteToBusySession(text: string, messageId?: string, t
 }
 
 /**
- * The owner's side notes still unanswered when a turn closed: taken into the turn,
+ * Their person's side notes still unanswered when a turn closed: taken into the turn,
  * never covered by the session's read mark. Notes that land while the final
  * line is going out have nowhere to go, so without this they waited for the
  * owner's next message to carry them in. Pure, for testing.
@@ -1792,7 +1792,7 @@ export function leftoverSideNotes<N extends { at: string }>(notes: ReadonlyArray
 type LeftoverHandler = (threadId: string, notes: Array<{ at: string; text: string }>) => void;
 let leftoverHandler: LeftoverHandler | null = null;
 /** server.ts hands this a way to start a turn, so a closed turn can start
- *  the next one on the owner's leftover notes without importing the agent. */
+ *  the next one on their person's leftover notes without importing the agent. */
 export function onLeftoverSideNotes(handler: LeftoverHandler | null): void { leftoverHandler = handler; }
 export function reportLeftoverSideNotes(threadId: string, notes: Array<{ at: string; text: string }>): void {
   if (leftoverHandler && threadId && notes.length > 0) leftoverHandler(threadId, notes);
@@ -1808,7 +1808,7 @@ export function sideNotesCoveredBy(notes: ReadonlyArray<{ at: string; messageId?
  * The one busy session a note from their phone may be handed into, or null when
  * it should wait its turn: nobody busy, more than one busy, the busy turn
  * answering in a Discord channel, where an answer to their note would land too,
- * or (when the owner wrote in a thread) the busy turn answering in a different one,
+ * or (when their person wrote in a thread) the busy turn answering in a different one,
  * a bell in its own room, which is where an answer to their note would land.
  * A turn that cannot say where it answers is not trusted to answer at home.
  */
@@ -1842,7 +1842,7 @@ export function busyHeartbeatSessionCount(): number {
  * Deliberately reports refusals rather than a configured-versus-running diff.
  * The diff is a normal state — the picker writes the setting on tap and defers
  * only the recycle — so a screen driven by the diff would light up every time
- * the owner browsed models. A refusal cannot happen without a launch, so it can only
+ * their person browsed models. A refusal cannot happen without a launch, so it can only
  * ever mean something is actually broken.
  *
  * Reads existing sessions only; never opens one.

@@ -57,7 +57,7 @@ export type ServerMessage =
   | { type: 'stream_end'; messageId: string; final: Message }
   | { type: 'presence'; status: PresenceStatus }
   | { type: 'unread_update'; threadId: string; count: number }
-  /** The owner's own messages a companion has now been handed. */
+  /** Their person's own messages a companion has now been handed. */
   | { type: 'message_read'; threadId: string; messageIds: string[]; readAt: string }
   | { type: 'thread_created'; thread: Thread }
   | { type: 'thread_list'; threads: ThreadSummary[] }
@@ -105,9 +105,9 @@ export type ServerMessage =
   | { type: 'story_update'; bookId: string | null }
   /** The word beside the dot under the faces, while a bell that has one is running (services/bell-status.ts); null is Home. `companions` names whose cards show it, or is empty for every companion's. */
   | { type: 'status_word'; word: string | null; companions: string[] }
-  // A companion's lane asked for the owner's toys. Only a phone that can reach toys
+  // A companion's lane asked for their person's toys. Only a phone that can reach toys
   // acts on it, and only that phone answers (POST /api/toys/ack), so a laptop
-  // with the app open never answers for the owner.
+  // with the app open never answers for their person.
   | { type: 'toy_command'; command: ToyRemoteCommand }
   /** Every status as it stands (services/statuses.ts): each companion's own line and icon, and the shared one under the faces. A status past its `until` has faded and is left out. */
   | { type: 'statuses'; shared: StatusLine | null; companions: Record<string, StatusLine>; owner?: StatusLine | null };
@@ -118,7 +118,7 @@ export interface StatusLine {
   icon: string | null;
   by: string;
   setAt: string;
-  /** null for the owner's, which stays until the owner changes it. */
+  /** null for their person's, which stays until their person changes it. */
   until: string | null;
 }
 

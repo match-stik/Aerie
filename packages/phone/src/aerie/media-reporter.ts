@@ -1,13 +1,13 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Carries what the owner's phone is playing to the house, quietly.
+// Carries what their person's phone is playing to the house, quietly.
 //
 // THE ASK: no going out of the app and back in to check, and nothing
 // cluttering up the messages app. So this has NO INTERFACE AT ALL. No button,
-// no panel, nothing on the chat screen. It runs while the owner has Aerie open and
+// no panel, nothing on the chat screen. It runs while their person has Aerie open and
 // posts a small reading; a companion looks at the house rather than asking them
 // to fetch a number off another screen.
 //
-// IT ONLY WORKS BECAUSE OF HOW THE OWNER WATCHES. The show floats in a little window
+// IT ONLY WORKS BECAUSE OF HOW THEIR PERSON WATCHES. The show floats in a little window
 // over Aerie, which means Aerie is the app in front and its timers keep
 // running. An app Android has put to sleep reports nothing, and this says so
 // rather than pretending — see stopped-ness in the payload.
@@ -31,7 +31,7 @@ export const IDLE_INTERVAL_MS = 60_000;
  * Deliberately WIDER than followableSession(): that one picks what the clock
  * may follow and refuses anything without a position, which is right for a
  * clock and wrong for a report. A player that publishes no position is still
- * a fact worth carrying — it is the difference between "the owner stopped watching"
+ * a fact worth carrying — it is the difference between "their person stopped watching"
  * and "we cannot see".
  */
 export function reportableSession(sessions: MediaSessionReading[]): MediaSessionReading | null {
@@ -67,7 +67,7 @@ export function payloadFor(session: MediaSessionReading) {
  * Every failure here is swallowed on purpose. This is a background courtesy;
  * if it cannot reach the house, or the grant has been revoked, or Android
  * refuses mid-call, the correct behaviour is to go quiet and try again later
- * rather than to put anything at all in front of the owner.
+ * rather than to put anything at all in front of their person.
  */
 export function startMediaReporter(): () => void {
   if (!mediaSessionSupported()) return () => {};

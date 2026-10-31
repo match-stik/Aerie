@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS card_tables (
   status TEXT NOT NULL CHECK(status IN ('open', 'playing', 'complete')),
   -- the shuffled order, as card ids: the deck is dealt off the front of this
   deck_json TEXT NOT NULL DEFAULT '[]',
-  -- one entry per seat, keyed by slug: each companion's, and the owner's
+  -- one entry per seat, keyed by slug: each companion's, and their person's
   seats_json TEXT NOT NULL DEFAULT '{}',
   -- face-up in the middle, most recent last
   pile_json TEXT NOT NULL DEFAULT '[]',

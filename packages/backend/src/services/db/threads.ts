@@ -65,10 +65,10 @@ export function getTodayThread(): Thread | null {
 /**
  * Where an unaddressed message lands when nothing else named a thread —
  * an impulse with no thread_id, a socket message with no threadId, a wake
- * that found the owner nowhere.
+ * that found their person nowhere.
  *
  * Daily threads are on by default, so this behaves exactly as it always has.
- * With `orchestrator.daily_threads` set false the owner has said they never
+ * With `orchestrator.daily_threads` set false their person has said they never
  * want one: fall back to their home thread instead, and only mint a daily as
  * the last resort when no home thread is configured. Turning them off is
  * per-install, so it takes nothing from anyone who wants theirs.
@@ -120,8 +120,8 @@ export function getMostRecentActiveThread(): Thread | null {
 /**
  * The most recently active thread other than one. A Discord room's own
  * channel thread keeps itself newest while guests talk in a listening room,
- * and the owner's messages there were following it out of their home thread
- * (Oct 19 2026); routing the owner home skips the room's own thread.
+ * and their person's messages there were following it out of their home thread
+ * (Oct 19 2026); routing their person home skips the room's own thread.
  */
 export function getMostRecentActiveThreadExcept(excludeId: string): Thread | null {
   const stmt = getDb().prepare(`

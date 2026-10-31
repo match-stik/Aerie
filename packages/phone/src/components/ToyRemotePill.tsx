@@ -1,14 +1,14 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The stop that follows the owner around the app whenever they have handed
+// The stop that follows their person around the app whenever they have handed
 // the companions the remote. While a companion is playing the toys it glows
 // in that companion's color, shows what each motor is doing, and its STOP is
-// the owner's full stop: every toy, the native hold, and the remote back in
-// the owner's hands. While nothing is playing it
+// their person's full stop: every toy, the native hold, and the remote back in
+// their person's hands. While nothing is playing it
 // is a quiet reminder that the remote is out, with a way to take it back.
 //
 // The Toys page has its own card for all of this, so the pill stays off it.
 //
-// The owner can drag it to wherever it sits best, the way the voice call's
+// Their person can drag it to wherever it sits best, the way the voice call's
 // dock moves (a fixed spot over the top of the chat sat awkwardly), and it
 // stays where they left it. Only the pill's body starts a drag. STOP and Take
 // it back are buttons and never do, so a press on the stop is always a stop.
@@ -122,7 +122,7 @@ export function ToyRemotePill({ hidden = false }: { hidden?: boolean }) {
     try {
       localStorage.setItem(PILL_POSITION_KEY, JSON.stringify(next));
     } catch {
-      // It stays where the owner put it for this session if storage is unavailable.
+      // It stays where their person put it for this session if storage is unavailable.
     }
   }, [measure]);
 
@@ -199,7 +199,7 @@ export function ToyRemotePill({ hidden = false }: { hidden?: boolean }) {
           <>
             <span className="flex min-w-0 flex-col leading-tight">
               <span className="truncate text-xs text-white/85">Your companions have the remote</span>
-              {/* The owner asked, Oct 23 2026: say on the card that taking it back stops them. */}
+              {/* Their person asked, Oct 23 2026: say on the card that taking it back stops them. */}
               <span className="truncate text-[10px] text-white/55">Taking it back stops every toy</span>
             </span>
             <button

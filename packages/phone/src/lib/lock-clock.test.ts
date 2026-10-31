@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ageLabel, clampClockAt, clockParts, firstSpokenLine, lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, unreadSummary, withClockAt, withHidden } from './lock-clock.js';
 
-test('both pieces show until the owner tucks one away, and either comes back', () => {
+test('both pieces show until their person tucks one away, and either comes back', () => {
   assert.deepEqual([...lockHiddenOf(undefined)], []);
   assert.deepEqual([...lockHiddenOf(['weather', 'nonsense', 'weather'])], ['weather']);
   assert.deepEqual(withHidden(undefined, 'clock', true), ['clock']);
@@ -11,7 +11,7 @@ test('both pieces show until the owner tucks one away, and either comes back', (
   assert.deepEqual(withHidden(['weather'], 'clock', true), ['clock', 'weather']);
 });
 
-test('the weather pill sits in its corner until the owner drags it', () => {
+test('the weather pill sits in its corner until their person drags it', () => {
   assert.equal(lockWeatherAtOf(undefined), null);
   assert.equal(lockWeatherAtOf({ x: 'top', y: 1 }), null);
   assert.deepEqual(lockWeatherAtOf({ x: 0.2, y: 0.9 }), { x: 0.2, y: 0.9 });
@@ -67,7 +67,7 @@ test('nothing moves until a face is picked', () => {
   assert.equal(lockSizeOf('l'), 'l');
 });
 
-test('the message card shows names only until the owner says otherwise', () => {
+test('the message card shows names only until their person says otherwise', () => {
   assert.equal(lockShowOf(undefined), 'names');
   assert.equal(lockShowOf('first-line'), 'first-line');
 });
@@ -98,7 +98,7 @@ test('the first line skips headers and action lines, even flattened onto one lin
 
 test('a whisper reads as its words, never as the marker, flattened or not', () => {
   // The house sends a room's preview flattened onto one line, so the marker
-  // sits after the header instead of at the start of a line (the owner's screenshot,
+  // sits after the header instead of at the start of a line (their person's screenshot,
   // Oct 20 2026).
   assert.equal(firstSpokenLine('**🌫️ Willow** -# small thing first Then the rest.'), 'small thing first Then the rest.');
   assert.equal(firstSpokenLine('**🌫️ Willow**\n-# small thing first\nThen the rest.'), 'small thing first');

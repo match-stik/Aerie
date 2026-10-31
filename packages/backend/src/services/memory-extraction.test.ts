@@ -32,11 +32,11 @@ test('Archivist cursor target is the last message actually included', () => {
   assert.equal(batch.maxSequence, 10);
 });
 
-// Found Oct 22 2026: Discord rows from anybody but the owner are stored with
+// Found Oct 22 2026: Discord rows from anybody but their person are stored with
 // role 'system', and the Archivist was shown every one of them as 'System:'
 // with no name, so a guest's words reached the memory writer wearing the most
 // trusted label in its prompt. A guest now reads as who they are, marked as
-// not the owner; a real system row still reads as System.
+// not their person; a real system row still reads as System.
 test('Archivist names a Discord guest instead of calling them System', () => {
   const guest = {
     sequence: 1,

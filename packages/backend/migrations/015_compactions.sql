@@ -2,7 +2,7 @@
 -- The compactions shelf: every squash the lanes have had, kept in the house.
 --
 -- When a lane fills its window, Claude Code squashes the conversation into a
--- summary and writes it into that room's transcript. The owner Compactions page used
+-- summary and writes it into that room's transcript. Their person Compactions page used
 -- to read those transcripts directly, and Claude Code deletes old transcripts,
 -- so the summaries vanished with them. services/compaction-shelf.ts copies each
 -- one here the first time it is read, and the page is served from this table.

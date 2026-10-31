@@ -61,7 +61,7 @@ test('and the message is offered again — which is the whole point', () => {
     assert.equal(
       selectMissedInbound(users, state.lastHandedUserAt, 'an unrelated later prompt', HERS).length,
       0,
-      'the fault being repaired: the owner is already marked handed',
+      'the fault being repaired: their person is already marked handed',
     );
 
     rollbackHandedWatermark(state, path);

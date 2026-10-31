@@ -32,7 +32,7 @@ test('one attempt is one line the house keeps whole, and says what it needs to',
 
 test('a long attempt still fits the house\'s limits, first steps and last steps kept', () => {
   const steps: ConnectRecord['steps'] = Array.from({ length: 40 }, (_, i) => [i * 1000, 'error', `${i} ${'x'.repeat(110)}`]);
-  const body = connectLogBody(record({ steps, name: 'A very long name the owner gave their toy'.repeat(3) }));
+  const body = connectLogBody(record({ steps, name: 'A very long name their person gave their toy'.repeat(3) }));
   assert.ok(body.message.length <= 500, `message ${body.message.length}`);
   assert.ok(body.stack.length <= 2000, `stack ${body.stack.length}`);
   const kept = JSON.parse(body.stack) as [number, string, string?][];

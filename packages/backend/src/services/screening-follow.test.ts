@@ -26,7 +26,7 @@ test('a PLAYING reading never moves the position, because it counts adverts', ()
   assert.ok(!('positionMs' in a), 'must not carry a position');
 });
 
-test('already running with the owner is left alone', () => {
+test('already running with their person is left alone', () => {
   assert.equal(followAction(reading({ state: 'playing' }), screening({ status: 'playing' }), 1_000).kind, 'none');
 });
 

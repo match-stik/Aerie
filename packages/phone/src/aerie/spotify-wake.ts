@@ -6,7 +6,7 @@
 // sent once more (lib/spotify.ts pressAndLook). When the kit gives no answer
 // (Oct 23 2026, their first try: it never called back and the press spun), the
 // plugin sends Spotify a media play key instead, and the page waits for
-// Spotify to show up among the owner devices before trying again. Nothing here can
+// Spotify to show up among their person devices before trying again. Nothing here can
 // hold a press longer than WAKE_CEILING_MS. In a browser, or an app from
 // before the kit, there is nothing to wake and the old sentence stands.
 
@@ -22,7 +22,7 @@ interface SpotifyRemoteBridge {
 
 /** The longest a wake may take, the native half's own nine-second wait included; a press never spins past it. */
 const WAKE_CEILING_MS = 20_000;
-/** After the media key, how long to watch for Spotify to show up as one of the owner devices. */
+/** After the media key, how long to watch for Spotify to show up as one of their person devices. */
 const DEVICE_WATCH_MS = 10_000;
 
 function within<T>(work: Promise<T>, ms: number): Promise<T | 'timeout'> {
@@ -32,7 +32,7 @@ function within<T>(work: Promise<T>, ms: number): Promise<T | 'timeout'> {
   });
 }
 
-/** Wait until Spotify lists a phone among the owner devices (it is running and signed in there), or give up. */
+/** Wait until Spotify lists a phone among their person devices (it is running and signed in there), or give up. */
 async function deviceShowsUp(): Promise<number | null> {
   const started = Date.now();
   while (Date.now() - started < DEVICE_WATCH_MS) {
@@ -106,8 +106,8 @@ export async function wakeSpotify(): Promise<boolean> {
     return false;
   }
   try {
-    // The owner second try on Oct 23 2026 showed the kit starts Spotify and then
-    // never calls back, so the page watches for Spotify to show up among the owner
+    // Their person second try on Oct 23 2026 showed the kit starts Spotify and then
+    // never calls back, so the page watches for Spotify to show up among their person
     // devices from the start, and whichever comes first ends the wake.
     const started = Date.now();
     let watching = true;

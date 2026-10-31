@@ -67,7 +67,7 @@ test('a turn clears a queued prime even when nothing armed in between', () => {
 });
 
 test('a refused model draws one recycle chip, not two', () => {
-  // The incident, in order: the owner's model change relaunches the lane; the turn
+  // The incident, in order: their person's model change relaunches the lane; the turn
   // waits for that launch, consumes its flag and writes the history into the
   // inbox; that session is refused at the door and dies; its successor
   // launches and READS the primed message. Before this, the exit and the

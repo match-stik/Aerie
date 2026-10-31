@@ -95,7 +95,7 @@ test('the phone answer is what the lane gets back', async () => {
   const waiting = relayToyCommand(shaped.command, { broadcast: (m) => sent.push(m), connected: () => true, waitMs: 1000 });
   assert.deepEqual(sent, [{ type: 'toy_command', command: shaped.command }]);
   assert.equal(recordToyAck({ id: 'someone-else', ok: true }), false);
-  assert.equal(recordToyAck({ id: 'c8', ok: false, reason: 'closed', detail: 'The owner has not handed you the remote.' }), true);
+  assert.equal(recordToyAck({ id: 'c8', ok: false, reason: 'closed', detail: 'Their person has not handed you the remote.' }), true);
   const ack = await waiting;
   assert.equal(ack.reason, 'closed');
   assert.equal(toyRemoteStatus(() => true).last?.ack?.reason, 'closed');

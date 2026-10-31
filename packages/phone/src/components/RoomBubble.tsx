@@ -4,7 +4,7 @@
 // 2026: 'all the settings should carry over to our chat tables other places
 // ... You know me and my consistency thing.' The rooms used to draw their own
 // plain cards; now they draw MessageBubble from one shared set of their settings,
-// so anything the owner changes in Look & feel follows into every room with nothing
+// so anything their person changes in Look & feel follows into every room with nothing
 // to keep in sync.
 import React, { createContext, useContext } from 'react';
 import { MessageBubble } from './MessageBubble';

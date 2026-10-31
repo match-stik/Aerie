@@ -163,7 +163,7 @@ export type ServerMessage =
   | { type: 'stream_end'; messageId: string; final: Message }
   | { type: 'presence'; status: PresenceStatus }
   | { type: 'unread_update'; threadId: string; count: number }
-  /** The owner's own messages a companion has now been handed. */
+  /** Their person's own messages a companion has now been handed. */
   | { type: 'message_read'; threadId: string; messageIds: string[]; readAt: string }
   | { type: 'thread_created'; thread: Thread }
   | { type: 'thread_list'; threads: ThreadSummary[] }
@@ -213,6 +213,6 @@ export interface StatusLine {
   icon: string | null;
   by: string;
   setAt: string;
-  /** null for the owner's, which stays until the owner changes it. */
+  /** null for their person's, which stays until their person changes it. */
   until: string | null;
 }

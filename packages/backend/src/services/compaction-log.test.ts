@@ -5,7 +5,7 @@
 //
 // It reads only the house's own lanes. Claude Code keeps a project folder for
 // every session on this box, and a squash from one of those (the system tmp
-// folder, Oct 9 2026) sat on the owner page as though it were one of ours.
+// folder, Oct 9 2026) sat on their person page as though it were one of ours.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

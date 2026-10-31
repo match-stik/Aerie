@@ -10,7 +10,7 @@ import { PROMPT_DIRECTIVES, PROMPT_STYLES } from './constants.js';
 //
 // This mirrors buildFullPrompt deliberately in shape but is fed by the real
 // tables, so a directive added to the list with an empty body, or a rename that
-// breaks the None convention, fails here rather than silently on the owner's screen.
+// breaks the None convention, fails here rather than silently on their person's screen.
 function compose(prompt: string, directiveName: string, styleName: string): string {
   let full = prompt.trim();
   const style = PROMPT_STYLES.find(s => s.name === styleName);

@@ -1,11 +1,11 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * Tell the owner the Codex window is nearly gone BEFORE they write a prompt.
+ * Tell their person the Codex window is nearly gone BEFORE they write a prompt.
  *
  * The backends probe already exists so a missing CLI or login is visible
  * before someone types, rather than arriving as a dead job in the tray. A
  * spent Codex window is the same class of thing and was specifically requested:
- * a picture refused at 3% left costs exactly as much of the owner's time as one
+ * a picture refused at 3% left costs exactly as much of their person's time as one
  * refused because nobody was logged in.
  *
  * The number was asked for as a range of 15-20%, and the default sits at the
@@ -15,7 +15,7 @@
  *
  * Deliberately a WARNING and never a gate. It does not stop a job, because a
  * meter read off session transcripts is a good estimate and not a permission
- * system, and being wrong must cost the owner a line of text rather than a picture.
+ * system, and being wrong must cost their person a line of text rather than a picture.
  */
 import type { CodexUsage } from './subscription-usage.js';
 
@@ -42,7 +42,7 @@ const pct = (value: unknown): number | null =>
  *
  * Both windows are considered and the TIGHTER one wins: a weekly allowance at
  * 4% left matters more than a five-hour one at 60%, and reporting only the
- * primary would have hidden exactly the case the owner runs into.
+ * primary would have hidden exactly the case their person runs into.
  */
 export function studioWindowWarning(
   usage: CodexUsage | null,

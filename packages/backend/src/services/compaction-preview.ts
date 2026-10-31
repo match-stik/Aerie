@@ -2,7 +2,7 @@
 /**
  * The part of a compaction summary worth showing before it is opened.
  *
- * The owner Compactions page used to preview the first four hundred characters of
+ * Their person Compactions page used to preview the first four hundred characters of
  * each summary. Every summary of the shared room opens with the same thing —
  * "This session is being continued from a previous conversation", then the
  * standing-role paragraph — so two squashes a day apart looked like copies of

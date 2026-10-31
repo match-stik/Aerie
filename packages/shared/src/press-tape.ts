@@ -6,7 +6,7 @@
  * a colour and a seed, from which the exact same SVG can be rebuilt on demand.
  * That generator is pure string work — no canvas, no DOM, nothing that needs a
  * browser — but it lived in packages/phone, so the only hand that could reach
- * it was the owner's on the editor screen. A companion composing a spread from a lane
+ * it was their person's on the editor screen. A companion composing a spread from a lane
  * could place photographs and could not put one piece of tape on top of them,
  * which is why every page this house has made programmatically is flat.
  *

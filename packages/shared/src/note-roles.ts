@@ -3,7 +3,7 @@
  * What a sticky note's stored `color` is allowed to be.
  *
  * A note stores its ROLE now rather than a hex, and looks the paint up in
- * whichever palette is live, so notes re-tint when the owner changes theme. The role
+ * whichever palette is live, so notes re-tint when their person changes theme. The role
  * names live here rather than in the phone because the AGENT-FACING door
  * (/api/internal/note) has to validate the same set — it used to accept hex
  * only, so a note left by a companion fell back to one hardcoded yellow and was
@@ -30,7 +30,7 @@ export function roleFromToken(value: string | null | undefined): NoteRole | null
 }
 
 /**
- * A color the owner pinned ON PURPOSE.
+ * A color their person pinned ON PURPOSE.
  *
  * A bare hex means "written before roles existed" and gets snapped to the
  * nearest swatch so it follows the theme. That is right for history and wrong

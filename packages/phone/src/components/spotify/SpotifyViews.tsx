@@ -359,7 +359,7 @@ export function PlaylistGrid({
   colors: ThemeColors;
   onOpen: (playlist: SpotifyPlaylist) => void;
   onOpenLink: OpenLink;
-  /** The owner Liked Songs, as a tile ahead of the playlists. */
+  /** Their person Liked Songs, as a tile ahead of the playlists. */
   onOpenLiked?: (() => void) | null;
   /** A New playlist tile ahead of the playlists. */
   onNewPlaylist?: (() => void) | null;
@@ -404,7 +404,7 @@ export function PlaylistGrid({
 
 /**
  * Search, at the top of the front page (Oct 20 2026): a box, and the songs it found under it, each a tap that starts
- * its album at that song. Asked when the owner presses search, never as the owner types.
+ * its album at that song. Asked when their person presses search, never as their person types.
  */
 export function SearchSection({
   words,

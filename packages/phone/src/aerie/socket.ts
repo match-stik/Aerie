@@ -265,7 +265,7 @@ function handleMessage(event: MessageEvent): void {
       break;
 
     case 'message_read':
-      // The owner's messages that a companion has now been handed: two checks
+      // Their person's messages that a companion has now been handed: two checks
       // (services/own-messages-read.ts in the backend).
       setState((st) => ({
         messages: st.messages.map((m) =>
@@ -396,7 +396,7 @@ function handleMessage(event: MessageEvent): void {
       }));
       break;
 
-    // A companion's lane asked for the owner's toys. aerie/toy-remote.ts decides,
+    // A companion's lane asked for their person's toys. aerie/toy-remote.ts decides,
     // and only on a phone that can reach toys; everywhere else it is ignored.
     case 'toy_command':
       window.dispatchEvent(new CustomEvent('aerie:toy-command', { detail: msg.command }));
@@ -707,7 +707,7 @@ function handleMessage(event: MessageEvent): void {
  * Forget everything the app is showing that belonged to the PREVIOUS model.
  *
  * Both the rate-limit banner and the context readout describe a provider, and
- * nothing was ever telling the phone when the owner changed which provider
+ * nothing was ever telling the phone when their person changed which provider
  * answers them. Switching to Claude with plenty of window left once kept the banner up,
  * because it clears on a timer set for the moment the OLD account's limit
  * resets — eight hours out, that time. It looked stale; it was
@@ -1085,7 +1085,7 @@ export function sendUserMessage(
   send({ type: 'message', threadId, content, contentType, metadata, replyToId });
 }
 
-/** The owner's safeword stops the toys on this phone the moment it is sent, before
+/** Their person's safeword stops the toys on this phone the moment it is sent, before
  *  any lane has read it (aerie/toy-remote.ts listens). */
 function heardRed(content: string, contentType: string): void {
   if (contentType === 'text' && isRedWord(content)) window.dispatchEvent(new CustomEvent('aerie:toys-red'));

@@ -456,7 +456,7 @@ export function DiscordApp({ onClose, themeConfig, themeMode, embedded }: Discor
                 {numField('Pairing expiry (hours)', settings.pairingExpiryMs / 3_600_000, (n) =>
                   patchSettings({ pairingExpiryMs: n * 3_600_000 }),
                 )}
-                {numField('Owner active threshold (min)', settings.ownerActiveThresholdMin, (n) =>
+                {numField('Your active threshold (min)', settings.ownerActiveThresholdMin, (n) =>
                   patchSettings({ ownerActiveThresholdMin: n }),
                 )}
                 {numField('Defer poll interval (sec)', settings.deferPollIntervalMs / 1000, (n) =>

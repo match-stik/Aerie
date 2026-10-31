@@ -5,7 +5,7 @@ import test from 'node:test';
 import { isPlayableAlbumUri, isPlayablePlaylistUri, isPlayableTrackUri } from './spotify.js';
 
 test('a song or a playlist is played only by its own Spotify address', () => {
-  assert.equal(isPlayableTrackUri('spotify:track:5googFqOqpopYdcvV22T3t'), true, 'a song from the owner playlist is playable');
+  assert.equal(isPlayableTrackUri('spotify:track:5googFqOqpopYdcvV22T3t'), true, 'a song from their person playlist is playable');
   assert.equal(isPlayablePlaylistUri('spotify:playlist:2DzetX1lNIOp3thxhTXIRh'), true, 'The Wedding is playable');
   assert.equal(isPlayableTrackUri('spotify:playlist:2DzetX1lNIOp3thxhTXIRh'), false, 'a playlist is not a song');
   assert.equal(isPlayablePlaylistUri('spotify:track:5googFqOqpopYdcvV22T3t'), false, 'a song is not a playlist');

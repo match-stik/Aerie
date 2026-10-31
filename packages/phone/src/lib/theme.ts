@@ -786,10 +786,10 @@ export function fitForWhite(color: string, toward = '#000000'): string {
   return `#${h(out.r)}${h(out.g)}${h(out.b)}`;
 }
 
-/** What a selected pill, tab or button is filled with: two tones like the owner
+/** What a selected pill, tab or button is filled with: two tones like their person
  *  bubble so it isn't flat, both deep enough for white text. The far end
  *  only goes halfway to the second color, since the full turn read too tight
- *  across a small tab (the owner's ask, Oct 26 2026). */
+ *  across a small tab (their person's ask, Oct 26 2026). */
 export function selectedFill(from: string, to: string, page: string): string {
   const a = fitForWhite(from, page);
   const b = fitForWhite(to, page);

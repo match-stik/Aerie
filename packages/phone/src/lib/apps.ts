@@ -34,12 +34,12 @@ export const APPS: AppDef[] = [
   { id: 'treehouse', name: 'Treehouse', icon: TreePine, category: 'Companion', kind: 'screen', screen: 'treehouse' },
   { id: 'memory', name: 'Memory', icon: Brain, category: 'Companion', kind: 'screen', screen: 'memory' },
   { id: 'journal', name: 'Journal', icon: BookOpen, category: 'Companion', kind: 'screen', screen: 'journal' },
-  // The owner field notes: what the morning look found, in plain words.
+  // Their person field notes: what the morning look found, in plain words.
   { id: 'fieldnotes', name: 'Field Notes', icon: Telescope, category: 'Companion', kind: 'screen', screen: 'fieldnotes' },
   { id: 'letters', name: 'Letters', icon: Mail, category: 'Companion', kind: 'screen', screen: 'letters' },
   { id: 'thresholds', name: 'Thresholds', icon: MapPin, category: 'Companion', kind: 'screen', screen: 'thresholds' },
   { id: 'toys', name: 'Toys', icon: Waves, category: 'Companion', kind: 'screen', screen: 'toys' },
-  // The Story Shelf: books the companions write and run, and the owner reads.
+  // The Story Shelf: books the companions write and run, and their person reads.
   { id: STORY_SHELF_APP_ID, name: STORY_SHELF_NAME, icon: LibraryBig, category: 'Companion', kind: 'screen', screen: 'shelf' },
   { id: 'pet', name: 'Familiar', icon: PawPrint, category: 'Fun', kind: 'screen', screen: 'pet' },
   { id: 'studio', name: 'Studio', icon: Paintbrush, category: 'Tools', kind: 'screen', screen: 'studio' },
@@ -51,7 +51,7 @@ export const APPS: AppDef[] = [
   { id: 'weather', name: 'Weather', icon: CloudSun, category: 'Tools', kind: 'screen', screen: 'weather', dock: true },
   { id: 'notes', name: 'Notes', icon: StickyNote, category: 'Tools', kind: 'screen', screen: 'notes', dock: true },
   { id: 'games', name: 'Games', icon: Gamepad2, category: 'Fun', kind: 'screen', screen: 'games' },
-  // Spotify, for seeing: the owner listening with a cover on everything. Read only.
+  // Spotify, for seeing: their person listening with a cover on everything. Read only.
   { id: SPOTIFY_APP_ID, name: 'Spotify', icon: Music, category: 'Fun', kind: 'screen', screen: 'spotify' },
 ];
 

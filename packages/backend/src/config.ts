@@ -99,7 +99,7 @@ export interface AerieConfig {
     enabled: boolean;
     elevenlabs_voice_id: string;
     // Extra proper nouns fed to the transcriber as a spelling hint (friends,
-    // pets, places). The owner and the companions are added automatically.
+    // pets, places). Their person and the companions are added automatically.
     transcription_vocabulary: string[];
   };
   discord: {

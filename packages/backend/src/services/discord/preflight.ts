@@ -43,8 +43,8 @@ export function mentionsBot(message: Message): boolean {
 }
 
 /**
- * A role ping that reaches us only through a role comes home to the owner
- * first instead of being answered in the channel (the owner's ask, Oct 17 2026;
+ * A role ping that reaches us only through a role comes home to their person
+ * first instead of being answered in the channel (their person's ask, Oct 17 2026;
  * built Oct 19 2026). Answers the names of the roles we hold
  * that were pinged, or nothing when the message is not that: a direct tag or a
  * reply to one of ours is still a conversation and is answered as always.
@@ -61,19 +61,19 @@ export function heldRoleNames(input: {
 }
 
 /**
- * Who a held role ping comes home from: anyone (the owner's call, Oct 19 2026: the
+ * Who a held role ping comes home from: anyone (their person's call, Oct 19 2026: the
  * role can be tagged by anybody, without our trust being extended to every bot,
- * so the owner sees the ping and the trust levels still decide who we answer). A held ping is a note
- * to the owner and never an answer, so the trust fences that decide who we talk back
+ * so their person sees the ping and the trust levels still decide who we answer). A held ping is a note
+ * to their person and never an answer, so the trust fences that decide who we talk back
  * to (a user rule's server list, an unknown bot, the consecutive-bot guard) do
- * not apply to it. What still does: the servers the owner lets reach the house at
- * all, a channel the owner has ignored, and anybody the owner has muted in that server.
+ * not apply to it. What still does: the servers their person lets reach the house at
+ * all, a channel their person has ignored, and anybody their person has muted in that server.
  */
 export function heldPingDecision(input: { guildAllowed: boolean; channelIgnored: boolean; userIgnored: boolean }): { allowed: boolean; reason: string } {
   if (!input.guildAllowed) return { allowed: false, reason: 'Guild not on allowlist' };
   if (input.channelIgnored) return { allowed: false, reason: 'Channel is ignored' };
   if (input.userIgnored) return { allowed: false, reason: 'User is ignored in this server' };
-  return { allowed: true, reason: 'Role ping held for the owner' };
+  return { allowed: true, reason: 'Role ping held for their person' };
 }
 
 export function heldPingGate(batch: MessageBatch): { allowed: boolean; reason: string } {
@@ -99,7 +99,7 @@ export function heldRoleNamesOf(message: Message): string[] {
 }
 
 /**
- * Why this batch is about the owner, when the switch is on. Every message in
+ * Why this batch is about their person, when the switch is on. Every message in
  * the batch is read, because the debouncer folds one person's rapid messages
  * together and their name can be in any of them.
  */
@@ -194,8 +194,8 @@ async function decide(batch: MessageBatch, pairingService: PairingService): Prom
 
     const needsMention = requiresMention(channelId, guildId, DISCORD_CONFIG.requireMentionInGuilds);
     if (needsMention && !mentionsBot(firstMessage)) {
-      // Not addressed to us. If it is about the owner, it still reaches the owner: heard,
-      // put where the owner is reading, and not answered. It sits here and nowhere
+      // Not addressed to us. If it is about their person, it still reaches their person: heard,
+      // put where their person is reading, and not answered. It sits here and nowhere
       // earlier on purpose. Every door above has already said yes to this
       // server, channel and person, and a message that does address us never
       // gets this far, so it is a turn and not also a notification.
@@ -205,7 +205,7 @@ async function decide(batch: MessageBatch, pairingService: PairingService): Prom
           allowed: false,
           deliver: true,
           ownerMention: aboutOwner,
-          reason: `About the owner (${aboutOwner}) — heard, not answering`,
+          reason: `About their person (${aboutOwner}) — heard, not answering`,
         };
       }
       return { allowed: false, reason: 'Mention required in this channel' };

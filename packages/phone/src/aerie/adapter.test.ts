@@ -61,7 +61,7 @@ test('a house system line is not given an avatar', () => {
   assert.equal(m.senderAvatar, undefined);
 });
 
-// Messages the owner sends from Discord are the owner's, not a visitor's — they must not
+// Messages their person sends from Discord are their person's, not a visitor's — they must not
 // pick up a guest rail on the way through.
 test('an owner message bridged in is not a guest', () => {
   const m = toPhoneMessage(row({
@@ -72,10 +72,10 @@ test('an owner message bridged in is not a guest', () => {
   assert.equal(m.direction, 'inbound');
 });
 
-// A Discord message ABOUT the owner, delivered without the companions answering it,
+// A Discord message ABOUT their person, delivered without the companions answering it,
 // says so beside the sender's name, in the same words as the notification
-// that brought the owner to it.
-test('a Discord message about the owner carries a label saying what happened and where', () => {
+// that brought their person to it.
+test('a Discord message about their person carries a label saying what happened and where', () => {
   const about = (kind: string) => toPhoneMessage(row({
     metadata: { discordDisplayName: 'Guest', ownerMention: kind, discordChannelName: 'general' },
   }));

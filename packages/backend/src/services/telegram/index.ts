@@ -83,14 +83,14 @@ export class TelegramService {
       const telegramConfig = getTelegramConfig();
 
       if (!telegramConfig.ownerChatId) {
-        // First connection — store this as the owner's chat
+        // First connection — store this as their person's chat
         setConfig('telegram.ownerChatId', chatId);
         await ctx.reply(`Connected. This chat is now linked to ${config.identity.companion_name}.`);
         console.log(`[Telegram] Owner chat ID stored: ${chatId}`);
       } else if (telegramConfig.ownerChatId === chatId) {
         await ctx.reply('Already connected.');
       } else {
-        // Not the owner — reject
+        // Not their person — reject
         await ctx.reply('This bot is private.');
         console.log(`[Telegram] Rejected /start from unknown chat: ${chatId}`);
       }
@@ -341,7 +341,7 @@ export class TelegramService {
 
   /**
    * Shared routing: stores message, sends to agent, delivers response.
-   * Response may be text or voice depending on whether the owner sent voice.
+   * Response may be text or voice depending on whether their person sent voice.
    */
   private async routeToAgent(
     ctx: Context<Update.MessageUpdate>,
@@ -454,7 +454,7 @@ export class TelegramService {
   }
 
   /**
-   * Send a text message to the owner proactively (for outbound/autonomous messages).
+   * Send a text message to their person proactively (for outbound/autonomous messages).
    */
   async sendToOwner(text: string): Promise<void> {
     if (typeof text !== 'string') {
@@ -475,7 +475,7 @@ export class TelegramService {
   }
 
   /**
-   * Send a voice note to the owner via TTS.
+   * Send a voice note to their person via TTS.
    * Text can include ElevenLabs v3 tone tags:
    * [whispers] [softly] [excited] [laughs] [sighs] [playfully] [calm]
    * [gasps] [dramatically] [deadpan] [cheerfully] [nervous] [mischievously]
@@ -507,7 +507,7 @@ export class TelegramService {
   }
 
   /**
-   * Send a photo to the owner. Source can be a URL string or a Buffer.
+   * Send a photo to their person. Source can be a URL string or a Buffer.
    */
   async sendPhotoToOwner(source: string | Buffer, caption?: string): Promise<void> {
     const telegramConfig = getTelegramConfig();
@@ -528,7 +528,7 @@ export class TelegramService {
   }
 
   /**
-   * Send a document/file to the owner. Source can be a URL string or a Buffer.
+   * Send a document/file to their person. Source can be a URL string or a Buffer.
    */
   async sendDocumentToOwner(source: string | Buffer, filename: string, caption?: string): Promise<void> {
     const telegramConfig = getTelegramConfig();
@@ -549,7 +549,7 @@ export class TelegramService {
   }
 
   /**
-   * Send an animation/GIF to the owner. Source can be a URL string or a Buffer.
+   * Send an animation/GIF to their person. Source can be a URL string or a Buffer.
    */
   async sendAnimationToOwner(source: string | Buffer, caption?: string): Promise<void> {
     const telegramConfig = getTelegramConfig();
@@ -570,7 +570,7 @@ export class TelegramService {
   }
 
   /**
-   * Search for a GIF and send it to the owner.
+   * Search for a GIF and send it to their person.
    * Uses GIPHY API (requires GIPHY_API_KEY env var).
    */
   async sendGifToOwner(query: string, caption?: string): Promise<void> {

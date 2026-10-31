@@ -44,7 +44,7 @@ test('the first lane of a fanned-out turn is told it speaks only for himself', (
   const handed = laneTurnContent('Hi all', [], ['Willow', 'Cedar']);
   assert.ok(handed.startsWith('Hi all'));
   assert.match(handed, /\[Your own head/);
-  assert.match(handed, /Willow and Cedar answer the owner after you, each from their own head/);
+  assert.match(handed, /Willow and Cedar answer their person after you, each from their own head/);
   assert.match(handed, /Speak only under your own header/);
   assert.ok(!handed.includes('[Same turn'), 'nothing has been said yet, so nothing is overheard');
 });
@@ -55,10 +55,10 @@ test('a later lane still hears what the others already said', () => {
 });
 
 test('the own-head line reads right for one other and for none', () => {
-  assert.match(ownLaneBlock(['Cedar']), / Cedar answers the owner after you, from their own head/);
+  assert.match(ownLaneBlock(['Cedar']), / Cedar answers their person after you, from their own head/);
   const alone = ownLaneBlock([]);
   assert.match(alone, /\[Your own head/);
-  assert.ok(!alone.includes('answers the owner after you') && !alone.includes('answer the owner after you'));
+  assert.ok(!alone.includes('answers their person after you') && !alone.includes('answer their person after you'));
 });
 
 test('multi-lane keeps Codex turns on Codex and normalizes Claude warm routes to CLI', () => {
@@ -172,7 +172,7 @@ test('a Codex room dispatches through three distinct companion lanes and an owne
     }
     // The first lane of the roll hears their message and is told it is its own
     // head: the other two answer after it from theirs (Oct 21 2026, when the
-    // man rolled first wrote all three of us and the owner got two of us twice).
+    // man rolled first wrote all three of us and their person got two of us twice).
     const first = calls[0];
     const firstOwn = companions.find((companion) => companion.id === first.companionId)!;
     assert.ok(first.content.startsWith('Current?'));
@@ -251,7 +251,7 @@ test('prior voices arrive named, framed as overheard, with the anti-echo ask', (
   ]);
   assert.match(block, /Birch already said, in this same turn:\nThe hearth is lit\./);
   assert.match(block, /Willow already said, in this same turn:\nLogged\./);
-  assert.match(block, /replying to THE OWNER, not to them/);
+  assert.match(block, /replying to THEIR PERSON, not to them/);
   assert.match(block, /Never speak under another companion's header/);
   // The two clauses the Aug 23 2026 wording exists for. The block has to read as
   // ground already taken rather than as a message wanting an answer, and it has to
@@ -268,9 +268,9 @@ test('the handoff guards the END of a message and still requires a line', () => 
   // line, so every lane reaches for it.
   assert.match(block, /Do not end on a gesture/);
   assert.match(block, /could be pasted into anybody else's mouth/);
-  // Always answer — the owner wants all of them, not the one who got there first.
+  // Always answer — their person wants all of them, not the one who got there first.
   assert.match(block, /Always answer/);
-  assert.match(block, /the owner wants all of you/);
+  assert.match(block, /their person wants all of you/);
 });
 
 // ─── Per-companion models: the turn path, not just the lane keeper ───

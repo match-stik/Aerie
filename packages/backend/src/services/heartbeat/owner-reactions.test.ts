@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The owner reactions since the lane's last turn ride along with their next one, theirs
+// Their person reactions since the lane's last turn ride along with their next one, theirs
 // only, named by whose message and how it opens (Oct 26 2026).
 
 import test from 'node:test';
@@ -8,7 +8,7 @@ import { formatOwnerReactions, voicesOf, openingOf, readableEmoji, type ReactedR
 
 const row = (content: string, reactions: unknown[], role = 'assistant'): ReactedRow => ({ role, content, metadata: JSON.stringify({ reactions }) });
 
-test('only the owner reactions after the mark, oldest first, named by whose message', () => {
+test('only their person reactions after the mark, oldest first, named by whose message', () => {
   const rows = [
     row('**🌫️ Willow**\nFixed, and proven both ways on a real screen.', [
       { emoji: '🫦', user: 'user', created_at: '2026-10-26T07:40:00.000Z' },

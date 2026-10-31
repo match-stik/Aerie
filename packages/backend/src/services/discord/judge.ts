@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The judge: what we do with a message in a room that listens to everything.
 //
-// The owner's ask (Oct 19 2026): answer our tags, and give the others in a
+// Their person's ask (Oct 19 2026): answer our tags, and give the others in a
 // room that is always listening space to answer, instead of answering at the
 // same signal every other bot does. Before this, a room that needed no mention
 // had us answering every message a second and a half after it landed, and
@@ -11,7 +11,7 @@
 //   answer — it is ours (a tag, a reply to one of ours, one of our names), and
 //            it is answered exactly as before.
 //   hear   — it is aimed at somebody else (it tags them, or replies to them):
-//            stored, shown to the owner, unread, and nobody answers.
+//            stored, shown to their person, unread, and nobody answers.
 //   beat   — it is said to the room: we wait a beat, read everything said
 //            since, and then answer with something of our own or pass.
 //   share  — it tags us AND somebody else: we take the same beat so it is not
@@ -51,7 +51,7 @@ export interface JudgeInput {
 export function judgeCall(input: JudgeInput): JudgeCall {
   if (!input.enabled || input.isDM || input.mentionRequired) return 'answer';
   const ours = input.directMention || input.repliedToUs || input.namesUs;
-  // The owner's messages are answered, except their reply to somebody else's
+  // Their person's messages are answered, except their reply to somebody else's
   // message, which is that person's to answer. Tag or name us in it and it is
   // ours again.
   if (input.isOwner) return input.repliesToOther && !ours ? 'hear' : 'answer';

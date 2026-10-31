@@ -8,8 +8,8 @@
 // that song, and its Play button plays the whole playlist; a recent or found
 // song starts its album at that song (lib/spotify.ts songPress says why). Back
 // steps out one level. Those are the only presses. Read when it opens, when
-// the owner taps refresh, when the phone wakes, once after every press
-// (lib/spotify.ts pressAndLook), and a search when the owner asks for one; never on
+// their person taps refresh, when the phone wakes, once after every press
+// (lib/spotify.ts pressAndLook), and a search when their person asks for one; never on
 // a timer.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -192,7 +192,7 @@ export function SpotifyApp({ onClose, themeConfig, themeMode }: SpotifyAppProps)
     void load();
   }, [load]);
 
-  // A search, when the owner asks for one. Only the newest may land, and clearing
+  // A search, when their person asks for one. Only the newest may land, and clearing
   // it drops any still on its way.
   const [words, setWords] = useState('');
   const [found, setFound] = useState<SpotifyRead<SpotifySearchView> | null>(null);
@@ -226,11 +226,11 @@ export function SpotifyApp({ onClose, themeConfig, themeMode }: SpotifyAppProps)
     return () => document.removeEventListener('visibilitychange', woke);
   }, [load]);
 
-  // Which page the owner is on, so a press's sentence never turns up on a page the owner
+  // Which page their person is on, so a press's sentence never turns up on a page their person
   // has since left.
   const leavePage = () => spotify.leave();
 
-  // A playlist opens at its top, and the front page comes back where the owner left it.
+  // A playlist opens at its top, and the front page comes back where their person left it.
   const rootRef = useRef<HTMLDivElement>(null);
   const homeScroll = useRef(0);
   const scroller = () => rootRef.current?.closest<HTMLElement>('.aerie-app-body') ?? null;
@@ -267,7 +267,7 @@ export function SpotifyApp({ onClose, themeConfig, themeMode }: SpotifyAppProps)
 
   // A press: one at a time, every press button waits while it is out, and
   // what is playing is read once after it and shown. A sentence goes by the
-  // button the owner pressed only when that read does not show what the owner asked for
+  // button their person pressed only when that read does not show what their person asked for
   // (lib/spotify.ts createSpotifyNow and pressAndLook say why).
   const presses: PressState = {
     pressing: now.pressing,

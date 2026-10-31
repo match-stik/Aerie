@@ -50,7 +50,7 @@ export function getSendIcon(id?: string | null): LucideIcon {
 }
 
 /**
- * The icon the owner actually chose, read straight from app settings.
+ * The icon their person actually chose, read straight from app settings.
  *
  * The chat composer gets it passed down as a prop, but the game rails are
  * their own composers a long way from that tree — and each one had simply

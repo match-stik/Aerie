@@ -103,7 +103,7 @@ export interface OrchestratorTaskStatus {
   category: 'wake' | 'checkin' | 'handoff' | 'failsafe' | 'treehouse';
   /** Companion slug this bell belongs to, or null for a shared bell. */
   companion?: string | null;
-  /** True for a bell the owner made themselves — those are the ones they can delete. */
+  /** True for a bell their person made themselves — those are the ones they can delete. */
   custom?: boolean;
 }
 

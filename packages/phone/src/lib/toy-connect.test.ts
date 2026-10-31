@@ -62,7 +62,7 @@ test('connecting is not the end: Connect waits, comes back after a few seconds, 
   assert.equal(h.tracker.view().fz?.connecting, true, 'the SDK saying connecting leaves the spinner on');
   assert.deepEqual(h.ends, []);
   await h.advance(5_000);
-  assert.equal(h.tracker.view().fz?.canTapAgain, true, 'Connect comes back so the owner can tap again');
+  assert.equal(h.tracker.view().fz?.canTapAgain, true, 'Connect comes back so their person can tap again');
   h.tracker.connection('fz', 'connected');
   assert.deepEqual(h.ends, [{ toyId: 'fz', outcome: 'connected', tries: 1 }]);
   assert.equal(h.tracker.view().fz, undefined);

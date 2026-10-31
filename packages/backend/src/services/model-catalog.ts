@@ -44,7 +44,7 @@ export interface ModelInfo {
   reasoning_levels?: string[];
   default_reasoning_level?: string;
   speed_tiers?: string[];
-  /** Added by the owner through the picker rather than written down here. */
+  /** Added by their person through the picker rather than written down here. */
   custom?: boolean;
 }
 
@@ -120,7 +120,7 @@ export interface ExtraModel {
 }
 
 /**
- * Read one of the owner's extra-model lists. Pure and separately testable —
+ * Read one of their person's extra-model lists. Pure and separately testable —
  * the shape of what they typed is the part that can go wrong.
  */
 export function parseExtraModels(raw: string | null | undefined): ExtraModel[] {
@@ -153,7 +153,7 @@ function builtInIds(lane: ModelLane): Set<string> {
 }
 
 /**
- * The owner's extras for a lane. Reads the DB at call time so a model added
+ * Their person's extras for a lane. Reads the DB at call time so a model added
  * from the picker is selectable on the next open — fails quiet if the database
  * is not up, the same way the Codex capability cache does.
  */

@@ -36,10 +36,10 @@ test('the list pages twenty at a time with the house paginator', () => {
   assert.match(app, /import \{ Paginator, usePaged \} from '\.\/Paginator';/);
   assert.match(app, /usePaged\(rows\)/);
   assert.match(app, /<Paginator\s+page=\{paged\.page\}\s+pageCount=\{paged\.pageCount\}\s+onPage=\{paged\.setPage\}/);
-  assert.match(app, /paged\.visible\.map\(/, 'only the page the owner is on is drawn');
+  assert.match(app, /paged\.visible\.map\(/, 'only the page their person is on is drawn');
 });
 
-test('the full text is fetched only when the owner opens one, from the shared reader', () => {
+test('the full text is fetched only when their person opens one, from the shared reader', () => {
   assert.match(app, /loadCompactionList\(apiFetch\)/);
   assert.match(app, /loadSummary\(apiFetch, row\)/);
   assert.doesNotMatch(app, /full=1/, 'the page never asks for every full summary at once');
@@ -63,7 +63,7 @@ test('an opened row shows the whole summary as markdown, and says so while it is
   assert.match(failed, /could not be read just now/);
 });
 
-test('a row from the house before the owner restart stays as it was: no preview closed, the top of the summary when opened', () => {
+test('a row from the house before their person restart stays as it was: no preview closed, the top of the summary when opened', () => {
   const closed = draw(before);
   assert.match(closed, /Shared room · 22,000 characters squashed/);
   assert.doesNotMatch(closed, /This session is being continued/, 'the standing paragraph is not shown as a preview');

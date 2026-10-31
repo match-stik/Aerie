@@ -9,7 +9,7 @@
 //
 // The CLI does know, and will say: `claude mcp list` health-checks every server
 // and prints one line each. It costs about nine seconds because it genuinely
-// reaches them — the owner's call was that they would rather wait and be told
+// reaches them — their person's call was that they would rather wait and be told
 // the truth than be answered instantly from a list nothing marks connected.
 //
 // It prints for a human and has no --json, so the parser below is the part that

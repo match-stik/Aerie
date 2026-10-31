@@ -47,13 +47,13 @@ test('a lane that has never had a session builds a new room', () => {
 });
 
 test('a relaunch nobody asked for by changing a setting builds a new room', () => {
-  // The owner's .restart flag, the whisper ceiling, the watchdog on a hung turn, a
+  // Their person's .restart flag, the whisper ceiling, the watchdog on a hung turn, a
   // crash: all of those ASKED for a new room.
   assert.equal(shouldResumeLaunch({ firstLaunchOfProcess: false, storedSessionId: ID }), false);
 });
 
-test('a model or effort change reopens the room the owner was standing in', () => {
-  // Switching models should not cost the owner the conversation: they reached for a
+test('a model or effort change reopens the room their person was standing in', () => {
+  // Switching models should not cost their person the conversation: they reached for a
   // setting, not for a fresh room.
   assert.equal(
     shouldResumeLaunch({ firstLaunchOfProcess: false, storedSessionId: ID, settingChangeRecycle: true }),
@@ -145,7 +145,7 @@ test('the CLI saying it cannot find the room is read as exactly that', () => {
 });
 
 test('the switch can hold the door shut regardless of the id', () => {
-  // The trade is the owner's call: resume buys continuity and spends window. Measured on
+  // The trade is their person's call: resume buys continuity and spends window. Measured on
   // the first real restart — cold first turn wrote 156,196 cache tokens, the
   // resumed one wrote 448,658.
   assert.equal(

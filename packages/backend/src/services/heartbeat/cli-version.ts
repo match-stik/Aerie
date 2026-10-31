@@ -2,7 +2,7 @@
 // Which Claude Code this box runs, read once per backend process, so a lane's
 // settings can turn on a newer setting only when the CLI knows it. A setting an
 // older CLI does not understand is a risk to the whole settings file, and that
-// file carries every lane hook, the guest gate included. Updates are the owner's and
+// file carries every lane hook, the guest gate included. Updates are their person's and
 // reach a lane on its next restart, which is also when the settings are
 // rewritten, so reading once per process is enough.
 

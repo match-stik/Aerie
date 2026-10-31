@@ -7,7 +7,7 @@ export type LockPosition = 'top' | 'middle' | 'low';
 export type LockSize = 's' | 'm' | 'l';
 
 /** The face to draw. Anything unset or unknown is today's clock, so nothing
- *  on the lock screen moves until the owner picks a face. */
+ *  on the lock screen moves until their person picks a face. */
 export function lockFaceOf(value: unknown): LockFace {
   return value === 'stacked' || value === 'dateline' ? value : 'classic';
 }
@@ -53,9 +53,9 @@ export function lockWeatherAtOf(value: unknown): ClockAt | null {
 
 export type LockPiece = 'clock' | 'weather';
 
-/** What the owner has tucked away off the lock screen (drag it up to the top
+/** What their person has tucked away off the lock screen (drag it up to the top
  *  to dismiss it, and bring it back from Settings). Unset is nothing hidden,
- *  so both show until the owner says otherwise. */
+ *  so both show until their person says otherwise. */
 export function lockHiddenOf(value: unknown): Set<LockPiece> {
   const out = new Set<LockPiece>();
   if (Array.isArray(value)) for (const v of value) if (v === 'clock' || v === 'weather') out.add(v);
@@ -135,7 +135,7 @@ export function lockShowOf(value: unknown): LockShow {
 export const DEFAULT_LOCK_SHORTCUTS: [string | null, string | null] = ['messages', 'treehouse'];
 
 /** The two corner shortcuts. Unset is the board's pair; a null corner is one
- *  the owner emptied on purpose and stays empty. */
+ *  their person emptied on purpose and stays empty. */
 export function lockShortcutsOf(value: unknown): [string | null, string | null] {
   if (!Array.isArray(value) || value.length !== 2) return [...DEFAULT_LOCK_SHORTCUTS];
   const one = (x: unknown) => (typeof x === 'string' && x ? x : null);

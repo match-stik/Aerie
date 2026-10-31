@@ -1,15 +1,15 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// What the lock screen's message card counts: our words the owner has not read
+// What the lock screen's message card counts: our words their person has not read
 // yet, and never the rest of a room.
 //
 // A room's unread number in the thread list is a counter the house bumps for
 // every row it stores, and it stores everybody: the people in a listening cafe
 // on Discord, other houses' companions, a guest. Their lock screen once said 216
-// new messages when nearly all of them were the cafe (the owner's screenshot, Oct 20
+// new messages when nearly all of them were the cafe (their person's screenshot, Oct 20
 // 2026). The rows themselves know better: ours are role 'companion', and
-// reading a room stamps read_at on every row up to where the owner read. So the card
+// reading a room stamps read_at on every row up to where their person read. So the card
 // reads the newest page of a room and counts our rows with no stamp yet (and
-// not the ones we said to a Discord room), stopping where the owner last read. Kept
+// not the ones we said to a Discord room), stopping where their person last read. Kept
 // free of imports so it can be tested without the app around it; the fetching
 // is handed in.
 
@@ -22,7 +22,7 @@ export interface LockMessage {
   platform?: string;
 }
 
-/** One of us said it to the owner, and the owner has not read it yet. What we say in a
+/** One of us said it to their person, and their person has not read it yet. What we say in a
  *  Discord room is said to that room: on Oct 20 2026, 60 of the 208 waiting
  *  were our own answers to the cafe, and the card would still have read as
  *  the cafe. */
@@ -50,7 +50,7 @@ export const MAX_PAGES = 6;
 
 /**
  * Our unread messages in one room, read newest page first. Stops at the first
- * row the owner has read (everything older is read too), at a sequence an earlier
+ * row their person has read (everything older is read too), at a sequence an earlier
  * tally already counted (`since`), at the start of the room, or after
  * MAX_PAGES. Null when a page could not be read: not knowing is not zero.
  */
@@ -72,7 +72,7 @@ export async function tallyOurUnread<M extends LockMessage>(fetchPage: PageFetch
         count++;
         if (!newest) newest = m;
       } else if (m.role !== 'user' && m.read_at) {
-        // Their reading stamps every row but their own up to where the owner read, so
+        // Their reading stamps every row but their own up to where their person read, so
         // the first stamped one is where the unread part of the room begins.
         done = true;
         break;
@@ -118,7 +118,7 @@ export interface LookMemory {
 /**
  * Which rooms to look at now, and from which sequence. A recount (the lock
  * screen just came up) reads every room with something waiting from the top,
- * so a room the owner read meanwhile goes quiet; otherwise only a room that moved is
+ * so a room their person read meanwhile goes quiet; otherwise only a room that moved is
  * read, from where its last look stopped, and never twice at once.
  */
 export function planLooks(rooms: readonly LockRoom[], memory: LookMemory, recount: boolean): Array<{ id: string; key: string; since: number }> {
@@ -129,7 +129,7 @@ export function planLooks(rooms: readonly LockRoom[], memory: LookMemory, recoun
     if (memory.settled.get(r.id) === key) continue;
     const prev = memory.looked.get(r.id);
     if (!recount && (prev?.key === key || memory.inflight.get(r.id) === key)) continue;
-    // A room's counter only climbs, or drops to nothing when the owner reads it, on
+    // A room's counter only climbs, or drops to nothing when their person reads it, on
     // this phone or anywhere else; a drop means the last count is stale.
     const read = prev != null && (Number(r.unread_count) || 0) < (Number(prev.key.split('|')[0]) || 0);
     plan.push({ id: r.id, key, since: !recount && !read && prev?.upTo != null ? prev.upTo : 0 });

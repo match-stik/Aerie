@@ -13,7 +13,7 @@
  * path outside the warm CLI lane bills metered API credits. Newer information
  * says the Agent SDK rides the subscription, at least for now, so this exists —
  * but it reports what the SDK says each run cost, and runMemoryExtraction reads
- * the owner's Claude usage before and after the first sweep. The question is answered
+ * their person's Claude usage before and after the first sweep. The question is answered
  * by a measurement, not by whoever wrote the older comment.
  *
  * No tools, no MCP servers, one turn, a neutral working directory. This lane

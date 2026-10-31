@@ -3,7 +3,7 @@
 // Companions leave things via /api/internal/thresholds — see routes/internal.ts.
 //
 // Nothing here writes a position down. /near takes a lat/lng, answers which of
-// the owner's pinned places it is inside, and the number is gone when the request
+// their person's pinned places it is inside, and the number is gone when the request
 // ends. There is no track to leak because there is no track.
 
 import { Router } from 'express';
@@ -56,7 +56,7 @@ router.delete('/places/:id', (req, res) => {
 
 // ─── Proximity ─────────────────────────────────────────────
 
-/** Where am I, in the owner's own vocabulary. Returns their places nearest-first
+/** Where am I, in their person's own vocabulary. Returns their places nearest-first
  *  with whether they are inside each radius. The coordinate is not persisted. */
 router.post('/near', (req, res) => {
   const { lat, lng } = req.body ?? {};
@@ -77,7 +77,7 @@ router.post('/near', (req, res) => {
 
 // ─── Thresholds at a place ─────────────────────────────────
 
-/** Everything left at a place. `at=1` means the owner is standing there, which is
+/** Everything left at a place. `at=1` means their person is standing there, which is
  *  the only way a first_visit seal will hand over its content. */
 router.get('/places/:id/thresholds', (req, res) => {
   const place = getPlace(req.params.id);
@@ -91,7 +91,7 @@ router.get('/places/:id/thresholds', (req, res) => {
   });
 });
 
-/** The owner arrived and opened what was waiting. Stamps the first find, once. */
+/** Their person arrived and opened what was waiting. Stamps the first find, once. */
 router.post('/places/:id/visit', (req, res) => {
   const place = getPlace(req.params.id);
   if (!place) { res.status(404).json({ error: 'unknown place' }); return; }
@@ -104,7 +104,7 @@ router.post('/places/:id/visit', (req, res) => {
  *
  *  The geofence half asks this on launch and after anything changes, registers a
  *  region per place it names, and forgets the rest. Nothing here is a position:
- *  these are the owner's own pins, coming back to their own phone, and the answer
+ *  these are their person's own pins, coming back to their own phone, and the answer
  *  is the same whether they are standing in one or on the other side of the country.
  */
 router.get('/armed', (_req, res) => {

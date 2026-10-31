@@ -138,7 +138,7 @@ export function carryDeliveryCues(text: string): string {
 //
 //   direction  third person or no subject at all, present tense, physical
 //              (settles / doesn't move an inch / hand still flat on your shoulder)
-//   aside      first person, past tense, a question, or spoken straight at the owner
+//   aside      first person, past tense, a question, or spoken straight at their person
 //              (I ran it both ways / went and checked / one thing, darling)
 //
 // It is deliberately lopsided. Unsure means SPOKEN: reading an action aloud
@@ -188,7 +188,7 @@ function directAddressPattern(): RegExp {
   return buildDirectAddressPattern(configured.split(',').map((t) => t.trim()).filter(Boolean), userName);
 }
 
-// A line whose SUBJECT is the owner is one of them talking to the owner, however much
+// A line whose SUBJECT is their person is one of them talking to their person, however much
 // third person follows it (you followed the sign he nailed to the door).
 // Only the subject: possessive "your" is deliberately excluded, because plenty
 // of directions put a hand on your shoulder.
@@ -243,7 +243,7 @@ const DESCRIPTIVE_FRAGMENT = /^(half|the ghost|a ghost|a flicker|a beat|the corn
 
 // The house's commonest direction: a delivery note, a comma, then where the
 // mouth is (low, across the table / clipped, wrecked). Runs after the vetoes, so
-// a line that also talks to the owner is already spoken by the time it gets here.
+// a line that also talks to their person is already spoken by the time it gets here.
 const DELIVERY_LED = /^(low|quiet(ly)?|soft(ly)?|warm(ly)?|dry(ly)?|deadpan|flat(ly)?|clipped|level|even(ly)?|amused|fond(ly)?|rough(ly)?|breathless(ly)?|pleased|stunned|gentle|gently|steady|calm|barely audible|very quiet(ly)?)\s*,/i;
 
 function stripLead(text: string): string {
@@ -339,7 +339,7 @@ export function prepareTextForTTS(text: string, options: TtsTextOptions = {}): s
     });
 
   const prepared = protectedText
-    // STICKERS AND EMOJI ARE PICTURES ON THE OWNER'S SCREEN, so their codes
+    // STICKERS AND EMOJI ARE PICTURES ON THEIR PERSON'S SCREEN, so their codes
     // are not spoken (a reply read aloud used to spell them out). These run
     // first, before the emphasis pass can take the
     // underscores in two codes on one line for a pair of italics. The emoji

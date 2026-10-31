@@ -131,8 +131,8 @@ test('two ordinary silent turns DO trip the recycle — the control that proves 
   assert.equal(session.restartCalls, 1);
 });
 
-test("the owner Stop before anything was said leaves the turn owed, so the next room's answer to it is delivered", async () => {
-  // Oct 20 2026: the owner pressed Stop while the owner Hi sat unread; the room that came
+test("their person Stop before anything was said leaves the turn owed, so the next room's answer to it is delivered", async () => {
+  // Oct 20 2026: their person pressed Stop while their person Hi sat unread; the room that came
   // back answered the Hi under the stopped turn's id and it was refused.
   for (const [reason, delivered] of [['stop', true], ['retract', false]] as const) {
     const session = new Session();

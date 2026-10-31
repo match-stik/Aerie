@@ -5,7 +5,7 @@
  * Theirs, Oct 27 2026: 'your cute little phrases disappear. I think it's usually
  * when I close then reopen the app.' A reopened app starts with no streaming
  * reply, and the house only says stream_start when a reply begins, so every
- * tool event of a turn already running was dropped and the owner saw three still dots
+ * tool event of a turn already running was dropped and their person saw three still dots
  * under Stop generating. While the house says a turn is running, the first such
  * event opens a local reply for the rest of the turn to land on; the next real
  * stream_start or stream_end replaces it as usual.

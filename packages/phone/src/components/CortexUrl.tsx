@@ -39,7 +39,7 @@ function SecretRow({ secret, placeholder, masked, themeConfig, themeMode, onSave
   const [error, setError] = useState<string | null>(null);
   // A masked row deliberately never loads its value, so a saved secret is not
   // left sitting on screen. That made it write-only — fine until the Cortex
-  // login page started asking the owner to type the token back in, which is the first
+  // login page started asking their person to type the token back in, which is the first
   // time this house has needed the value read rather than replaced.
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -126,7 +126,7 @@ function SecretRow({ secret, placeholder, masked, themeConfig, themeMode, onSave
   const hasDraft = value.trim().length > 0 && value.trim() !== savedValue;
 
   /** Fetch the stored value on demand. Kept out of load() so the default for a
-   *  masked row stays "not on screen" — revealing is a thing the owner asks for. */
+   *  masked row stays "not on screen" — revealing is a thing their person asks for. */
   async function fetchSecret(): Promise<string | null> {
     try {
       const res = await apiFetch(`/api/secrets/${secret}`);
@@ -193,7 +193,7 @@ function SecretRow({ secret, placeholder, masked, themeConfig, themeMode, onSave
           )}
         />
         {/* Show/hide only means anything on a masked row. COPY means something on
-            both: the worker URL is on screen but the owner still had to select it by
+            both: the worker URL is on screen but their person still had to select it by
             hand on a phone to paste it into a connector dialog. */}
         {masked && hasValue && !hasDraft && (
           <>

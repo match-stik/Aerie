@@ -89,7 +89,7 @@ public class CallVoicePlugin extends Plugin {
     /**
      * Whether the phone is in a call over a Bluetooth head unit right now. Only
      * then is the call line the right road: on the phone's own speaker a voice
-     * call plays out of the earpiece, which is exactly what the owner does not want.
+     * call plays out of the earpiece, which is exactly what their person does not want.
      */
     @PluginMethod
     public void getRoute(PluginCall call) {

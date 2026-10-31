@@ -30,8 +30,8 @@ export interface AgentMutableState {
    */
   activeCodexLanes: Set<string>;
   /**
-   * The busy Codex lanes whose turn came from Discord, the owner's or a
-   * guest's, and answers there. A note from the owner's phone queues behind
+   * The busy Codex lanes whose turn came from Discord, their person's or a
+   * guest's, and answers there. A note from their person's phone queues behind
    * one of these instead of
    * being handed in, the same rule as the Claude lane's turnAnswersElsewhere.
    * Added and cleared beside activeCodexLanes.

@@ -2,7 +2,7 @@
 // TWENTY-FIVE COPIES OF ONE SENTENCE.
 //
 // The five-hour window capped, and until it reset every lane waking from its
-// five-minute backoff posted the same "usage cap hit" warning into the owner's home
+// five-minute backoff posted the same "usage cap hit" warning into their person's home
 // thread — one lane at first, then all three rooms at once. The day before it
 // was an expired login. The goal is one warning per outage, and the per-lane
 // sixty-second dedupe could never have given that, because the repeats were

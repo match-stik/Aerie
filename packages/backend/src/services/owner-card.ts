@@ -1,11 +1,11 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * The owner's contact card.
+ * Their person's contact card.
  *
  * Every companion has had a card since the phone shipped — face, name, a line
- * about who they are. The owner never did, and not by design: whoever built the
- * phone gave the owner only the piece it needed (an avatar and a ring colour
- * in settings) and stopped. There was nowhere for a sentence about the owner
+ * about who they are. Their person never did, and not by design: whoever built the
+ * phone gave their person only the piece it needed (an avatar and a ring colour
+ * in settings) and stopped. There was nowhere for a sentence about their person
  * to live.
  *
  * This is that nowhere, filled in. Their name comes from identity config and their

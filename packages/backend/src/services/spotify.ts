@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Spotify in the house (Oct 20 2026).
 //
-// The owner's listening is read through the Spotify MCP server the house already has
+// Their person's listening is read through the Spotify MCP server the house already has
 // in Integrations > MCP, one plain JSON-RPC tools/call per read, and every
 // item gets a cover. Three presses go through the same server: play (a song,
 // a playlist, a song inside its playlist or album, or carry on), pause, and
@@ -14,14 +14,14 @@
 // data/spotify-covers.json, and looked up a few at a time with a short timeout
 // and a budget per list: a slow or failed cover leaves that one item without a
 // picture and never fails the list. A playlist's cover is its mosaic, which
-// changes as the owner edits it, so it is re-asked daily; a song's cover is kept a
+// changes as their person edits it, so it is re-asked daily; a song's cover is kept a
 // month. A miss is remembered for a day; a timeout is not remembered at all.
 //
 // Measured against their server on Oct 20 2026: tools/call answers without an
 // initialize handshake, as plain JSON (SSE is handled too), and an error comes
 // back as a JSON-RPC error whose message carries Spotify's own words. A lapsed
 // sign-in said 'Refresh token expired' / 'revoked' (Sep 25 2026); its fix is
-// the owner's, on the server, so here it only becomes a plain sentence.
+// their person's, on the server, so here it only becomes a plain sentence.
 
 import { mkdirSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
@@ -430,7 +430,7 @@ export function connectViewFrom(location: string | null): SpotifyConnectView | n
   }
 }
 
-/** What spotify_devices answered: the owner devices, the one playing first. */
+/** What spotify_devices answered: their person devices, the one playing first. */
 export function readDevices(value: unknown, serverUrl: string | null = null): SpotifyDevicesView {
   const raw = Array.isArray(value) ? value : listIn(value, 'devices');
   if (!raw) throw unexpected(value, serverUrl);
@@ -447,9 +447,9 @@ export function readSaved(value: unknown, uris: string[], serverUrl: string | nu
 
 // ─── Playing ─────────────────────────────────────────────────────────
 //
-// A press plays on whichever device the owner Spotify is active on (usually the owner
+// A press plays on whichever device their person Spotify is active on (usually their person
 // phone with the Spotify app open); with none, Spotify refuses, and that
-// becomes one sentence telling the owner what to do.
+// becomes one sentence telling their person what to do.
 //
 // A PRESS'S ANSWER IS NOT BELIEVED. Their server reads Spotify's answers as
 // JSON and some of Spotify's answers are not JSON, so a press that worked can
@@ -517,7 +517,7 @@ export function readPlayRequest(body: unknown): PressRequest<SpotifyPlayRequest>
   return { ok: true, value };
 }
 
-/** GET /api/spotify/search's words: what the owner typed, spaces tidied, never empty and never past the longest. */
+/** GET /api/spotify/search's words: what their person typed, spaces tidied, never empty and never past the longest. */
 export function readSearchQuery(raw: unknown): PressRequest<string> {
   const words = typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim() : '';
   if (!words) return { ok: false, error: 'Search needs something to look for.' };
@@ -584,7 +584,7 @@ export const readShuffleRequest = (body: unknown) => onlyField(body, 'on', isBoo
 export const readRepeatRequest = (body: unknown) => onlyField(body, 'mode', isRepeat, 'Repeat is off, the song, or the playlist or album, and nothing else.');
 export const readVolumeRequest = (body: unknown) => onlyField(body, 'percent', isPercent, 'Volume is a whole number from 0 to 100.');
 export const readSeekRequest = (body: unknown) => onlyField(body, 'positionMs', isPosition, 'A place in the song is a whole number of milliseconds.');
-export const readTransferRequest = (body: unknown) => onlyField(body, 'deviceId', isDeviceId, 'That is not one of the owner Spotify devices.');
+export const readTransferRequest = (body: unknown) => onlyField(body, 'deviceId', isDeviceId, 'That is not one of their person Spotify devices.');
 
 function words(value: unknown, longest: number): string | null | undefined {
   if (value === undefined) return undefined;
@@ -593,7 +593,7 @@ function words(value: unknown, longest: number): string | null | undefined {
   return flat.length <= longest ? flat : null;
 }
 
-/** POST /api/spotify/playlists: a name, and a description if the owner likes. */
+/** POST /api/spotify/playlists: a name, and a description if their person likes. */
 export function readNewPlaylistRequest(body: unknown): PressRequest<SpotifyNewPlaylistRequest> {
   const fields = fieldsOf(body);
   if (!fields || Object.keys(fields).some((key) => key !== 'name' && key !== 'description')) {
@@ -643,7 +643,7 @@ export function readMoveRequest(body: unknown): PressRequest<SpotifyMoveRequest>
   return { ok: true, value: { from: fields.from as number, to: fields.to as number } };
 }
 
-/** The most bytes a picture the owner hands in may be before it is made small. */
+/** The most bytes a picture their person hands in may be before it is made small. */
 const COVER_IN_LARGEST = 8 * 1024 * 1024;
 /** Spotify's own ceiling: 256 KB of base64. */
 const COVER_OUT_LARGEST = 256 * 1024;
@@ -711,7 +711,7 @@ const MOST_COVERS_KEPT = 3000;
 const PAGE = 50;
 const MOST_PLAYLISTS = 200;
 const MOST_PLAYLIST_TRACKS = 500;
-/** The owner Liked Songs, newest first, as far as this. */
+/** Their person Liked Songs, newest first, as far as this. */
 const MOST_LIKED = 500;
 const RECENT = 20;
 /** Songs a search asks for: their server's own default. */
@@ -984,7 +984,7 @@ export function createSpotify(deps: SpotifyDeps = {}) {
       return { tracks: await withCovers(readTracks(value, serverUrl).items) };
     },
 
-    /** Songs for what the owner typed, best match first, each with its cover and its album. */
+    /** Songs for what their person typed, best match first, each with its cover and its album. */
     async search(query: string): Promise<SpotifySearchView> {
       const words = checked(readSearchQuery(query));
       const { value, serverUrl } = await call('spotify_search', { query: words, type: 'track', limit: SEARCH_RESULTS });

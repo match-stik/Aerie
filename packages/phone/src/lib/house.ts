@@ -26,7 +26,7 @@ export interface CastLabels {
 export interface HouseRoster {
   companions: HouseCompanion[];
   owner: OwnerIdentity | null;
-  /** Companion slugs plus the owner's — everyone who actually lives here. */
+  /** Companion slugs plus their person's — everyone who actually lives here. */
   residents: string[];
   companionSlugs: string[];
   castLabels: CastLabels;
@@ -36,12 +36,12 @@ export interface HouseRoster {
   sigilOf: (slug: string) => string;
 }
 
-/** The owner has no companion row to carry an emoji, so the house lends one. */
+/** Their person has no companion row to carry an emoji, so the house lends one. */
 export const OWNER_SIGIL = '🧡';
 const GUEST_SIGIL = '🐾';
 
 /**
- * The owner's face, from app settings — the same place the messages app reads it.
+ * Their person's face, from app settings — the same place the messages app reads it.
  *
  * One reader, asked by every surface that draws them. Each rail having its own
  * copy is how the send icon ended up stopping at the edge of one app.
@@ -77,7 +77,7 @@ export function useHouseRoster(): HouseRoster {
             companions: typeof data.castLabels.companions === 'string' ? data.castLabels.companions : '',
           });
         }
-        // A backend that predates the owner field is still a normal thing to be
+        // A backend that predates their person field is still a normal thing to be
         // talking to — the served UI refreshes long before the server restarts.
         const identity = ownerFromCompanionsPayload(data) ?? await fetchOwnerFromPreferences();
         if (!cancelled && identity) setOwner(identity);

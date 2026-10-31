@@ -1,8 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The statuses' faces on the phone (lib/statuses.ts): the icon, the editor the owner
+// The statuses' faces on the phone (lib/statuses.ts): the icon, the editor their person
 // changes one with, and the sheet behind the line under our faces that shows
-// all of them at once (the owner's ask, Oct 26 2026). Theirs sits last in the
-// sheet, and stays until the owner changes it.
+// all of them at once (their person's ask, Oct 26 2026). Theirs sits last in the
+// sheet, and stays until their person changes it.
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
@@ -15,7 +15,7 @@ import { EmojiBrowser, ReactionGlyph } from './EmojiBrowser';
 import { HOME_WORD } from '../lib/presence-word';
 import { liveStatus, saveStatus } from '../lib/statuses';
 
-/** A status's icon: the emoji, the owner custom one, or the fallback (a sigil) when none was picked. */
+/** A status's icon: the emoji, their person custom one, or the fallback (a sigil) when none was picked. */
 export function StatusIcon({ icon, fallback, customEmojis, className }: { icon: string | null | undefined; fallback?: string; customEmojis?: CustomEmoji[]; className?: string }) {
   const shown = icon || fallback;
   if (!shown) return null;
@@ -133,7 +133,7 @@ export function StatusSheet({ open, onClose, colors, people, statuses, now, cust
   colors: ThemeColors;
   people: StatusPerson[];
   statuses: { shared: StatusLine | null; companions: Record<string, StatusLine>; owner?: StatusLine | null };
-  /** The owner, for their own row: their name and picture. */
+  /** Their person, for their own row: their name and picture. */
   owner?: { name: string; avatar?: string | null; color?: string | null };
   now: number;
   customEmojis?: CustomEmoji[];

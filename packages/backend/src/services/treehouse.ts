@@ -14,7 +14,7 @@ const TREEHOUSE_NAME = 'The Treehouse';
 
 export interface TreehouseMessage {
   id: string;
-  // 'user' | 'companion' | 'system'. Without this the client can't tell the owner's
+  // 'user' | 'companion' | 'system'. Without this the client can't tell their person's
   // messages from room-addressed companion replies — both carry no
   // metadata.companionSlug, so both used to render as an unnamed bubble.
   role: string;

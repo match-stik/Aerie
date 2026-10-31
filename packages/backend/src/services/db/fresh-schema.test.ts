@@ -189,7 +189,7 @@ test('the compactions shelf lands whole on a fresh install, and a second boot ke
 
 test('the field notes table lands whole on a fresh install, and a second boot keeps what is in it', () => {
   // 016 creates its table whole, like 013 to 015, so it is named column by
-  // column here. The owner page is a record of every morning, so a reboot that lost
+  // column here. Their person page is a record of every morning, so a reboot that lost
   // a row is the one fault worth checking for.
   const dir = mkdtempSync(join(tmpdir(), 'aerie-fresh-field-notes-'));
   const path = join(dir, 'fresh.db');

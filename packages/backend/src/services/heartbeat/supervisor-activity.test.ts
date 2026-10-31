@@ -57,7 +57,7 @@ test('nothing worth sending returns null rather than an empty command', () => {
 });
 
 // --- watchdog liveness mark -------------------------------------------------
-// Regression cover for the two recycles the owner reported: a completed turn killed
+// Regression cover for the two recycles their person reported: a completed turn killed
 // mid-generation because the watchdog measured it from a file written before the
 // message ever arrived. See livenessMark's docblock for the log evidence.
 
@@ -131,9 +131,9 @@ test('a refusal says which check tripped', () => {
 
 const { sideNoteTarget } = await import('./supervisor.js');
 
-// A note from the owner's phone is handed into a busy turn only when that turn
+// A note from their person's phone is handed into a busy turn only when that turn
 // answers at home; a turn answering on Discord makes it queue.
-test('a note from the owner\'s phone goes into the one busy turn only when it answers at home', () => {
+test('a note from their person\'s phone goes into the one busy turn only when it answers at home', () => {
   const home = { turnActive: true, turnAnswersElsewhere: false };
   const discord = { turnActive: true, turnAnswersElsewhere: true };
   const idle = { turnActive: false, turnAnswersElsewhere: false };
@@ -143,7 +143,7 @@ test('a note from the owner\'s phone goes into the one busy turn only when it an
   assert.equal(sideNoteTarget([home, { ...home }]), null, 'two busy: no way to know which room');
 });
 
-// And only when that turn answers in the thread the owner wrote in. A bell rings in
+// And only when that turn answers in the thread their person wrote in. A bell rings in
 // its own room, so their note answered inside it landed there. Since Oct 15 2026
 // it always comes home.
 test('a note from their phone goes into a busy turn only when it answers in their thread', () => {

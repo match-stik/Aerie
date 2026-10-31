@@ -73,7 +73,7 @@ test('you cannot play out of turn or hold two cards', () => {
 });
 
 test('going out gives everybody else exactly one more turn', () => {
-  // the owner is one flip away from all six up; birch has four down.
+  // their person is one flip away from all six up; birch has four down.
   const g: GolfState = {
     order: ['owner', 'birch'],
     hands: {

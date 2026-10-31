@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * A wallpaper for Daylight and one for Midnight, swapped when the owner flips
+ * A wallpaper for Daylight and one for Midnight, swapped when their person flips
  * the mode. Every screen keeps reading the theme's ordinary wallpaper fields;
  * this only decides what those fields hold. On a flip the set on screen is
  * filed under the mode being left, and the set filed under the mode being

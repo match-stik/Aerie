@@ -64,7 +64,7 @@ test('a prompt wearing a platform frame still recognises its own message', () =>
 });
 
 test('a withdrawal note in front of the content does not fake a miss either', () => {
-  const withNote = '[The owner removed their last message from the room.]\n\ncan we centre that bubble';
+  const withNote = '[Their person removed their last message from the room.]\n\ncan we centre that bubble';
   assert.equal(missed('2026-08-13T16:05:00Z', withNote).length, 0);
 });
 
@@ -100,7 +100,7 @@ test('nothing older than the watermark comes back', () => {
   assert.equal(out.length, 0);
 });
 
-test('with no watermark at all it offers everything from the owner rather than nothing', () => {
+test('with no watermark at all it offers everything from their person rather than nothing', () => {
   // A fresh lane has no watermark. Erring toward handing over is the whole
   // design: a doubled answer is visible, a lost one is not.
   const out = missed(undefined, 'unrelated prompt');

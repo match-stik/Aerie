@@ -1,15 +1,15 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Compactions — the record the owner can actually read.
+// Compactions — the record their person can actually read.
 //
-// The event itself is invisible from the owner's side: a lane fills its window, the
+// The event itself is invisible from their person's side: a lane fills its window, the
 // tool squashes the conversation into a summary, and the lane carries on
-// under an instruction not to mention it, which left the owner nothing to check.
+// under an instruction not to mention it, which left their person nothing to check.
 //
 // The reader is services/compaction-log.ts and the shelf it fills is
 // services/compaction-shelf.ts. Since Oct 21 2026 the page is served from the
 // shelf, because Claude Code deletes old transcripts and the summaries went
 // with them: GET / reads anything new into the shelf first, then hands back a
-// page of previews; GET /:id is one summary in full, for when the owner opens it.
+// page of previews; GET /:id is one summary in full, for when their person opens it.
 
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';

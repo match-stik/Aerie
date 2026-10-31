@@ -70,9 +70,9 @@ test('a context window that is not a number is simply absent', () => {
   assert.equal(parseExtraModels('claude-opus-6 | Opus 6 | 0')[0].contextLength, undefined);
 });
 
-test('an extra arrives at the picker flagged as the owner\'s own', () => {
+test('an extra arrives at the picker flagged as their person\'s own', () => {
   // `custom` is the contract with the phone: it is the only thing that tells
-  // the sheet which rows it may offer to remove. A row the owner added with no way
+  // the sheet which rows it may offer to remove. A row their person added with no way
   // to take it back off would make one typo permanent from their side.
   const dressed = asModelInfo(
     { id: 'gpt-5.7', name: 'GPT-5.7', contextLength: undefined },

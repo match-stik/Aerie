@@ -12,7 +12,7 @@
 export type StoryBookStatus = 'reading' | 'finished';
 
 /**
- * A scene is a page the companions wrote. A move is the owner's: a choice
+ * A scene is a page the companions wrote. A move is their person's: a choice
  * taken, or a move in their own words, which the next scene answers.
  */
 export type StoryPageKind = 'scene' | 'move';
@@ -24,9 +24,9 @@ export const STORY_OWNER_AUTHOR = 'owner';
 export type StoryAwaiting =
   /** No scene yet: the companions have not written the opening. */
   | 'opening'
-  /** The newest page is the owner's move: the next scene answers it. */
+  /** The newest page is their person's move: the next scene answers it. */
   | 'scene'
-  /** The newest page is a scene: the next move is the owner's. */
+  /** The newest page is a scene: the next move is their person's. */
   | 'move'
   /** The book is finished. */
   | 'nothing';
@@ -70,7 +70,7 @@ export interface StoryStateCard {
   /** One short line on top, e.g. "Night 2" or "Lantern lit". */
   badge?: string;
   stats?: StoryStat[];
-  /** What the owner is carrying. */
+  /** What their person is carrying. */
   inventory?: string[];
   /** What has been found out. */
   discovered?: string[];
@@ -90,7 +90,7 @@ export interface StoryPage {
   kind: StoryPageKind;
   /** A companion slug on a scene; STORY_OWNER_AUTHOR on a move. */
   author: string;
-  /** The scene, or the move as the owner made it (a choice's label, or their own words). */
+  /** The scene, or the move as their person made it (a choice's label, or their own words). */
   text: string;
   /** Relative Studio gallery URL, e.g. /api/studio/gallery/<file>. Scenes only. */
   imageUrl: string | null;
@@ -99,7 +99,7 @@ export interface StoryPage {
   choices: StoryChoice[];
   /** Source of the small interactive widget written for this scene, if any. */
   widget: string | null;
-  /** On a move: the id of the choice taken, or null for a move in the owner's own words. */
+  /** On a move: the id of the choice taken, or null for a move in their person's own words. */
   choiceId: string | null;
 }
 
@@ -117,11 +117,11 @@ export interface StoryBookSummary {
   createdAt: string;
   updatedAt: string;
   finishedAt: string | null;
-  /** When the owner last walked into it. */
+  /** When their person last walked into it. */
   openedAt: string | null;
   pageCount: number;
   sceneCount: number;
-  /** Where the owner left off: the newest scene, or their newest move when it is newer. */
+  /** Where their person left off: the newest scene, or their newest move when it is newer. */
   bookmark: { pageId: string; at: string } | null;
   awaiting: StoryAwaiting;
   /** A page turn is queued or being written for this book right now. */

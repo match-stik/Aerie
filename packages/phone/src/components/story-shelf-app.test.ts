@@ -28,7 +28,7 @@ test('the shelf and the open book are read again when the house says the shelf c
   assert.match(read('../aerie/protocol.ts'), /\{ type: 'story_update'; bookId: string \| null \}/);
 });
 
-test('it reads and moves through the owner’s door, and never writes a scene', () => {
+test('it reads and moves through their person’s door, and never writes a scene', () => {
   assert.match(app, /apiFetch\('\/api\/story-shelf'\)/);
   assert.match(app, /`\/api\/story-shelf\/books\/\$\{encodeURIComponent\(id\)\}`/);
   for (const door of ['open', 'move', 'retry']) assert.ok(app.includes(`'${door}'`), `the ${door} door is used`);
@@ -45,7 +45,7 @@ test('a book opens at its bookmark, and back steps out one level at a time', () 
   assert.match(app, /onClose=\{handleBack\}/);
 });
 
-test('a book in progress wears the owner’s thread, in their own color, and a spicy one a red thread', () => {
+test('a book in progress wears their person’s thread, in their own color, and a spicy one a red thread', () => {
   assert.match(app, /bookmarkThread\(book, ownerThread\)/);
   assert.match(app, /threadColor\(book, ownerThread\)/);
   assert.match(app, /getOwnerAvatar\(\)\.color/);
@@ -62,11 +62,11 @@ test('a spine fits its title to the length left on it and turns its letters the 
   }
 });
 
-test('a page already turned says what the owner did, rather than that it is their move', () => {
+test('a page already turned says what their person did, rather than that it is their move', () => {
   assert.match(app, /page\.choiceId \? 'You chose' : 'Your words'/);
 });
 
-test('a widget runs sealed, and only a well-formed move from its own frame is heard, and then only after the owner confirms it', () => {
+test('a widget runs sealed, and only a well-formed move from its own frame is heard, and then only after their person confirms it', () => {
   assert.match(frame, /sandbox="allow-scripts"/);
   assert.doesNotMatch(frame, /allow-same-origin/);
   assert.match(frame, /event\.source !== frame\.contentWindow/);
@@ -74,8 +74,8 @@ test('a widget runs sealed, and only a well-formed move from its own frame is he
   assert.match(frame, /STORY_WIDGET_CSP/);
   assert.match(frame, /inlineHouseMedia\(/);
   assert.match(frame, /propsExpression: 'window\.story'/);
-  assert.match(app, /setStaged\(/, 'a widget’s move is staged for the owner');
-  assert.match(app, /Send it/, 'and sent only when the owner says so');
+  assert.match(app, /setStaged\(/, 'a widget’s move is staged for their person');
+  assert.match(app, /Send it/, 'and sent only when their person says so');
 });
 
 test('the table talk is shown under the page, and reading it there counts as reading it', () => {
@@ -84,7 +84,7 @@ test('the table talk is shown under the page, and reading it there counts as rea
   assert.match(app, /markRead\(threadId, latestId\)/);
 });
 
-test('the table holds its height and scrolls, newest at the bottom, and both boxes keep what the owner was typing', () => {
+test('the table holds its height and scrolls, newest at the bottom, and both boxes keep what their person was typing', () => {
   // The box is the house's one table (RoomTable.tsx), which scrolls; the room keeps its height.
   assert.match(app, /<RoomTalk scrollRef=\{talkBox\} className="[^"]*max-h-\[42vh\][^"]*"/);
   assert.match(read('./RoomTable.tsx'), /className=\{cn\('min-h-0 overflow-y-auto/);
@@ -92,11 +92,11 @@ test('the table holds its height and scrolls, newest at the bottom, and both box
   assert.match(app, /draftKey=\{`aerie_table_draft_\$\{bookId\}`\}/);
   assert.match(app, /draftKey=\{`aerie_move_draft_\$\{book\.id\}`\}/);
   assert.match(app, /if \(value\) localStorage\.setItem\(key, value\);\s*else localStorage\.removeItem\(key\);/);
-  assert.match(app, /const box = useGrowingBox\(draft, 40, 132\);/, 'the rail grows with the owner’s words, like the chat');
+  assert.match(app, /const box = useGrowingBox\(draft, 40, 132\);/, 'the rail grows with their person’s words, like the chat');
 });
 
-test('the owner’s lines at the table wear their face, the way the chat puts it beside theirs', () => {
-  // The owner's lines go through the chat's own bubble on the house's one table, which
+test('their person’s lines at the table wear their face, the way the chat puts it beside theirs', () => {
+  // Their person's lines go through the chat's own bubble on the house's one table, which
   // carries their face and side exactly as the chat does.
   const table = read('./RoomTable.tsx');
   assert.match(table, /<RoomBubble key=\{line\.id\} id=\{line\.id\} content=\{line\.content\} createdAt=\{line\.createdAt\} fromOwner \/>/);
@@ -110,7 +110,7 @@ test('the bible keeps its shape open and folds the rest, each part under its own
   assert.doesNotMatch(app, /<Words text=\{book\.bible\}/, 'the bible is never poured out whole any more');
 });
 
-test("the table shows typing dots while the owner's line waits, or while a reply is being written in the book's thread", () => {
+test("the table shows typing dots while their person's line waits, or while a reply is being written in the book's thread", () => {
   const socket = read('../aerie/socket.ts');
   assert.match(socket, /new CustomEvent\('aerie:thread-stream', \{ detail: \{ threadId, writing \} \}\)/);
   assert.match(socket, /case 'stream_start':[^]*?threadWriting\(msg\.threadId, true\);/);

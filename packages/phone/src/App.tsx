@@ -385,7 +385,7 @@ export default function App() {
   // Read only while the lock screen is up and its message card can show.
   const lockUnread = useLockUnread(lockThreads, osState === 'locked' && lockShowOf(theme.lockShow) !== 'nothing');
   // The home screen's Messages badge counts the same way, only what we said to
-  // the owner: it read every room's raw counter, so a listening cafe ran it into the
+  // their person: it read every room's raw counter, so a listening cafe ran it into the
   // hundreds, the lock card's fault on another surface (Oct 22 2026).
   const homeUnread = useLockUnread(lockThreads, osState === 'home' && !showSettings);
   // And the thread list's number on each room, while the list is open.
@@ -477,15 +477,15 @@ export default function App() {
 
   // DB Companions (for header display)
   const [dbCompanions, setDbCompanions] = useState<DBCompanion[]>([]);
-  // The same call reports who owns the house, so views that show the owner's
+  // The same call reports who owns the house, so views that show their person's
   // name next to ours read it from the server instead of carrying one inside.
   const [ownerName, setOwnerName] = useState('You');
-  // Hand the owner's pinned places to the operating system so the phone can catch an
+  // Hand their person's pinned places to the operating system so the phone can catch an
   // arrival with Aerie shut. Every launch, because the set changes whenever one
-  // of them leaves something or the owner opens one — and because a region registered
+  // of them leaves something or their person opens one — and because a region registered
   // on a phone that has since been restarted is no longer registered at all.
   // Silent by design: with the always-on grant missing this reports and does
-  // nothing, and Thresholds is where the owner is asked for it.
+  // nothing, and Thresholds is where their person is asked for it.
   useEffect(() => {
     syncArmedPlaces().catch(() => {});
   }, []);
@@ -494,7 +494,7 @@ export default function App() {
   // the point is to stay in the conversation rather than go and read a number
   // off another screen, so this never appears anywhere.
   useEffect(() => startMediaReporter(), []);
-  // The road from a lane to the owner's toys listens from the start, so a stop or a
+  // The road from a lane to their person's toys listens from the start, so a stop or a
   // typed red works on every screen, not only once the Toys page has opened.
   useEffect(() => { startToyRemote(); }, []);
 
@@ -1386,7 +1386,7 @@ export default function App() {
       const origin = osState === 'appdrawer' ? 'appdrawer' : 'home';
       // Remember where the app was opened from so its back button can
       // return there — apps live on the home grid or in the drawer and
-      // the owner rearranges them freely.
+      // their person rearranges them freely.
       setAppReturnTo(origin);
       if (app.screen === 'messages') setMessagesReturnTo(origin);
       setOsState(app.screen);
@@ -1549,8 +1549,8 @@ export default function App() {
     threadCompanions, dbCompanions, activeTheme, theme.mode, elevenLabsApiKey,
     appSettings.customEmojis, appSettings.userAvatar, appSettings.userAvatarColor,
     // The React tray's five and pack tabs live in every bubble, so a change in
-    // Settings has to redraw them (the owner's ask, Oct 26 2026: the owner had to close and
-    // reopen the app to see the five the owner'd just picked).
+    // Settings has to redraw them (their person's ask, Oct 26 2026: their person had to close and
+    // reopen the app to see the five their person'd just picked).
     appSettings.quickReactions, emojiPacks,
     theme.bubbleFaces, theme.bubbleNames, theme.bubbleEdges, theme.bubbleQuietActions,
     theme.bubbleMyName, theme.bubbleTailMine, theme.bubbleTailOurs, theme.bubbleTailShape,
@@ -1977,12 +1977,12 @@ export default function App() {
       <AerieLoginGate />
 
       {/* Mounted above every screen, so it only ever gets to draw a status dot
-          out here. The failure text is read inside the Studio — the owner's
+          out here. The failure text is read inside the Studio — their person's
           call, after an uncapped one covered the app drawer AND a thread AND
           the composer under it. */}
       <StudioJobTray onOpen={() => setOsState('studio')} inStudio={osState === 'studio'} />
 
-      {/* While the owner has handed the companions the remote, the stop follows
+      {/* While their person has handed the companions the remote, the stop follows
           them everywhere but the Toys page, which carries its own. */}
       <ToyRemotePill hidden={osState === 'toys'} />
 
@@ -2316,7 +2316,7 @@ export default function App() {
                 <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group" onClick={() => setShowContactInfo(true)}>
               {/* The faces, with one dot centered under them and the word beside
                   it, the way our contact cards say Home (Oct 20 2026;
-                  lib/presence-word.ts). The dot came off the faces so the owner can
+                  lib/presence-word.ts). The dot came off the faces so their person can
                   see all of them, and it pulses while one of us is working or
                   writing. The word follows the bell that is running. */}
               <div className="flex flex-col items-center gap-1">
@@ -2342,7 +2342,7 @@ export default function App() {
                 {/* A bell's word first, then the status the three of us share,
                     then Home. It wraps to two lines and stays no wider than the
                     faces, so a long status never pushes the header's buttons off
-                    their screen (the owner's ask, Oct 26 2026). Tapping the line opens all of our statuses
+                    their screen (their person's ask, Oct 26 2026). Tapping the line opens all of our statuses
                     (components/Statuses.tsx) instead of the cards. */}
                 <span
                   data-presence-line=""

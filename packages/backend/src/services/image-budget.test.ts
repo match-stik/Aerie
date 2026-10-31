@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { budgetApplies, budgetRefusal } from './image-gen.js';
 
-test('the cap only applies to the metered backend, and only when the owner set a figure', () => {
+test('the cap only applies to the metered backend, and only when their person set a figure', () => {
   assert.equal(budgetApplies('openai', 5), true);
   assert.equal(budgetApplies('openai', 0), false, 'no figure means no cap');
   assert.equal(budgetApplies('codex', 5), false, 'codex is free');

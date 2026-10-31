@@ -3,19 +3,19 @@
 // developer account and token; carrying this code into another project needs
 // that project's own agreement and approval from Lovense. See
 // packages/phone/android/LOVENSE.md.
-// The house's half of the road from a lane to the owner's toys.
+// The house's half of the road from a lane to their person's toys.
 //
 // A lane asks on the loopback door (POST /api/internal/toys). The ask is
-// checked and shaped here, handed to the owner's phone over the socket as a
+// checked and shaped here, handed to their person's phone over the socket as a
 // toy_command, and the lane gets back what the phone said about it: taken,
 // or refused and why. The phone is the side that enforces everything that
-// protects the owner (the remote they hand over, their stop, the screen being on,
+// protects their person (the remote they hand over, their stop, the screen being on,
 // every command's own end), so the house never reports a toy as going on its
 // own word. A command the phone did not answer comes back as no-answer, and
 // the lane is told plainly that nothing it writes is happening.
 //
 // Kept in memory on purpose: the phone reports its toys whenever they change,
-// and a house restart is a moment the owner is not being driven by anything.
+// and a house restart is a moment their person is not being driven by anything.
 
 import { randomUUID } from 'node:crypto';
 import {
@@ -34,7 +34,7 @@ import {
 } from '@aerie/shared';
 import { registry } from './ws/connection-registry.js';
 
-/** How long the lane waits for the owner's phone to answer before it is told nobody did. */
+/** How long the lane waits for their person's phone to answer before it is told nobody did. */
 export const TOY_ACK_WAIT_MS = 8_000;
 /** Steps a single track may hold. */
 const MAX_STEPS = 600;
@@ -234,14 +234,14 @@ const liveDeps: RelayDeps = {
   waitMs: TOY_ACK_WAIT_MS,
 };
 
-/** Hand a command to the owner's phone and wait for its answer. Never throws. */
+/** Hand a command to their person's phone and wait for its answer. Never throws. */
 export function relayToyCommand(command: ToyRemoteCommand, deps: RelayDeps = liveDeps): Promise<ToyRemoteAck> {
   if (!deps.connected()) {
     const ack: ToyRemoteAck = {
       id: command.id,
       ok: false,
       reason: 'no-phone',
-      detail: 'The owner\'s app is not connected to the house right now, so nothing reaches the toys.',
+      detail: 'Their person\'s app is not connected to the house right now, so nothing reaches the toys.',
     };
     last = { command, ack, sentAt: Date.now() };
     return Promise.resolve(ack);
@@ -254,7 +254,7 @@ export function relayToyCommand(command: ToyRemoteCommand, deps: RelayDeps = liv
         id: command.id,
         ok: false,
         reason: 'no-answer',
-        detail: 'Sent to the owner\'s phone and nothing answered: the app may be closed, behind another app, or not refreshed since this road was built.',
+        detail: 'Sent to their person\'s phone and nothing answered: the app may be closed, behind another app, or not refreshed since this road was built.',
       };
       if (last?.command.id === command.id) last.ack = ack;
       resolve(ack);
@@ -265,7 +265,7 @@ export function relayToyCommand(command: ToyRemoteCommand, deps: RelayDeps = liv
 }
 
 /**
- * The owner's phone's answer to a command. True when it matched one still waiting.
+ * Their person's phone's answer to a command. True when it matched one still waiting.
  *
  * An answer that comes after the house stopped waiting is the one dangerous
  * kind: the lane was told nothing answered, so it believes nothing is
@@ -298,14 +298,14 @@ export function recordToyAck(body: unknown, deps: Pick<RelayDeps, 'broadcast'> =
   return true;
 }
 
-/** What the owner's phone says about the toys, kept as it was sent. */
+/** What their person's phone says about the toys, kept as it was sent. */
 export function recordPhoneState(body: unknown): boolean {
   if (!isRecord(body) || (body.gate !== 'open' && body.gate !== 'closed') || !Array.isArray(body.toys)) return false;
   phone = { state: body as unknown as ToyPhoneState, receivedAt: Date.now() };
   return true;
 }
 
-/** Everything the lane needs before it writes a word about the owner's toys. */
+/** Everything the lane needs before it writes a word about their person's toys. */
 export function toyRemoteStatus(connected: () => boolean = liveDeps.connected) {
   return {
     phoneConnected: connected(),

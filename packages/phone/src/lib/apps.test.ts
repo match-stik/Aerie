@@ -37,7 +37,7 @@ test('empty rows after the last app are trimmed, and gaps between apps stay', ()
   assert.deepEqual(trimTrailingEmpty(['a', 'b']), ['a', 'b']);
 });
 
-test('the drawer is four in a row unless the owner picks five', () => {
+test('the drawer is four in a row unless their person picks five', () => {
   assert.equal(drawerColumnsOf(undefined), 4);
   assert.equal(drawerColumnsOf(5), 5);
   assert.equal(drawerColumnsOf('5'), 4);

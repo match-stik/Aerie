@@ -1,22 +1,22 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
  * A bell with several owners can switch A Lane Each on for itself. Separate
- * heads cost three sessions at once, so the owner may keep the switch off
+ * heads cost three sessions at once, so their person may keep the switch off
  * ordinarily and want it on only for particular bells — and the person who
  * would otherwise have to remember to flip it, before each of those bells, is
- * the owner.
+ * their person.
  *
  * So a several-owner bell turns the switch on when it rings and it is off,
  * marks that it was the bell that did it, and the switch goes back off after a
- * bell when no other several-owner bell is due soon. A switch the owner turned on by
+ * bell when no other several-owner bell is due soon. A switch their person turned on by
  * hand is never touched, because the mark is only ever set here.
  *
  * The flip is in memory and in the settings row, never in aerie.yaml, so a
- * restart puts the house back to the owner's file — the safe direction, and the next
+ * restart puts the house back to their person's file — the safe direction, and the next
  * bell simply turns it on again.
  */
 
-/** The owner's setting. Off unless a house asks for it. */
+/** Their person's setting. Off unless a house asks for it. */
 export const BELLS_SPLIT_LANES_KEY = 'orchestrator.bells_split_lanes';
 /** Set only by a bell that turned the switch on itself. */
 export const LANES_BY_BELL_KEY = 'agent.multi_lane_by_bell';

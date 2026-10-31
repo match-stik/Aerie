@@ -65,7 +65,7 @@ test('read-aloud audio, voice notes left at places and Press thumbnails are kept
   for (const id of ['tts-file', 'threshold-file', 'press-thumb']) assert.ok(kept.has(id), id);
 });
 
-test('a picture the owner\'s settings point at is kept, wherever in the settings it sits', () => {
+test('a picture their person\'s settings point at is kept, wherever in the settings it sits', () => {
   const db = getDb();
   // Wallpapers moved out of the settings blob into the file store; the blob
   // keeps only links, so Clean orphans has to read it.

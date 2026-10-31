@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The Story Shelf over HTTP: the loopback door the companions write through,
-// the authed door the owner reads and moves through, and the page turns in
+// the authed door their person reads and moves through, and the page turns in
 // between. The lane here is a stand-in that writes through the real loopback
 // door, the way the companions do, so a page turn is checked end to end.
 //
@@ -270,7 +270,7 @@ test('the phone reads the shelf only with a session, and cannot move without the
     assert.deepEqual((shelf.json as StoryShelfView).books.map((b) => b.title), ['The Night Market']);
     const opened = await doors.owner('GET', `/books/${book.id}`);
     assert.equal(opened.status, 200);
-    assert.equal((opened.json as StoryBookView).book.bible, 'BIBLE: the stalls move.', 'the owner may read the bible they wrote');
+    assert.equal((opened.json as StoryBookView).book.bible, 'BIBLE: the stalls move.', 'their person may read the bible they wrote');
     assert.equal((await doors.owner('GET', '/books/no-such-book')).status, 404);
 
     const noLane = await doors.owner('POST', `/books/${book.id}/open`, {});
@@ -362,7 +362,7 @@ test('a move goes in once and reaches the lane with the scene it answers; an emp
     assert.doesNotMatch(lane.calls[0].prompt, /BIBLE:/);
 
     const said = getDb().prepare("SELECT role, content, metadata FROM messages WHERE thread_id = ? AND role = 'user'").all(lane.calls[0].threadId) as Array<{ content: string; metadata: string }>;
-    assert.deepEqual(said.map((m) => m.content), ['Wait'], 'the move is in the thread in the owner’s own words');
+    assert.deepEqual(said.map((m) => m.content), ['Wait'], 'the move is in the thread in their person’s own words');
     assert.equal(JSON.parse(said[0].metadata).storyBookId, book.id);
 
     const stalled = (await doors.owner('GET', `/books/${book.id}`)).json as StoryBookView;
@@ -430,7 +430,7 @@ test('a line said at the table while the lane is busy keeps asking until it is a
   }
 });
 
-test('table talk goes in in the owner’s own words, reaches the lane as talk rather than a move, and never turns the page', async () => {
+test('table talk goes in in their person’s own words, reaches the lane as talk rather than a move, and never turns the page', async () => {
   freshHouse();
   let doors!: Awaited<ReturnType<typeof house>>;
   let bookId = '';

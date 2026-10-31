@@ -2,7 +2,7 @@
 // THREE PLACES THIS HOUSE WAS COMPILED INTO A KIT OTHER PEOPLE INSTALL.
 //
 // Rose and Sol, Sep 17 2026: OWNER_SEAT was hard-coded to this house's owner
-// at the card table, and this house's own pet names for the owner sat inside the
+// at the card table, and this house's own pet names for their person sat inside the
 // classifier that decides what a voice reads aloud. Their owner's name is in
 // neither, so their table seats somebody who does not live there and a line
 // addressed to their owner is skipped as scenery.

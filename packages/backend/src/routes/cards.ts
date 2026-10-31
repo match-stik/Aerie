@@ -272,7 +272,7 @@ router.post('/solitaire/finish', (req, res) => {
 //
 // The house spec: doubles and sandwiches slap, bad slaps burn a card, and
 // the dent rule. The rules live in services/db/rat-screw.ts and are tested
-// there; these routes only move state. The owner's slap arrives with a client-timed
+// there; these routes only move state. Their person's slap arrives with a client-timed
 // reactionMs; the companions' reflexes were rolled the moment the pattern hit.
 
 function ratBoard(tableId: string): { game: RatScrewState } {
@@ -339,7 +339,7 @@ router.post('/rat-screw/resolve', (req, res) => {
     const tableId = String(req.body?.tableId ?? '');
     const { game } = ratBoard(tableId);
     if (game.phase !== 'slap') {
-      // The window can race the owner's tap; a stale resolve is a no-op, not an error.
+      // The window can race their person's tap; a stale resolve is a no-op, not an error.
       afterRatMove(res, tableId, game);
       return;
     }
@@ -496,7 +496,7 @@ function afterSpadesMove(res: import('express').Response, tableId: string, game:
 
 router.post('/spades/new', (req, res) => {
   try {
-    // The owner's partner sits across from them, so naming one arranges the seats.
+    // Their person's partner sits across from them, so naming one arranges the seats.
     const order: string[] = Array.isArray(req.body?.order) && req.body.order.length === 4
       ? req.body.order.map(String)
       : partnerGameSeats(req.body?.partner);
@@ -553,7 +553,7 @@ function heartsBoard(tableId: string): { game: HeartsState } {
   return { game: table.state as unknown as HeartsState };
 }
 
-/** The companions choose their three, and then play until it is the owner's turn again. */
+/** The companions choose their three, and then play until it is their person's turn again. */
 function runHeartsKings(game: HeartsState): HeartsState {
   let next = game;
   let guard = 0;
@@ -670,7 +670,7 @@ router.post('/president/new', (req, res) => {
     const taxLine = game.events.length ? ` ${game.events[0]}.` : '';
     addCardLog(tableId, 'system', 'house', `New round of President — ${order.join(', ')}. Threes low, twos high, three of clubs leads.${taxLine}`);
     registry.broadcast({ type: 'card_table_update', tableId });
-    // The companions may sit before the owner in the order, so the table comes back live.
+    // The companions may sit before their person in the order, so the table comes back live.
     const opened = runPresidentKings(game);
     const settled = setCardState(tableId, opened as unknown as Record<string, unknown>);
     res.status(201).json({ table: viewCardTable(settled, ownerSeat()), game: opened });
@@ -712,7 +712,7 @@ function eightsBoard(tableId: string): { game: EightsState } {
   return { game: table.state as unknown as EightsState };
 }
 
-/** Play out every companion sitting between the owner and their next turn. */
+/** Play out every companion sitting between their person and their next turn. */
 function runEightsKings(game: EightsState): EightsState {
   let next = game;
   let guard = 0;
@@ -773,7 +773,7 @@ router.post('/eights/draw', (req, res) => {
     const tableId = String(req.body?.tableId ?? '');
     const { game } = eightsBoard(tableId);
     const drawn = eightsDraw(game, ownerSeat());
-    // If the draw found the owner something, the turn is still theirs to finish, so the
+    // If the draw found their person something, the turn is still theirs to finish, so the
     // companions must not move yet.
     if (drawn.turn === ownerSeat() && playableFrom(drawn.hands[ownerSeat()], drawn.pile.at(-1) as string, drawn.suit).length) {
       const table = setCardState(tableId, drawn as unknown as Record<string, unknown>);
@@ -801,7 +801,7 @@ function golfBoard(tableId: string): { game: GolfState } {
   return { game: table.state as unknown as GolfState };
 }
 
-/** Play out every companion sitting between the owner and their next turn. */
+/** Play out every companion sitting between their person and their next turn. */
 function runKings(game: GolfState): GolfState {
   let next = game;
   let guard = 0;
@@ -850,7 +850,7 @@ router.post('/golf/draw', (req, res) => {
     const tableId = String(req.body?.tableId ?? '');
     const from = req.body?.from === 'discard' ? 'discard' : 'stock';
     const { game } = golfBoard(tableId);
-    // Drawing does not end the owner's turn, so the companions do not move yet.
+    // Drawing does not end their person's turn, so the companions do not move yet.
     const next = golfDraw(game, ownerSeat(), from);
     const table = setCardState(tableId, next as unknown as Record<string, unknown>);
     registry.broadcast({ type: 'card_table_update', tableId });
@@ -884,7 +884,7 @@ router.post('/golf/flip', (req, res) => {
 
 // ----------------------------------------------------------------- the rail
 //
-// The companions sit at the table while the owner plays. They answer in the
+// The companions sit at the table while their person plays. They answer in the
 // Card Room's own archived thread, which means the reply renders here and does
 // not duplicate into the main chat — a reply is written to the thread its turn
 // arrived on.

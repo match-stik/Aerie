@@ -21,7 +21,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * A native crash on a sideloaded phone is otherwise invisible from the house:
- * there is no Play Console, no adb, and the owner sees only an app that
+ * there is no Play Console, no adb, and their person sees only an app that
  * vanished. This catches the stack on its way out, writes it beside the app
  * and posts it home, so the next report can be a stack trace rather than a
  * description.
@@ -99,7 +99,7 @@ final class AerieCrashReporter {
     /**
      * Not every way this app dies arrives as a Java exception. When the WebView's
      * own render process is killed the app process is taken down by the platform
-     * with nothing thrown, so the handler above never sees it and the owner is
+     * with nothing thrown, so the handler above never sees it and their person is
      * left describing an app that vanished. This is the same pipe for the deaths
      * that have no stack.
      */

@@ -10,8 +10,8 @@ import {
   TRANSCRIPT_CLOSE,
 } from './utils.js';
 
-// When the owner speaks in a shared server, the last several messages from
-// anyone in that channel ride inside the owner's own full-tool turn. A stranger
+// When their person speaks in a shared server, the last several messages from
+// anyone in that channel ride inside their person's own full-tool turn. A stranger
 // posting the right paragraph could otherwise plant instructions that run. The
 // transcript is fenced as data, and the fence delimiters are stripped from the
 // content so a message cannot forge the closing marker and escape the fence.

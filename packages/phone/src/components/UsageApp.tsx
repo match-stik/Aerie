@@ -376,7 +376,7 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
       {tab === 'dashboard' && (
         <>
           {/*
-            The number the owner actually opens this app for. Everything below
+            The number their person actually opens this app for. Everything below
             counts per-request TOKENS, which the interactive subscription lane
             only gets from its own transcript (services/heartbeat/turn-usage.ts),
             and a row there is a whole turn, not one call. What IS readable is how much of the subscription itself is

@@ -5,7 +5,7 @@
 // rule is that a companion reads what has already happened and never what is
 // coming, and a rule like that written into a lane's instructions is a rule a
 // tired window can reason past. So sceneAt() clamps to the clock and there is
-// no argument to make it do otherwise: nothing ahead of the owner's picture can be
+// no argument to make it do otherwise: nothing ahead of their person's picture can be
 // returned by this module at all. Same principle as every card policy in the
 // Card Room carrying a comment saying why it stays ordinary.
 
@@ -90,7 +90,7 @@ export function currentScreening(): ScreeningRow | null {
 /**
  * Whether a screening is going on now: the most recent one, touched within the
  * last few hours. Screenings never end on their own (the latest stays
- * 'playing' for days), so recency is the only honest test. Used when the owner has
+ * 'playing' for days), so recency is the only honest test. Used when their person has
  * asked the house to hear their phone's media only during a screening.
  */
 export const SCREENING_LIVE_WINDOW_MS = 6 * 60 * 60 * 1000;
@@ -146,8 +146,8 @@ export function seekClock(id: string, positionMs: number, now = Date.now()): Scr
 }
 
 /**
- * Resync. The file is cut against one release and the owner's service plays another, so
- * they drift. A NEGATIVE offset means the subtitle file runs ahead of the owner's
+ * Resync. The file is cut against one release and their person's service plays another, so
+ * they drift. A NEGATIVE offset means the subtitle file runs ahead of their person's
  * picture and needs holding back.
  */
 export function resyncClock(id: string, offsetMs: number): Screening {
@@ -175,7 +175,7 @@ export interface Scene {
 export function sceneAt(row: ScreeningRow, lookbackMs = DEFAULT_LOOKBACK_MS, now = Date.now()): Scene {
   const cues = cuesOf(row);
   const window = Math.min(Math.max(1_000, Math.round(lookbackMs)), MAX_LOOKBACK_MS);
-  // The offset moves the subtitle timeline relative to the owner's picture, so it is
+  // The offset moves the subtitle timeline relative to their person's picture, so it is
   // applied to the clock before anything is compared against a cue.
   const at = positionOf(row, now) + row.offset_ms;
   const floor = at - window;
@@ -194,13 +194,13 @@ export function sceneAt(row: ScreeningRow, lookbackMs = DEFAULT_LOOKBACK_MS, now
 /**
  * Everything since we last looked, and it closes a hole nobody had seen:
  * sceneAt answers what is on screen AT THE INSTANT WE ASK, so every line
- * between one of the owner's messages and the next went past with nobody reading it.
+ * between one of their person's messages and the next went past with nobody reading it.
  * We kept turning up to each turn having missed the middle.
  *
  * THE CLAMP IS UNTOUCHED AND CANNOT BE TOUCHED BY THIS. Only the FLOOR moves,
- * and a floor only ever reaches further BACKWARDS — into what the owner has already
+ * and a floor only ever reaches further BACKWARDS — into what their person has already
  * watched. The ceiling is still positionOf(), so this is incapable of returning
- * a cue the owner has not reached, however large a gap it is asked to cover.
+ * a cue their person has not reached, however large a gap it is asked to cover.
  *
  * It is for catching UP, not for reading OUT: the aim is to be on the same
  * page as the person watching, not to recite the dialogue back.

@@ -194,7 +194,7 @@ router.get('/models', authMiddleware, async (_req, res) => {
   if (isCodexLoggedIn()) {
     const caps = codexCapabilities();
     // Ask what the account has before falling back to what we wrote down. The
-    // hand-typed list drifted far enough to offer the owner three models they could
+    // hand-typed list drifted far enough to offer their person three models they could
     // not run; the Codex CLI keeps the real one on disk.
     const codexDiscovered = discoverCodexModels('codex');
     const codexList = codexDiscovered.length > 0 ? codexDiscovered : CODEX_MODELS;

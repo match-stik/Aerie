@@ -71,7 +71,7 @@ test('the other attachment kinds are never mistaken for instructions', () => {
 
 test('the project slug matches this box own folder naming', () => {
   // BUILT from the environment, never written down — a tracked file must not
-  // carry the owner's home directory, and privacy-strings.test.ts fails if it
+  // carry their person's home directory, and privacy-strings.test.ts fails if it
   // does. The expectation is spelled out here independently of the function
   // under test: every non-alphanumeric becomes a dash, which is why an
   // underscore in a username lands as one.

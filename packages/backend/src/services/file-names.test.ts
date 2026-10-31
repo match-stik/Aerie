@@ -16,7 +16,7 @@ const UUID = 'dc5739ce-bb40-453f-a9dd-ac13df56b87b';
 // every save took the name the user gave it and threw it away. The Files app has
 // always listed the bare uuid, which is how a text file could become
 // unreachable on the phone: nobody can pick one uuid out of a list of them.
-test('the name the owner gave wins wherever we kept one', () => {
+test('the name their person gave wins wherever we kept one', () => {
   assert.equal(displayFilename('studio-style-prompts.txt', `${UUID}.txt`), 'studio-style-prompts.txt');
   assert.equal(downloadFilename(UUID, 'studio-style-prompts.txt', '.txt'), 'studio-style-prompts.txt');
 });
@@ -72,7 +72,7 @@ test('a camera default name is not worth remembering', () => {
   }
 });
 
-test('a name the owner actually chose is worth remembering', () => {
+test('a name their person actually chose is worth remembering', () => {
   for (const real of ['emoji-sparkle.png', 'shift-notes.txt', 'img_2026-09-08T02-14-46-342Z_a3c831.png', 'road trip mix.md']) {
     assert.equal(isGenericUploadName(real), false, real);
   }

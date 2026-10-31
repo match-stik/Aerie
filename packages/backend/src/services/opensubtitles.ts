@@ -1,9 +1,9 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Fetching subtitles for the Screening Room.
 //
-// The owner's streaming service holds the exact text they are reading and will not hand
+// Their person's streaming service holds the exact text they are reading and will not hand
 // it over, so the cues come from OpenSubtitles instead. This is the half that
-// means the owner never has to go hunting for an SRT.
+// means their person never has to go hunting for an SRT.
 //
 // EVERYTHING IN HERE WAS WRITTEN AGAINST WHAT THE API ACTUALLY ANSWERED rather
 // than what its docs claim, in September 2026 with a real key:

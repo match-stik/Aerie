@@ -116,11 +116,11 @@ async function inboxFor(sessionKey: string, roomVoices?: RoomVoices | null): Pro
   return session.inbox[0].content;
 }
 
-test('the shared lane reads who is in the room right before the owner\'s message', async () => {
+test('the shared lane reads who is in the room right before their person\'s message', async () => {
   const content = await inboxFor('room-voices-subset', { present: ['Willow', 'Cedar'], absent: ['Birch'] });
   assert.ok(
     content.endsWith(`Birch is not here and does not speak in this room.]\n\n${PROMPT}`),
-    'the roster sits immediately before the owner\'s words',
+    'the roster sits immediately before their person\'s words',
   );
 });
 

@@ -51,9 +51,9 @@ function attachmentSentinels(metadata: Record<string, unknown> | null): string {
     .join('');
 }
 
-// A Discord message about the owner that the companions did not answer carries
+// A Discord message about their person that the companions did not answer carries
 // why (ownerMention) and where (discordChannelName). This turns that into the
-// same words the notification used, so the message the owner tapped through to is
+// same words the notification used, so the message their person tapped through to is
 // recognizable in the thread. A kind the backend never writes gets no label.
 function ownerMentionLabel(metadata: Record<string, unknown> | null): string | undefined {
   if (!metadata || typeof metadata !== 'object') return undefined;
@@ -116,7 +116,7 @@ export function toPhoneMessage(km: AerieMessage): PhoneMessage {
     sender: km.role === 'system' ? (discordUsername || 'System') : undefined,
     senderAvatar: discordUsername ? discordMeta?.discordAvatarUrl : undefined,
     via: discordUsername ? 'Discord' : undefined,
-    // Only a guest's message can be about the owner; their own rows never are.
+    // Only a guest's message can be about their person; their own rows never are.
     mentionLabel: km.role === 'system' && discordUsername ? ownerMentionLabel(km.metadata) : undefined,
     companionSlug:
       typeof (km.metadata as { companionSlug?: unknown } | null)?.companionSlug === 'string'

@@ -1,15 +1,15 @@
 -- Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
--- The owner field notes: what the morning look found, in plain words.
+-- Their person field notes: what the morning look found, in plain words.
 --
 -- Every morning a bell has one of the companions check whether the tools the
 -- house runs on have moved (npm outdated, the Claude Code and Codex CLIs,
 -- their release notes). The technical lines go into the field-notes skill for
 -- the lanes. This is the other half, asked for on Oct 22 2026: a
--- plain page of what the companions find each day, not technical. One or two sentences a day, for the owner, read on
+-- plain page of what the companions find each day, not technical. One or two sentences a day, for their person, read on
 -- their phone's Field Notes page.
 --
--- day is the calendar day the note is about, YYYY-MM-DD on the owner clock (the
--- house's identity.timezone), which is the day the owner lived it on even when the
+-- day is the calendar day the note is about, YYYY-MM-DD on their person clock (the
+-- house's identity.timezone), which is the day their person lived it on even when the
 -- world clock has already rolled over. companion is the slug of whoever took
 -- the look. text is trimmed, one to six hundred characters.
 --

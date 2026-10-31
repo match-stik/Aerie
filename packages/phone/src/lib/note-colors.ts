@@ -244,7 +244,7 @@ export function resolveNoteColor(stored: string | null | undefined, palette: str
 //
 // A note's colour at full strength is fine as a swatch and too loud as a whole
 // card, and a card that picks dark writing on one note and light on the next
-// reads as a jumble (the owner's ask, Oct 25 2026: the full-strength board was violent on
+// reads as a jumble (their person's ask, Oct 25 2026: the full-strength board was violent on
 // the eyes, for the smeared shadow and the different text colours; then
 // softer, though not muted).
 //

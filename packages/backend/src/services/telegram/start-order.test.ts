@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 // Telegraf runs handlers in the order they were registered, and the catch-all
 // text handler never calls next(). /start is a text message, so while the
 // catch-all came first it swallowed /start and answered 'Send /start first',
-// and the command that links the owner's chat could never run.
+// and the command that links their person's chat could never run.
 const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.ts'), 'utf-8');
 
 test('the /start command is registered before the catch-all text handler', () => {

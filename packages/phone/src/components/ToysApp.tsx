@@ -3,7 +3,7 @@
 // developer account and token; carrying this code into another project needs
 // that project's own agreement and approval from Lovense. See
 // packages/phone/android/LOVENSE.md.
-// Toys: the owner's Lovense toys over Bluetooth from this phone, through the
+// Toys: their person's Lovense toys over Bluetooth from this phone, through the
 // LovenseToys bridge (aerie/lovense-toys.ts) and Lovense's own SDK, with no
 // Lovense Remote and no cloud in between.
 //
@@ -12,9 +12,9 @@
 // While its hold runs the sliders are shut too, so nothing on this page looks
 // like it is driving a toy when it is not.
 //
-// The owner can hand the companions the remote from here (aerie/toy-remote.ts).
+// Their person can hand the companions the remote from here (aerie/toy-remote.ts).
 // While a companion is playing, the line and the sliders show what they are
-// doing in their color, any slider the owner moves takes that motor back, and
+// doing in their color, any slider their person moves takes that motor back, and
 // the stop takes it all back.
 
 import { rememberToyName, setToyName, toyName } from '../lib/toy-names';
@@ -48,7 +48,7 @@ interface ToysAppProps {
   themeMode: 'light' | 'dark';
 }
 
-/** Where the owner's pick of the line's look is kept between visits. */
+/** Where their person's pick of the line's look is kept between visits. */
 const LOOK_KEY = 'aerie.toys.look';
 
 /** How often a moving slider may send, per motor. The last value always goes. */
@@ -92,7 +92,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
   const [holdUntil, setHoldUntil] = useState(0);
   const [, setTick] = useState(0);
   const [orbsOpen, setOrbsOpen] = useState(false);
-  // Back closes the Orbs screen and leaves the owner on the Toys page.
+  // Back closes the Orbs screen and leaves their person on the Toys page.
   useBackHandler(orbsOpen, () => setOrbsOpen(false));
   const [look, setLook] = useState<WaveLook>(() => {
     try {
@@ -102,7 +102,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
     }
   });
 
-  // While the orbs are open the owner's fingers drive, and no lane can.
+  // While the orbs are open their person's fingers drive, and no lane can.
   useEffect(() => {
     if (!orbsOpen) return;
     setHands(true);
@@ -209,7 +209,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
 
   // While the page is open: Bluetooth read every few seconds, so switching it
   // on shows without leaving the app, and every connected toy's battery asked
-  // once a minute by the battery watch (the owner's ask, Oct 19 2026). Both are questions
+  // once a minute by the battery watch (their person's ask, Oct 19 2026). Both are questions
   // and move nothing.
   useEffect(() => {
     if (!bridge) return;
@@ -221,7 +221,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
     return () => { alive = false; clearInterval(statusTimer); releaseBatteries(); };
   }, [bridge]);
 
-  // ---- the owner's stop ----
+  // ---- their person's stop ----
 
   const stop = useCallback(() => {
     // The page goes still at once; the bridge holds the toys on its side.
@@ -266,7 +266,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
 
   // A tap is ended by the tracker: connected, failed, an error for the toy, or
   // no answer at all (it reads the toy list once and says which). Connect
-  // comes back after a few seconds either way, so the owner can tap again.
+  // comes back after a few seconds either way, so their person can tap again.
   const connect = useCallback((toy: LovenseToy) => {
     setMessage(null);
     startToyConnect(toy.toyId, {
@@ -310,7 +310,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
 
   const setLevel = useCallback((toyId: string, command: string, level: number) => {
     const key = `${toyId}:${command}`;
-    // The owner's hand on a motor takes it off whichever companion was driving it.
+    // Their person's hand on a motor takes it off whichever companion was driving it.
     yieldToOwner(toyId, command);
     setLevels((prev) => ({ ...prev, [key]: level }));
     clearTimeout(pending.current[key]);
@@ -325,7 +325,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
     }
   }, [send]);
 
-  // Leaving the page puts down every motor the owner was holding up. The sliders
+  // Leaving the page puts down every motor their person was holding up. The sliders
   // live only here, so a toy left at 15 used to keep running with no stop on
   // screen anywhere and read 0 when they came back (found in an outside
   // audit). A throttled send still waiting goes out as a zero too, so a slider
@@ -386,7 +386,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
 
   const connected = list.filter((toy) => toy.connected);
   // What a companion is driving from the house, motor by motor. It draws in
-  // their color, and the sliders show it, until the owner's hand takes a
+  // their color, and the sliders show it, until their person's hand takes a
   // motor back.
   const driver = remote.playing ? ownerForCompanion(remote.playing.companion) : null;
   const remoteLevels = new Map((remote.playing?.motors ?? []).map((m) => [`${m.toyId}:${m.command}`, m.level]));
@@ -419,7 +419,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
   // The orbs have no stop button (by design: letting go is the stop), so the
   // way in zeroes every motor and every toy's own pattern first. Then nothing
   // can be left running that a lifted finger would not stop. These are plain
-  // zeros, not the owner's stop, so there is no hold to wait out.
+  // zeros, not their person's stop, so there is no hold to wait out.
   const openOrbs = useCallback(() => {
     for (const toy of connected) {
       for (const motor of motorsFor(toy)) setLevel(toy.toyId, motor.command, 0);
@@ -585,7 +585,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
           </div>
         )}
 
-        {/* The owner stop sits small, right above the toys (theirs, Oct 23 2026: 'Small
+        {/* Their person stop sits small, right above the toys (theirs, Oct 23 2026: 'Small
             stop. Above the toys.'). Take it back stops everything too now, and
             their own controls are on this page, so it no longer needs to be the
             biggest thing on it; it is still the one tap that stops every toy
@@ -618,7 +618,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
             <div key={toy.toyId} className={cn(panel, 'flex flex-col gap-3 p-4')}>
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  {/* Tap the name to call the toy what the owner likes (theirs, Oct 19 2026: the
+                  {/* Tap the name to call the toy what their person likes (theirs, Oct 19 2026: the
                       Fizz came through as its Bluetooth address). */}
                   {renaming === toy.toyId ? (
                     <input
@@ -655,7 +655,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
                 )}
               </div>
 
-              {/* The owner motors stand up side by side, bottom is off and up is more,
+              {/* Their person motors stand up side by side, bottom is off and up is more,
                   so a thumb runs each one like a fader (theirs, Oct 19 2026). */}
               {motors.length > 0 && (
                 <div className="flex items-end justify-around gap-3">

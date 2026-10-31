@@ -33,7 +33,7 @@ function assertHandedOver(run: ReturnType<typeof runHook>): void {
   assert.match(out.reason, /are you there/);
 }
 
-test('the hook still hands over the owner\'s message when another writer holds the shared scratch name', () => {
+test('the hook still hands over their person\'s message when another writer holds the shared scratch name', () => {
   const dir = laneWithMessage();
   try {
     mkdirSync(join(dir, 'io', '.last-tick.tmp'));

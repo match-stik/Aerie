@@ -1243,7 +1243,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
               placeholder="Write a message..."
               className={cn(
                 "aerie-composer w-full pl-4 pr-16 py-3 focus:outline-none resize-none min-h-[48px] max-h-[150px] text-[15px] font-medium transition-all duration-300 scrollbar-hide overflow-y-auto rounded-[var(--shape-control)]",
-                // What the owner types is white at night and black by day, the
+                // What their person types is white at night and black by day, the
                 // same rule as the bubbles, not the theme's tinted text.
                 themeMode === 'dark' ? 'text-white' : 'text-[#0B0B0B]',
               )}

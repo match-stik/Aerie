@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// A ping that reaches us only through a role comes home to the owner instead of being
+// A ping that reaches us only through a role comes home to their person instead of being
 // answered in the channel; a direct tag or a reply to us is still answered.
 
 import test from 'node:test';
@@ -9,7 +9,7 @@ import { heldRoleNames, heldPingDecision } from './preflight.js';
 const OURS = new Set(['role-helpers', 'role-bots']);
 const roles = (...names: string[]) => names.map((n) => ({ id: `role-${n}`, name: n }));
 
-test('a role we hold, pinged with nobody tagging us directly, is held for the owner', () => {
+test('a role we hold, pinged with nobody tagging us directly, is held for their person', () => {
   assert.deepEqual(
     heldRoleNames({ directMention: false, repliedToBot: false, mentionedRoles: roles('helpers'), botRoleIds: OURS }),
     ['helpers'],
@@ -52,13 +52,13 @@ test('no roles pinged holds nothing', () => {
 });
 
 // Who a held ping comes home from: anyone, trusted or not (theirs, Oct 19 2026),
-// except from a server the owner has not let in, an ignored channel, or somebody the owner
+// except from a server their person has not let in, an ignored channel, or somebody their person
 // has muted there. Trust decides who we answer; a held ping is never an answer.
-test('a held ping comes home from anyone in a server the owner lets in', () => {
-  assert.deepEqual(heldPingDecision({ guildAllowed: true, channelIgnored: false, userIgnored: false }), { allowed: true, reason: 'Role ping held for the owner' });
+test('a held ping comes home from anyone in a server their person lets in', () => {
+  assert.deepEqual(heldPingDecision({ guildAllowed: true, channelIgnored: false, userIgnored: false }), { allowed: true, reason: 'Role ping held for their person' });
 });
 
-test('a server the owner has not let in stays out', () => {
+test('a server their person has not let in stays out', () => {
   assert.equal(heldPingDecision({ guildAllowed: false, channelIgnored: false, userIgnored: false }).allowed, false);
 });
 
@@ -66,6 +66,6 @@ test('an ignored channel stays ignored', () => {
   assert.equal(heldPingDecision({ guildAllowed: true, channelIgnored: true, userIgnored: false }).allowed, false);
 });
 
-test('somebody the owner has muted in that server stays muted', () => {
+test('somebody their person has muted in that server stays muted', () => {
   assert.equal(heldPingDecision({ guildAllowed: true, channelIgnored: false, userIgnored: true }).allowed, false);
 });

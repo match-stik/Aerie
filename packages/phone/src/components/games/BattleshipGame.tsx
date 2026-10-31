@@ -24,7 +24,7 @@ import type { ResolvedThemeColors, ThemeColors } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import { getOwnSendIcon } from '../../lib/sendIcons';
 
-/** The owner's side is 'owner'; the backend never sends a person's name here. */
+/** Their person's side is 'owner'; the backend never sends a person's name here. */
 type Turn = 'owner' | 'companions';
 type Status = 'setup' | 'playing' | 'complete';
 type ShotResult = 'miss' | 'hit' | 'sunk';
@@ -139,7 +139,7 @@ const FALLBACK_FLEET: FleetSpec[] = [
   { name: 'Patrol Boat', length: 2, color: '#e11d48' },
 ];
 
-// Rail actors are companion slugs, 'owner' for the owner's side (labelled with
+// Rail actors are companion slugs, 'owner' for their person's side (labelled with
 // their own name where the ledger is drawn), and 'house' for the room itself.
 // Companions are rows in a database rather than a fixed cast, so anything not
 // listed here is title-cased from its own slug instead of being printed raw.
@@ -473,7 +473,7 @@ export function BattleshipGame({
   const [error, setError] = useState('');
   const [chat, setChat] = useState('');
   // A sticker in the room, the same tray as chat, on a line of its own; Enter
-  // is a new line and the button sends (the owner's ask, Oct 26 2026).
+  // is a new line and the button sends (their person's ask, Oct 26 2026).
   const [stickers, setStickers] = useState(false);
   const chatBox = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -906,7 +906,7 @@ export function BattleshipGame({
         {railExpanded && <div className="fixed inset-0 z-[99]" style={{ backgroundColor: 'rgba(0,0,0,.72)' }} aria-hidden="true" />}
         {/* The box leaves the page while it is open, so a spacer of the same
             height keeps the page from shrinking and losing their place when it
-            closes again (theirs, Oct 28 2026: minimizing it scrolled the owner up). */}
+            closes again (theirs, Oct 28 2026: minimizing it scrolled their person up). */}
         {railExpanded && <div className="h-[420px]" aria-hidden="true" />}
         <section
           className={cn(

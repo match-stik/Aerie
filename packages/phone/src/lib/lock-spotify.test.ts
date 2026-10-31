@@ -58,11 +58,11 @@ async function until(done: () => boolean, what: string) {
   assert.ok(done(), `waited for: ${what}`);
 }
 
-test('the switch: on unless the owner turned it off', () => {
+test('the switch: on unless their person turned it off', () => {
   assert.equal(lockSpotifyOf(undefined), true, 'unset is on');
   assert.equal(lockSpotifyOf(true), true, 'on is on');
-  assert.equal(lockSpotifyOf(false), false, 'the owner switch turns it off');
-  assert.equal(lockSpotifyOf('off'), true, 'nothing but the owner switch turns it off');
+  assert.equal(lockSpotifyOf(false), false, 'their person switch turns it off');
+  assert.equal(lockSpotifyOf('off'), true, 'nothing but their person switch turns it off');
 });
 
 test("a card only for a song playing or paused, in the house's own answer", async () => {
@@ -189,7 +189,7 @@ const count = (html: string, words: string) => html.split(words).length - 1;
 test('drawn: the cover, the song and the artist, and previous, pause and next a thumb wide', () => {
   const html = draw(playing());
   assert.match(html, /<img[^>]*src="https:\/\/i\.scdn\.co\/image\/beauty"/, 'the cover');
-  assert.match(html, /<img[^>]*referrerpolicy="no-referrer"/i, 'which goes without the owner address');
+  assert.match(html, /<img[^>]*referrerpolicy="no-referrer"/i, 'which goes without their person address');
   assert.match(html, />Beauty</, 'the song');
   assert.match(html, />Layto</, 'the artist');
   for (const label of ['Previous song', 'Pause', 'Next song']) {
@@ -214,7 +214,7 @@ test('drawn while a press is out, and with its sentence', () => {
   assert.doesNotMatch(said, /sign-in page/, 'and nothing more on the lock screen');
 });
 
-test('on their lock screen: wired through the house, under the owner switch, solid and unblurred', () => {
+test('on their lock screen: wired through the house, under their person switch, solid and unblurred', () => {
   const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
   const card = read('../components/LockSpotifyCard.tsx');
   const lock = read('../components/LockScreen.tsx');
@@ -225,9 +225,9 @@ test('on their lock screen: wired through the house, under the owner switch, sol
   assert.doesNotMatch(card, /#[0-9a-f]{3,8}\b/i, 'no fixed hex colors');
   assert.match(card, /addEventListener\('visibilitychange', woke\)/, 'a wake reads');
   assert.match(card, /lock\.stop\(\);/, 'the lock screen going away stops it');
-  assert.match(lock, /\{spotify && \(\s*<LockSpotifyCard\s+fetcher=\{apiFetch\}\s+base=\{cardBase \+ messagesStep \+ noteStep\}/, 'drawn only with the owner switch on, through the house, on top of the other cards');
+  assert.match(lock, /\{spotify && \(\s*<LockSpotifyCard\s+fetcher=\{apiFetch\}\s+base=\{cardBase \+ messagesStep \+ noteStep\}/, 'drawn only with their person switch on, through the house, on top of the other cards');
   assert.match(lock, /data-lock-frame=""/, 'the frame it measures against');
-  assert.match(app, /spotify=\{lockSpotifyOf\(theme\.lockSpotify\)\}/, 'the owner switch reaches the lock screen');
+  assert.match(app, /spotify=\{lockSpotifyOf\(theme\.lockSpotify\)\}/, 'their person switch reaches the lock screen');
   assert.match(app, /spotifyApp=\{APPS\.find\(\(a\) => a\.id === 'spotify'\)\}/, 'and the app its tap opens');
   assert.match(read('../components/SettingsDashboard.tsx'), /onClick=\{\(\) => onThemeChange\(\{ lockSpotify: on \}\)\}/, 'Settings has the switch');
 });

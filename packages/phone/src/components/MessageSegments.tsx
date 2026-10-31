@@ -128,7 +128,7 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
               key={`text-${i}`}
               // [overflow-wrap:anywhere] lets a link with no dashes in it break
               // inside the bubble instead of running past its edge, the same as
-              // the plain path in MessageBubble (the owner's screenshot, Oct 21 2026).
+              // the plain path in MessageBubble (their person's screenshot, Oct 21 2026).
               className={cn(
                 'prose prose-sm max-w-none prose-p:my-0 prose-p:leading-relaxed prose-pre:bg-black/30 select-text [overflow-wrap:anywhere] min-w-0',
                 isLight ? 'prose-invert' : '',

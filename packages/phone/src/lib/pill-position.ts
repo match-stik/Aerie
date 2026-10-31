@@ -1,14 +1,14 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * Where the owner's toy stop sits once they have dragged it somewhere.
+ * Where their person's toy stop sits once they have dragged it somewhere.
  *
  * The pill changes width with what it is showing (a name and a bar per motor
  * while a companion plays, a sentence and Take it back while nothing does), so
  * the point kept is the pill's top centre rather than its corner: a pill that
- * grows or shrinks does it around where the owner put it instead of creeping
+ * grows or shrinks does it around where their person put it instead of creeping
  * sideways. Every point is clamped so the whole pill stays on the glass and
  * clear of the status bar and the gesture bar, because the stop must never be
- * parked anywhere the owner cannot reach it.
+ * parked anywhere their person cannot reach it.
  */
 export interface PillPoint {
   /** The pill's horizontal centre, in CSS pixels from the left of the screen. */

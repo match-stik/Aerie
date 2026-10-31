@@ -11,10 +11,10 @@
 //   - nothing ended an attempt that got no final callback, or whose error came
 //     through the SDK's onError instead (the plugin hands it on as toyError
 //     with the toy's id, and the page only showed the message), so the button
-//     stayed greyed with its spinner until the owner left the page.
+//     stayed greyed with its spinner until their person left the page.
 // Here an attempt ends only on connected or service_discovered, on failed, on
 // an error for that toy, or when it gives up waiting and reads the toy list
-// once. The button comes back after a few seconds so the owner can tap again, as
+// once. The button comes back after a few seconds so their person can tap again, as
 // Lovense's sample offers. And every attempt is written down step by step,
 // so the next tap that misses says what happened instead of being guessed at.
 // Kept free of the app: the bridge, the clock and the log are handed in.
@@ -28,16 +28,16 @@ export type ConnectOutcome =
   | 'timeout'
   /** No callback came, but the toy list said connected when it gave up waiting. */
   | 'connected-quietly'
-  /** The owner tapped Connect again before this one ended. */
+  /** Their person tapped Connect again before this one ended. */
   | 'tapped-again';
 
 export interface ConnectContext {
   name: string;
-  /** A search was running when the owner tapped. */
+  /** A search was running when their person tapped. */
   scanning: boolean;
   bluetoothOn?: boolean;
   tokenSet?: boolean;
-  /** What the page showed for the toy when the owner tapped. */
+  /** What the page showed for the toy when their person tapped. */
   shownConnected?: boolean;
 }
 
@@ -237,7 +237,7 @@ export function createConnectTracker(deps: ConnectTrackerDeps) {
   }
 
   return {
-    /** The owner tapped Connect. */
+    /** Their person tapped Connect. */
     start(toyId: string, ctx: ConnectContext): void {
       const now = deps.now();
       const prev = attempts.get(toyId);

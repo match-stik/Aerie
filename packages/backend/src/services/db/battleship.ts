@@ -76,7 +76,7 @@ export const BATTLESHIP_FLEET: ShipSpec[] = loadFleet();
 
 export type BattleshipStatus = 'setup' | 'playing' | 'complete';
 /**
- * The two sides of the board. The owner's side is OWNER_SIDE everywhere above
+ * The two sides of the board. Their person's side is OWNER_SIDE everywhere above
  * the database: in the API, on the phone and in the companion lane's view.
  */
 export const OWNER_SIDE = 'owner';
@@ -192,7 +192,7 @@ function parseJson<T>(value: string, fallback: T): T {
 }
 
 /**
- * How battleship_games spells the owner's side on disk.
+ * How battleship_games spells their person's side on disk.
  *
  * A table created by the current migration spells it OWNER_SIDE. A table
  * created by an earlier build fixed a different word into its CHECK
@@ -256,7 +256,7 @@ function ensureFleetRoomThread(): string {
     sessionType: 'v2',
   });
 
-  // Everyone participates and nobody is primary — the same shape as the owner's
+  // Everyone participates and nobody is primary — the same shape as their person's
   // home thread, and deliberately so. That column does two unrelated jobs: it
   // says who leads a room, and it is what the CLI session key resolves from
   // (getDefaultCompanionForThread, read by agent-dispatch). Naming a leader
@@ -593,7 +593,7 @@ export function assertFleetCompanion(actor: string): string {
 }
 
 /**
- * Who shares the Fleet Room, for the sentence the lane reads — the owner's
+ * Who shares the Fleet Room, for the sentence the lane reads — their person's
  * name, then each companion's — and the slugs the fire route accepts.
  */
 function fleetRoomCast(): { names: string; slugs: string } {
@@ -703,9 +703,9 @@ function clearStaleCompanionPending(game: BattleshipGame): BattleshipGame {
 }
 
 /**
- * Put the owner's real message into the hidden Fleet Room thread and reserve one
+ * Put their person's real message into the hidden Fleet Room thread and reserve one
  * companion response. The prompt contains only knowledge earned through play;
- * the owner's sealed fleet never enters the companion lane.
+ * their person's sealed fleet never enters the companion lane.
  */
 export function beginBattleshipCompanionResponse(
   id: string,
@@ -775,7 +775,7 @@ export function beginBattleshipCompanionResponse(
   const cast = fleetRoomCast();
   const prompt = [
     '[FLEET ROOM — live game conversation]',
-    `This is a real side room shared by ${cast.names}. Stay in character and respond to the owner naturally.`,
+    `This is a real side room shared by ${cast.names}. Stay in character and respond to their person naturally.`,
     'This is a game turn, not a software task. Do not inspect or edit code.',
     `What just happened: ${eventSummary}`,
     `Match: ${game.id}`,
@@ -790,7 +790,7 @@ export function beginBattleshipCompanionResponse(
       ? `Before writing the spoken reply, use the shell to POST exactly one shot to http://127.0.0.1:${port}/api/internal/games/battleship/fire with JSON {"gameId":"${game.id}","companion":"<${cast.slugs}>","coordinate":"<A1-H8>"}.`
       : '',
     mustFire
-      ? 'Use only that sealed endpoint. Never inspect the owner board route, database, files, or source for coordinates. Read the returned hit/miss/sunk result and react to it in the room.'
+      ? 'Use only that sealed endpoint. Never inspect their person board route, database, files, or source for coordinates. Read the returned hit/miss/sunk result and react to it in the room.'
       : '',
     'Your final spoken reply is automatically written into the Fleet Room rail. Do not call the battleship chat endpoint.',
     'Use the normal bold sigil headers for whoever speaks. Keep it lively and readable: real table talk, not a technical report. All three may speak, but a quick game beat need not become a monologue.',

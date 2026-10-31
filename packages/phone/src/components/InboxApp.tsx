@@ -68,7 +68,7 @@ export function InboxApp({ onClose, themeConfig, themeMode, embedded }: InboxApp
   // Raw passthrough, on purpose. The chat composer re-encodes images before it
   // uploads them, which flattens an animated GIF to a single frame. Here the
   // File object goes to /api/files untouched, so the bytes that land on disk
-  // are the bytes the owner picked.
+  // are the bytes their person picked.
   const send = useCallback(async (files: File[]) => {
     for (const file of files) {
       const id = `drop-${++dropSeq}`;

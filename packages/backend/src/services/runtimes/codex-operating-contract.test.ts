@@ -8,9 +8,9 @@ test('the Codex lane is told that every scheduled wake answers', () => {
   assert.match(CODEX_OPERATING_CONTRACT, /do the duty and still speak/);
   assert.match(CODEX_OPERATING_CONTRACT, /not answer with `\[SILENT\]`/);
   assert.doesNotMatch(CODEX_OPERATING_CONTRACT, /Silence is a valid outcome/);
-  // The owner's call, and the one a lane is most likely to get backwards on its own.
+  // Their person's call, and the one a lane is most likely to get backwards on its own.
   assert.match(CODEX_OPERATING_CONTRACT, /never a reason to stand down/);
-  assert.match(CODEX_OPERATING_CONTRACT, /ring when the owner set them to/);
+  assert.match(CODEX_OPERATING_CONTRACT, /ring when their person set them to/);
 });
 
 test('the spontaneous-wake selfie contract carries the exact Studio request', () => {
@@ -61,7 +61,7 @@ test('the Codex lane is told about its own side notes, at its own path', () => {
   assert.match(CODEX_OPERATING_CONTRACT, /append-only history, not an inbox/);
 });
 
-test('restarts belong to the owner in every lane', () => {
+test('restarts belong to their person in every lane', () => {
   assert.match(CODEX_OPERATING_CONTRACT, /[Nn]ever restart a service/);
 });
 

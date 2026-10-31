@@ -30,16 +30,16 @@ function seedHouse(...names: string[]): string[] {
   }).slug);
 }
 
-test('a new game seats the owner, then this house\'s companions in stored order', () => {
+test('a new game seats their person, then this house\'s companions in stored order', () => {
   const [ivy, fox, nim, oak] = seedHouse('Ivy', 'Fox', 'Nim', 'Oak');
   assert.deepEqual(defaultGameSeats(), [ownerSeat(), ivy, fox, nim, oak]);
   // A game for exactly four takes the first three that fit.
   assert.deepEqual(defaultGameSeats(4), [ownerSeat(), ivy, fox, nim]);
 });
 
-test('a partnership table seats the first companion across from the owner unless they pick', () => {
+test('a partnership table seats the first companion across from their person unless they pick', () => {
   const [ivy, fox, nim] = seedHouse('Ivy', 'Fox', 'Nim');
-  // Partners sit across: seat 0 is the owner's and seat 2 is their partner's.
+  // Partners sit across: seat 0 is their person's and seat 2 is their partner's.
   assert.deepEqual(partnerGameSeats(undefined), [ownerSeat(), fox, ivy, nim]);
   assert.deepEqual(partnerGameSeats(nim), [ownerSeat(), ivy, nim, fox]);
 });

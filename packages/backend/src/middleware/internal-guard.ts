@@ -8,7 +8,7 @@
  * https://<public host>/api/internal/journal with no credentials at all.
  *
  * Why the obvious check is not enough: the backend binds 127.0.0.1 only, so the
- * reverse proxy connects over loopback and EVERY request — the owner's, ours, a
+ * reverse proxy connects over loopback and EVERY request — their person's, ours, a
  * stranger's — arrives with a loopback socket address. `remoteAddress` alone
  * says "local" for the whole internet.
  *

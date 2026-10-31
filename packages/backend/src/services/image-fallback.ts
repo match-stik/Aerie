@@ -15,10 +15,10 @@
  *    describes configuration and never live capability. The only honest test
  *    of whether a backend will take a job is giving it one.
  *  - A PAID BACKEND IS NEVER IN THE DEFAULT CHAIN. Falling over from a free
- *    backend into a metered one turns an outage into a bill the owner never chose.
+ *    backend into a metered one turns an outage into a bill their person never chose.
  *    A paid backend therefore runs only when it is the backend that was
- *    actually asked for, or when the owner has typed it into the chain themselves —
- *    the code does not second-guess a chain the owner wrote, it only refuses to
+ *    actually asked for, or when their person has typed it into the chain themselves —
+ *    the code does not second-guess a chain their person wrote, it only refuses to
  *    invent one. There is a test on the default for exactly this.
  */
 
@@ -30,7 +30,7 @@ export const KNOWN_BACKENDS: ImageBackend[] = ['codex', 'openai', 'antigravity',
 export const PAID_BACKENDS = new Set<ImageBackend>(['openai']);
 
 /** The order tried when nothing is configured. Both of these are covered by a
- *  subscription the owner already has; openart stays out unless configured. */
+ *  subscription their person already has; openart stays out unless configured. */
 export const DEFAULT_FALLBACK_CHAIN: ImageBackend[] = ['codex', 'antigravity'];
 
 export function parseFallbackChain(raw: string | null | undefined): ImageBackend[] {

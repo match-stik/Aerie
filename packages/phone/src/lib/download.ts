@@ -25,7 +25,7 @@ function sameOriginSaveUrl(src: string): string | null {
   }
 }
 
-/** An href for a link the owner taps directly (export pills, file chips). */
+/** An href for a link their person taps directly (export pills, file chips). */
 export function saveHref(src: string): string {
   return sameOriginSaveUrl(src) ?? src;
 }

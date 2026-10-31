@@ -58,7 +58,7 @@ test('everything in a chain except the newest is marked superseded', () => {
   assert.equal(by.root, true);
 });
 
-test('nothing is removed — a superseded room is still a room the owner sat in', () => {
+test('nothing is removed — a superseded room is still a room their person sat in', () => {
   const rows = [row('tip', 500, 'req_root'), row('root', 100, 'req_root')];
   assert.equal(markResumeChains(rows).length, rows.length);
 });

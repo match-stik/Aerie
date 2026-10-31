@@ -215,7 +215,7 @@ export interface AgentRuntime {
    * Abort the current turn (if running).
    * Returns true if there was something to abort.
    */
-  /** 'stop' is the owner Stop button; 'retract' (the default) is a message edit. */
+  /** 'stop' is their person Stop button; 'retract' (the default) is a message edit. */
   abort(reason?: 'stop' | 'retract'): boolean;
 
   /**

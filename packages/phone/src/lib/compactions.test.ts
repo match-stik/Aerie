@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // What the Compactions page decides, checked without a browser: how it reads
-// the house's answer (today's and the one from before the owner restart), how it
+// the house's answer (today's and the one from before their person restart), how it
 // drains a long list for the page numbers, and where a full summary comes from.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -37,7 +37,7 @@ test('the house of today: each row keeps its id, says whose head it was, and pre
   });
 });
 
-test('the house from before the owner restart still reads, without the strays from outside the lanes', () => {
+test('the house from before their person restart still reads, without the strays from outside the lanes', () => {
   const read = rowsFrom({
     compactions: [
       { sessionId: 'aaa', project: '-home-x-aerie-data-heartbeat-primary', at: '2026-10-20T10:00:00.000Z', chars: 22000, summary: 'This session is being continued', truncated: true },

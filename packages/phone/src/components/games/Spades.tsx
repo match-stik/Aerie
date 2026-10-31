@@ -10,7 +10,7 @@
 // lose ten a trick for every trick you promised. Bid nil, take none, and it is
 // worth a hundred; take one and it costs a hundred.
 //
-// The owner picks a partner before the deal, because the whole point of the game is
+// Their person picks a partner before the deal, because the whole point of the game is
 // who is sitting across from you.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../../aerie';
@@ -65,13 +65,13 @@ interface SpadesBoardProps {
 
 export function SpadesBoard({ tableId, colors, onTableId }: SpadesBoardProps) {
   const { companions, owner, loaded: rosterLoaded, labelOf, sigilOf } = useHouseRoster();
-  // The owner's seat is the house's answer (GET /api/companions), never a
+  // Their person's seat is the house's answer (GET /api/companions), never a
   // name in the code.
   const ownerSeat = owner?.slug ?? '';
   const [game, setGame] = useState<SpadesGame | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // The owner's partner is one of this house's companions; until they pick, the first.
+  // Their person's partner is one of this house's companions; until they pick, the first.
   const [pickedPartner, setPartner] = useState<string | null>(null);
   const partner = pickedPartner ?? defaultPartner(companions);
   const tableRef = useRef<string | null>(tableId);

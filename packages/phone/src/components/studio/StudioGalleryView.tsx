@@ -58,7 +58,7 @@ const PAGE_SIZE = 30;
 // numbers only ever counted what had already been downloaded. Six hundred pictures meant
 // twenty-one taps to see twenty-one page numbers.
 //
-// The owner's call: no button, keep going until they are all in. So the view now drains the
+// Their person's call: no button, keep going until they are all in. So the view now drains the
 // collection by itself and the paginator gets what it was always promised — a complete
 // list. The wire size goes up to the route's own ceiling to make that seven requests
 // instead of twenty-one; the page stays at thirty because the grid is three wide and

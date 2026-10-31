@@ -48,7 +48,7 @@ export interface CortexProbe {
 /**
  * Pure: why did reading the Cortex config fail?
  *
- * Only one answer means "the owner has not set this up" — the message getCortexUrl
+ * Only one answer means "their person has not set this up" — the message getCortexUrl
  * raises when no URL is stored. Everything else (a database not open, a config
  * read that threw) is UNKNOWN, and reporting unknown as unconfigured is exactly
  * the false negative this readout was rebuilt to stop telling: it would drop

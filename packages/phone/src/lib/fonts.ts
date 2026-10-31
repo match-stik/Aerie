@@ -66,10 +66,10 @@ interface FontSettings {
 }
 
 /**
- * The owner's fonts, starting from how the phone looks today: the old switch's serif
+ * Their person's fonts, starting from how the phone looks today: the old switch's serif
  * becomes Noto Serif (what actually drew), sans becomes Geist and mono stays
  * mono; the old small and large become their slider places. `themeFamily` is
- * the theme's own font when the owner never picked one.
+ * the theme's own font when their person never picked one.
  */
 export function fontsOf(settings: FontSettings, themeFamily = 'font-sans'): HouseFonts {
   const title = TITLE_FONTS.some((f) => f.id === settings.fontTitle) ? settings.fontTitle as TitleFont : 'noto';

@@ -1,11 +1,11 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Thresholds — the real places the owner pins, and the things we leave at them.
+// Thresholds — the real places their person pins, and the things we leave at them.
 //
 // PRIVACY, and it is structure rather than a promise: the only thing this app
-// ever sends is a position, to the owner's own box, which answers "which of your own
+// ever sends is a position, to their person's own box, which answers "which of your own
 // pinned places is that inside" and forgets the number. No map provider is
 // contacted, no tiles are loaded, and there is no location history because
-// there is no location history table. What gets written down is that the owner
+// there is no location history table. What gets written down is that their person
 // found something somewhere — a moment, not a track.
 //
 // A place has to be pinned from the place: home from home, and anywhere else
@@ -136,7 +136,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
   const [openPlace, setOpenPlace] = useState<Place | null>(null);
   const [openThresholds, setOpenThresholds] = useState<ThresholdView[]>([]);
   const [openHistory, setOpenHistory] = useState<VisitRow[]>([]);
-  // Twenty arrivals a page. A place the owner goes to often grows this list forever.
+  // Twenty arrivals a page. A place their person goes to often grows this list forever.
   const historyPage = usePaged(openHistory);
   const [detailLoading, setDetailLoading] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -171,7 +171,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
 
   useEffect(() => { loadPlaces(); }, [loadPlaces]);
 
-  /** Ask the phone where it is, then ask the owner's own box what that means. */
+  /** Ask the phone where it is, then ask their person's own box what that means. */
   const locate = useCallback(() => {
     setLocateError(null);
     if (!('geolocation' in navigator)) {
@@ -264,7 +264,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
     }
   }, [insideIds]);
 
-  /** The owner is standing here and opened what was waiting. Stamps the first find. */
+  /** Their person is standing here and opened what was waiting. Stamps the first find. */
   const markFound = useCallback(async () => {
     if (!openPlace) return;
     const ids = openThresholds.filter((t) => t.openable).map((t) => t.id);
@@ -277,7 +277,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
       const data = await res.json();
       if (Array.isArray(data?.history)) setOpenHistory(data.history);
     } catch { /* the finding still happened; the stamp can miss */ }
-    // A place the owner has now emptied should stop asking for their attention.
+    // A place their person has now emptied should stop asking for their attention.
     void refreshGeofence();
   }, [openPlace, openThresholds, refreshGeofence]);
 
@@ -588,7 +588,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
           </div>
         )}
 
-        {/* The half of this only the owner can switch on. Android will not let an app
+        {/* The half of this only their person can switch on. Android will not let an app
             ask for "allow all the time" in a dialog, so the honest move is to
             say what it buys and open the page. Hidden entirely when it is
             already granted, or on anything that is not the Android shell. */}

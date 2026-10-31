@@ -15,7 +15,7 @@ test('the old switch and sizes start the new settings where they were', () => {
   assert.equal(fontsOf({ fontSize: 'large' }).scale, 1.125);
 });
 
-test('a choice the owner made wins, and the size stays on the slider', () => {
+test('a choice their person made wins, and the size stays on the slider', () => {
   assert.deepEqual(fontsOf({ fontTitle: 'playfair', fontBody: 'geist', fontScale: 1.1, fontFamily: 'font-serif' }), { title: 'playfair', body: 'geist', scale: 1.1, titleScale: 1 });
   assert.equal(fontsOf({ fontScale: 3 }).scale, 1.2);
   assert.equal(fontsOf({ fontScale: 0.2 }).scale, 0.9);

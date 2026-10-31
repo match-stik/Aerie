@@ -34,7 +34,7 @@ interface ThreadSwitcherProps {
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
   companions?: CompanionOption[];
-  /** Each room's count of what we said to the owner (aerie/lock-unread.ts), drawn in
+  /** Each room's count of what we said to their person (aerie/lock-unread.ts), drawn in
    *  place of the room's raw counter, which counts a listening cafe too. A room
    *  not in it yet keeps its raw counter. */
   ourUnread?: Readonly<Record<string, number>>;
@@ -63,7 +63,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
   const [showArchived, setShowArchived] = useState(false);
   const [archivedThreads, setArchivedThreads] = useState<ThreadSummary[]>([]);
   // Back closes a thread's menu or delete question first, then the switcher,
-  // which leaves the owner in the thread they were in.
+  // which leaves their person in the thread they were in.
   useBackHandler(isOpen, () => {
     if (deleteConfirmId) setDeleteConfirmId(null);
     else if (menuThreadId) setMenuThreadId(null);

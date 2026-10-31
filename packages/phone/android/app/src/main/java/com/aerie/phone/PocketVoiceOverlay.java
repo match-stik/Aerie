@@ -38,7 +38,7 @@ import java.util.List;
  * The Bubble route beside this one asks the platform to float a conversation
  * and the platform is allowed to say no — several vendor builds do, which is
  * why {@link PocketVoiceService} already carries a fallback. An overlay is not
- * a request. The owner grants the overlay permission once and the window is
+ * a request. Their person grants the overlay permission once and the window is
  * ours.
  *
  * It deliberately wears the same face as the dock the call minimizes to inside
@@ -55,9 +55,9 @@ final class PocketVoiceOverlay {
     private static int lastX = Integer.MIN_VALUE;
     private static int lastY = Integer.MIN_VALUE;
 
-    // THIS DOCK IS THE REFERENCE. The owner compared the two docks and chose
+    // THIS DOCK IS THE REFERENCE. Their person compared the two docks and chose
     // this one. Nothing here moves to meet the in-app dock; the in-app dock
-    // comes to these numbers. Changing them means changing the thing the owner picked.
+    // comes to these numbers. Changing them means changing the thing their person picked.
     private static final int FACE_DP = 34;
     private static final int FACE_OVERLAP_DP = 11;
     private static final int[] BAR_HEIGHTS_DP = { 7, 13, 9 };
@@ -73,7 +73,7 @@ final class PocketVoiceOverlay {
         this.context = context;
     }
 
-    /** True only when the owner has actually granted the overlay permission. */
+    /** True only when their person has actually granted the overlay permission. */
     static boolean permitted(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
         return Settings.canDrawOverlays(context);

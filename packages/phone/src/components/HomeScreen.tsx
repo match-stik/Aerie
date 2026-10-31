@@ -28,13 +28,13 @@ interface HomeScreenProps {
   // Resolved AppDef list to show on the dock. App.tsx maps the user's
   // saved dockAppIds against the registry and passes the result here.
   dockApps: AppDef[];
-  // The owner's widgets and the quiet line (lib/home-widgets.ts).
+  // Their person's widgets and the quiet line (lib/home-widgets.ts).
   widgets: HomeWidget[];
   // Where each one sits, once any has been moved (lib/home-widgets.ts).
   widgetSpots: Layout;
   quietLine: boolean;
   companions: WidgetCompanion[];
-  /** The owner's custom emojis, for a status icon on the companions widget. */
+  /** Their person's custom emojis, for a status icon on the companions widget. */
   customEmojis?: import('../types').CustomEmoji[];
   stickyNoteColors?: string[];
   onThemeChange: (updates: Partial<AppTheme>) => void;
@@ -171,9 +171,9 @@ export function HomeScreen({
           the dock past the viewport. A long label shrinks to fit its button
           rather than being cut (their catch, Oct 16 2026: MESSAGES and
           TREEHOUSE were losing their ends). */}
-      {/* While the owner types into a widget the keyboard takes the bottom of the
-          screen, and the dock rode up over the box the owner was typing in (theirs,
-          Oct 26 2026, a screenshot); it steps aside until the owner is done. */}
+      {/* While their person types into a widget the keyboard takes the bottom of the
+          screen, and the dock rode up over the box their person was typing in (theirs,
+          Oct 26 2026, a screenshot); it steps aside until their person is done. */}
       <div
         className={cn("absolute bottom-4 left-0 right-0 flex flex-col items-center gap-2 px-4 transition-opacity duration-150", typingInWidget && "pointer-events-none opacity-0")}
         aria-hidden={typingInWidget || undefined}

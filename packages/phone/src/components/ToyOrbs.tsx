@@ -1,12 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The orbs: Lovense's own app's gradient screen, made the house's. Each finger
-// the owner puts on the glass is an orb, the first three wear the
-// companions' colors, and how high the owner holds it sets its motor's level. Lifting a finger stops its motor at once;
+// their person puts on the glass is an orb, the first three wear the
+// companions' colors, and how high their person holds it sets its motor's level. Lifting a finger stops its motor at once;
 // leaving the screen stops every motor an orb was driving.
 //
-// There is no stop button here, by design: on this screen the owner's hand is
+// There is no stop button here, by design: on this screen their person's hand is
 // the stop. The page zeroes every motor and pattern before it opens this screen,
-// so letting go really does mean everything stops. If the owner's stop was
+// so letting go really does mean everything stops. If their person's stop was
 // holding when they came in, a finger put down during the hold glows but drives
 // nothing until it is lifted and placed again.
 
@@ -60,7 +60,7 @@ interface Touch {
   x: number;
   y: number;
   level: number;
-  /** Put down while the owner's stop held: it glows, and drives nothing until lifted. */
+  /** Put down while their person's stop held: it glows, and drives nothing until lifted. */
   silent: boolean;
 }
 

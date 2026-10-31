@@ -22,7 +22,7 @@ test('nothing shipped fires more often than weekly', () => {
     const dayOfWeek = def.cronExpr.trim().split(/\s+/)[4];
     assert.notEqual(
       dayOfWeek, '*',
-      `${def.wakeType} fires every day — a daily default is a personal hour and belongs to the owner`,
+      `${def.wakeType} fires every day — a daily default is a personal hour and belongs to their person`,
     );
   }
 });

@@ -53,7 +53,7 @@ test('a lane that has never launched proves nothing, however long it has sat the
   );
 });
 
-test('the id the owner just picked cannot become its own fallback', () => {
+test('the id their person just picked cannot become its own fallback', () => {
   // The incident, in the only terms this function can see it. The lane had been
   // up on 4.5 for twenty minutes when a junk id was selected; the setting moved
   // to the junk id immediately and the recycle was requested a tick later. The

@@ -23,7 +23,7 @@ const PRICING: Record<string, ModelPricing> = {
 // hand-written table with a comment asking whoever edited one to remember the
 // other — and a comment is not a mechanism. The picker's list and the number
 // the meter measures against are now the same list, which also means a model
-// the owner adds themselves arrives with its window rather than silently reading
+// their person adds themselves arrives with its window rather than silently reading
 // as 200k.
 function contextWindows(): Record<string, number> {
   const windows: Record<string, number> = {};

@@ -5,7 +5,7 @@ import type { GalleryItem } from './image-gen.js';
 
 process.env.NODE_ENV = 'test';
 // Household membership is read from the install, so pin both halves of it:
-// the owner comes from config, the companions from the database.
+// their person comes from config, the companions from the database.
 process.env.USER_NAME = 'Ada';
 
 const { loadConfig } = await import('../config.js');

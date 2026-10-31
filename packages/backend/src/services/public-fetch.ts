@@ -2,7 +2,7 @@
 // Fetching a URL somebody else chose.
 //
 // The house fetches pictures it is handed so the companions can see them: a
-// bare image link in the owner's message, and every Discord attachment, embed,
+// bare image link in their person's message, and every Discord attachment, embed,
 // emote and sticker. An embed's image is the linked page's choice, so a
 // stranger in a Discord room can point it anywhere, including this box's own
 // loopback doors (127.0.0.1:3013 answers without auth because nothing outside

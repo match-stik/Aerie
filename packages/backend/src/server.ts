@@ -301,7 +301,7 @@ import petRoutes from './routes/pet.js';
 import compactionRoutes from './routes/compactions.js';
 import fieldNotesRoutes from './routes/field-notes.js';
 app.use('/api/pet', petRoutes);
-// Compactions: the squash-and-carry-on event, which is invisible to the owner
+// Compactions: the squash-and-carry-on event, which is invisible to their person
 // everywhere else in this house.
 app.use('/api/compactions', compactionRoutes);
 app.use('/api/field-notes', fieldNotesRoutes);
@@ -318,11 +318,11 @@ app.use('/api/favorites', favoriteRoutes);
 
 import thresholdRoutes from './routes/thresholds.js';
 app.use('/api/thresholds', thresholdRoutes);
-// The Story Shelf: the owner reads, walks into books and makes the moves here;
+// The Story Shelf: their person reads, walks into books and makes the moves here;
 // the companions write through /api/internal/story-shelf on the loopback port.
 import storyShelfRoutes from './routes/story-shelf.js';
 app.use('/api/story-shelf', storyShelfRoutes);
-// Spotify in the house: the owner listening with a cover on everything, read through
+// Spotify in the house: their person listening with a cover on everything, read through
 // the house's Spotify MCP server, and play, pause and skip through the same.
 import spotifyRoutes from './routes/spotify.js';
 app.use('/api/spotify', spotifyRoutes);
@@ -330,7 +330,7 @@ import selfKnowledgeRoutes from './routes/self-knowledge.js';
 app.use('/api/self-knowledge', selfKnowledgeRoutes);
 import companionsRoutes from './routes/companions.js';
 
-// The owner's phone posting what it is playing. Prefix-scoped guard registered
+// Their person's phone posting what it is playing. Prefix-scoped guard registered
 // BEFORE the mount, same as the other gated groups — express runs
 // middleware in registration order, so position is load-bearing.
 app.use('/api/media', authMiddleware);
@@ -372,7 +372,7 @@ app.use('/api', handoffRoutes);
 
 // Command Center endpoints
 if (config.command_center.enabled) {
-  // Loopback only. It reads and writes the owner's care, cycle, expense and
+  // Loopback only. It reads and writes their person's care, cycle, expense and
   // task data, and nothing in front of it asked who was calling: a caller
   // through either public front got the whole tool list and could run any of
   // them. An agent on this box still reaches it on localhost.
@@ -416,12 +416,12 @@ const server = createServer(app);
 
 // Initialize agent service (shared between WebSocket and orchestrator)
 const agentService = new AgentService();
-// The owner's side notes that land as a turn closes start the next turn at once
+// Their person's side notes that land as a turn closes start the next turn at once
 // (services/heartbeat/supervisor.ts onLeftoverSideNotes), rather than waiting
 // for their next message to carry them in.
 onLeftoverSideNotes((threadId, notes) => {
   console.log(`[Heartbeat] ${notes.length} side note(s) landed as a turn closed; starting a turn on them`);
-  agentService.processAutonomous(threadId, '[Side notes from the owner landed just as your last reply went out, so they are handed over above. Answer them; this is the owner talking, not a bell.]').catch((err) => {
+  agentService.processAutonomous(threadId, '[Side notes from their person landed just as your last reply went out, so they are handed over above. Answer them; this is their person talking, not a bell.]').catch((err) => {
     console.error('[Heartbeat] Turn for leftover side notes failed:', err);
   });
 });

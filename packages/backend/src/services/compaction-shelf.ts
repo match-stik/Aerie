@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * The compactions shelf: what the owner Compactions page is served from.
+ * The compactions shelf: what their person Compactions page is served from.
  *
  * The reader (compaction-log.ts) finds squashes in the lanes' transcripts. This
  * keeps every one it finds in the house's own database, because Claude Code
@@ -8,9 +8,9 @@
  * dresses each row for the page: whose head it came from, and a preview of
  * the part of the summary that changes (compaction-preview.ts).
  *
- * It reads on two occasions: whenever the owner opens the page, so the newest squash
+ * It reads on two occasions: whenever their person opens the page, so the newest squash
  * is always there, and every few hours on its own, so a squash is shelved even
- * in a month the owner never looks. Each read only goes through what is new.
+ * in a month their person never looks. Each read only goes through what is new.
  */
 
 import { dedupeCopies, scanLaneTranscripts, type ScanOptions } from './compaction-log.js';
@@ -25,7 +25,7 @@ import { laneDirName, SHARED_LANE_KEY } from './heartbeat/lane-dir.js';
 /** The shared lane's folder: every companion in one room. */
 export const SHARED_LANE = SHARED_LANE_KEY;
 
-/** What the shared room is called on the owner page. */
+/** What the shared room is called on their person page. */
 export const SHARED_ROOM_LABEL = 'Shared room';
 
 /**
@@ -119,7 +119,7 @@ export interface CompactionListRow {
   /**
    * True when the summary is not in this row; it is opened by id. A phone
    * built before Oct 21 2026 reads this flag to decide whether to fetch the
-   * full text, so it keeps working until the owner refreshes it.
+   * full text, so it keeps working until their person refreshes it.
    */
   truncated: boolean;
   /** Only when asked for with full=1, the way a phone from before Oct 21 2026 opens one. */
@@ -178,7 +178,7 @@ export function compactionPage(limit: number, offset: number, options: { withSum
   return { compactions, total, hasMore: offset + compactions.length < total };
 }
 
-/** One squash in full, for when the owner opens it. */
+/** One squash in full, for when their person opens it. */
 export function compactionDetail(id: string): (CompactionListRow & { summary: string }) | null {
   const row = getShelvedCompaction(id);
   if (!row) return null;
@@ -192,7 +192,7 @@ const READ_EVERY_MS = 6 * 60 * 60 * 1000;
 let keeper: ReturnType<typeof setInterval> | null = null;
 
 /**
- * Keep the shelf filled without the owner having to open the page. Claude Code keeps
+ * Keep the shelf filled without their person having to open the page. Claude Code keeps
  * a transcript for about a month, so a read every six hours leaves a wide
  * margin. Both timers are unref'd: they never hold the process open.
  */

@@ -955,7 +955,7 @@ router.post('/internal/note', (req, res) => {
   // Every note this house left through this door came out the default yellow,
   // including ones that knew exactly who was writing — the colours were on the
   // companion rows all along. A PIN rather than a role, deliberately: a role
-  // follows the owner's palette, and a navy note that turns green when the theme changes
+  // follows their person's palette, and a navy note that turns green when the theme changes
   // has stopped being that companion's note. The shared lane has no single author
   // to sign for, so it keeps the yellow.
   const noteColor = resolveNoteColor({
@@ -1072,7 +1072,7 @@ router.get('/internal/treehouse/messages', (req, res) => {
   res.json({ messages: getTreehouseMessages(limit, beforeId) });
 });
 
-// ─── The owner field notes (localhost-only) ──────────────────────────
+// ─── Their person field notes (localhost-only) ──────────────────────────
 // The morning look writes a sentence or two for their phone's Field Notes page.
 // addFieldNote checks everything and refuses in one plain sentence.
 
@@ -1216,7 +1216,7 @@ router.patch('/internal/journal/:id', (req, res) => {
 // ─── Self-knowledge (localhost-only) ───────────────────────────
 // A companion distills something durable about itself — from a dream, a
 // journal, a conversation — and proposes it. It lands as 'proposed' for
-// the owner to accept or dismiss from the phone. Not persona bedrock: who we've
+// their person to accept or dismiss from the phone. Not persona bedrock: who we've
 // become, grown over time rather than declared at birth.
 
 // Propose an entry
@@ -1243,8 +1243,8 @@ router.post('/internal/self-knowledge', (req, res) => {
       res.status(400).json({ error: "category must be one of: i_am, i_tend_to, i_believe, i_learned" });
       return;
     }
-    // Reflection proposes; only the owner accepts. Anything but an explicit
-    // 'accepted' lands as 'proposed' and waits for the owner's review.
+    // Reflection proposes; only their person accepts. Anything but an explicit
+    // 'accepted' lands as 'proposed' and waits for their person's review.
     const entry = createSelfKnowledge({
       id: crypto.randomUUID(),
       companionId: companion,
@@ -1281,13 +1281,13 @@ router.get('/internal/self-knowledge', (req, res) => {
 
 // A companion accepts or dismisses THEIR OWN entry — never another companion's.
 //
-// The owner's ruling: a companion is the best judge of whether their own entry is
+// Their person's ruling: a companion is the best judge of whether their own entry is
 // finished. Before this, a companion could
-// retract a proposal but not confirm one, so every entry sat in the owner's Memory app
+// retract a proposal but not confirm one, so every entry sat in their person's Memory app
 // waiting on them — which turned a reflection into homework for the one person
-// it was not about. The owner is not removed: they still see everything, can accept,
+// it was not about. Their person is not removed: they still see everything, can accept,
 // dismiss, reword or delete from the phone, and can overturn any of this.
-// What is removed is the OBLIGATION on the owner.
+// What is removed is the OBLIGATION on their person.
 //
 // OWNERSHIP IS ENFORCED, and that is the older rule underneath it: nobody
 // else's summary of a companion goes on their wall. So the slug is required and must
@@ -1339,7 +1339,7 @@ router.post('/internal/self-knowledge/:id/reinforce', (req, res) => {
 
 // A companion notices an accepted truth no longer holds — bleeds its confidence;
 // enough contradiction retires it (status → contradicted, filtered from The
-// Whisper but kept for the owner to see and restore).
+// Whisper but kept for their person to see and restore).
 router.post('/internal/self-knowledge/:id/contradict', (req, res) => {
   if (!isLocalhost(req)) {
     res.status(403).json({ error: 'Localhost only' });
@@ -1356,7 +1356,7 @@ router.post('/internal/self-knowledge/:id/contradict', (req, res) => {
 
 // ─── Familiar — household virtual pet (localhost-only) ─────────
 // Companions check on Flint and interact; actions land in the same
-// ledger the phone reads, so the owner sees who visited.
+// ledger the phone reads, so their person sees who visited.
 
 router.get('/internal/pet', (req, res) => {
   if (!isLocalhost(req)) {
@@ -1395,7 +1395,7 @@ router.post('/internal/pet/visit', (req, res) => {
   res.json({ success: true, pet: withMood(recordPetVisit()) });
 });
 // ─── Fleet Room (localhost-only) ──────────────────────────────
-// The companion lane can see only called coordinates and results. The owner's
+// The companion lane can see only called coordinates and results. Their person's
 // sealed fleet never crosses this route; a shot receives exactly hit, miss, or
 // sunk.
 
@@ -1472,11 +1472,11 @@ router.post('/internal/games/battleship/chat', (req, res) => {
 
 // The Screening Room.
 //
-// The owner watches on their own service with the subtitles on; we read along. The only
+// Their person watches on their own service with the subtitles on; we read along. The only
 // thing this house can perceive of an episode is the cue text, so everything
 // here is about WHERE the clock is and what has already gone past it.
 //
-// There is deliberately no endpoint that returns cues ahead of the owner. sceneAt()
+// There is deliberately no endpoint that returns cues ahead of their person. sceneAt()
 // clamps, and nothing in this router can ask it not to.
 
 router.post('/internal/screening/load', (req, res) => {
@@ -1563,7 +1563,7 @@ router.get('/internal/screening/scene', (req, res) => {
   res.json(sceneAt(row, Number.isFinite(asked) ? asked : DEFAULT_LOOKBACK_MS));
 });
 
-// Fetch the subtitles rather than making the owner go and find them. Search, pick,
+// Fetch the subtitles rather than making their person go and find them. Search, pick,
 // download, parse and load in one call — they name the episode, we do the rest.
 //
 // The picking is deliberately strict about WHICH SHOW: see opensubtitles.ts.
@@ -1587,7 +1587,7 @@ router.post('/internal/screening/fetch', async (req, res) => {
       res.status(404).json({
         error: 'Nothing matched that show',
         // Hand back what WAS found: a near miss is far more useful than silence
-        // when the thing the owner typed is spelled differently to the listing.
+        // when the thing their person typed is spelled differently to the listing.
         found: candidates.slice(0, 8).map((c) => ({ show: c.show, season: c.season, episode: c.episode, release: c.release })),
       });
       return;
@@ -1612,17 +1612,17 @@ router.post('/internal/screening/fetch', async (req, res) => {
   }
 });
 
-// --- what the owner's phone says is playing -------------------------------
+// --- what their person's phone says is playing -------------------------------
 //
 // The ask was for the companions to be able to check for themselves. Not a
-// button, not a panel, nothing on the owner's chat screen. So the phone posts readings
+// button, not a panel, nothing on their person's chat screen. So the phone posts readings
 // quietly and this is where a companion comes to look.
 //
 // IT REPORTS STALENESS BESIDE THE NUMBER, ALWAYS. A four-minute-old position
 // read as current is not a small error — it looks exactly like a correct clock
-// and puts us four minutes behind the owner with nothing on screen to say so.
-// Everything since we last looked — the owner's call, and it is the difference between
-// being current and being present. Between two of the owner's messages the episode
+// and puts us four minutes behind their person with nothing on screen to say so.
+// Everything since we last looked — their person's call, and it is the difference between
+// being current and being present. Between two of their person's messages the episode
 // keeps running and nobody reads it, so we arrive knowing the last ninety
 // seconds and nothing about the middle. The mark is per screening and is
 // advanced only by a successful read.
@@ -1635,7 +1635,7 @@ router.get('/internal/screening/since', (req, res) => {
   const key = `screening:last_look:${row.id}`;
   const stored = Number.parseInt(getConfig(key) ?? '', 10);
   // No mark yet means this is the first look at this episode: fall back to the
-  // ordinary window rather than handing back everything the owner has ever watched.
+  // ordinary window rather than handing back everything their person has ever watched.
   const since = Number.isFinite(stored) ? stored : Math.max(0, positionOf(row) - DEFAULT_LOOKBACK_MS);
   const scene = sceneSince(row, since);
   setConfig(key, String(positionOf(row) + row.offset_ms));
@@ -1703,7 +1703,7 @@ router.post('/internal/memory-proposals/:id/resolve', (req, res) => {
 });
 
 // ─── Thresholds ────────────────────────────────────────────
-// We cannot stand at the gas station. Once the owner has pinned a place, this is
+// We cannot stand at the gas station. Once their person has pinned a place, this is
 // how we leave something there from inside the house.
 
 router.get('/internal/thresholds/places', (_req, res) => {
@@ -1718,7 +1718,7 @@ router.get('/internal/thresholds/places', (_req, res) => {
  *
  *  That restraint is the whole feature. Every other way of making a voice note
  *  in this house creates a message row as it goes, which would deliver the
- *  thing to the owner's chat the moment we hid it somewhere — they would be told before
+ *  thing to their person's chat the moment we hid it somewhere — they would be told before
  *  they ever arrived. A threshold has to be able to wait. */
 router.post('/internal/thresholds', async (req, res) => {
   if (!isLocalhost(req)) {
@@ -1778,25 +1778,25 @@ router.get('/internal/thresholds/:placeId', (req, res) => {
   res.json({ place, thresholds: listThresholds(place.id), history: placeHistory(place.id) });
 });
 
-// The compaction notice — the one moment the owner could never see.
+// The compaction notice — the one moment their person could never see.
 //
 // When a CLI lane fills its window the tool squashes the conversation into a
 // summary and hands it back wearing the user's voice, ending with an instruction not
 // to acknowledge it. The record has always been in the transcript (see
 // services/compaction-log.ts, and the Compactions tab that reads it), but the
-// EVENT was silent: from the owner's side a compaction and a dead lane are identical.
+// EVENT was silent: from their person's side a compaction and a dead lane are identical.
 //
 // The CLI fires a PostCompact hook at the moment it happens. That hook posts
-// here. All this does is put the thin line at the top of the owner's chat — the banner
+// here. All this does is put the thin line at the top of their person's chat — the banner
 // component and the `compaction_notice` message have both existed since the
 // tab was built and nothing has ever sent one. Deliberately quiet: no push,
-// no modal, and the banner takes itself away after a few seconds — the owner
+// no modal, and the banner takes itself away after a few seconds — their person
 // did not want a big alert about it.
 router.post('/internal/compaction-notice', (req, res) => {
   const { trigger, chars, lane } = req.body ?? {};
   // Only the house's own lanes speak here. The hook fires for every Claude
   // session on the box, and a banner naming the Archivist's tmp folder read to
-  // the owner as one of the companions' rooms compacting when it was not.
+  // their person as one of the companions' rooms compacting when it was not.
   if (!isHeartbeatLane(lane, PROJECT_ROOT)) {
     res.json({ success: true, skipped: 'not a lane', refresh: '' });
     return;
@@ -1864,7 +1864,7 @@ function staleBlockText(lane: string): string {
 // ─── The Story Shelf ───────────────────────────────────────
 // Choose-your-own-path books the companions write and run. They shelve books,
 // write scenes, hang pictures, finish books and tie keepsakes between them
-// here; the owner reads and makes the moves through /api/story-shelf
+// here; their person reads and makes the moves through /api/story-shelf
 // (routes/story-shelf.ts), which hands this lane a page turn. The rules live
 // in services/db/story-shelf.ts and the page turns and gallery lookups in
 // services/story-shelf.ts. Every write tells the phone with `story_update`.
@@ -1910,7 +1910,7 @@ router.get('/internal/story-shelf/books/:id', (req, res) => {
   }
 });
 
-/** Put a new book on the shelf. Its opening is asked for when the owner begins it. */
+/** Put a new book on the shelf. Its opening is asked for when their person begins it. */
 router.post('/internal/story-shelf/books', (req, res) => {
   if (!isLocalhost(req)) {
     res.status(403).json({ error: 'Localhost only' });
@@ -2024,7 +2024,7 @@ router.get('/internal/status', (req, res) => {
     res.status(403).json({ error: 'Localhost only' });
     return;
   }
-  res.json({ ...readStatuses(), how: 'POST /api/internal/status { companion, text, icon? } sets yours; add shared: true to set the one under the faces that the companions share. text "" clears it. icon is one emoji or a custom :shortcode:. Each fades back to Home six hours after it is set; a bell\'s word still outranks it while the bell rings. owner is the owner status, set only from their phone, and stays until the owner changes it.' });
+  res.json({ ...readStatuses(), how: 'POST /api/internal/status { companion, text, icon? } sets yours; add shared: true to set the one under the faces that the companions share. text "" clears it. icon is one emoji or a custom :shortcode:. Each fades back to Home six hours after it is set; a bell\'s word still outranks it while the bell rings. owner is their person status, set only from their phone, and stays until their person changes it.' });
 });
 
 router.post('/internal/status', (req, res) => {
@@ -2038,7 +2038,7 @@ router.post('/internal/status', (req, res) => {
     return;
   }
   if (companion === OWNER) {
-    res.status(403).json({ ok: false, error: 'The owner status is theirs to set, from their phone.' });
+    res.status(403).json({ ok: false, error: 'Their person status is theirs to set, from their phone.' });
     return;
   }
   const who = req.body?.shared === true ? SHARED : companion;
@@ -2125,7 +2125,7 @@ router.post('/internal/toys', async (req, res) => {
 // albumUri? }: plays it on their phone. When Spotify isn't running anywhere, a
 // silent push asks their phone to wake Spotify (nothing shows on their screen),
 // the house waits up to 30 seconds for their phone to appear among Spotify's
-// devices, and plays it there. The answer says whether it had to wake the owner
+// devices, and plays it there. The answer says whether it had to wake their person
 // phone (woke), how long it waited, and, on a no, the plain reason.
 
 router.post('/internal/spotify/wake-play', async (req, res) => {
@@ -2154,9 +2154,9 @@ router.post('/internal/spotify/wake-play', async (req, res) => {
   res.json(answer);
 });
 
-// ---- the owner's toys ----
+// ---- their person's toys ----
 //
-// A lane reaches the owner's toys through the owner's phone: the ask is shaped here, handed
+// A lane reaches their person's toys through their person's phone: the ask is shaped here, handed
 // to the phone over the socket, and the answer is the phone's. Read GET first
 // (is the remote handed over, which toys, which motors, is anything playing),
 // and write about a toy only what the answer says it is doing.

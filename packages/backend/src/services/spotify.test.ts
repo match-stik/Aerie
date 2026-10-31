@@ -209,7 +209,7 @@ test('what is playing now: nothing, a song with its cover, or a paused song', as
   assert.deepEqual(paused.lookups, [], 'a picture the answer already carried is used as it is');
 });
 
-test('a lapsed sign-in becomes the owner plain sentence, with the worker\'s own sign-in page', async () => {
+test('a lapsed sign-in becomes their person plain sentence, with the worker\'s own sign-in page', async () => {
   const lapsed = fakeNet({
     spotify_now_playing: () => json(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { code: -32000, message: 'Token refresh failed: Refresh token revoked' } })),
   });
@@ -310,7 +310,7 @@ test('each press asks their server once, for the right tool with the right argum
 });
 
 test('a press with nowhere to play says to open Spotify on their phone, however the server words it', async () => {
-  assert.equal(NO_DEVICE_LINE, 'Open Spotify on your phone first, then try again.', 'the owner sentence, as offered');
+  assert.equal(NO_DEVICE_LINE, 'Open Spotify on your phone first, then try again.', 'their person sentence, as offered');
   const asError = presser(rpcError(NO_DEVICE_FROM_SPOTIFY));
   await refusedAs(asError.reader.play({ trackUri: SONG }), 'device', NO_DEVICE_LINE, "Spotify's own refusal, passed on as an error");
 
@@ -343,7 +343,7 @@ test('on a press, a lapsed sign-in and every other refusal read the way they do 
       error: "Spotify's sign-in on the Spotify worker has lapsed. Open its sign-in page and say yes to Spotify. (A worker older than 1.1.0 also wants the token it shows you put into its settings on Cloudflare.)",
       reason: 'signin',
       authUrl: 'https://spotify-example.someone.workers.dev/auth',
-    }, 'with the owner sentence and the sign-in page');
+    }, 'with their person sentence and the sign-in page');
     return true;
   }, 'a lapsed sign-in refuses the press');
 

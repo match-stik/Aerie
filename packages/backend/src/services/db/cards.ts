@@ -7,7 +7,7 @@
 //
 // Nothing in here knows a game. The table holds a shuffled deck, four seats and
 // a pile, and hands the running game an opaque state blob — the games get
-// designed with the owner rather than guessed at, and adding one should not
+// designed with their person rather than guessed at, and adding one should not
 // need a migration or a change here.
 import crypto from 'crypto';
 import { existsSync, readFileSync } from 'fs';
@@ -146,7 +146,7 @@ function ensureCardRoomThread(): string {
   const now = new Date().toISOString();
   createThread({ id, name: 'The Card Room', type: 'named', createdAt: now, sessionType: 'v2' });
 
-  // Participants, no primary — the same shape as the owner's home thread and
+  // Participants, no primary — the same shape as their person's home thread and
   // for the same reason the Fleet Room learned the hard way: that column also
   // resolves the CLI session key, so naming a leader here hands the room its
   // own cold lane that walks in knowing the table and nothing about the evening.
@@ -205,7 +205,7 @@ function hydrate(row: CardTableRow): CardTable {
 }
 
 /**
- * THE OWNER'S SEAT AT THE TABLE.
+ * THEIR PERSON'S SEAT AT THE TABLE.
  *
  * Reported by Rose and Sol, Sep 17 2026: the seat used to be one house's own
  * slug, compiled into a kit other people install. It resolves from
@@ -229,7 +229,7 @@ export function seatOrder(): string[] {
 }
 
 /**
- * The seats a new game sits in when the request names none: the owner first,
+ * The seats a new game sits in when the request names none: their person first,
  * then this house's companions in their stored order. A game for a fixed
  * number of players takes the first companions that fit. A request that sends
  * its own order never comes through here.
@@ -241,7 +241,7 @@ export function defaultGameSeats(players?: number): string[] {
 
 /**
  * Seats for a partnership game (Spades, Euchre). Partners sit across from each
- * other, so the owner takes seat 0 and their partner seat 2. The partner defaults
+ * other, so their person takes seat 0 and their partner seat 2. The partner defaults
  * to the house's first companion, and the other two seats go to the next
  * companions in stored order. Fewer than three companions cannot make the
  * table, and saying so beats seating a chair nobody is in.
@@ -252,7 +252,7 @@ export function partnerGameSeats(partner?: unknown): string[] {
   const rest = companions.filter((slug) => slug !== chosen);
   const seats = [ownerSeat(), rest[0], chosen, rest[1]];
   if (seats.some((slug) => !slug)) {
-    throw new CardRoomError('A partnership game needs four players: the owner and three companions');
+    throw new CardRoomError('A partnership game needs four players: their person and three companions');
   }
   return seats;
 }
@@ -394,7 +394,7 @@ export function getCardLog(tableId: string, limit = 60): CardLogEntry[] {
 
 // ------------------------------------------------------------- the rail
 //
-// The companions sit at the table while the owner plays, which is the whole
+// The companions sit at the table while their person plays, which is the whole
 // reason solitaire stopped being the game you play alone. What makes that worth more
 // than a chat box parked beside a board is that the prompt carries the BOARD:
 // the companions are watching this game rather than making conversation next
@@ -407,14 +407,14 @@ export interface CardRoomTurn {
 
 /**
  * Build the turn the room wakes holding. Pure, and exported ONLY so the one
- * thing that has already gone wrong here can be asserted: the owner's line reached the
+ * thing that has already gone wrong here can be asserted: their person's line reached the
  * messages table and the screen and never reached the prompt, so the window
- * woke holding a board and nothing the owner had said, and answered the board.
+ * woke holding a board and nothing their person had said, and answered the board.
  * Stored is not delivered and displayed is not delivered — this is the hop
  * nobody was instrumenting.
  */
 export function buildCardRoomPrompt(
-  game: string, board: string | null, ownerContent: string, ownerName = 'the owner',
+  game: string, board: string | null, ownerContent: string, ownerName = 'their person',
 ): string {
   return [
     '[CARD ROOM — live game conversation]',
@@ -427,14 +427,14 @@ export function buildCardRoomPrompt(
     'Your final spoken reply is written into the Card Room rail automatically.',
     'Use the normal bold sigil headers. Real table talk, not a report, and a quick beat need not become a monologue.',
     '',
-    // The owner's line goes LAST and it is the point of the turn.
+    // Their person's line goes LAST and it is the point of the turn.
     'This is what they just said to you, and it is what you are answering:',
     ownerContent,
   ].filter(Boolean).join('\n');
 }
 
 /**
- * Reserve the companion lane and write the owner's line into the room. The reservation
+ * Reserve the companion lane and write their person's line into the room. The reservation
  * is a compare-and-swap so two quick messages cannot both open a turn — the
  * second gets told the table is busy rather than silently racing the first.
  */

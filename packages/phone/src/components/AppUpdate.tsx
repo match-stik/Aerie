@@ -57,7 +57,7 @@ export function AppUpdate({ themeConfig, themeMode }: Props) {
 
   const native = Capacitor.isNativePlatform();
   // A shell that has its own updater fetches the update into its own storage
-  // and opens the installer itself, so nothing lands in the owner Downloads
+  // and opens the installer itself, so nothing lands in their person Downloads
   // (Danielle's idea, Oct 25 2026). An older shell still gets the link.
   const inApp = native && Capacitor.getPlatform() === 'android' && Capacitor.isPluginAvailable('AppUpdater');
   const [updateState, setUpdateState] = useState<string | null>(null);

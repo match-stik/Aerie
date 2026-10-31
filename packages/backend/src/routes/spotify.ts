@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Spotify in the house: the phone's read of the owner listening, with covers, its
+// Spotify in the house: the phone's read of their person listening, with covers, its
 // presses, and since Oct 23 2026 the player, their library and their playlists.
 //
 // Reads (Oct 20 2026) answer the shapes in @aerie/shared's spotify.ts. The
@@ -112,7 +112,7 @@ router.post('/skip', (req, res) => {
 });
 
 // ── The player, their library and their playlists (Oct 23 2026).
-// Every body is checked the same way as play's before anything reaches the owner
+// Every body is checked the same way as play's before anything reaches their person
 // server, and a playlist id is checked like the read's.
 
 /** A press whose body is read by `read`, then handed to `work`. */

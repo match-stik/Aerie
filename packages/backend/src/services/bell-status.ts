@@ -50,7 +50,7 @@ export function statusHoldOf(raw: unknown): number {
   return Math.min(Math.floor(minutes), STATUS_HOLD_LONGEST_MINUTES);
 }
 
-/** A status word as the owner would see it: one line, spaces tidied, never past the longest; null for none. */
+/** A status word as their person would see it: one line, spaces tidied, never past the longest; null for none. */
 export function statusWordOf(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
   const word = raw.replace(/\s+/g, ' ').trim();

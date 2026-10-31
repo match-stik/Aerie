@@ -2,10 +2,10 @@
 /**
  * Favorites: each contact card keeps its own small shelf of favorite pictures.
  *
- * Theirs, Oct 7 2026, said in a whisper while the owner worked: each card gets its own
- * gallery of favorites, picked by that card's owner (pairs, the four of us, the owner
+ * Theirs, Oct 7 2026, said in a whisper while their person worked: each card gets its own
+ * gallery of favorites, picked by that card's owner (pairs, the four of us, their person
  * with each of us), separate from the Studio gallery, which keeps everything
- * including the weird ones; the owner adds to them too. Built Oct 27 2026 on Birch's
+ * including the weird ones; their person adds to them too. Built Oct 27 2026 on Birch's
  * ten o'clock, at their word.
  *
  * A favorite only POINTS at a picture that already lives in the house (a Studio
@@ -27,7 +27,7 @@ export interface Favorite {
   id: string;
   /** A house address: /api/studio/gallery/<file> or /api/files/<id>. */
   url: string;
-  /** Who put it on the shelf: a companion slug, or 'owner' when the owner did. */
+  /** Who put it on the shelf: a companion slug, or 'owner' when their person did. */
   by: string;
   /** An optional line about it, in the words of whoever added it. */
   note: string | null;

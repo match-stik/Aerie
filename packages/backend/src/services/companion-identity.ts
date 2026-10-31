@@ -129,7 +129,7 @@ export function loadCompanionIdentity(companionId: string): CompanionIdentity {
   }
 
   // Shared-world overlay: a _shared.md sitting next to the persona file is
-  // the common base (the owner, household, rules, lore) prepended to every
+  // the common base (their person, household, rules, lore) prepended to every
   // companion in that directory. Multi-companion threads dedupe it.
   const sharedPath = join(dirname(claudeMdPath), '_shared.md');
   let sharedMd = '';

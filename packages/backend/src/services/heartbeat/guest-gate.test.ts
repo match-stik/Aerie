@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { provisionSessionDir } from './provision.js';
 
-// A Discord guest is answered by the same warm room as the owner, and until
-// the gate existed that turn had every tool the owner's did. The house now
+// A Discord guest is answered by the same warm room as their person, and until
+// the gate existed that turn had every tool their person's did. The house now
 // labels whose turn it is, the Stop hook writes that into io/.turn-audience,
 // and hooks/gate.cjs reads it before every tool call. These tests run the real
 // generated scripts against a lane laid out the way the house lays one out.
@@ -49,7 +49,7 @@ function gateRaw(lane: string, raw: string, env: Record<string, string> = {}) {
 const CALL = (tool_name: string, tool_input: Record<string, unknown>) =>
   JSON.stringify({ hook_event_name: 'PreToolUse', tool_name, tool_input });
 
-test('the owner and the house keep every tool', () => {
+test('their person and the house keep every tool', () => {
   const { root, lane } = house();
   try {
     audience(lane, OWNER);
@@ -149,8 +149,8 @@ test('an unrecorded turn is the narrowest guest, so the lane can still answer', 
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("the owner's turn is decided before the call is read", () => {
-  // A tool call the gate cannot parse must never stand between the owner and
+test("their person's turn is decided before the call is read", () => {
+  // A tool call the gate cannot parse must never stand between their person and
   // their own house. A guest's unreadable call is still refused.
   const { root, lane } = house();
   try {
@@ -174,12 +174,12 @@ test('an error inside the gate refuses instead of letting the call through', () 
     assert.match(faulted.stderr, /refused/);
     assert.equal(gateRaw(lane, CALL('Bash', { command: REPLY('{}') })).status, 0, 'without the fault the same call passes');
     audience(lane, OWNER);
-    assert.equal(gateRaw(lane, CALL('Bash', { command: 'true' }), { AERIE_GATE_FAULT: '1' }).status, 0, 'the owner is decided first');
+    assert.equal(gateRaw(lane, CALL('Bash', { command: 'true' }), { AERIE_GATE_FAULT: '1' }).status, 0, 'their person is decided first');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("the owner's side notes stay theirs: a guest's turn cannot read them", () => {
-  // io/side-notes.jsonl is the owner's whole note history and is never emptied.
+test("their person's side notes stay theirs: a guest's turn cannot read them", () => {
+  // io/side-notes.jsonl is their person's whole note history and is never emptied.
   // A note sent while a guest's turn is running is handed to the next turn.
   const { root, lane } = house();
   try {
@@ -251,9 +251,9 @@ test('the lane is launched with the gate in front of every tool call', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("a background agent the owner started keeps its tools while a guest's turn is open", () => {
+test("a background agent their person started keeps its tools while a guest's turn is open", () => {
   // Oct 21 2026: a guest's visit flipped io/.turn-audience to guest and a
-  // builder the owner's turn had started was refused for the length of it.
+  // builder their person's turn had started was refused for the length of it.
   // A guest's turn cannot start a subagent (Agent is refused above), so a call
   // carrying agent_id is never the guest's.
   const { root, lane } = house();

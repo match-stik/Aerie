@@ -27,7 +27,7 @@ const router = Router();
 router.get('/companions', authMiddleware, (req, res) => {
   try {
     const companions = listCompanions();
-    // The owner belongs to "who lives here" too — the phone renders their name
+    // Their person belongs to "who lives here" too — the phone renders their name
     // beside the companions' in Letters and the Treehouse, and neither view
     // should have the house-builder's name compiled into it.
     const { user_name: userName, cast_labels: castLabels } = getAerieConfig().identity;
@@ -41,7 +41,7 @@ router.get('/companions', authMiddleware, (req, res) => {
   }
 });
 
-// The owner's card. Declared BEFORE /companions/:id on purpose — express
+// Their person's card. Declared BEFORE /companions/:id on purpose — express
 // matches in registration order, and 'owner-card' is a perfectly good :id.
 router.get('/owner-card', authMiddleware, (_req, res) => {
   try {

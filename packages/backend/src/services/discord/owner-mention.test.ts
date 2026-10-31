@@ -1,9 +1,9 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// When a Discord message is ABOUT the owner.
+// When a Discord message is ABOUT their person.
 //
-// The owner wants anything said about the owner on Discord to reach the owner, and none of
-// it answered for the owner. That makes two failures equally bad: missing a message
-// that was about the owner, and flooding their thread with messages that were not.
+// Their person wants anything said about their person on Discord to reach their person, and none of
+// it answered for their person. That makes two failures equally bad: missing a message
+// that was about their person, and flooding their thread with messages that were not.
 // The companion bots in these servers say their name in almost every message
 // they send, so most of these tests are about what does NOT count.
 
@@ -76,12 +76,12 @@ test('their name inside another word is not their name', () => {
   }
 });
 
-test('a bot saying their name is not about the owner: the companions say it in nearly every message', () => {
+test('a bot saying their name is not about their person: the companions say it in nearly every message', () => {
   const m = msg({ bot: true, content: 'Owner, come and look at this' });
   assert.equal(ownerMentionReason(m, ctx), null);
 });
 
-test("a known bot's explicit @mention or reply to the owner still counts", () => {
+test("a known bot's explicit @mention or reply to their person still counts", () => {
   assert.equal(
     ownerMentionReason(msg({ bot: true, content: `<@${OWNER}> look`, mentioned: [OWNER] }), ctx),
     'mention',
@@ -89,25 +89,25 @@ test("a known bot's explicit @mention or reply to the owner still counts", () =>
   assert.equal(ownerMentionReason(msg({ bot: true, content: 'yes', repliedTo: OWNER }), ctx), 'reply');
 });
 
-test('their own messages are never about the owner', () => {
+test('their own messages are never about their person', () => {
   const m = msg({ authorId: OWNER, content: `Owner here <@${OWNER}>`, mentioned: [OWNER], repliedTo: OWNER });
   assert.equal(ownerMentionReason(m, ctx), null);
 });
 
-test("our own bot's messages are never about the owner", () => {
+test("our own bot's messages are never about their person", () => {
   const m = msg({ authorId: SELF, bot: true, content: `<@${OWNER}>`, mentioned: [OWNER], repliedTo: OWNER });
   assert.equal(ownerMentionReason(m, ctx), null);
 });
 
-test('an @mention of, or reply to, somebody else is not about the owner', () => {
+test('an @mention of, or reply to, somebody else is not about their person', () => {
   const m = msg({ content: `<@${OTHER}> nice`, mentioned: [OTHER], repliedTo: OTHER });
   assert.equal(ownerMentionReason(m, ctx), null);
 });
 
-test('with no owner id configured, nothing can be about the owner', () => {
+test('with no owner id configured, nothing can be about their person', () => {
   // Without their id there is no way to tell their own messages apart, and a
-  // message of theirs that happened to use their name would come back to the owner as
-  // somebody talking about the owner.
+  // message of theirs that happened to use their name would come back to their person as
+  // somebody talking about their person.
   const noOwner = { ...ctx, ownerUserId: '' };
   assert.equal(ownerMentionReason(msg({ content: 'Owner?' }), noOwner), null);
 });
@@ -151,13 +151,13 @@ test('across a batch, the most direct reason wins: reply, then mention, then nam
   assert.equal(strongestOwnerMention([named, replied, mentioned], ctx), 'reply');
   assert.equal(strongestOwnerMention([named, mentioned], ctx), 'mention');
   // A person who says hello and then their name in the next message, inside the
-  // same debounce window, is still talking about the owner.
+  // same debounce window, is still talking about their person.
   assert.equal(strongestOwnerMention([plain, named], ctx), 'name');
   assert.equal(strongestOwnerMention([plain, plain], ctx), null);
   assert.equal(strongestOwnerMention([], ctx), null);
 });
 
-test('the names setting is a comma list, and an empty one falls back to the owner configured name', () => {
+test('the names setting is a comma list, and an empty one falls back to their person configured name', () => {
   assert.deepEqual(ownerNamesFrom('Owner, O ,Ownie', 'Fallback'), ['Owner', 'O', 'Ownie']);
   assert.deepEqual(ownerNamesFrom(null, 'Owner'), ['Owner']);
   assert.deepEqual(ownerNamesFrom('', 'Owner'), ['Owner']);
@@ -252,5 +252,5 @@ test("the placeholder name 'User' is never taken as their name", async () => {
   assert.deepEqual(ownerNamesFrom('', 'User'), []);
   assert.deepEqual(ownerNamesFrom(null, 'user'), []);
   assert.deepEqual(ownerNamesFrom('', 'Robin'), ['Robin']);
-  assert.deepEqual(ownerNamesFrom('User', 'Robin'), ['User'], 'a name the owner lists themselves is theirs to choose');
+  assert.deepEqual(ownerNamesFrom('User', 'Robin'), ['User'], 'a name their person lists themselves is theirs to choose');
 });

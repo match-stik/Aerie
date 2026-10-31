@@ -36,7 +36,7 @@ test('the switch is read live: flipping the row changes the very next read', () 
   deleteConfig('discord.owner_mentions');
 });
 
-test('with no names set, the owner configured name is the name', () => {
+test('with no names set, their person configured name is the name', () => {
   assert.deepEqual(getOwnerMentionSettings().names, ['Owner']);
 });
 

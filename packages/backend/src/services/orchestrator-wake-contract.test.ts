@@ -69,11 +69,11 @@ test('scheduled wakes always land an answer from their owner', () => {
 });
 
 // ─── Wake presence ────────────────────────────────────────────────────
-// A wake fires on a clock, not on a signal. Told only that the owner "may be away",
+// A wake fires on a clock, not on a signal. Told only that their person "may be away",
 // it reasons from the hour and can write them as asleep while they are sitting in
 // the room.
 
-test('a wake is told plainly when the owner is awake and in the room', () => {
+test('a wake is told plainly when their person is awake and in the room', () => {
   const line = describeUserPresence('Owner', {
     connected: true, state: 'active', minutesSinceActivity: 1, device: 'mobile',
   });
@@ -92,7 +92,7 @@ test('an idle client is reported as open, not as absent', () => {
   assert.doesNotMatch(line, /asleep/);
 });
 
-test('with nothing connected the wake is told it cannot tell, not that the owner is asleep', () => {
+test('with nothing connected the wake is told it cannot tell, not that their person is asleep', () => {
   const line = describeUserPresence('Owner', {
     connected: false, state: 'offline', minutesSinceActivity: 240, device: 'unknown',
   });

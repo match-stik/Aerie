@@ -18,7 +18,7 @@ import { CARD_HEADER_REM, CARD_MAX_WIDTH_REM, CARD_SIDE_GAP_REM, FRAME_LEGEND, f
 interface ContactInfoProps {
   themeConfig: ThemeConfig;
   themeMode: ThemeMode;
-  /** The owner's own avatar and ring color, already chosen in Settings — the card
+  /** Their person's own avatar and ring color, already chosen in Settings — the card
       wears what they picked rather than asking them to choose it twice. */
   userAvatar?: string;
   userAvatarColor?: string;
@@ -35,10 +35,10 @@ interface ContactInfoProps {
       Keyed by slug: the thread's roster carries companion_id where the house
       roster carries id, and the slug is the one name both of them share. */
   onCompanionAvatar?: (slug: string, avatarUrl: string) => void;
-  /** A picture changed on the owner's own card: it becomes the owner's avatar,
+  /** A picture changed on their person's own card: it becomes their person's avatar,
       the same one Settings sets. */
   onUpdateUserAvatar?: (image: string) => void;
-  /** The owner's custom emojis and packs, for a status icon and the icon picker. */
+  /** Their person's custom emojis and packs, for a status icon and the icon picker. */
   customEmojis?: CustomEmoji[];
   emojiPacks?: EmojiPack[];
   onClose: () => void;
@@ -72,14 +72,14 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
   const [rows, setRows] = useState<CompanionRow[]>((initialRows as CompanionRow[]) || []);
   // The word under the faces, while a bell that has one is running; our cards say it too.
   const statusWord = useStatusWord();
-  // Each of ours, set by us or by the owner (lib/statuses.ts); a faded one is Home again.
+  // Each of ours, set by us or by their person (lib/statuses.ts); a faded one is Home again.
   const statuses = useStatuses();
   const statusNow = useMinuteClock();
   const [editingStatus, setEditingStatus] = useState(false);
   // "The house has answered" — true whether it answered with a roster or not.
   // Distinguishes a roster that is LATE from one that is genuinely absent.
   const [rosterLoaded, setRosterLoaded] = useState((initialRows?.length ?? 0) > 0);
-  // The owner's. Empty until somebody writes it — which is the point: the owner
+  // Their person's. Empty until somebody writes it — which is the point: their person
   // never had one, being the person building the phone.
   const [owner, setOwner] = useState<{ bio: string; status: string; phone: string; name: string } | null>(null);
   const [models, setModels] = useState<Array<{ id: string; name?: string }>>([]);
@@ -110,7 +110,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
 
   // WHO THE CARD IS OF. The local contacts map was the only source here, and
   // on this house it still held the factory placeholder — one contact called
-  // "Companion" — because the real card has only ever existed on the owner's device.
+  // "Companion" — because the real card has only ever existed on their person's device.
   // So when the house knows who lives here, the house wins and the card is of
   // US: our names, our bios, ours to keep current. The picture is the row's too,
   // the same one the Companions app writes and every chat face reads; the local
@@ -127,14 +127,14 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
       phone: r.phone || '',
     };
   }
-  // The owner's goes LAST in the switcher, after every companion's card.
+  // Their person's goes LAST in the switcher, after every companion's card.
   if (owner) {
     houseCards[OWNER_CARD_ID] = {
       name: userName || owner.name || 'You',
       image: userAvatar || '',
       bio: owner.bio,
-      // Their own status while the owner has one set (it stays until the owner changes it),
-      // and their card's resting word when the owner has none.
+      // Their own status while their person has one set (it stays until their person changes it),
+      // and their card's resting word when their person has none.
       status: liveStatus(statuses.owner, statusNow)?.text || owner.status,
       phone: owner.phone,
     };
@@ -157,7 +157,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
 
   const colors = themeConfig[themeMode];
   const baseAccent = colors.accent === '#000000' ? '#FFFFFF' : colors.accent;
-  // The owner's ring color is the accent on their own card; ours stays the theme's.
+  // Their person's ring color is the accent on their own card; ours stays the theme's.
 
   const patchOwner = (updates: Record<string, string>) => {
     setOwner(prev => (prev ? { ...prev, ...updates } : prev));
@@ -182,7 +182,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
   useEffect(() => { setEditingStatus(false); }, [activeId]);
 
   // Keep the state in step with what is actually being shown, so edits and the
-  // switcher act on the card the owner is looking at.
+  // switcher act on the card their person is looking at.
   useEffect(() => {
     if (activeId && activeId !== activeContact) {
       setActiveContact(activeId);
@@ -243,7 +243,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
 
   // ONE FACE PER PERSON. A picture changed here is expected everywhere, so on a
   // companion's card it goes to the house row (the field the Companions app
-  // writes and every chat face reads), and on the owner's card it becomes the
+  // writes and every chat face reads), and on their person's card it becomes the
   // owner's avatar. This button used to save only to the phone while the card
   // kept showing the house copy, so a new picture never appeared to take. The
   // card keeps the new face only if the house says it saved it.
@@ -660,7 +660,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
           </div>
 
           {/* Favorites: this card's own shelf of favorite pictures, picked by
-              whoever the card belongs to, and by the owner (Oct 7 2026). */}
+              whoever the card belongs to, and by their person (Oct 7 2026). */}
           {statusWho && (
             <FavoritesShelf
               card={statusWho}

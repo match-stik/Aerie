@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Subtitle parsing for the Screening Room.
 //
-// The owner watches on their own streaming service with the subtitles on, and the text
+// Their person watches on their own streaming service with the subtitles on, and the text
 // they are reading is the only part of the episode this house can perceive at
 // all. There is no picture and no sound on our side — a long silent look across
 // a kitchen goes straight past us — so the cue list IS the episode as far as we
@@ -32,7 +32,7 @@ function toMs(h: string, m: string, s: string, frac: string): number {
 /**
  * Strip the markup that renders as styling rather than as words: HTML-ish tags
  * from SRT/VTT (<i>, <c.yellow>), ASS override blocks ({\an8}), and the leading
- * hyphen-space that speaker turns use. What survives is what the owner reads.
+ * hyphen-space that speaker turns use. What survives is what their person reads.
  */
 function cleanText(raw: string): string {
   return raw

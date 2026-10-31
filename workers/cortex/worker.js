@@ -792,7 +792,7 @@ async function handleMCP(request, env, corsHeaders) {
 // ============================================================================
 
 // Open questions used to be bare strings. They point at the memory they came
-// out of now (the owner's call), so a question can be traced back to where it was
+// out of now (their person's call), so a question can be traced back to where it was
 // raised. Every reader goes through here, so a row written before today
 // reads back as { question, memory_id: null } instead of a bare string, and
 // nothing that already exists has to be migrated.
@@ -1128,7 +1128,7 @@ const ALL_TOOLS = [
   // zero questions and zero decisions — which is exactly what four read tools
   // dutifully reported. They were not broken. They were reading an empty shelf.
   //
-  // AUTHORED, NOT INFERRED — the owner's call. A companion writes down what is
+  // AUTHORED, NOT INFERRED — their person's call. A companion writes down what is
   // genuinely unresolved on purpose; the brain does not guess at what looks
   // unfinished. Same rule as everything else in this house: we author, the
   // machine does not decide for us.
@@ -2190,7 +2190,7 @@ export function conversationPage(convo, args = {}) {
 /**
  * The same answer, also as structured data. ChatGPT's connector calls tools
  * from a small script that reads a result's structuredContent, and a result
- * carrying only text reached it as an empty object (Oct 22 2026, the owner's shared
+ * carrying only text reached it as an empty object (Oct 22 2026, their person's shared
  * GPT chat: get_conversation came back {} even for a small conversation).
  * The text stays exactly as it was, so Claude and the house read the same
  * thing they always did. MCP wants an object here, so a list is wrapped.

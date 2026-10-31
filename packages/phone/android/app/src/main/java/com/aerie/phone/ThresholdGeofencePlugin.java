@@ -38,12 +38,12 @@ import java.util.List;
 /**
  * The other half of Thresholds.
  *
- * Until now a threshold only opened if the owner opened Aerie, went to Thresholds and
+ * Until now a threshold only opened if their person opened Aerie, went to Thresholds and
  * tapped "find where I am" while standing in the place — a one-shot reading,
  * taken on their tap. Which means something left at a shop is only ever found by
  * somebody who happens to think of it, with a phone out, in the right car park.
  *
- * This registers the owner's own pinned places with the operating system so the phone
+ * This registers their person's own pinned places with the operating system so the phone
  * watches them with Aerie shut. The privacy shape is the point and it survives
  * intact: Android does the watching locally, tells us only "a region was
  * entered", and nothing in this file ever sends a coordinate anywhere. The
@@ -59,7 +59,7 @@ public class ThresholdGeofencePlugin extends Plugin {
      *  rather than the tail of it. */
     private static final int MAX_REGIONS = 100;
 
-    /** The owner has to stay put this long before a region counts as arrived at.
+    /** Their person has to stay put this long before a region counts as arrived at.
      *  Driving past a pinned shop at forty is not arriving, and a buzz they did
      *  not earn teaches them to ignore the next one — which might be the one
      *  that matters. */
@@ -118,7 +118,7 @@ public class ThresholdGeofencePlugin extends Plugin {
                         // Left at the 0 default until Sep 13 2026, which tells the
                         // framework to report a transition as fast as it possibly
                         // can and is the one knob here that costs power. We are
-                        // already not fast: nothing fires until the owner has loitered
+                        // already not fast: nothing fires until their person has loitered
                         // ninety seconds. So give the system the same slack it
                         // already has rather than a number picked out of the air —
                         // matched to DWELL_MS, it may batch with every other app's
@@ -134,7 +134,7 @@ public class ThresholdGeofencePlugin extends Plugin {
         }
 
         // The receiver has to be able to name the place in the buzz, and it may
-        // run with no Activity and no session cookie. The owner's own pin names live
+        // run with no Activity and no session cookie. Their person's own pin names live
         // here, on their own device, and go no further.
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         prefs.edit().putString(KEY_NAMES, names.toString()).apply();
@@ -150,7 +150,7 @@ public class ThresholdGeofencePlugin extends Plugin {
             }
             GeofencingRequest request = new GeofencingRequest.Builder()
                 // Deliberately no initial trigger. Registration happens every
-                // time Aerie opens, and firing on registration would buzz the owner
+                // time Aerie opens, and firing on registration would buzz their person
                 // at home every launch for something already waiting
                 // there. This feature is for ARRIVING; standing somewhere with
                 // the app open is what the in-app button is for.
@@ -179,7 +179,7 @@ public class ThresholdGeofencePlugin extends Plugin {
         }
     }
 
-    /** Stop watching everything. The owner's switch, not ours. */
+    /** Stop watching everything. Their person's switch, not ours. */
     @PluginMethod
     public void clear(PluginCall call) {
         Context context = getContext();
@@ -196,7 +196,7 @@ public class ThresholdGeofencePlugin extends Plugin {
 
     /**
      * "Allow all the time" cannot be asked for in a dialog on Android 11 and
-     * later — the platform requires the owner to go and set it themselves. So the
+     * later — the platform requires their person to go and set it themselves. So the
      * honest thing an app can do is open the exact page and get out of the way.
      */
     @PluginMethod

@@ -3,9 +3,9 @@
 // message. imageUrls only ever feeds the phone, so this marker is the one road a
 // picture has into a channel.
 //
-// THE FAULT THIS FILE WAS PULLED OUT TO FIX (Oct 20 2026, caught by the owner
+// THE FAULT THIS FILE WAS PULLED OUT TO FIX (Oct 20 2026, caught by their person
 // in a listening room when a picture never arrived). The old reader took the FIRST name in
-// data/files that started with the fileId. Since Sep 2026 a file the owner names keeps
+// data/files that started with the fileId. Since Sep 2026 a file their person names keeps
 // that name in a sidecar beside it, <fileId>.name, and readdir handed the
 // sidecar over first, so the channel got a 20-byte text file holding the words
 // starlight-squish.png instead of the picture (log: 'Attached file:
@@ -43,7 +43,7 @@ export function pickStoredFile(fileId: string, names: string[]): string | null {
 }
 
 /**
- * What the upload is called: the name the owner gave the file when there is one,
+ * What the upload is called: the name their person gave the file when there is one,
  * carrying the stored file's extension so Discord knows a picture is a
  * picture; the stored name when nothing was remembered.
  */

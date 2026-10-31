@@ -8,7 +8,7 @@ import { discordTurnAudience, isTurnAudience, guestToolRefusal } from './turn-au
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-test('the owner on Discord is the owner', () => {
+test('their person on Discord is their person', () => {
   assert.deepEqual(discordTurnAudience(true, undefined), { kind: 'owner' });
   assert.deepEqual(discordTurnAudience(true, 'limited'), { kind: 'owner' });
 });
@@ -61,7 +61,7 @@ test('guestToolRefusal blocks every router tool for a guest', () => {
   assert.ok(guestToolRefusal({ kind: 'guest', trust: 'limited' }, 'core_memory_append'));
 });
 
-test('guestToolRefusal lets the owner and the wakes (no audience) run tools', () => {
+test('guestToolRefusal lets their person and the wakes (no audience) run tools', () => {
   assert.equal(guestToolRefusal({ kind: 'owner' }, 'shell_exec'), null);
   assert.equal(guestToolRefusal(undefined, 'codex_exec'), null);
 });

@@ -49,7 +49,7 @@ interface Companion {
   emoji: string | null;
 }
 
-// The owner's accent when the house hasn't been given one — the sigils
+// Their person's accent when the house hasn't been given one — the sigils
 // themselves come from each companion's own row, not from a list in here.
 const OWNER_COLOR = '#e85d04';
 const OWNER_SIGIL = '🧡';

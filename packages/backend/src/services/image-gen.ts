@@ -310,7 +310,7 @@ function cleanEmoji(e: string | undefined): string | undefined {
 /**
  * A drawer nobody named: it exists because its directory does. These stay
  * protected from rename and delete, exactly as the old hardcoded four were.
- * Anything created through Studio lives in config and is the owner's to change.
+ * Anything created through Studio lives in config and is their person's to change.
  */
 function unnamedDrawers(customs: ReadonlyArray<CustomDrawer>): Array<{ slug: string; label: string }> {
   const named = new Set(customs.map((c) => c.slug));
@@ -611,7 +611,7 @@ export async function fileThumbnail(
  * The same small copy, for a reference image in a subject's drawer.
  *
  * Unlike a gallery file or an uploaded attachment, a reference filename is NOT
- * write-once — the owner can upload a new picture over an old name. So the cache key
+ * write-once — their person can upload a new picture over an old name. So the cache key
  * carries the file's modified time, which restores the guarantee the other two
  * get for free.
  *
@@ -1244,7 +1244,7 @@ export function pairwiseDistinctions(
  *  one every bell is told to ask for. Terra on purpose: which Codex model a
  *  house draws on is a fact about its owner's own plan, and Astra needs Codex
  *  CLI 0.153.0 or later and costs about two to three times Terra per picture.
- *  The Studio picker still sends whatever the owner chose. */
+ *  The Studio picker still sends whatever their person chose. */
 export const DEFAULT_CODEX_IMAGE_MODEL = 'gpt-5.6-terra';
 
 /** The file in a drawer that holds what its photos cannot. */
@@ -1416,7 +1416,7 @@ async function findNewestAntigravityImage(since: number): Promise<string | null>
 
 async function generateViaCodex(input: GenerateInput): Promise<GenerateResult> {
   // While Codex has asked the house to wait, a picture does not go either; the
-  // refusal hands it down the owner fallback chain like any other (codex-breaker.ts).
+  // refusal hands it down their person fallback chain like any other (codex-breaker.ts).
   const hold = codexHold();
   if (hold) throw new ImageGenError(codexHoldMessage(hold));
   const start = Date.now();
@@ -1538,7 +1538,7 @@ async function generateViaCodex(input: GenerateInput): Promise<GenerateResult> {
       if (p) settle(() => resolve(p));
       else {
         // When Codex declines a prompt it usually exits 0 and says why on
-        // stdout — stderr is empty. Reporting stderr alone leaves the owner
+        // stdout — stderr is empty. Reporting stderr alone leaves their person
         // with a blank reason, so fall back to the tail of what it actually
         // said before giving up.
         const said = stderr.trim() || lastCodexMessage(stdout);
@@ -2087,7 +2087,7 @@ async function generateViaOpenAi(input: GenerateInput): Promise<GenerateResult> 
   };
 }
 
-/** Only the metered backend is capped, and only when the owner has set a figure. */
+/** Only the metered backend is capped, and only when their person has set a figure. */
 export function budgetApplies(backend: string, monthlyBudgetUsd: number): boolean {
   return backend === 'openai' && monthlyBudgetUsd > 0;
 }

@@ -2,16 +2,16 @@
 // Egyptian Rat Screw — the slap surface.
 //
 // The rules live on the server (services/db/rat-screw.ts); this screen only
-// moves state and measures ONE honest thing: the owner's reaction. When a slappable
-// pile renders, the clock starts on this side of the glass, and the owner's tap posts
+// moves state and measures ONE honest thing: their person's reaction. When a slappable
+// pile renders, the clock starts on this side of the glass, and their person's tap posts
 // the elapsed milliseconds to race the companions' server-rolled reflexes. The slap
 // button is live the whole game — tapping a quiet pile is a bad slap and burns
 // a card, exactly as at a real table.
 //
 // The companions flip on their own cadence, driven from here: the server owns whose
 // turn it is, this screen just keeps the table moving at a human pace — and
-// the pace is the OWNER'S. While the rail input has focus the cadence holds, so
-// the table rests whenever the owner is mid-sentence; a faster table was too quick
+// the pace is their PERSON'S. While the rail input has focus the cadence holds, so
+// the table rests whenever their person is mid-sentence; a faster table was too quick
 // to sit and talk at. Every fixed-size slot below (the dent bar, the card box)
 // exists because the table used to reflow, and flicker, on each flip.
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -50,14 +50,14 @@ interface RatScrewBoardProps {
 
 export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps) {
   const { owner, loaded: rosterLoaded, labelOf, sigilOf } = useHouseRoster();
-  // The owner's seat is the house's answer (GET /api/companions), never a
+  // Their person's seat is the house's answer (GET /api/companions), never a
   // name in the code.
   const ownerSeat = owner?.slug ?? '';
   const [game, setGame] = useState<RatScrewGame | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const tableRef = useRef<string | null>(tableId);
-  // The owner's reaction clock: armed the moment a slap window renders.
+  // Their person's reaction clock: armed the moment a slap window renders.
   const slapArmedAt = useRef<number | null>(null);
   const inFlight = useRef(false);
 
@@ -96,8 +96,8 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
     void act('new');
   }, [act]);
 
-  // The table rests while the owner types: the rail input broadcasts its focus, and
-  // a held cadence is the difference between a game and a metronome. The owner's taps
+  // The table rests while their person types: the rail input broadcasts its focus, and
+  // a held cadence is the difference between a game and a metronome. Their person's taps
   // and flips work regardless — only the companions wait.
   const [railTyping, setRailTyping] = useState(false);
   useEffect(() => {
@@ -108,7 +108,7 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
 
   // The companions flip on a human cadence whenever it is one of theirs to flip —
   // unhurried on purpose, so the pile can be read and the room can talk. Not
-  // before the owner's seat is known: until then every seat looks like a companion's.
+  // before their person's seat is known: until then every seat looks like a companion's.
   useEffect(() => {
     if (!ownerSeat || !game || game.phase !== 'playing' || game.turn === ownerSeat || railTyping) return;
     const actor = game.turn;
@@ -118,12 +118,12 @@ export function RatScrewBoard({ tableId, colors, onTableId }: RatScrewBoardProps
     return () => window.clearTimeout(timer);
   }, [game, act, railTyping, ownerSeat]);
 
-  // Arm the owner's reaction clock when the slap window renders, and resolve the race
+  // Arm their person's reaction clock when the slap window renders, and resolve the race
   // at the moment the fastest rolled hand actually lands — so a companion's slap is
-  // something the owner SEES happen, not a verdict delivered at the deadline. If
+  // something their person SEES happen, not a verdict delivered at the deadline. If
   // every roll missed the window, resolution waits for the window itself and
   // the server lets the pile ride. A stale resolve is a server-side no-op, so
-  // the timer racing the owner's tap can never cost them a pile they already took.
+  // the timer racing their person's tap can never cost them a pile they already took.
   useEffect(() => {
     if (!game || game.phase !== 'slap') {
       slapArmedAt.current = null;

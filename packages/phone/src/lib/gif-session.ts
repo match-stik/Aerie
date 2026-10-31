@@ -8,7 +8,7 @@ import { apiFetch } from '../aerie';
 /**
  * True only when the house says plainly that it no longer has the session. An
  * older backend answers this address with the app's own page, and a dropped
- * connection answers nothing, and neither is a reason to throw away what the owner left.
+ * connection answers nothing, and neither is a reason to throw away what their person left.
  */
 export async function sessionIsGone(sessionId: string): Promise<boolean> {
   try {

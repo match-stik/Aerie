@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The Story Shelf — the owner's door: read the shelf, walk into a book, make a move.
+// The Story Shelf — their person's door: read the shelf, walk into a book, make a move.
 //
-// The owner reads and moves, and never writes a scene. The companions write through
+// Their person reads and moves, and never writes a scene. The companions write through
 // /api/internal/story-shelf (routes/internal.ts). Beginning a new book, a
 // move, and asking again each hand the companions' lane a page turn, which
 // answers on its own time: these doors answer as soon as the move is in, and
@@ -61,7 +61,7 @@ router.get('/books/:id', (req, res) => {
   }
 });
 
-/** The owner opened a book. One with no opening yet (their Begin) asks the companions for it; a started book asks for nothing. */
+/** Their person opened a book. One with no opening yet (their Begin) asks the companions for it; a started book asks for nothing. */
 router.post('/books/:id/open', (req, res) => {
   const lane = laneFor(req, res);
   if (!lane) return;
@@ -72,7 +72,7 @@ router.post('/books/:id/open', (req, res) => {
   }
 });
 
-/** The owner's move: { choiceId } for a choice the newest scene offers, or { text } in their own words. */
+/** Their person's move: { choiceId } for a choice the newest scene offers, or { text } in their own words. */
 router.post('/books/:id/move', (req, res) => {
   const lane = laneFor(req, res);
   if (!lane) return;
@@ -84,7 +84,7 @@ router.post('/books/:id/move', (req, res) => {
   }
 });
 
-/** The owner's table talk: { text }, said while reading. Talk, not a move, so no page is asked for. */
+/** Their person's table talk: { text }, said while reading. Talk, not a move, so no page is asked for. */
 router.post('/books/:id/talk', (req, res) => {
   const lane = laneFor(req, res);
   if (!lane) return;

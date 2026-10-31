@@ -97,7 +97,7 @@ export function CardRoom({ colors }: CardRoomProps) {
   const loaded = useRef(false);
   // Reopen onto a live game exactly once per visit. The server keeps the game
   // between visits; this screen used to forget which tab it was on, which
-  // read from the owner's side as the game itself vanishing when they left the room.
+  // read from their person's side as the game itself vanishing when they left the room.
   const resumed = useRef(false);
 
   const load = useCallback(async () => {
@@ -166,15 +166,15 @@ export function CardRoom({ colors }: CardRoomProps) {
     }
   }, [table?.id]);
 
-  // The owner's seat is the house's answer (GET /api/companions), never a name
-  // in the code. Until it arrives no chair is drawn as the owner's or as anyone else's.
+  // Their person's seat is the house's answer (GET /api/companions), never a name
+  // in the code. Until it arrives no chair is drawn as their person's or as anyone else's.
   const ownerSeat = owner?.slug ?? '';
   const mySeat = ownerSeat ? table?.seats.find((s) => s.slug === ownerSeat) : undefined;
   const myHand = mySeat?.hand ?? [];
   const others = ownerSeat ? (table?.seats ?? []).filter((s) => s.slug !== ownerSeat) : [];
   const topOfPile = table?.pile.at(-1) ?? null;
 
-  // The server can restore the owner to a game that sits off the right-hand end
+  // The server can restore their person to a game that sits off the right-hand end
   // of the strip, so the selected tab is brought into view whenever the mode
   // changes. block:'nearest' on purpose — this must never scroll the page
   // vertically.
@@ -220,7 +220,7 @@ export function CardRoom({ colors }: CardRoomProps) {
 
   // THE FRONT DOOR. The bare table was built as the surface the games would be
   // designed on, and then the games were built on top of it and it stayed with
-  // nothing to do. The owner's call: make it the shelf you pick a game off. Everything
+  // nothing to do. Their person's call: make it the shelf you pick a game off. Everything
   // the table already did — shuffle, deal, turn one over, gather up — stays
   // underneath it, because that is still where the next game gets designed.
   const shelf = (
@@ -246,7 +246,7 @@ export function CardRoom({ colors }: CardRoomProps) {
   );
 
   // One card behind the whole room, so nothing is ever painted straight onto
-  // the wallpaper. The owner's call, and the reason the foundations were invisible.
+  // the wallpaper. Their person's call, and the reason the foundations were invisible.
   const roomSurface = cn('mx-2 mb-2 min-h-0 flex-1 rounded-[var(--shape-surface)] border shadow-[0_10px_30px_rgba(0,0,0,.3)]',
                          colors.panelBg, colors.panelBorder);
 
@@ -529,7 +529,7 @@ export function CardRoom({ colors }: CardRoomProps) {
         </div>
       </div>
 
-      {/* The owner's hand, faces up, fanned. Sized so five cards fit a phone row
+      {/* Their person's hand, faces up, fanned. Sized so five cards fit a phone row
           without clipping — the old 88px card overflowed and put a scrollbar
           across the bottom of the fan. Bigger hands still scroll, quietly. */}
       <div className="flex flex-1 items-end justify-center overflow-x-auto pb-2 scrollbar-hide">
@@ -565,7 +565,7 @@ export function CardRoom({ colors }: CardRoomProps) {
         </button>
         <button disabled={busy || !myHand.length} onClick={() => act('/play')}
                 className={cn('flex items-center gap-2 rounded-[var(--shape-control)] border px-4 py-2 text-xs disabled:opacity-40', colors.panelBg, colors.panelBorder)}>
-          {/* It plays from the owner's HAND, not off the deck — the Rat Screw motion.
+          {/* It plays from their person's HAND, not off the deck — the Rat Screw motion.
               The old label said "turn one over", which reads as a deck flip. */}
           <Hand size={14} /> Play from hand
         </button>

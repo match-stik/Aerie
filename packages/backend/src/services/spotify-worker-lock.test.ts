@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The Spotify worker's lock (1.2.0). Before it, with
-// no key, anyone who had the address could drive the owner's Spotify, and
-// anyone who opened /auth could sign their own Spotify in over the owner's. These
+// no key, anyone who had the address could drive their person's Spotify, and
+// anyone who opened /auth could sign their own Spotify in over their person's. These
 // tests load the worker file itself and call its fetch handler directly, so
 // they read the same code a Cloudflare deploy runs.
 

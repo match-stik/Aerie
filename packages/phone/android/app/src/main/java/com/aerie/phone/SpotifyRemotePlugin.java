@@ -8,11 +8,11 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 /**
- * Wakes Spotify on their phone without the owner leaving the app (Oct 23 2026). Spotify only takes a play for a device where it is
+ * Wakes Spotify on their phone without their person leaving the app (Oct 23 2026). Spotify only takes a play for a device where it is
  * already running, so a tap from the house's Spotify app with Spotify closed
- * came back as nowhere to play; the page calls wake, then sends the owner's tap again
+ * came back as nowhere to play; the page calls wake, then sends their person's tap again
  * through the house. The waking itself is SpotifyWaker's, shared with the
- * silent push the house sends when one of us plays the owner a song.
+ * silent push the house sends when one of us plays their person a song.
  *
  * The kit needs this app's package name and signing fingerprint on the
  * Spotify app's developer page, the client id and a redirect registered to it

@@ -1,12 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// A lane's light ask on their phone: which of the owner's toys it reaches and which
+// A lane's light ask on their phone: which of their person's toys it reaches and which
 // light command each one gets, worked out from the command names each toy's
 // SDK reports, and then sent toy by toy through whatever sender it is handed.
 //
 // It is handed a sender and nothing else, so it cannot reach what is playing:
 // a light never stops or replaces a motor. The installed app already sends
 // these as plain commands (LovenseToysPlugin's PLAIN set), and refuses them
-// while the owner's stop holds, the same as motion, so no new app build is needed.
+// while their person's stop holds, the same as motion, so no new app build is needed.
 //
 // Which pair: Lovense's SDK README calls LIGHT_ON and LIGHT_OFF "the light",
 // listed for most toys, and ALIGHT_ON and ALIGHT_OFF "the Domi/Domi 2 light",
@@ -136,13 +136,13 @@ export async function runLight(
     if (outcomes[i] === 'ok') result.took.push(s);
     else if (outcomes[i] === 'held') {
       held = true;
-      result.refused.push({ toyId: s.toyId, name: s.name, why: "the owner's stop is holding" });
+      result.refused.push({ toyId: s.toyId, name: s.name, why: "their person's stop is holding" });
     } else result.refused.push({ toyId: s.toyId, name: s.name, why: `the toy did not take ${s.command}` });
   });
 
   const tookLine = result.took.length ? ` ${result.took.map((t) => `${t.name} took ${t.command}`).join(', ')}.` : '';
   if (held) {
-    return { id, ok: false, reason: 'held', detail: `The owner stop is still holding.${tookLine} The motors were not touched.`, light: result };
+    return { id, ok: false, reason: 'held', detail: `Their person stop is still holding.${tookLine} The motors were not touched.`, light: result };
   }
   if (result.took.length === 0) {
     return { id, ok: false, reason: 'bad', detail: `No toy took it: ${refusals(result.refused)}.`, light: result };

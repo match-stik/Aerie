@@ -1,8 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The owner toys' batteries, as the toys themselves answer, and when to ask.
+// Their person toys' batteries, as the toys themselves answer, and when to ask.
 //
 // Why the number went stale (measured Oct 21 2026: the house said the Fizz
-// was at 29 while the owner's Lovense app said about 59, and the Flexer at 0 while it
+// was at 29 while their person's Lovense app said about 59, and the Flexer at 0 while it
 // ran fine): the house was sent the SDK's own battery field off the toy object
 // the search found, and Lovense's README says that field only moves on an
 // answer given while the toy is still ("When isWork is true ... the battery
@@ -15,7 +15,7 @@
 // that has not answered has no level at all: absent, never 0. It is asked a
 // beat after each connection, and every minute while something wants it (the
 // remote handed over, or the Toys page open). A question moves nothing, so
-// the owner's stop lets it through. Kept free of the app so it can be checked here.
+// their person's stop lets it through. Kept free of the app so it can be checked here.
 
 import type { ToyPhoneToy } from '@aerie/shared';
 

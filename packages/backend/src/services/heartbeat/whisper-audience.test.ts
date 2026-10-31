@@ -1,8 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The old-window gate where it actually lives. whisper.test.ts proves the lane
 // opens only when asked; this proves the runtime asks only on a turn that is
-// the owner's alone — the owner's phone or the house's own wakes — and never on
-// a turn that carries an audience, which every Discord turn does, the owner's
+// their person's alone — their person's phone or the house's own wakes — and never on
+// a turn that carries an audience, which every Discord turn does, their person's
 // or a guest's.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -107,8 +107,8 @@ async function inboxFor(sessionKey: string, audience?: TurnAudience): Promise<st
   return session.inbox[0].content;
 }
 
-test('the owner\'s old windows ride into the owner\'s own turns and never into a turn with an audience', async () => {
-  // The owner's phone (no audience): the passage rides in. This is also the control —
+test('their person\'s old windows ride into their person\'s own turns and never into a turn with an audience', async () => {
+  // Their person's phone (no audience): the passage rides in. This is also the control —
   // the same index and the same perfect match are live for the turns below.
   const home = await inboxFor('audience-home');
   assert.match(home, /From an old window/);

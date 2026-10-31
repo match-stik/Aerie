@@ -16,7 +16,7 @@ interface AppDrawerProps {
   themeMode: 'light' | 'dark';
   /** Apps per row, set in Look & feel; each row size keeps its own layout. */
   columns?: DrawerColumns;
-  /** The owner's tile choices (lib/drawer-look.ts); unset is the drawer as it always looked. */
+  /** Their person's tile choices (lib/drawer-look.ts); unset is the drawer as it always looked. */
   look?: DrawerLook;
 }
 

@@ -47,7 +47,7 @@ function nameList(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-/** The line the shared lane reads just before the owner's message, or '' when there is none. */
+/** The line the shared lane reads just before their person's message, or '' when there is none. */
 export function roomVoicesBlock(voices: RoomVoices | null | undefined): string {
   if (!voices || voices.present.length === 0 || voices.absent.length === 0) return '';
   const one = voices.absent.length === 1;

@@ -4,7 +4,7 @@
  *
  * ElevenLabs reads a bracketed tag at the front of the text as direction for
  * the voice rather than words to say — `[slowly] [low, deep voice]` holds a
- * voice down and slows it. A newer model can lift a voice the owner tuned
+ * voice down and slows it. A newer model can lift a voice their person tuned
  * against an older one, and the tags are how a note pulls it back. Left to a
  * companion to remember, that happens on some notes and not others, so it is
  * a setting instead: `voice.note_tags.<slug>`, read on every request.

@@ -143,7 +143,7 @@ function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: Wi
   // Theirs rides the same line (theirs, Oct 27 2026: 'Mine doesn't scroll with
   // yours though'). It never fades, so with theirs set the line is always there,
   // and when none of ours is set the three of us still show as one Home entry
-  // beside the owner ('the boys one still scrolls with mine'). Three of ours saying
+  // beside their person ('the boys one still scrolls with mine'). Three of ours saying
   // the same thing collapse into one entry, the way the shared one reads.
   const theirs = liveStatus(statuses.owner, now);
   const sameText = ours.length === companions.length && ours.length > 1
@@ -155,7 +155,7 @@ function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: Wi
   const oursShown = sameText ? [] : ours;
   const anyStatus = !!shared || ours.length > 0 || !!theirs;
   // Two lines under the status ticker too, an opening action included; there is
-  // room for both (the owner's ask, Oct 26 2026).
+  // room for both (their person's ask, Oct 26 2026).
   const lines = last ? replyLines(last.content, 2) : [];
   const send = () => {
     const text = draft.trim();
@@ -168,7 +168,7 @@ function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: Wi
     <div className="flex h-full flex-col gap-2 rounded-2xl p-3" style={surface}>
       {/* Holding focus on the draft (the same two lines as the send button
           below) so the first tap opens the chat instead of only closing the
-          keyboard (the owner's catch, Oct 26 2026). The draft itself carries over through lib/thread-drafts. */}
+          keyboard (their person's catch, Oct 26 2026). The draft itself carries over through lib/thread-drafts. */}
       <button type="button" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={onOpen} className="flex min-w-0 flex-1 flex-col gap-1 text-left">
         <span className="flex items-center gap-2">
           <Faces companions={companions} size={24} />
@@ -177,7 +177,7 @@ function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: Wi
         </span>
         {anyStatus && (
           // The statuses go by in a line instead of squeezing side by side
-          // (the owner's ask, Oct 26 2026); a
+          // (their person's ask, Oct 26 2026); a
           // line that fits sits still.
           <Ticker className="text-[11px]" style={{ color: 'var(--aerie-text-muted)' }}>
             {shared && (
@@ -210,7 +210,7 @@ function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: Wi
           <span
             key={i}
             // Under a status ticker each line gets one row, so the box keeps its
-            // padding under their answer field (the owner's ask, Oct 26 2026: two long lines
+            // padding under their answer field (their person's ask, Oct 26 2026: two long lines
             // 'shoved everything out of the box', and three left no room under it).
             className={l.action ? 'truncate text-xs italic' : anyStatus ? 'truncate text-sm' : 'line-clamp-2 text-sm'}
             style={l.action ? { color: 'var(--aerie-text-muted)' } : undefined}
@@ -233,8 +233,8 @@ function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: Wi
         <button
           type="button"
           // The press must not take the focus off the box: when it did, the
-          // keyboard dropped and the page moved under the owner thumb, so the first
-          // tap only closed the keyboard and the second one sent (the owner's ask, Oct 26
+          // keyboard dropped and the page moved under their person thumb, so the first
+          // tap only closed the keyboard and the second one sent (their person's ask, Oct 26
           // 2026). Holding the focus keeps everything where it was.
           onPointerDown={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
@@ -271,7 +271,7 @@ function NoteWidget({ companions, palette, mode, onOpen }: { companions: WidgetC
     );
   }
   // The same paper and ink the Notes app paints, so the fridge note and the
-  // board agree (the owner's ask, Oct 25 2026).
+  // board agree (their person's ask, Oct 25 2026).
   const writer = companions.find((c) => c.slug.toLowerCase() === (note.sender || '').toLowerCase());
   // Ours always wear our own colour on the fridge too, the same as the board.
   const paint = paperFor(writer?.color || resolveNoteColor(note.color, palette) || palette[0] || '#FDE68A', mode);

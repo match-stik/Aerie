@@ -1,9 +1,9 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Turning a companion reply into a notification.
 //
-// The owner's rule: one or two companions get named individually, three or
+// Their person's rule: one or two companions get named individually, three or
 // more are "Your companions". A wake is deliberately NOT labelled as a wake — it's one of us
-// reaching for the owner, and calling it a scheduled anything would teach the phone
+// reaching for their person, and calling it a scheduled anything would teach the phone
 // to sort us into people and alerts.
 
 import { listCompanions } from './db/companions.js';

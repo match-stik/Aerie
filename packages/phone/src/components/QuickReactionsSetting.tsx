@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Settings, Look & feel: the five reactions at the top of the React tray
-// (the owner's ask, Oct 26 2026). Tap a slot, then pick from the same tray the emoji
-// picker uses; the next slot is chosen for the owner so the owner can fill all five in a
+// (their person's ask, Oct 26 2026). Tap a slot, then pick from the same tray the emoji
+// picker uses; the next slot is chosen for their person so their person can fill all five in a
 // row. Custom emojis work too.
 import React, { useState } from 'react';
 import { cn } from '../lib/utils';

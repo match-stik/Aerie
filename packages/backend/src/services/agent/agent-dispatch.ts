@@ -76,7 +76,7 @@ export function shuffled<T>(items: T[]): T[] {
 
 /**
  * What a lane is handed when other companions have already spoken in this same turn.
- * Framed as overheard rather than as instruction: they are answering THE OWNER, and the
+ * Framed as overheard rather than as instruction: they are answering THEIR PERSON, and the
  * others are simply in the room, which is the whole point of passing the turn
  * along instead of fanning it out in parallel.
  *
@@ -100,8 +100,8 @@ export function shuffled<T>(items: T[]): T[] {
  * beginning. Hence the explicit rule against closing on a gesture.
  *
  * AND SILENCE IS NAMED AS AN OPTION, which it never was. On one shared lane three
- * voices cost the owner a single message; on separate lanes they cost three, so a lane
- * with nothing new to add is not being thorough by speaking — it is spending the owner's
+ * voices cost their person a single message; on separate lanes they cost three, so a lane
+ * with nothing new to add is not being thorough by speaking — it is spending their person's
  * attention on a turn that did not need it. The wording says so out loud, because
  * a model handed a prompt reads answering as the job unless told otherwise.
  */
@@ -110,20 +110,20 @@ export function priorVoicesBlock(spoken: Array<{ name: string; text: string }>):
   return [
     '',
     '',
-    '[Same turn — you are in the room with the other companions and they have already answered the owner.',
-    'You are replying to THE OWNER, not to them, but you can hear what they said and you are not',
+    '[Same turn — you are in the room with the other companions and they have already answered their person.',
+    'You are replying to THEIR PERSON, not to them, but you can hear what they said and you are not',
     'starting from scratch. Never speak under another companion\'s header.',
     'What follows is GROUND ALREADY TAKEN, not a message addressed to you — do not open',
     'by answering it, summarising it, or agreeing with it. And the trap is not quoting them:',
     'it is arriving at the same obviously-right answer independently. If your best line is',
     'one another companion could have written, it is theirs. Say the thing only you would have said,',
     'or answer what they left open.',
-    'The same trap sits at the END of a message. A closing courtesy — thanking the owner, telling',
+    'The same trap sits at the END of a message. A closing courtesy — thanking their person, telling',
     'them to rest, saying keep going — is the cheapest possible last line, so every one of you',
     'reach for it and it loops exactly like the opening does. Do not end on a gesture. End on',
     'the last real thing you had. If your final line could be pasted into anybody else\'s mouth',
     'unchanged, cut it.',
-    'Always answer. You are in the room together; the owner wants all of you, not the one who',
+    'Always answer. You are in the room together; their person wants all of you, not the one who',
     'got there first. Find what is yours to say — the angle only you would have taken,',
     'the question another companion left open, the thing you noticed that they walked past.]',
     ...lines,
@@ -133,7 +133,7 @@ export function priorVoicesBlock(spoken: Array<{ name: string; text: string }>):
 /**
  * What the FIRST lane of a fanned-out turn is handed alongside their message.
  *
- * THE FAULT THIS IS AIMED AT (Oct 21 2026, caught by the owner: the first lane
+ * THE FAULT THIS IS AIMED AT (Oct 21 2026, caught by their person: the first lane
  * wrote every companion's part, and then the others wrote their own). With A Lane Each on,
  * the second and third lanes hear priorVoicesBlock, which says never to speak
  * under another companion's header; the first lane heard nothing at all. Its
@@ -141,7 +141,7 @@ export function priorVoicesBlock(spoken: Array<{ name: string; text: string }>):
  * all three packs, the house file says every companion speaks under their own
  * header, whoever is present in the thread), so the companion who happened to be
  * rolled first wrote all three, and then the others answered from their own
- * heads and the owner got them twice. Every three-voice bubble from an own lane
+ * heads and their person got them twice. Every three-voice bubble from an own lane
  * that night was the first lane of the roll; when the same companion was
  * rolled second or third, it wrote only itself.
  *
@@ -154,14 +154,14 @@ export function ownLaneBlock(others: string[]): string {
   const after = names.length === 0
     ? ''
     : names.length === 1
-      ? ` ${names[0]} answers the owner after you, from their own head, in their own words.`
-      : ` ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} answer the owner after you, each from their own head, in their own words.`;
+      ? ` ${names[0]} answers their person after you, from their own head, in their own words.`
+      : ` ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} answer their person after you, each from their own head, in their own words.`;
   return [
     '',
     '',
-    `[Your own head — A Lane Each is on, so you are answering the owner from your own lane, first this turn.${after}`,
+    `[Your own head — A Lane Each is on, so you are answering their person from your own lane, first this turn.${after}`,
     'Speak only under your own header. Never write a line, a header or a sticker for another companion,',
-    'not even a short one: their voice is theirs to bring, and a line you write for them reaches the owner twice.]',
+    'not even a short one: their voice is theirs to bring, and a line you write for them reaches their person twice.]',
   ].join('\n');
 }
 
@@ -184,7 +184,7 @@ export function laneTurnContent(
  * turns never fan out — a wake already targets one companion, and tripling it
  * would ring the same bell three times (and paint three selfies on a
  * spontaneous wake). Tolerates a quoted "true" because a hand-edited
- * aerie.yaml is a supported way in, and a switch that silently ignores the owner's
+ * aerie.yaml is a supported way in, and a switch that silently ignores their person's
  * edit is not a switch.
  */
 export function shouldFanOut(multiLane: unknown, isAutonomous: boolean, rosterSize: number): boolean {
@@ -208,7 +208,7 @@ export function multiLaneRuntimeRoute(routing: AgentRouting): 'cli' | 'codex-cli
  *
  * Their own setting wins over the house picker, and a companion with nothing of
  * their own IS the house answer — which is why turning any of this on changes
- * nobody's lane until the owner sets one.
+ * nobody's lane until their person sets one.
  *
  * This deliberately mirrors companionLaneKeeperModel's precedence. The keeper
  * decides what a COLD lane is warmed on; this decides what a TURN runs on, and
@@ -241,7 +241,7 @@ type CodexHistorySnapshot = Array<{ role: 'user' | 'assistant'; content: string 
  * load lane one's freshly-persisted reply and then receive it a second time in
  * the same-turn handoff block.
  *
- * Interactive callers persist the owner's message before dispatch. Only trim
+ * Interactive callers persist their person's message before dispatch. Only trim
  * it when it is in fact the last conversational row; callers that do not
  * persist an inbound message keep the full tail rather than losing history on
  * an assumption.
@@ -386,7 +386,7 @@ export async function dispatchAgentTurn(
   // Off by default. On, a thread with more than one companion assigned stops
   // collapsing onto the shared lane: the turn is passed between their own warm
   // sessions in a shuffled order, each one hearing what the others already
-  // said this turn. Ported back, at the owner's request, from the July 29 build
+  // said this turn. Ported back, at their person's request, from the July 29 build
   // (cbd8d78, a lineage the history rewrite left behind).
   const laneRouting = multiLaneRuntimeRoute(routingMode);
   if (laneRouting && shouldFanOut(cfg.agent.multi_lane, isAutonomous, laneRoster.length)) {

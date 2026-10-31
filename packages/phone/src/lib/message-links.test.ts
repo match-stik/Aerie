@@ -65,7 +65,7 @@ test('a uuid link whose text names a readable file opens in the bubble', () => {
   assert.equal(pdf?.textish, false);
 });
 
-test('link text the owner wrote wins over the filename', () => {
+test('link text their person wrote wins over the filename', () => {
   const link = houseFileLink(
     'https://aerie.example.org/api/files/9f2b.txt',
     PAGE,

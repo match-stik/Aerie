@@ -25,11 +25,11 @@ export interface Message {
   senderAvatar?: string;
   // Platform the message arrived through when it wasn't the phone itself
   // (currently 'Discord'). Guest messages pair this with sender for the
-  // name label; the owner's own bridged messages show it as a badge.
+  // name label; their person's own bridged messages show it as a badge.
   via?: string;
-  // Set on a guest's message that was ABOUT the owner rather than addressed to
+  // Set on a guest's message that was ABOUT their person rather than addressed to
   // the companions ("mentioned you in #general"). Shown beside the sender's
-  // name, in the same words as the notification that brought the owner to it.
+  // name, in the same words as the notification that brought their person to it.
   mentionLabel?: string;
   // Slug of the companion who authored this message, when the backend
   // recorded one (treehouse posts, per-companion sends). Lets the chat
@@ -53,7 +53,7 @@ export interface Message {
   transcript?: string;
   // True when the message was sent via voice-to-text (speech input, not a
   // voice note recording). Lets the bubble show a mic icon so the companions
-  // can see the owner's speaking cadence.
+  // can see their person's speaking cadence.
   isVoiceInput?: boolean;
   // Hume prosody scores from the voice input, when available. Top 3 perceived
   // vocal expressions (e.g. { Amusement: 0.8, Interest: 0.6 }).
@@ -106,7 +106,7 @@ export interface AppTheme {
   lockShortcuts?: [string | null, string | null];
   lockShow?: 'names' | 'first-line' | 'nothing';
   // The Spotify card on the lock screen while a song is playing or paused.
-  // Unset is on; false is the owner's switch in Settings (lockSpotifyOf in
+  // Unset is on; false is their person's switch in Settings (lockSpotifyOf in
   // lib/lock-spotify.ts).
   lockSpotify?: boolean;
   // How the lock screen's cards look, all three at once: dark, light (for a
@@ -129,7 +129,7 @@ export interface AppTheme {
   bubbleQuietActions?: boolean;
   bubbleNameColors?: boolean;
   bubbleDotColors?: boolean;
-  // The owner's own name over their bubbles, and which corner each side's tail comes
+  // Their person's own name over their bubbles, and which corner each side's tail comes
   // from (unset is the top, as always).
   bubbleMyName?: boolean;
   bubbleTailMine?: 'top' | 'bottom';
@@ -191,7 +191,7 @@ export interface AppSettings {
   giphyApiKey?: string;
   elevenLabsApiKey?: string;
   customEmojis?: CustomEmoji[];
-  /** The owner's five quick reactions at the top of the React tray, in order; a
+  /** Their person's five quick reactions at the top of the React tray, in order; a
    *  missing slot keeps the house default (lib/quick-reactions.ts). */
   quickReactions?: string[];
   // Ordered list of app IDs to show on the home-screen dock. If unset,
@@ -202,15 +202,15 @@ export interface AppSettings {
   // Icon shown on the chat-input send button. Maps to the SEND_ICONS
   // table in lib/sendIcons.ts; falls back to the paper-plane default.
   sendIconId?: string;
-  // The owner's own bubble avatar (small base64 data URL) and ring color,
+  // Their person's own bubble avatar (small base64 data URL) and ring color,
   // shown beside their messages in main chat — the user-side counterpart of
   // the companion voice avatars. Syncs with the rest of appSettings.
   userAvatar?: string;
   userAvatarColor?: string;
-  // The owner's contact card wears the theme's accent like ours instead of the owner's ring
-  // color (the owner's ask, Oct 26 2026). Off keeps the owner's ring color on their card.
+  // Their person's contact card wears the theme's accent like ours instead of their person's ring
+  // color (their person's ask, Oct 26 2026). Off keeps their person's ring color on their card.
   ownerCardMatchesTheme?: boolean;
   // Companion slugs whose contact card wears his own color instead of the
-  // theme's accent, switched in the Companions app (the owner's ask, Oct 26 2026).
+  // theme's accent, switched in the Companions app (their person's ask, Oct 26 2026).
   companionCardsOwnColor?: string[];
 }

@@ -8,7 +8,7 @@
 // holding cards is Scum — and at the next deal the Scum pays the President
 // their best card.
 //
-// The owner's hand is grouped by rank, so tapping a rank picks the whole set
+// Their person's hand is grouped by rank, so tapping a rank picks the whole set
 // and they can drop one off before playing. Selecting is separate from playing
 // on purpose: a set is a decision, not a tap.
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -49,7 +49,7 @@ interface PresidentBoardProps {
 
 export function PresidentBoard({ tableId, colors, onTableId }: PresidentBoardProps) {
   const { owner, loaded: rosterLoaded, labelOf, sigilOf } = useHouseRoster();
-  // The owner's seat is the house's answer (GET /api/companions), never a
+  // Their person's seat is the house's answer (GET /api/companions), never a
   // name in the code.
   const ownerSeat = owner?.slug ?? '';
   const [game, setGame] = useState<PresidentGame | null>(null);
@@ -133,7 +133,7 @@ export function PresidentBoard({ tableId, colors, onTableId }: PresidentBoardPro
   const leading = !top;
   const others = game.order.filter((s) => s !== ownerSeat);
 
-  // The owner's hand, grouped by rank so a set is one thing to reach for.
+  // Their person's hand, grouped by rank so a set is one thing to reach for.
   const byRank = new Map<string, CardId[]>();
   for (const card of [...mine].sort((a, b) => rankValue(a) - rankValue(b))) {
     const r = rankOf(card);
@@ -147,7 +147,7 @@ export function PresidentBoard({ tableId, colors, onTableId }: PresidentBoardPro
     if (!myTurn) return;
     const same = picked.length && rankOf(picked[0]) === rankOf(cards[0]);
     if (same) {
-      // Tapping the same rank again drops one off the set, so the owner can answer a
+      // Tapping the same rank again drops one off the set, so their person can answer a
       // single with a single out of a pair they are holding.
       setPicked((p) => (p.length > 1 ? p.slice(0, p.length - 1) : []));
       return;
@@ -204,7 +204,7 @@ export function PresidentBoard({ tableId, colors, onTableId }: PresidentBoardPro
               : `Beat it with ${game.setSize} card${game.setSize === 1 ? '' : 's'}, higher rank, or pass.`}
       </div>
 
-      {/* the owner's hand, grouped */}
+      {/* their person's hand, grouped */}
       <div className="flex flex-wrap items-end justify-center gap-1.5">
         {[...byRank.entries()].map(([rank, cards]) => {
           const isPicked = picked.length > 0 && rankOf(picked[0]) === rank;

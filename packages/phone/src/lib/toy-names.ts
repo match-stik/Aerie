@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // What a toy is called. Lovense's SDK names some toys by their Bluetooth
-// address alone (the owner Fizz came through as 7C:31:FA:A9:33:D7, Oct 19 2026),
-// so a name the owner gives a toy wins, an address is never shown as a name, and a
+// address alone (their person Fizz came through as 7C:31:FA:A9:33:D7, Oct 19 2026),
+// so a name their person gives a toy wins, an address is never shown as a name, and a
 // name seen once is remembered on this phone per toy id. The Toys page and
 // the remote the house drives both read this one place.
 

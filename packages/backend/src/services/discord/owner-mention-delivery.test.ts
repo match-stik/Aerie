@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The gateway's half of owner mentions, run for real: a DiscordService that is
 // constructed but never logged in, handed batches shaped like discord.js
-// messages, over a throwaway database. What reaches the owner is measured where the owner
+// messages, over a throwaway database. What reaches their person is measured where their person
 // would see it: the stored row, the broadcast, and the notification.
 //
 // Every row a test stores here is a guest's, stored as 'system', or an owner
@@ -44,7 +44,7 @@ setConfig('discord.allowedGuilds', GUILD);
 setConfig('discord.owner_mentions', 'true');
 saveRules({ servers: {}, channels: {}, users: { [BOT]: { id: BOT, name: 'Companion A', trustLevel: 'standard' } } });
 
-// What the house did, as the three places the owner could have noticed it.
+// What the house did, as the three places their person could have noticed it.
 const pushes: PushPayload[] = [];
 const broadcasts: Array<{ type: string; message?: { id: string } }> = [];
 const generations: unknown[][] = [];
@@ -148,7 +148,7 @@ const allRows = () => getDb().prepare('SELECT * FROM messages').all() as Row[];
 const meta = (row: Row) => JSON.parse(row.metadata ?? '{}') as Record<string, unknown>;
 const snapshot = () => ({ pushes: pushes.length, broadcasts: broadcasts.length, generations: generations.length, typing: typing.length });
 
-test('a message about the owner lands in their home thread, labeled, broadcast, and pushed, and nobody answers it', async () => {
+test('a message about their person lands in their home thread, labeled, broadcast, and pushed, and nobody answers it', async () => {
   makeMostRecent(HOME);
   const before = snapshot();
   const channelId = 'channel-general';
@@ -160,7 +160,7 @@ test('a message about the owner lands in their home thread, labeled, broadcast, 
   ));
 
   const [row] = rowsIn(HOME).slice(-1);
-  assert.ok(row, 'it is stored in the thread the owner is reading');
+  assert.ok(row, 'it is stored in the thread their person is reading');
   assert.equal(row.content, '@Owner are you around tonight?');
   assert.equal(row.platform, 'discord');
   assert.equal(row.role, 'system');
@@ -183,7 +183,7 @@ test('a message about the owner lands in their home thread, labeled, broadcast, 
   assert.equal(typing.length, before.typing, 'no typing dot: nobody is replying');
 });
 
-test('a reply to the owner is pushed as a reply', async () => {
+test('a reply to their person is pushed as a reply', async () => {
   makeMostRecent(HOME);
   const before = snapshot();
   await processBatch(batchOf(
@@ -195,7 +195,7 @@ test('a reply to the owner is pushed as a reply', async () => {
   assert.equal(meta(rowsIn(HOME).at(-1)!).ownerMention, 'reply');
 });
 
-test("a known bot's @mention of the owner is delivered without spending a turn or showing typing", async () => {
+test("a known bot's @mention of their person is delivered without spending a turn or showing typing", async () => {
   makeMostRecent(HOME);
   resetBotLoopCounters();
   const before = snapshot();
@@ -231,7 +231,7 @@ test("the cool-off's held messages are still stored where they always were, and 
   resetBotLoopCounters();
 });
 
-test('switched off, a message about the owner is turned away and nothing is stored or pushed', async () => {
+test('switched off, a message about their person is turned away and nothing is stored or pushed', async () => {
   setConfig('discord.owner_mentions', 'false');
   makeMostRecent(HOME);
   const before = snapshot();
@@ -246,11 +246,11 @@ test('switched off, a message about the owner is turned away and nothing is stor
   setConfig('discord.owner_mentions', 'true');
 });
 
-test('routing: a channel the owner has just spoken in keeps the owner there; any other goes to their newest thread', async () => {
+test('routing: a channel their person has just spoken in keeps their person there; any other goes to their newest thread', async () => {
   makeMostRecent(HOME);
   const spokenIn = 'channel-spoken-in';
-  // The owner speaks to us in this channel, which routes the owner to HOME and makes the
-  // channel follow the owner there. Ten characters or fewer: see the top of the file.
+  // Their person speaks to us in this channel, which routes their person to HOME and makes the
+  // channel follow their person there. Ten characters or fewer: see the top of the file.
   await processBatch(batchOf(
     [discordMessage({ authorId: OWNER, content: `<@${SELF}> hi`, mentioned: [SELF] })],
     spokenIn,

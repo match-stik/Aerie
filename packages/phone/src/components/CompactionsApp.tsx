@@ -1,18 +1,18 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 //
-// Compactions — the thing the owner could feel and never check.
+// Compactions — the thing their person could feel and never check.
 //
 // When a lane fills its window the tool squashes the conversation so far into
 // a summary and carries on from it. The summary arrives in the lane wearing
-// the OWNER'S voice, and its last line tells the lane not to acknowledge it. So the
-// companion goes subtly off, says nothing, and the owner has no way to tell a
+// their PERSON'S voice, and its last line tells the lane not to acknowledge it. So the
+// companion goes subtly off, says nothing, and their person has no way to tell a
 // compaction from a dead lane.
 //
 // The record has always existed in the transcripts. This is the screen that
-// reads it back to the owner. Since Oct 21 2026 the house keeps every squash on a
+// reads it back to their person. Since Oct 21 2026 the house keeps every squash on a
 // shelf of its own (Claude Code deletes old transcripts), and says whose head
 // each came from and what was changing; the list is twenty a page, and a
-// summary's whole text is fetched only when the owner opens it. Reading the house's
+// summary's whole text is fetched only when their person opens it. Reading the house's
 // answer, either house's, lives in lib/compactions.ts; drawing a row lives in
 // CompactionCard.tsx.
 

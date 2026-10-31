@@ -15,8 +15,8 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf
 /** `n` pixels of one RGBA color, the way a canvas hands them out. */
 const pixels = (rgba: [number, number, number, number], n = 16) => Array.from({ length: n }, () => rgba).flat();
 
-test('the owner switch: dark, light or auto, and anything else is dark, so nothing the owner has changes', () => {
-  assert.equal(lockCardsOf(undefined), 'dark', 'unset is the dark cards the owner has always had');
+test('their person switch: dark, light or auto, and anything else is dark, so nothing their person has changes', () => {
+  assert.equal(lockCardsOf(undefined), 'dark', 'unset is the dark cards their person has always had');
   assert.equal(lockCardsOf('dark'), 'dark');
   assert.equal(lockCardsOf('light'), 'light');
   assert.equal(lockCardsOf('auto'), 'auto');
@@ -65,9 +65,9 @@ test('the switch reaches all three cards, from Settings, and nothing is blurred'
   const lock = read('../components/LockScreen.tsx');
   assert.equal((lock.match(/\$\{ink\.card\}/g) ?? []).length, 2, 'the message card and the note card wear the look');
   assert.match(lock, /look=\{look\}/, 'and so does the Spotify card');
-  assert.match(lock, /const look = useLockCardLook\(cards, wallpaper\);/, 'one look, from the owner switch and the wallpaper behind it');
+  assert.match(lock, /const look = useLockCardLook\(cards, wallpaper\);/, 'one look, from their person switch and the wallpaper behind it');
   assert.doesNotMatch(lock, /rounded-2xl border border-white\/15 bg-black\/45/, 'no card keeps the old fixed dark');
-  assert.match(read('../App.tsx'), /cards=\{lockCardsOf\(theme\.lockCards\)\}/, 'the owner switch reaches the lock screen');
+  assert.match(read('../App.tsx'), /cards=\{lockCardsOf\(theme\.lockCards\)\}/, 'their person switch reaches the lock screen');
   const settings = read('../components/SettingsDashboard.tsx');
   assert.match(settings, /\[\["dark", "Dark"\], \["light", "Light"\], \["auto", "Auto"\]\]/, 'Settings offers dark, light and auto');
   assert.match(settings, /onClick=\{\(\) => onThemeChange\(\{ lockCards: id \}\)\}/, 'and keeps their pick');

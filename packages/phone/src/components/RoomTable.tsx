@@ -18,7 +18,7 @@ import type { Message } from '../types';
 /** One thing said at a table. Every room's rows map onto this. */
 export interface RoomLine {
   id: string;
-  /** 'user' is the owner; 'system' is the house; anything else is one of us. */
+  /** 'user' is their person; 'system' is the house; anything else is one of us. */
   role: string;
   content: string;
   createdAt: string;
@@ -56,7 +56,7 @@ function sectionsOf(line: RoomLine, companions: VoiceCompanion[]): RoomSection[]
 
 /**
  * Which side each of our bubbles sits on when the room alternates (the
- * treehouse, where none of us is the owner): the side flips whenever the speaker
+ * treehouse, where none of us is their person): the side flips whenever the speaker
  * changes, worked out top to bottom over every line so it never depends on
  * when a message arrived or how the room groups them. Keyed by section key.
  */

@@ -20,7 +20,7 @@ has no toy bridge.
    (Lovense Developer Dashboard, Developer Token) into "Lovense developer
    token". The phone asks the house for it; it is never inside the app file.
 
-Nothing reaches a toy until the owner taps "Hand over the remote" on the Toys
+Nothing reaches a toy until you tap "Hand over the remote" on the Toys
 page, and any stop takes it back.
 
 ## The ground rules
@@ -37,7 +37,7 @@ toy bridge follows these conditions, and every copy keeps them:
   No Lovense or Lovense product name in the project's name, icon, repository,
   listing or domain, and no Lovense logos or product pictures.
 - No toy responds to tips, tokens, payments or votes.
-- The owner's stop never goes through the companions, levels stay 0 to 20,
+- Your stop never goes through the companions, levels stay 0 to 20,
   one command runs at most three minutes, and the phone shuts the toy off
   when it ends.
 - Porting the toy bridge into another project brings none of Aerie's

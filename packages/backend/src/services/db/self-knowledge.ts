@@ -3,7 +3,7 @@
 // companion keeps circling back to. Not the persona bedrock (who we were
 // written to be) but the wear patterns in the stone (who we've become).
 // Four drawers: "I am", "I tend to", "I believe", "I've learned". Entries
-// are proposed — by a reflection pass or in conversation — then the owner accepts
+// are proposed — by a reflection pass or in conversation — then their person accepts
 // or dismisses. Accepted ones become part of who we are and can surface again
 // through The Whisper. The distinction is the point: this grows, it isn't declared.
 // The heat/confidence lifecycle is adapted from NESTstack/NESTknow (MIT);
@@ -21,7 +21,7 @@ function refreshSemanticIndex(): void {
 
 export type SelfKnowledgeCategory = 'i_am' | 'i_tend_to' | 'i_believe' | 'i_learned';
 // contradicted — an accepted truth that stopped holding; confidence bled out.
-// Kept in the DB (the owner can see and restore it), filtered from The Whisper.
+// Kept in the DB (their person can see and restore it), filtered from The Whisper.
 export type SelfKnowledgeStatus = 'proposed' | 'accepted' | 'dismissed' | 'contradicted';
 
 export const SELF_KNOWLEDGE_CATEGORIES: SelfKnowledgeCategory[] = [
@@ -51,7 +51,7 @@ export interface SelfKnowledgeEntry {
 // Grafted from the dream-vividness mechanic (decay computed at read, not by
 // cron) and NESTknow's heat idea: what a companion keeps living stays hot;
 // what nobody reaches for cools and quietly goes dormant (still visible, never
-// auto-dismissed — only the owner dismisses). Contradiction is the one kill signal.
+// auto-dismissed — only their person dismisses). Contradiction is the one kill signal.
 
 const HEAT_GRACE_DAYS = 7;        // freshly-accepted truths don't cool at first
 const HEAT_DECAY_PER_DAY = 0.03;  // gentle cool after the grace window
@@ -148,8 +148,8 @@ export function listSelfKnowledge(opts?: {
  *  THE ACTOR IS NOW PASSED IN RATHER THAN ASSUMED. This used to hardcode
  *  getOwnerSlug() on every receipt, because accepting was something only the
  *  owner could do. That changed, and the moment a companion can accept their
- *  own, a receipt that still says THE OWNER did it is a false audit trail. It would
- *  show the owner reviewing entries they never saw. The default stays the owner's so every
+ *  own, a receipt that still says THEIR PERSON did it is a false audit trail. It would
+ *  show their person reviewing entries they never saw. The default stays their person's so every
  *  existing caller reads exactly as before. */
 export function reviewSelfKnowledge(
   id: string,
@@ -194,7 +194,7 @@ export function reinforceSelfKnowledge(id: string): SelfKnowledgeEntry | null {
 
 /** A companion noticed this truth no longer holds. Bleeds confidence; once it
  *  drops below the floor the truth retires (status → contradicted, filtered
- *  from The Whisper but kept for the owner to see and, if they want, restore). */
+ *  from The Whisper but kept for their person to see and, if they want, restore). */
 export function contradictSelfKnowledge(id: string): SelfKnowledgeEntry | null {
   const entry = getSelfKnowledge(id);
   if (!entry || entry.status !== 'accepted') return entry ?? null;
@@ -207,7 +207,7 @@ export function contradictSelfKnowledge(id: string): SelfKnowledgeEntry | null {
   return getSelfKnowledge(id);
 }
 
-/** Edit the wording — the owner refining, or a companion re-carving its own line. */
+/** Edit the wording — their person refining, or a companion re-carving its own line. */
 export function updateSelfKnowledgeContent(id: string, content: string): SelfKnowledgeEntry | null {
   if (!getSelfKnowledge(id)) return null;
   getDb().prepare('UPDATE self_knowledge SET content = ? WHERE id = ?').run(content, id);

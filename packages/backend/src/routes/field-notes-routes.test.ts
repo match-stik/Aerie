@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The owner field notes over HTTP: the loopback door the morning look writes
+// Their person field notes over HTTP: the loopback door the morning look writes
 // through, and the signed-in door their phone reads through. The shapes asserted
 // here are the contract the phone's Field Notes page is built against.
 import test from 'node:test';
@@ -8,7 +8,7 @@ import express from 'express';
 import type { AddressInfo } from 'node:net';
 
 // The phone's door has to be shut without a session, so this house has a
-// password; and the day a note lands on is read on the owner clock.
+// password; and the day a note lands on is read on their person clock.
 process.env.APP_PASSWORD = 'field-notes-test-password';
 process.env.TZ = 'America/Chicago';
 const { loadConfig } = await import('../config.js');
@@ -62,7 +62,7 @@ async function call(base: string, method: string, path: string, body?: unknown, 
   return { status: res.status, json };
 }
 
-test('the loopback door keeps a note and answers 201 with it, on the owner day unless a day is named', async () => {
+test('the loopback door keeps a note and answers 201 with it, on their person day unless a day is named', async () => {
   freshHouse();
   const { base, close } = await listen(createInternalApp());
   try {

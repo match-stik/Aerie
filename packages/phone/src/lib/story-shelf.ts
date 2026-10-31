@@ -26,8 +26,8 @@ export const STORY_SHELF_APP_ID = 'shelf';
 export const STORY_SHELF_NAME = 'The Shelf';
 
 /**
- * The owner's thread, until the phone knows their own color. The bookmark on a
- * book in progress is the thread the owner carries; orange until then.
+ * Their person's thread, until the phone knows their own color. The bookmark on a
+ * book in progress is the thread their person carries; orange until then.
  */
 export const ORANGE_THREAD = 'oklch(0.72 0.17 52)';
 
@@ -73,13 +73,13 @@ export function isStoryBookView(data: unknown): data is StoryBookView {
 
 /** What the bottom of an open book shows. */
 export type BookStage =
-  /** Never begun: the opening is asked for when the owner taps Begin. */
+  /** Never begun: the opening is asked for when their person taps Begin. */
   | { stage: 'begin' }
   /** A page turn is on its way. `first` when it is the opening. */
   | { stage: 'writing'; first: boolean }
-  /** The last page turn came back without a page; the owner can ask again. */
+  /** The last page turn came back without a page; their person can ask again. */
   | { stage: 'stalled'; first: boolean; reason: string }
-  /** The newest page is a scene: the owner's move. `finishing` while they are still at the table after writing it. */
+  /** The newest page is a scene: their person's move. `finishing` while they are still at the table after writing it. */
   | { stage: 'your-move'; finishing: boolean }
   /** The book is finished. */
   | { stage: 'the-end' };
@@ -107,7 +107,7 @@ export function splitShelf(books: StoryBookSummary[]): { reading: StoryBookSumma
   };
 }
 
-/** The owner's thread in this book: their own color, and red in a spicy one. Their moves are marked with it too. */
+/** Their person's thread in this book: their own color, and red in a spicy one. Their moves are marked with it too. */
 export function threadColor(book: Pick<StoryBookSummary, 'spicy'>, ownerColor?: string | null): string {
   if (book.spicy) return RED_THREAD;
   return ownerColor?.trim() || ORANGE_THREAD;
@@ -268,7 +268,7 @@ export function readWidgetMove(data: unknown): string | null {
   return value;
 }
 
-/** A widget's move is a choice when its value names one of the scene's, and the owner's own words when it does not. */
+/** A widget's move is a choice when its value names one of the scene's, and their person's own words when it does not. */
 export function widgetMove(value: string, choices: StoryChoice[]): { choiceId: string; label: string } | { text: string } {
   const choice = choices.find((candidate) => candidate.id === value);
   return choice ? { choiceId: choice.id, label: choice.label } : { text: value };
@@ -344,7 +344,7 @@ const plainWords = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/
 
 /**
  * A bible split at its headings for the phone. The shape of the book stays
- * open and every other headed part folds until the owner opens it, so they can
+ * open and every other headed part folds until their person opens it, so they can
  * see how a story is built without reading what it is hiding. Open: anything before the first heading, a heading that is the book's
  * own title, and a part whose heading names its shape. A bible with no
  * headings stays whole and open.
@@ -373,7 +373,7 @@ export function bibleSections(bible: string, title: string): BibleSection[] {
   return sections;
 }
 
-/** A day on the owner's clock: "Mar 3", with the year only when it is not this one. */
+/** A day on their person's clock: "Mar 3", with the year only when it is not this one. */
 export function formatDay(iso: string | null | undefined, now: Date = new Date()): string {
   if (!iso) return '';
   const at = new Date(iso);
@@ -394,7 +394,7 @@ export function rowsOf<T>(items: T[], perRow: number): T[][] {
 // it waiting for that long and no longer: past it the backend has stopped asking.
 export const TABLE_WAIT_MS = 30 * 60_000;
 
-/** Whether the newest line at the table is the owner's and still waiting for an answer. */
+/** Whether the newest line at the table is their person's and still waiting for an answer. */
 export function tableAwaiting(lines: Pick<StoryTalkLine, 'role' | 'createdAt'>[], now = Date.now()): boolean {
   const last = lines[lines.length - 1];
   if (!last || last.role !== 'user') return false;

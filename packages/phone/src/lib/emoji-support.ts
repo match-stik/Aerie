@@ -5,7 +5,7 @@
 // is usually a version or two behind. An emoji the font lacks draws as an
 // empty box, and a newer combined one (a goose, a phoenix, a face in clouds)
 // falls apart into the pieces it is made of, side by side. Either way it is
-// no use to the owner, so the trays leave it out and it turns up by itself once the
+// no use to their person, so the trays leave it out and it turns up by itself once the
 // phone's font learns it.
 //
 // The test draws each emoji once on a small canvas: nothing painted, the same

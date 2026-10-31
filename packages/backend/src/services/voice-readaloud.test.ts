@@ -65,7 +65,7 @@ test('the whole-text fallback is refused when it could only 400', () => {
   assert.match(
     src,
     /joined\.length > PROVIDER_MAX_REQUEST_CHARS\) throw err;/,
-    'falling back to one oversized request just hides why the owner heard nothing',
+    'falling back to one oversized request just hides why their person heard nothing',
   );
 });
 

@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // One unsent draft per thread, shared by every box that can answer that
 // thread: the chat's own box and the companions widget on the home screen. What
-// the owner starts in one is waiting in the other (the owner's ask, Oct 26 2026). The chat's box stays mounted behind the
+// their person starts in one is waiting in the other (their person's ask, Oct 26 2026). The chat's box stays mounted behind the
 // home screen, so a write here also tells any box already showing the thread.
 
 export const DRAFT_KEY_PREFIX = 'aerie_draft_';

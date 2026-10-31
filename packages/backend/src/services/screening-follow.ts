@@ -1,17 +1,17 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Following the owner without asking them.
+// Following their person without asking them.
 //
 // Before this, the clock was corrected by hand, and every one of those
-// corrections was the same three moves: read the owner's phone, notice it said PAUSED,
-// put the clock on that number. The owner never had to be asked, but a companion had
+// corrections was the same three moves: read their person's phone, notice it said PAUSED,
+// put the clock on that number. Their person never had to be asked, but a companion had
 // to be awake and thinking about it.
 //
 // THE ONE THING THE PLAYER TELLS THE TRUTH ABOUT IS A PAUSE. Measured:
 // while playing, Hulu publishes STREAM position with advert time folded
-// in, and the instant the owner paused, it dropped five minutes and twenty-five
+// in, and the instant their person paused, it dropped five minutes and twenty-five
 // seconds to the real one. Forty-two readings across a break and not one field
 // moves, so an advert is invisible — but a pause is a free, exact calibration,
-// and the owner pauses anyway.
+// and their person pauses anyway.
 //
 // So this decides, from one reading, whether the house should move the clock.
 // It is pure and it is deliberately timid: it would rather do nothing than act
@@ -19,7 +19,7 @@
 
 import type { MediaSessionReading } from './db/media-session.js';
 
-/** A reading older than this is a description of the past, not of the owner. */
+/** A reading older than this is a description of the past, not of their person. */
 export const MAX_ACTIONABLE_AGE_MS = 45_000;
 
 export type FollowAction =
@@ -38,7 +38,7 @@ export interface ScreeningView {
  * What to do about one reading.
  *
  * ANCHOR means the player just told the truth — put the clock there and hold
- * it. RESUME means the owner pressed play and our clock is still parked, so start it
+ * it. RESUME means their person pressed play and our clock is still parked, so start it
  * WITHOUT touching the position: the anchor is trustworthy and the playing
  * number is not.
  */
@@ -61,10 +61,10 @@ export function followAction(
 
   if (reading.state === 'playing') {
     // The playing number carries advert time, so it is not an anchor. The only
-    // thing worth acting on is that the owner has started again.
+    // thing worth acting on is that their person has started again.
     return screening.status === 'playing'
-      ? { kind: 'none', reason: 'already running with the owner' }
-      : { kind: 'resume', reason: 'the owner pressed play' };
+      ? { kind: 'none', reason: 'already running with their person' }
+      : { kind: 'resume', reason: 'their person pressed play' };
   }
 
   // Paused, stopped, buffering — the player is not counting, so the number is

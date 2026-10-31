@@ -109,7 +109,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- The geofence lane. Separate grant, and on Android 11+ the platform
-         refuses to ask for it in a dialog at all: the owner has to choose
+         refuses to ask for it in a dialog at all: their person has to choose
          "Allow all the time" in Settings themselves. Declaring it here grants
          nothing; without that trip the plugin reports it and registers nothing
          rather than pretending to watch. -->
@@ -127,7 +127,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <!-- The floating voice tray. A Bubble asks Android to lend us a window and
          vendor builds refuse; this draws our own. Special access, so declaring
-         it grants nothing on its own — the owner must switch on "Appear on top"
+         it grants nothing on its own — their person must switch on "Appear on top"
          once, and with it off every overlay call is a no-op and the ongoing
          call notification is unchanged. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />

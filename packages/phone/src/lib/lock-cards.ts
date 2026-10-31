@@ -1,12 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// How the lock screen's cards look (the owner's idea, Oct 20 2026, after the Spotify
+// How the lock screen's cards look (their person's idea, Oct 20 2026, after the Spotify
 // card came out the theme's light surface in Daylight while the other two
 // stayed dark). One switch in Settings > Lock
 // screen sets the message card, the note card and the Spotify card at once:
 // dark (the see-through black they have always been, light words), light (a
 // see-through white with dark words, for a light wallpaper), or auto (Cedar's
-// offer: read the wallpaper behind the cards and pick). A dark or light the owner
-// chose overrules auto. Unset is dark, so nothing the owner already has changes.
+// offer: read the wallpaper behind the cards and pick). A dark or light their person
+// chose overrules auto. Unset is dark, so nothing their person already has changes.
 //
 // Nothing here is blurred: a card is a see-through tint over their wallpaper.
 
@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 export type LockCardLook = 'dark' | 'light';
 export type LockCardChoice = LockCardLook | 'auto';
 
-/** The owner switch. Unset, or anything that is not one of the three, is dark. */
+/** Their person switch. Unset, or anything that is not one of the three, is dark. */
 export function lockCardsOf(value: unknown): LockCardChoice {
   return value === 'light' || value === 'auto' ? value : 'dark';
 }
@@ -76,7 +76,7 @@ const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055
  * Light or dark, from RGBA pixels (as a canvas hands them out): the average
  * lightness, CIE L*, of what shows. A see-through pixel shows the black the
  * lock screen sits on, so it counts as that much darker. The picture is judged
- * as the owner chose it, not as the lock screen dims it, so a light wallpaper reads
+ * as their person chose it, not as the lock screen dims it, so a light wallpaper reads
  * as light.
  */
 export function lookFromPixels(data: ArrayLike<number>): LockCardLook {
@@ -128,7 +128,7 @@ export function readWallpaperLook(url: string, screen: { width: number; height: 
   });
 }
 
-/** The look the cards wear now: theirs when the owner chose dark or light, else what the wallpaper reads as (dark until it has been read). */
+/** The look the cards wear now: theirs when their person chose dark or light, else what the wallpaper reads as (dark until it has been read). */
 export function useLockCardLook(choice: LockCardChoice, wallpaper: string | undefined): LockCardLook {
   const [read, setRead] = useState<{ url: string; look: LockCardLook } | null>(() => {
     const known = wallpaper ? seen.get(wallpaper) : undefined;

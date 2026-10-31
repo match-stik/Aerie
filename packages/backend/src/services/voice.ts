@@ -85,8 +85,8 @@ function ttsConcurrency(): number {
 
 /**
  * Spelling hint handed to the transcriber so it stops mangling the proper nouns
- * this house actually says out loud. Derived from who lives here — the owner and
- * the companions on record — plus any extra names the owner listed under
+ * this house actually says out loud. Derived from who lives here — their person and
+ * the companions on record — plus any extra names their person listed under
  * `voice.transcription_vocabulary` (friends, pets, places).
  */
 export function buildTranscriptionHint(): string {

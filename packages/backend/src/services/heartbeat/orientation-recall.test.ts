@@ -19,7 +19,7 @@ test('a pre-thin snapshot is archive plumbing, not orientation', () => {
 test('the marker is matched at the head, not anywhere in the text', () => {
   // A real memory that merely mentions the practice must still surface.
   assert.equal(
-    isArchiveArtifact('The owner asked us to take a PRE-THIN SNAPSHOT before cutting anything.'),
+    isArchiveArtifact('Their person asked us to take a PRE-THIN SNAPSHOT before cutting anything.'),
     false,
   );
   // Even with a dash in front of it, if what precedes it is prose.

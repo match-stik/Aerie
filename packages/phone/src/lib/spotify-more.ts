@@ -62,10 +62,10 @@ export const loadDevices = (fetcher: Fetcher): Promise<SpotifyRead<SpotifyDevice
 /** The id their Liked Songs open under, so the playlist page can show them. */
 export const LIKED_ID = 'liked';
 
-/** The owner Liked Songs as a page the playlist view can draw. It has no Play button: each song starts its album. */
+/** Their person Liked Songs as a page the playlist view can draw. It has no Play button: each song starts its album. */
 export const LIKED_PLAYLIST: SpotifyPlaylist = { id: LIKED_ID, name: 'Liked Songs', tracks: null, uri: null, cover: null, mine: false };
 
-/** The owner Liked Songs, shaped as a playlist's songs. */
+/** Their person Liked Songs, shaped as a playlist's songs. */
 export async function loadLiked(fetcher: Fetcher): Promise<SpotifyRead<SpotifyPlaylistTracksView>> {
   const read = await readSpotify(fetcher, '/api/spotify/liked', isLikedView);
   if (read.ok === false) return { ok: false, trouble: read.trouble };
@@ -133,7 +133,7 @@ export const spotifyActions = {
   cover: (id: string, image: string) => ['PUT', `/api/spotify/playlists/${encodeURIComponent(id)}/cover`, { image }] as const,
 };
 
-/** Repeat's next setting when the owner taps it: off, then the whole playlist or album, then this song, then off. */
+/** Repeat's next setting when their person taps it: off, then the whole playlist or album, then this song, then off. */
 export function nextRepeat(mode: SpotifyRepeatMode): SpotifyRepeatMode {
   return mode === 'off' ? 'context' : mode === 'context' ? 'track' : 'off';
 }

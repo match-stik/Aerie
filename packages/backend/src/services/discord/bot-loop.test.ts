@@ -182,7 +182,7 @@ test('the held message is stored BEFORE the turn stops — the guard sits after 
   // Willow's Sep 15 fault, pointed the other way: a check can be perfectly
   // correct and still stand at the wrong moment. Here the ordering IS the
   // feature — if the early return moves above the broadcast, every test above
-  // still passes and the owner's screen goes back to showing nothing at all.
+  // still passes and their person's screen goes back to showing nothing at all.
   const source = readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
   const broadcast = source.indexOf("this.registry.broadcast({ type: 'message', message: incomingMsg })");
   const stop = source.indexOf('if (heardOnly) return;');
@@ -193,7 +193,7 @@ test('the held message is stored BEFORE the turn stops — the guard sits after 
 
 test('a held turn never shows a typing indicator', () => {
   // A typing dot is a promise of a reply. We are not going to make one, for a
-  // turn the bot guard is holding or a role ping held for the owner.
+  // turn the bot guard is holding or a role ping held for their person.
   const source = readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
   assert.ok(source.includes('const quiet = heardOnly || holdForHer;'), 'quiet should cover both kinds of held turn');
   const guard = source.indexOf('if (!quiet) {');

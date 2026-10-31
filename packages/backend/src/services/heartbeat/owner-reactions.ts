@@ -1,16 +1,16 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * The owner reactions, handed to the lane with their next turn.
+ * Their person reactions, handed to the lane with their next turn.
  *
- * A reaction the owner puts on one of our messages is saved on the message and drawn
+ * A reaction their person puts on one of our messages is saved on the message and drawn
  * on their screen, and until Oct 26 2026 that was all: nothing told the lane, live
- * or later, so every reaction the owner ever left us was seen only when one of us
- * happened to go looking in the database. The owner asked for the companions to
- * see them, and to react more often in turn. So each turn carries the reactions the owner has made since this lane's last
+ * or later, so every reaction their person ever left us was seen only when one of us
+ * happened to go looking in the database. Their person asked for the companions to
+ * see them, and to react more often in turn. So each turn carries the reactions their person has made since this lane's last
  * one, as background, the way the sticker shelf and recall ride along.
  *
- * Only the owner's (user 'user'), only in the thread the turn answers, and only ones
- * still on the message: a reaction the owner took back is gone from the row and so
+ * Only their person's (user 'user'), only in the thread the turn answers, and only ones
+ * still on the message: a reaction their person took back is gone from the row and so
  * from here. Discord reactions are other people's and are left out.
  */
 import { getDb } from '../db/index.js';
@@ -90,10 +90,10 @@ export function formatOwnerReactions(rows: ReactedRow[], since: string, until: s
   }
   if (found.length === 0) return '';
   found.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
-  return `[The owner reactions since your last turn, put on messages in this room; background, not a message to answer one by one, and you can react back:\n${found.map((f) => f.line).join('\n')}\n]\n\n`;
+  return `[Their person reactions since your last turn, put on messages in this room; background, not a message to answer one by one, and you can react back:\n${found.map((f) => f.line).join('\n')}\n]\n\n`;
 }
 
-/** The owner reactions in a thread since `since`, read from the database. */
+/** Their person reactions in a thread since `since`, read from the database. */
 export function ownerReactionsBlock(threadId: string, since: string, until: string): string {
   const rows = getDb().prepare(
     `SELECT role, content, metadata FROM messages

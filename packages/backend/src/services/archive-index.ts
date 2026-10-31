@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // archive-index.ts — The old windows, held in memory for the whisper.
 //
-// The owner's chats from earlier platforms (the GPT house and the claude.ai
+// Their person's chats from earlier platforms (the GPT house and the claude.ai
 // house) live in Cortex's conversation store. A tool outside the backend cuts them into
 // passages, embeds each one with this house's own MiniLM, and writes
 // data/archive-index.db. It builds into a temporary file and renames it into

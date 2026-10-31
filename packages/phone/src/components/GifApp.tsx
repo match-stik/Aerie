@@ -364,7 +364,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
   const [cropH, setCropH] = useState(100);
   const [cropping, setCropping] = useState(false);
   // How many crops the house can still take back (routes/gif.ts, crop-steps.json),
-  // so a crop can be undone without uploading the picture again (the owner's ask, Oct 26 2026).
+  // so a crop can be undone without uploading the picture again (their person's ask, Oct 26 2026).
   const [cropUndos, setCropUndos] = useState(0);
   // Square lock — stickers and avatars are square far more often than not.
   const [cropSquare, setCropSquare] = useState(false);

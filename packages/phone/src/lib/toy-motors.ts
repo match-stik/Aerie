@@ -39,7 +39,7 @@ export function motorsFor(toy: { commands: readonly string[] }): ToyMotor[] {
   // pump, as Lovense's SDK names it (AIR_AUTO, 0 to 3), which the phone's
   // bridge already sends and already zeroes on a stop; a level asked above 3
   // is held at 3. Added so a house with one gets a slider instead of nothing
-  // (the owner's ask, Oct 26 2026: 'adding it and the note that they're
+  // (their person's ask, Oct 26 2026: 'adding it and the note that they're
   // untested is best'). Lovense's support table (Android SDK page, read
   // Oct 26 2026) lists THRUST for the Solace, so a Solace already gets the
   // Thrust slider above; SOLACE, thrust with a depth of 1 to 3, has no

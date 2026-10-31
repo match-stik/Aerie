@@ -182,7 +182,7 @@ test('a companion does not take a trick their partner is already winning', () =>
     turn: 'willow',
     hands: { owner: [], birch: [], cedar: [], willow: ['hearts-king', 'hearts-10'] },
   });
-  // the owner is willow's partner and is winning with the ace
+  // their person is willow's partner and is winning with the ace
   assert.strictEqual(decideEuchrePlay(g, 'willow'), 'hearts-10');
 });
 

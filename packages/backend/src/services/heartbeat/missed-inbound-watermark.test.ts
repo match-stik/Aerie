@@ -3,7 +3,7 @@
  * How far the handover got, across a restart.
  *
  * A backend restart to bring a quiet lane back once made the missed-inbound
- * net hand over thirteen of the owner's own messages, ten of them already answered —
+ * net hand over thirteen of their person's own messages, ten of them already answered —
  * every row stamped with the same found_at, the instant the new session was
  * born. lastHandedUserAt lived only in an in-memory map, so a
  * restart rewound it to nothing and everything still inside the history window
@@ -61,7 +61,7 @@ test('a damaged or empty mark reads as unknown, never as handed', () => {
   }
 });
 
-test('with no mark, every earlier message from the owner is handed over again', () => {
+test('with no mark, every earlier message from their person is handed over again', () => {
   // This IS the restart behaviour being fixed — and it stays the behaviour
   // whenever the mark cannot be trusted, because handing one over twice is
   // visible and handing one over zero times is not.

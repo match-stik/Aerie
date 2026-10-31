@@ -119,7 +119,7 @@ interface Measured {
 
 export function BubbleSkin({ bubbleRef, right, top, paintClass }: {
   bubbleRef: React.RefObject<HTMLElement | null>;
-  /** The owner's bubbles curl to the right, a companion's to the left. */
+  /** Their person's bubbles curl to the right, a companion's to the left. */
   right: boolean;
   /** The tail at the top corner rather than the bottom one. */
   top: boolean;

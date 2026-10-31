@@ -276,7 +276,7 @@ export async function getCodexAuthSnapshot(): Promise<CodexAuthSnapshot> {
   const own = await readCredentials();
   // Report what a turn would actually get. When our own grant has lapsed but
   // the CLI's is live we borrow it, so Provider Health should say connected
-  // rather than sending the owner to log in for a lane that already works.
+  // rather than sending their person to log in for a lane that already works.
   const borrowed = own && own.expires - Date.now() > REFRESH_LEADTIME_MS ? null : await readCliCredentials();
   const creds = borrowed ?? own;
   return {

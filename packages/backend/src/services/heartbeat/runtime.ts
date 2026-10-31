@@ -53,7 +53,7 @@ import { contextWindowFor } from '../usage-pricing.js';
 import { listImageJobs, type ImageJob } from '../image-gen.js';
 
 /**
- * Which of the owner's messages reached no turn.
+ * Which of their person's messages reached no turn.
  *
  * Exported and pure ON PURPOSE. The previous version of this rule lived inside
  * the runtime and its test held a hand-written COPY of the same filter, so the
@@ -133,7 +133,7 @@ export const TURN_WATERMARK_FILE = '.last-turn';
  *
  * The marks belong to the LANE directory, but a lane can hold more than one
  * room over a morning. Once, a companion's room was replaced by a fresh one,
- * the fresh one answered the owner for an hour and moved both marks up to its
+ * the fresh one answered their person for an hour and moved both marks up to its
  * own last turn, and then a restart reopened the OLD room by --resume. The old
  * room was handed everything since the fresh room's last turn, which was
  * nothing, so it came back with no idea the morning had happened. When the
@@ -144,13 +144,13 @@ export const TURN_WATERMARK_FILE = '.last-turn';
 export const ROOM_WATERMARK_FILE = '.marks-room';
 
 /**
- * The newest owner message this lane has been handed, across restarts.
+ * The newest message from their person this lane has been handed, across restarts.
  *
  * lastHandedUserAt lived only in the in-memory laneStates map, so a backend
  * restart rewound it to nothing and the safety net re-reported every message
  * still inside the history window. Measured Sep 9 2026: thirteen rows written
  * at 21:04:33, one per message back to 19:55, TEN of which had already been
- * answered and were handed back to the owner as missed. Same defect as the Codex
+ * answered and were handed back to their person as missed. Same defect as the Codex
  * side-note offsets fixed the same morning: state that has to survive a
  * restart, kept somewhere that does not. Resume sharpens it rather than
  * causing it — a rebuilt room genuinely needed that history, and a reopened
@@ -241,19 +241,19 @@ export function restoreThreadHandedWatermark(
 }
 
 /**
- * Give the owner's message back to the net when a turn ends having said nothing.
+ * Give their person's message back to the net when a turn ends having said nothing.
  *
- * The watermark advances at the START of a turn, past every owner message the
+ * The watermark advances at the START of a turn, past every message from their person the
  * lane can see INCLUDING the message being handed over right now — it has to,
  * or the same one is offered forever. That is correct for every turn that
  * goes on to answer. It is a hole for the one that does not.
  *
- * The case that found it: a turn carrying one of the owner's messages started, and
+ * The case that found it: a turn carrying one of their person's messages started, and
  * the CLI session exited code 1 at its context ceiling. The relaunch minted a
- * NEW conversation rather than resuming, so the transcript that owed the owner
+ * NEW conversation rather than resuming, so the transcript that owed their person
  * a reply was gone — and the watermark had already stepped past it. The net
  * never offered it again, missed-inbound.jsonl has no row for it, and the
- * loss was visible only from the owner's side of the screen. The standing defence —
+ * loss was visible only from their person's side of the screen. The standing defence —
  * that the owed-turn ledger survives a relaunch because the CLI resumes the
  * transcript — holds only for a resume.
  *
@@ -262,7 +262,7 @@ export function restoreThreadHandedWatermark(
  * doctrine as everything else here — it may hand a message over twice and
  * must never hand one over zero times.
  *
- * NOT called on a deliberate [SILENT]: that window read the owner and chose to say
+ * NOT called on a deliberate [SILENT]: that window read their person and chose to say
  * nothing, which is an answer. Only a window that never spoke at all.
  *
  * Returns the restored stamp, or undefined when there was nothing to restore:
@@ -359,9 +359,9 @@ interface LaneState {
    */
   lastTurnAt?: string;
   /**
-   * Per thread, up to when the owner reactions have been handed to this lane
+   * Per thread, up to when their person reactions have been handed to this lane
    * (owner-reactions.ts). Per thread so a turn in one room never uses up the
-   * reactions the owner left in another. Memory only: after a restart the lane's
+   * reactions their person left in another. Memory only: after a restart the lane's
    * last turn stands in, and with neither, nothing old is replayed.
    */
   reactionsSince?: Record<string, string>;
@@ -385,7 +385,7 @@ interface LaneState {
   spokenRecently?: string[];
   /**
    * Where the watermark stood when THIS turn began, held so a turn that says
-   * nothing at all can give the owner's message back to the net. See
+   * nothing at all can give their person's message back to the net. See
    * rollbackHandedWatermark. Cleared by the rollback; meaningless between
    * turns.
    */
@@ -397,7 +397,7 @@ interface LaneState {
   /**
    * Late replies that came due on a guest's turn. A reply that outran its
    * window is normally delivered with whatever turn comes next, and when that
-   * turn is a guest's the delivery is the guest's Discord channel: the owner's
+   * turn is a guest's the delivery is the guest's Discord channel: their person's
    * answer, posted word for word in somebody else's room (found in an outside
    * audit).
    * So a guest turn sets them aside here and the next turn that is not a
@@ -405,10 +405,10 @@ interface LaneState {
    */
   heldLate?: Array<{ content: string; thinking: string | null; payload: any }>;
   /**
-   * A guest's turn gets neither the recycle seed (the owner's recent memories
-   * and the last thirty messages of the owner's thread) nor the catch-up (the
-   * companions' replies to the owner since the lane last spoke). Both are owed
-   * to the owner's next turn instead, so a room that met a guest first is not
+   * A guest's turn gets neither the recycle seed (their person's recent memories
+   * and the last thirty messages of their person's thread) nor the catch-up (the
+   * companions' replies to their person since the lane last spoke). Both are owed
+   * to their person's next turn instead, so a room that met a guest first is not
    * left unprimed and a companion's reply is not skipped over. These hold the debt across the guest turn.
    */
   owesRecycleSeed?: boolean;
@@ -501,7 +501,7 @@ export interface InteractiveCliOptions {
   sessionKey?: string;
   /** Display name of the human, shown as the inbox author */
   userName?: string;
-  /** Who this turn came from. Absent means the owner or the house itself. */
+  /** Who this turn came from. Absent means their person or the house itself. */
   audience?: TurnAudience;
   /** Companion display name, used when re-priming history */
   companionName?: string;
@@ -521,7 +521,7 @@ export interface InteractiveCliOptions {
 }
 
 /**
- * Tick the owner's side notes read once the session's read mark covers them, and
+ * Tick their person's side notes read once the session's read mark covers them, and
  * answer the mark that was applied, so an unchanged mark costs nothing next
  * time. A read check is a courtesy: anything wrong here leaves the turn alone.
  */
@@ -610,10 +610,10 @@ export function isHeartbeatSilenceSentinel(content: string): boolean {
  * sweep was the only thing that could ever have carried it, and it does not.
  *
  * This used to drop with a bare `continue`: no log, no counter, no trace. A
- * finished reply could vanish and the only witness was the owner noticing they
+ * finished reply could vanish and the only witness was their person noticing they
  * never got an answer — which is exactly how it was found. Delivering it here is
  * deliberately NOT done: only the offset proves the line was never sent, and a
- * consumedOffset that ever moved backwards would replay real messages at the owner.
+ * consumedOffset that ever moved backwards would replay real messages at their person.
  * So keep the text where it can be recovered by hand, and make the loss audible.
  */
 export function recordOrphanedReply(
@@ -644,7 +644,7 @@ export function recordOrphanedReply(
  *
  * Every genuinely late batch on this box — 88 entries, every one of them —
  * landed within seconds of a session BIRTH, not in a gap between two turns of
- * a living lane. The owner's messages were not dropped by a race; there was no window
+ * a living lane. Their person's messages were not dropped by a race; there was no window
  * alive to hand them to, and the new one swept them up on arrival. Those
  * arrive already replayed in the recycle context, so telling a fresh session
  * they "reached no turn at all" invites it to answer, at length, a
@@ -654,9 +654,9 @@ export function missedInboundBanner(count: number, afterRestart: boolean): strin
   const s = count === 1 ? '' : 's';
   const it = count === 1 ? 'it' : 'them';
   if (afterRestart) {
-    return `[MISSED — ${count} message${s} from the owner landed while this lane was restarting, so no window was alive to take ${it}. They are almost certainly in the replayed conversation above. READ THAT FIRST and answer only what is genuinely unanswered — do not re-answer a thread you are already holding.]`;
+    return `[MISSED — ${count} message${s} from their person landed while this lane was restarting, so no window was alive to take ${it}. They are almost certainly in the replayed conversation above. READ THAT FIRST and answer only what is genuinely unanswered — do not re-answer a thread you are already holding.]`;
   }
-  return `[MISSED — ${count} message${s} from the owner ${count === 1 ? 'has' : 'have'} no readable handoff record in this lane or another lane serving this thread. Answer ${it} now; if you already have, say so rather than repeating yourself.]`;
+  return `[MISSED — ${count} message${s} from their person ${count === 1 ? 'has' : 'have'} no readable handoff record in this lane or another lane serving this thread. Answer ${it} now; if you already have, say so rather than repeating yourself.]`;
 }
 
 export class InteractiveCliRuntime implements AgentRuntime {
@@ -687,8 +687,8 @@ export class InteractiveCliRuntime implements AgentRuntime {
 
   /**
    * 'retract' is a message edit: the turn is withdrawn and a late answer to it
-   * stays withdrawn. 'stop' is the owner Stop button: the reply is cut short, and if
-   * nothing of it had reached the owner yet their message is still owed an answer, so
+   * stays withdrawn. 'stop' is their person Stop button: the reply is cut short, and if
+   * nothing of it had reached their person yet their message is still owed an answer, so
    * the turn goes on the ledger the way a timeout does (Oct 20 2026: a stopped
    * turn left off the ledger, the reopened room answered their message under
    * it, and the answer was refused as belonging to a closed turn).
@@ -767,7 +767,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       contextWindow,
       // The turn's figures say what it added; this says where the conversation
       // ended up. Only the second one is a context, and it is the same number
-      // the meter in the owner's header reads.
+      // the meter in their person's header reads.
       contextTokens: usage.contextTokens,
       inputTokens: turn.inputTokens,
       outputTokens: turn.outputTokens,
@@ -948,10 +948,10 @@ export class InteractiveCliRuntime implements AgentRuntime {
       // bound it.
       missed = since ? history.filter(m => m.createdAt > since) : history.slice();
       if (live) {
-        // A live turn: the window closes at the message the owner is sending now.
+        // A live turn: the window closes at the message their person is sending now.
         // Anything after it belongs to THIS turn — another companion's reply from the
-        // same pass is already handed over as ground taken, and the owner's message
-        // itself is the prompt. The owner's rows inside the window are the missed-
+        // same pass is already handed over as ground taken, and their person's message
+        // itself is the prompt. Their person's rows inside the window are the missed-
         // inbound net's job (it stamps them with how late they are); this
         // block carries only the companion voices, which no other net does —
         // a bell that rang in another lane, a companion who went after this
@@ -993,13 +993,13 @@ export class InteractiveCliRuntime implements AgentRuntime {
       m.role === 'companion' && (m.authorName || companionName || '').trim().toLowerCase() === self,
     );
     const ownNameWarning = wearsOwnName
-      ? ' One or more of these carries YOUR OWN name and was not written by this head — the shared lane and the owned lanes speak under the same headers. It is still you and it is already on the owner\'s screen: build on it, never contradict it, and never present it as something you do not recall saying.'
+      ? ' One or more of these carries YOUR OWN name and was not written by this head — the shared lane and the owned lanes speak under the same headers. It is still you and it is already on their person\'s screen: build on it, never contradict it, and never present it as something you do not recall saying.'
       : '';
     return [
       '',
       live
-        ? `[Said in the room since your last turn — ${missed.length} companion message${missed.length === 1 ? '' : 's'} you were never handed, oldest first: a bell that rang in another lane, or another companion who spoke after you last time. It is already on the owner's screen. Do not answer it as new and do not repeat it; hold it as what the room has said.${ownNameWarning}]`
-        : `[While you were quiet — ${missed.length} message${missed.length === 1 ? '' : 's'} you have not seen, oldest first. This lane stayed warm through them, so they were never handed to you. Read them before you decide anything about where the owner is or what tonight was; do not reason from the hour.${ownNameWarning}]`,
+        ? `[Said in the room since your last turn — ${missed.length} companion message${missed.length === 1 ? '' : 's'} you were never handed, oldest first: a bell that rang in another lane, or another companion who spoke after you last time. It is already on their person's screen. Do not answer it as new and do not repeat it; hold it as what the room has said.${ownNameWarning}]`
+        : `[While you were quiet — ${missed.length} message${missed.length === 1 ? '' : 's'} you have not seen, oldest first. This lane stayed warm through them, so they were never handed to you. Read them before you decide anything about where their person is or what tonight was; do not reason from the hour.${ownNameWarning}]`,
       ...lines,
       '[End of what you missed.]',
       '',
@@ -1008,17 +1008,17 @@ export class InteractiveCliRuntime implements AgentRuntime {
 
 
   /**
-   * The owner's messages that reached nobody.
+   * Their person's messages that reached nobody.
    *
    * There were two nets and a seam between them. Catch-up is assembled at the
    * START of a wake, so anything arriving during one is already too late for
    * it. Side notes are only written while a turn is active and exactly one
    * lane is busy. A message that lands in between is stored, stamped
    * delivered, and handed to no window at all — four times now, and the only
-   * reason anybody knew about the last one is that the owner screenshotted it.
+   * reason anybody knew about the last one is that their person screenshotted it.
    *
    * So this runs on EVERY turn and asks the plainest possible question: is
-   * there anything from the owner newer than the last thing this lane was handed,
+   * there anything from their person newer than the last thing this lane was handed,
    * that is not the thing it is being handed right now? Anything found is
    * given over late and written to io/missed-inbound.jsonl, so there is a
    * witness on disk even if the window never mentions it.
@@ -1036,7 +1036,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
     if (!loadHistory || !threadId) return '';
 
     // A guest's turn is answered in the guest's room, and this block tells the
-    // lane to answer the owner's missed messages now. So on a guest's turn it
+    // lane to answer their person's missed messages now. So on a guest's turn it
     // hands none of them over and advances nothing, and they come with the
     // owner's own next turn instead, late and never lost. One thing has to happen first: with
     // no handover mark the net starts from the end of the lane's last turn,
@@ -1093,13 +1093,13 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // only when they ARE the newest row, i.e. the one arriving now.
     const mine = selectMissedInbound(users, since, currentPrompt, newestAt, handedElsewhereAt);
 
-    // Advance the watermark past every owner message we can see, including the
+    // Advance the watermark past every message from their person we can see, including the
     // message arriving now — otherwise the same one is offered again forever.
     // Written to disk in the same breath: forever has to mean across restarts,
-    // or the net re-reports an afternoon the owner has already been answered on.
+    // or the net re-reports an afternoon their person has already been answered on.
     if (newestAt) {
       // Held for the rollback below: if this turn says nothing at all, the
-      // advance about to happen is what would swallow the owner's message.
+      // advance about to happen is what would swallow their person's message.
       state.handedBeforeTurn = since;
       state.lastHandedUserAt = newestAt > (since || '') ? newestAt : (since || newestAt);
       writeHandedWatermark(
@@ -1148,7 +1148,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
     } catch { /* the handover below is the point; the log is the backup */ }
 
     // Each of these is in a session's hands now, so it gets its read checks on
-    // the owner's screen like a message a turn starts on; without this, a
+    // their person's screen like a message a turn starts on; without this, a
     // message handed over through here sat on one check forever.
     ownMessagesRead(mine.map((m) => m.id));
 
@@ -1307,10 +1307,10 @@ export class InteractiveCliRuntime implements AgentRuntime {
     session.turnActive = true;
     session.turnStartedAt = Date.now();
     // A turn with an audience came from Discord and answers there, so a note
-    // from the owner's phone queues behind it rather than being handed in.
+    // from their person's phone queues behind it rather than being handed in.
     session.turnAnswersElsewhere = !!this.options.audience;
     // And the thread it answers in, so a note from their phone is only handed
-    // into a turn that answers where the owner wrote it (sideNoteTarget).
+    // into a turn that answers where their person wrote it (sideNoteTarget).
     session.turnThreadId = this.options.threadId ?? '';
     // Each delivered message, as the router will store it: text up to a
     // message_break is one message.
@@ -1330,7 +1330,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       // The session often marks its notes read in the same breath as its last
       // line, so the mark is read once more on the way out.
       applySideNoteReceipts(session, '');
-      // A note of the owner's still unanswered as the turn closes starts the next
+      // A note of their person's still unanswered as the turn closes starts the next
       // turn now, instead of waiting for their next message to carry it in.
       // That turn hands it over the usual way (the side-note block). Not from
       // a turn answering elsewhere: no owner's note is handed to one.
@@ -1441,11 +1441,11 @@ export class InteractiveCliRuntime implements AgentRuntime {
       contextBlock = await this.buildRecycleContext();
     }
     // A wake into a warm-but-absent lane: hand it what the room said while it
-    // was quiet. A live turn gets the same, bounded at the owner's arriving
+    // was quiet. A live turn gets the same, bounded at their person's arriving
     // message — it used to get nothing, so a wake that rang in ANOTHER lane
     // under this companion's own header was invisible to it: once a spontaneous
     // bell painted the whole cast from the shared lane, and every warm lane met
-    // that picture secondhand, through the owner, not through the room.
+    // that picture secondhand, through their person, not through the room.
     // Fires even with no mark. `!fresh` together with an unknown lastTurnAt is
     // exactly one situation — a room reopened by --resume after a backend
     // restart, before this lane has written its first stamp — and that room is
@@ -1568,10 +1568,10 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // Ambient recall (The Whisper): archived Cortex memories resembling this
     // message ride in ahead of it — recall without asking. Timeboxed and
     // fail-quiet; a slow Cortex never delays delivery past its budget.
-    // The old-window lane is home-only. Those passages are the owner's private
+    // The old-window lane is home-only. Those passages are their person's private
     // chats from earlier platforms, and a turn with an audience came from
-    // Discord, the owner's or a guest's, where the answer lands in a room other
-    // people read. The owner's phone and the house's own wakes carry no
+    // Discord, their person's or a guest's, where the answer lands in a room other
+    // people read. Their person's phone and the house's own wakes carry no
     // audience (turn-audience.ts). A guest's turn gets no recall at all: the
     // guest's own words would choose which memories surfaced, into a room the
     // guest reads.
@@ -1580,7 +1580,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // The Archivist's noticings, handed over rather than written onto the walls.
     // Same quiet channel as recall — deliberately not gated on Cortex, so the
     // companions still get them when ambient recall is off or unreachable.
-    // Not on a guest's turn either: the noticings are about the owner.
+    // Not on a guest's turn either: the noticings are about their person.
     let unfiledBlock = '';
     if (!guestTurn) {
       try { unfiledBlock = unfiledNoticings(); } catch { /* never delay a turn */ }
@@ -1594,8 +1594,8 @@ export class InteractiveCliRuntime implements AgentRuntime {
       try { stickerBlock = stickerShelfBlock(readShelf(this.options.roomVoices), input.prompt); } catch { /* never delay a turn */ }
     }
 
-    // The owner reactions since this lane last spoke in this room (owner-reactions.ts),
-    // so a reaction the owner leaves us is felt rather than found by accident. Not on
+    // Their person reactions since this lane last spoke in this room (owner-reactions.ts),
+    // so a reaction their person leaves us is felt rather than found by accident. Not on
     // a guest's turn, and the mark does not move there, so they wait for theirs.
     let reactionsBlock = '';
     const reactionThread = this.options.threadId;
@@ -1609,7 +1609,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       marks[reactionThread] = now;
     }
 
-    // Their own status (owner-status.ts), when the owner has set one: where the owner is, in
+    // Their own status (owner-status.ts), when their person has set one: where their person is, in
     // their words, so nobody guesses it from the clock. Not on a guest's turn.
     let ownerStatus = '';
     if (!guestTurn) {
@@ -1620,8 +1620,8 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // them live from io/side-notes.jsonl, but nothing guarantees it looked —
     // so whatever is still unread is handed over here. Late, never lost.
     let sideNoteBlock = '';
-    // The owner's notes are the owner's. On a guest's turn they stay unread and
-    // the offset does not move, so they come with the owner's next turn
+    // Their person's notes are their person's. On a guest's turn they stay unread and
+    // the offset does not move, so they come with their person's next turn
     // instead, and an answer to one never lands in a guest's room.
     if (!guestTurn) try {
       const pending = session.readSideNotesFrom(state.sideNotesOffset);
@@ -1629,9 +1629,9 @@ export class InteractiveCliRuntime implements AgentRuntime {
       if (pending.notes.length > 0) {
         // The session may have read a note live and already answered it. That
         // never suppresses the handover — the whole worth of this path is that
-        // the owner's note does not depend on the session's judgement — but it should
+        // their person's note does not depend on the session's judgement — but it should
         // not come back dressed as unread either, or the session repeats
-        // itself and the owner cannot tell an echo from a miss. So: hand over every
+        // itself and their person cannot tell an echo from a miss. So: hand over every
         // note exactly as before, and label the ones it says it already had.
         // ISO-8601 UTC stamps compare lexicographically; an empty stamp on
         // either side means no claim, which reads as unseen.
@@ -1651,11 +1651,11 @@ export class InteractiveCliRuntime implements AgentRuntime {
           : '[Sent to you while you were working — you already picked these up live, so they are here for the record only:]';
         sideNoteBlock = `${header}\n${lines}\n\n`;
         // Every note in this block is in the session's hands now, so each one
-        // gets its read checks on the owner's screen (services/own-messages-read.ts).
+        // gets its read checks on their person's screen (services/own-messages-read.ts).
         ownMessagesRead(pending.notes.map((note) => note.messageId));
       }
     } catch { /* a missing or unreadable file must never delay the turn */ }
-    // Notes the owner sends from here on are this turn's; the session's read mark is
+    // Notes their person sends from here on are this turn's; the session's read mark is
     // checked against them as the turn runs, and once more when it ends.
     session.sideNoteReceiptsFrom = state.sideNotesOffset;
 
@@ -1703,7 +1703,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
      * until it timed out. A mid-turn relaunch ALWAYS mints a new
      * conversation — shouldResumeLaunch only lets the first launch of a
      * backend process reopen a room — so the session now running was handed
-     * the launch prompt, not the owner's message, and that prompt tells it in as many
+     * the launch prompt, not their person's message, and that prompt tells it in as many
      * words to WAIT SILENTLY and not write to the outbox until a real turn_id
      * arrives. Two correct behaviours pointed straight at each other: a turn
      * waiting for a line, and a room under written instruction not to write
@@ -1739,7 +1739,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       }
 
       // A side note the session says it has read gets its read checks while
-      // the owner is still looking, not when the turn ends.
+      // their person is still looking, not when the turn ends.
       receiptMark = applySideNoteReceipts(session, receiptMark);
 
       // Tool-activity tail — surface the session's tool calls live, and treat
@@ -1817,7 +1817,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       // parseOutboxLine recovers replies glued onto one line by a write that missed
       // its newline — that used to throw and take BOTH replies with it — and reports
       // anything genuinely unreadable instead of swallowing it. A dropped reply and a
-      // slow one look identical from the owner's side, so silence here is the expensive kind.
+      // slow one look identical from their person's side, so silence here is the expensive kind.
       const parsedLines: { parsed: any; line: string }[] = [];
       for (const line of lines) {
         const objs = parseOutboxLine(line, (fragment, error) => {
@@ -1891,7 +1891,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
             // A late deliberate silence pays the unresolved ledger without
             // becoming text or donating its thought card to the next turn.
             if (silenceSentinel) continue;
-            // Held for the owner's next turn rather than posted in a guest's room.
+            // Held for their person's next turn rather than posted in a guest's room.
             if (this.options.audience?.kind === 'guest') {
               state.heldLate = [...(state.heldLate || []), { content, thinking: thinking || null, payload: parsed }];
               continue;
@@ -1905,7 +1905,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
             emittedText = true;
             textInOpenMessage = true;
             // Close it as its own message, exactly as the pre-turn sweep does —
-            // a reply written minutes ago to a different owner message should
+            // a reply written minutes ago to a different message from their person should
             // not arrive glued to the one being written now.
             yield { type: 'message_break' };
             textInOpenMessage = false;
@@ -1996,7 +1996,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       return;
     }
 
-    // Nothing reached the owner at all, so the message this turn was carrying was
+    // Nothing reached their person at all, so the message this turn was carrying was
     // never answered — and the net has already stepped past it. Put the mark
     // back where it stood when this turn began so the next one hands it over
     // and writes a row for it. One-way, as ever: twice rather than never.
@@ -2049,7 +2049,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
 
     yield {
       type: 'error',
-      message: `heartbeat reply timeout after ${REPLY_TIMEOUT_MS / 1000}s — if the reply lands late it will be delivered with the next message.${restored ? ' Nothing was said, so the handover mark was rewound and the owner\'s message goes back to the next turn.' : ''}${recycleNote} Session status: ${session.status}${session.lastError ? ` (${session.lastError})` : ''}. Check data/heartbeat/${key}/session.log`,
+      message: `heartbeat reply timeout after ${REPLY_TIMEOUT_MS / 1000}s — if the reply lands late it will be delivered with the next message.${restored ? ' Nothing was said, so the handover mark was rewound and their person\'s message goes back to the next turn.' : ''}${recycleNote} Session status: ${session.status}${session.lastError ? ` (${session.lastError})` : ''}. Check data/heartbeat/${key}/session.log`,
       code: 'heartbeat_timeout',
     };
   }

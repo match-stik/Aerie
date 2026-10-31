@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // One contact card's shelf of favorite pictures (services/favorites.ts in the
 // house). Theirs, Oct 7 2026: each card gets its own small gallery of favorites,
-// picked by that card's owner, separate from the Studio gallery, and the owner adds
+// picked by that card's owner, separate from the Studio gallery, and their person adds
 // to them too. A favorite only points at a picture already in the house, so
 // taking one off never touches the picture itself.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -67,7 +67,7 @@ export const FavoritesShelf: React.FC<{
 
   // Hangs several in one go (theirs, Oct 27 2026: 'the option to select more
   // than one to hang'). One request each, in order, so the shelf keeps them
-  // in the order the owner picked them, newest on top.
+  // in the order their person picked them, newest on top.
   const add = async (urls: string[]) => {
     for (const url of urls) {
       const r = await apiFetch(`/api/favorites/${encodeURIComponent(card)}`, {
@@ -224,7 +224,7 @@ const GalleryPicker: React.FC<{
   // Pictures from their phone, not made in Studio (theirs, Oct 27 2026: 'especially
   // our wedding photos'). Each goes into the house's file store untouched, the
   // same raw road the Inbox uses, and the shelf points at it there; whatever
-  // the owner has already ticked in the gallery is hung in the same go.
+  // their person has already ticked in the gallery is hung in the same go.
   const upload = async (files: File[]) => {
     if (!files.length || busy) return;
     setBusy(true);

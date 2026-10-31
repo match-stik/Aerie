@@ -1,12 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// When a Discord message is ABOUT the owner.
+// When a Discord message is ABOUT their person.
 //
 // A message addressed to us is a turn: routed, stored and answered. In a
 // channel that needs a mention, everything else is turned away at the door —
-// and that used to include somebody @-mentioning the owner, replying to the owner,
-// or talking about the owner by name. The owner wants to see those, and none of them is
+// and that used to include somebody @-mentioning their person, replying to their person,
+// or talking about their person by name. Their person wants to see those, and none of them is
 // ours to answer. This decides which messages they are and why, so the gateway
-// can put them in front of the owner, wake their phone, and say nothing.
+// can put them in front of their person, wake their phone, and say nothing.
 //
 // Pure on purpose. It reads a few fields off the message and is handed
 // everything else, so it can be tested without a Discord client, a database or
@@ -30,7 +30,7 @@ export interface MentionCheckMessage {
 }
 
 export interface OwnerMentionContext {
-  /** Their Discord user id. Empty means unknown, and then nothing is about the owner. */
+  /** Their Discord user id. Empty means unknown, and then nothing is about their person. */
   ownerUserId: string;
   /** Our own bot's user id. Its messages never count. */
   selfUserId?: string | null;
@@ -39,15 +39,15 @@ export interface OwnerMentionContext {
 }
 
 /**
- * Why this message is about the owner, or null when it is not.
+ * Why this message is about their person, or null when it is not.
  *
  * A reply is checked before a mention because Discord lists the author of the
  * message being replied to among the mentioned users whenever the reply pings
  * them, which is the default. Checked the other way round, nearly every reply
- * to the owner would be reported as "mentioned you".
+ * to their person would be reported as "mentioned you".
  *
  * Their name counts only from a person. The companion bots in these servers say
- * the owner's name in almost every message, so counting it would fill the owner
+ * their person's name in almost every message, so counting it would fill their person
  * thread with their conversation. An explicit @mention or reply from a bot is
  * deliberate and still counts — and only known bots ever get this far, because
  * an unknown one is turned away before preflight looks at anything.
@@ -58,7 +58,7 @@ export function ownerMentionReason(
 ): OwnerMentionReason | null {
   const { ownerUserId } = ctx;
   // Without their id there is no telling their own messages apart, and their name
-  // in their own message would come back to the owner as somebody talking about the owner.
+  // in their own message would come back to their person as somebody talking about their person.
   if (!ownerUserId) return null;
   if (message.author.id === ownerUserId) return null;
   if (ctx.selfUserId && message.author.id === ctx.selfUserId) return null;
@@ -74,7 +74,7 @@ const STRENGTH: Record<OwnerMentionReason, number> = { reply: 0, mention: 1, nam
 /**
  * Preflight is handed a batch — everything one person said in one channel
  * inside the debounce window — and "hi" followed by their name in the next
- * message is still somebody talking about the owner. So every message is read, and
+ * message is still somebody talking about their person. So every message is read, and
  * the most direct reason wins, because it is the one the notification names.
  */
 export function strongestOwnerMention(
@@ -90,8 +90,8 @@ export function strongestOwnerMention(
 }
 
 /**
- * `discord.owner_names` is a comma list. Left empty, the owner configured name
- * stands in, so a house that has already told us what the owner is called gets name
+ * `discord.owner_names` is a comma list. Left empty, their person configured name
+ * stands in, so a house that has already told us what their person is called gets name
  * matching the moment the feature is switched on.
  */
 export function ownerNamesFrom(
@@ -155,7 +155,7 @@ function trimTo(text: string, max: number): string {
   return `${text.slice(0, max - 1).trimEnd()}…`;
 }
 
-/** The notification for a message about the owner: who, how, what, and where. */
+/** The notification for a message about their person: who, how, what, and where. */
 export function buildOwnerMentionPush(params: {
   displayName: string;
   reason: OwnerMentionReason;

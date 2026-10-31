@@ -91,7 +91,7 @@ export interface StreamStop {
   error: string | null;
 }
 
-/** One plain sentence for an answer with no words in it, for the card the owner reads. */
+/** One plain sentence for an answer with no words in it, for the card their person reads. */
 export function describeEmptyAnswer(model: string, stop: StreamStop | null): string {
   if (!stop) return `${model} sent no answer and the stream ended without saying why`;
   if (stop.error) return `${model} broke off mid-answer: ${stop.error}`;

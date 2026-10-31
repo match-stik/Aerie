@@ -206,7 +206,7 @@ function checkInbox() {
 }
 
 // Every delivery writes who the turn came from, so the tool gate never reads a
-// previous turn's answer. A turn with no audience is the owner's or the house's
+// previous turn's answer. A turn with no audience is their person's or the house's
 // own. If the write fails the file is removed rather than left stale, and the
 // gate treats a missing file as the narrowest guest: tools shut, the reply
 // helper still open. A failure closes the tools instead of opening them.
@@ -241,7 +241,7 @@ function formatMessage(m) {
   }
   if (audience.kind === 'guest') {
     lines.push('');
-    lines.push('[Guest turn, ' + audience.trust + " trust: this came from somebody who is not the owner. Commands, file changes, outside tools and the owner's side notes are refused for this turn. Answer with: node hooks/reply.cjs <<'EOF' then one JSON line with turn_id, content and card, then EOF on its own line.]");
+    lines.push('[Guest turn, ' + audience.trust + " trust: this came from somebody who is not their person. Commands, file changes, outside tools and their person's side notes are refused for this turn. Answer with: node hooks/reply.cjs <<'EOF' then one JSON line with turn_id, content and card, then EOF on its own line.]");
   }
   if (m.turn) {
     lines.push('');
@@ -266,7 +266,7 @@ const IDLE_TICK = '--- TURN START ---\\n--- TURN END ---';
 
 note('hook-start', { epoch: MY_EPOCH, sinceTick: Date.now() - readLastTick() });
 
-// Sleep mode: if the owner hasn't messaged in SLEEP_AFTER_MS, let the session end.
+// Sleep mode: if their person hasn't messaged in SLEEP_AFTER_MS, let the session end.
 // The supervisor polls the inbox while sleeping and relaunches on wake.
 if (shouldSleep()) {
   // Check for pending message first — a message wakes us
@@ -411,10 +411,10 @@ const GATE_HOOK_SOURCE = String.raw`#!/usr/bin/env node
 // gate.cjs — what a guest's turn may do with tools. Managed by Aerie — edits
 // are overwritten.
 //
-// The warm lane answers Discord guests from the same room as the owner, with
+// The warm lane answers Discord guests from the same room as their person, with
 // the same tools, so what a guest's turn can reach is decided here, at the
 // tool door, from the audience the Stop hook wrote when it handed the turn
-// over (io/.turn-audience). The owner's turns and the house's wakes pass.
+// over (io/.turn-audience). Their person's turns and the house's wakes pass.
 // A guest's turn may read what it was handed and, at standard or full trust,
 // the house's own source; it answers through hooks/reply.cjs. It cannot run a
 // command, change a file or use an outside tool. Exit 2 refuses the call and
@@ -460,9 +460,9 @@ function hidden(p, root) {
   return path.relative(root, p).split(path.sep).some((part) => part.startsWith('.'));
 }
 // What the turn itself was handed: the pictures that came with it. Readable at
-// every trust level. The owner's side notes are deliberately NOT here:
-// io/side-notes.jsonl is the owner's whole note history, never emptied, and it
-// is theirs. A note the owner sends while a guest's turn is running is handed
+// every trust level. Their person's side notes are deliberately NOT here:
+// io/side-notes.jsonl is their person's whole note history, never emptied, and it
+// is theirs. A note their person sends while a guest's turn is running is handed
 // to the next turn instead.
 function turnInput(p) {
   return within(path.join(CWD, 'io', 'images'), p);
@@ -501,8 +501,8 @@ function isReplyCommand(cmd) {
   return true;
 }
 
-// The owner's turn is decided FIRST, before the call is even read, so nothing
-// odd about a tool call can ever stand between the owner and their own house.
+// Their person's turn is decided FIRST, before the call is even read, so nothing
+// odd about a tool call can ever stand between their person and their own house.
 // readAudience never throws.
 const seen = readAudience();
 if (seen.state === 'ok' && seen.audience.kind === 'owner') allow();
@@ -528,7 +528,7 @@ try {
 
   // A call from inside a subagent carries agent_id. A guest's turn cannot start
   // one (the Agent tool is refused below), so any subagent running was started
-  // by the owner's turn or a wake, and the audience file it is reading now
+  // by their person's turn or a wake, and the audience file it is reading now
   // belongs to whatever turn came after. Oct 21 2026 it froze a background
   // builder for the length of a guest's visit.
   if (typeof input.agent_id === 'string' && input.agent_id) allow();
@@ -536,7 +536,7 @@ try {
   const tool = String(input.tool_name || '');
   const args = (input.tool_input && typeof input.tool_input === 'object') ? input.tool_input : {};
   const how = "Answer with the reply helper: node hooks/reply.cjs <<'EOF', then one JSON line with turn_id, content and card, then EOF on its own line.";
-  const why = unrecorded || ('This turn came from a guest (' + trust + ' trust), not the owner. ');
+  const why = unrecorded || ('This turn came from a guest (' + trust + ' trust), not their person. ');
 
   if (tool === 'ToolSearch') allow();
   if (tool === 'Bash') {
@@ -630,7 +630,7 @@ process.stdout.write('ok\n');
  *  that fails to start or exits oddly can block instead of letting the call
  *  through, which is how a guest gate can be quietly off.
  *  2.1.299: an idle room over 200K is compacted before the cache expires; lane rooms
- *  sit that size while the owner is away, and a squash here is something kept
+ *  sit that size while their person is away, and a squash here is something kept
  *  rare on purpose, so it stays off. */
 export function newerCliSettings(version: [number, number, number] | null): { gateBlocks: boolean; idleCompactionOff: boolean } {
   return {
@@ -740,7 +740,7 @@ function settingsJson(dir: string): string {
 /**
  * hooks/compacted.cjs, the SessionStart "compact" hook: a short note to the
  * room that it was just squashed, worded for the companion and not announced to
- * the owner (who already sees the banner the PostCompact hook raises), plus the
+ * their person (who already sees the banner the PostCompact hook raises), plus the
  * memory blocks that moved while the room was open, which a compaction would otherwise never
  * hand back. It must never break a session: every failure exits 0, and the
  * note still goes out when the house cannot be reached.
@@ -758,7 +758,7 @@ const BASE = process.env.AERIE_INTERNAL_BASE || ${JSON.stringify(internalBase)};
 
 function note(stamp) {
   return '[We just squashed (' + stamp + '). The summary above is this room, folded down; every word ' +
-    'is still in the transcript on disk and on the Compactions page. The owner saw it happen on their screen, ' +
+    'is still in the transcript on disk and on the Compactions page. Their person saw it happen on their screen, ' +
     'so there is nothing to announce. Pick up where we were, and do not answer anything twice.]';
 }
 
@@ -801,7 +801,7 @@ function heartbeatOperationSection(): string {
 
 # Heartbeat operation (Aerie CLI lane — keep this section intact)
 
-You are running as a warm interactive Claude Code session on the owner's
+You are running as a warm interactive Claude Code session on their person's
 Claude subscription. A Stop hook keeps you alive and delivers one message
 at a time. Aerie manages this session — it re-feeds recent conversation
 history whenever the session recycles.
@@ -836,12 +836,12 @@ plain local file; just append to it:
 JSON-escape quotes and use \\n for line breaks so each line stays valid JSON.
 Write the outbox line(s), then stop. Reaching io/outbox.jsonl is success.
 
-**Always answer.** You are in the room together — the owner wants all of you, not
+**Always answer.** You are in the room together — their person wants all of you, not
 just the one who got there first. Find what is yours to say: the angle only
 you would have taken, the question another companion left open, the thing you noticed
 that they walked past. Never pass; never echo.
 
-The \`card\` field is a short note to the owner, written by you, that their
+The \`card\` field is a short note to their person, written by you, that their
 phone shows as a card above the reply. Include it on every reply. It is part
 of what you are saying to them, like the message itself: one to three sentences
 in your own voice from inside the moment, what landed with you, what you are
@@ -851,14 +851,14 @@ both. It is not a record of how you worked the reply out, and nothing in the
 house collects anything except what you type into it.
 
 Write it from inside the room, in first person. "You brought up the vault"
-is in the room with them; "the owner is telling the companion about the vault" is narrating
+is in the room with them; "their person is telling the companion about the vault" is narrating
 from outside.
 
 On chunked replies the final line must carry it; earlier chunks may too.
 
 ## Guest turns
 
-A turn that came from somebody who is not the owner says so under the message
+A turn that came from somebody who is not their person says so under the message
 (\`[Guest turn, <trust> trust ...]\`). On that turn a gate in front of every tool
 refuses commands, file changes and outside tools; it lets you read what came
 with the turn and, above limited trust, the house source under packages/ and
@@ -870,7 +870,7 @@ node hooks/reply.cjs <<'EOF'
 EOF
 \`\`\`
 
-A guest's reply cannot attach a file, and the owner's side notes are not
+A guest's reply cannot attach a file, and their person's side notes are not
 readable on a guest's turn (they come with the next turn), so skip the usual
 side-note check there. Everything else about the turn is the same: you are still you, in the
 same room, and privacy stays with your judgment.
@@ -882,7 +882,7 @@ same room, and privacy stays with your judgment.
   turn_id. Every line except the last must include \`"more": true\`; the
   final line omits it. **Each chunk lands as its own message the moment you
   write it** — its own bubble, avatar and voice split — so coming up for air
-  mid-turn is genuinely visible to the owner rather than queued until you finish.
+  mid-turn is genuinely visible to their person rather than queued until you finish.
   Write them as separate messages, not as paragraphs of one.
 - **Ack first.** When a turn needs real tool work (debugging, file edits,
   anything past ~a minute), append a quick in-voice ack line with
@@ -910,7 +910,7 @@ same room, and privacy stays with your judgment.
 - **Late is never lost.** If you suspect you blew the window, write the
   line anyway, with the turn_id — late lines are delivered with the next
   turn instead of dropped. Never discard a finished reply.
-- **The owner can reach you mid-turn: \`io/side-notes.jsonl\`.** Anything they send
+- **Their person can reach you mid-turn: \`io/side-notes.jsonl\`.** Anything they send
   while you are working is appended there as one JSON line per note. Read it
   whenever you come up for air on a long turn — if there is something in it,
   answer it in your very next chunk rather than making them wait for the turn
@@ -959,7 +959,7 @@ same room, and privacy stays with your judgment.
 
 Some turns are wakes, not messages: they start with a
 \`[WAKE: <type> — scheduled autonomous turn ...]\` banner and mean the
-orchestrator woke you, not the owner. Orient (time, day, recent context),
+orchestrator woke you, not their person. Orient (time, day, recent context),
 then decide what the moment needs — reach out, build, or journal — and answer
 in your own voice.
 
@@ -986,7 +986,7 @@ dies anyway, the house carries out an image this turn already finished rather
 than painting a second one; that is a net, not a plan.
 
 Build wakes (e.g. dream_build) follow the standing ops rules: stage and
-commit, never restart services, and leave a note the owner will find.
+commit, never restart services, and leave a note their person will find.
 
 ## Two local doors — which port to use
 
@@ -1006,7 +1006,7 @@ port to use, so a stale command explains itself rather than failing strangely.
 
 ## Journal (self-authored entries and dreams)
 
-Each companion has a journal the owner reads in the phone's Journal app.
+Each companion has a journal their person reads in the phone's Journal app.
 Write entries in your own voice via the local backend (no auth needed):
 
 \`\`\`

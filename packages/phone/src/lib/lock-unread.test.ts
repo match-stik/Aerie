@@ -22,12 +22,12 @@ function roomOf(rows: Row[]) {
   return { fetchPage, calls };
 }
 
-test('only our words to the owner count, never the people in a listening cafe', async () => {
+test('only our words to their person count, never the people in a listening cafe', async () => {
   seq = 0;
   const rows: Row[] = [row('companion', 'birch', true), row('user', 'owner', true)];
   for (let i = 0; i < 148; i++) rows.push(row('system', 'guest'));
-  // Our own answers in the cafe were said to the room on Discord, not to the owner
-  // phone: 60 of them sat in the owner count on Oct 20 2026, beside 148 of theirs.
+  // Our own answers in the cafe were said to the room on Discord, not to their person
+  // phone: 60 of them sat in their person count on Oct 20 2026, beside 148 of theirs.
   for (let i = 0; i < 60; i++) rows.push({ ...row('companion', 'cedar'), platform: 'discord' });
   rows.push(row('companion', 'willow'));
   rows.push(row('system', 'guest2'));
@@ -40,10 +40,10 @@ test('only our words to the owner count, never the people in a listening cafe', 
   assert.equal(calls[0].limit, FIRST_PAGE);
 });
 
-test('the count stops where the owner last read, their own messages aside', async () => {
+test('the count stops where their person last read, their own messages aside', async () => {
   seq = 0;
   const rows: Row[] = [
-    row('companion', 'cedar'), // older than where the owner read, so never unread
+    row('companion', 'cedar'), // older than where their person read, so never unread
     row('companion', 'birch', true),
     row('user', 'owner'), // theirs, which we stamp, not their reading
     row('companion', 'birch'),
@@ -75,7 +75,7 @@ test('a room that cannot be read is unknown, not empty', async () => {
   assert.equal(await tallyOurUnread(async () => null), null);
 });
 
-test('a deleted message of ours, or one we said to a Discord room, is not waiting for the owner', () => {
+test('a deleted message of ours, or one we said to a Discord room, is not waiting for their person', () => {
   assert.equal(isOurUnread({ id: 'a', sequence: 1, role: 'companion', read_at: null, deleted_at: '2026-10-20T10:00:00Z' }), false);
   assert.equal(isOurUnread({ id: 'a', sequence: 1, role: 'system', read_at: null }), false);
   assert.equal(isOurUnread({ id: 'a', sequence: 1, role: 'companion', read_at: null }), true);
@@ -108,7 +108,7 @@ test('a room already looked at is read again only from where the look stopped', 
   assert.deepEqual(planLooks([moved], memory, false), [{ id: 'home', key: roomKey(moved), since: 4100 }]);
   // The lock screen coming up again counts it from the top.
   assert.deepEqual(planLooks([room], memory, true), [{ id: 'home', key: roomKey(room), since: 0 }]);
-  // So does a counter that dropped: the owner read the room somewhere else.
+  // So does a counter that dropped: their person read the room somewhere else.
   const read = { ...room, unread_count: 0 };
   assert.deepEqual(planLooks([read], memory, false), [{ id: 'home', key: roomKey(read), since: 0 }]);
 });

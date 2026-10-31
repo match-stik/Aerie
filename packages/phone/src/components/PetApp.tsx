@@ -38,7 +38,7 @@ interface PetEvent {
 
 const PET_ACCENT = '#ff7900';
 
-// Who acted on the pet: a companion, or the owner. Companion emblems come from
+// Who acted on the pet: a companion, or their person. Companion emblems come from
 // the companion records themselves rather than a list baked in here, so a house
 // with different companions gets its own faces on the ledger.
 const OWNER_SIGIL = '🧡';
@@ -252,7 +252,7 @@ export function PetApp({ onClose, themeConfig, themeMode }: PetAppProps) {
       } catch { /* the ledger falls back to a paw print */ }
     })();
   }, []);
-  // A known companion gets its own emblem; the only other actor is the owner.
+  // A known companion gets its own emblem; the only other actor is their person.
   const actorSigil = (actor: string): string => sigils[actor] || OWNER_SIGIL;
   const [action, setAction] = useState<PetAction | null>(null);
   const [editing, setEditing] = useState(false);

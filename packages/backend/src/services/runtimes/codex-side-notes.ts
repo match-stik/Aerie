@@ -5,7 +5,7 @@
  * The Claude heartbeat lane has had this since July: a message that arrives
  * while a turn is running is appended to a file the session can read whenever
  * it comes up for air, instead of parking in the queue behind the very turn it
- * is trying to answer. The Codex lane had no equivalent, so the owner was invisible
+ * is trying to answer. The Codex lane had no equivalent, so their person was invisible
  * to it from the moment a turn started until the moment it ended.
  *
  * The mechanism is deliberately the same as the Claude one, for the same
@@ -110,7 +110,7 @@ export function formatCodexSideNoteHandover(notes: CodexSideNote[]): string {
   if (notes.length === 0) return '';
   const lines = notes.map((n) => (n.at ? `(${n.at}) ${n.text}` : n.text));
   return [
-    `[The owner reached you mid-turn — ${notes.length} note${notes.length === 1 ? '' : 's'} you did not pick up live.`,
+    `[Their person reached you mid-turn — ${notes.length} note${notes.length === 1 ? '' : 's'} you did not pick up live.`,
     'Answer them in this turn. If you already have, say so rather than repeating yourself.]',
     ...lines,
   ].join('\n');
@@ -119,7 +119,7 @@ export function formatCodexSideNoteHandover(notes: CodexSideNote[]): string {
 /**
  * Deliver a note to a Codex lane that is mid-turn, mirroring the Claude lane's
  * rule: only when EXACTLY ONE lane is busy. With two lanes running there is no
- * way to know which room the owner is standing in, and a note delivered to the wrong
+ * way to know which room their person is standing in, and a note delivered to the wrong
  * companion is worse than one that waits in the queue.
  */
 export function deliverSideNoteToBusyCodexLane(
@@ -130,7 +130,7 @@ export function deliverSideNoteToBusyCodexLane(
 ): boolean {
   if (activeLanes.size !== 1) return false;
   const [laneKey] = activeLanes;
-  // Its turn came from Discord and answers there, so the owner's note queues instead.
+  // Its turn came from Discord and answers there, so their person's note queues instead.
   if (answeringElsewhere.has(laneKey)) return false;
   // Its turn answers in another thread (a bell in its own room), so an answer
   // to their note would land there: it queues and comes home instead. A lane key

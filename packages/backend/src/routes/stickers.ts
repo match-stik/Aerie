@@ -268,7 +268,7 @@ function handleStickerUpdate(req: any, res: any) {
     // that already exists is the COMMON case here — this screen's whole job is
     // fixing typos, and a typo's correct spelling is often already taken by
     // the sticker that prompted the fix. Sqlite threw the constraint straight
-    // past the handler, Express turned it into a bare 500, and the owner got
+    // past the handler, Express turned it into a bare 500, and their person got
     // "internal server error" with no name in it and no idea which of eighty
     // renames had failed.
     const message = err instanceof Error ? err.message : String(err);

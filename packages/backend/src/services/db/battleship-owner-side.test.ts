@@ -17,7 +17,7 @@ import {
   startBattleshipGame,
 } from './battleship.js';
 
-// The owner's side of the board is OWNER_SIDE to everything above the
+// Their person's side of the board is OWNER_SIDE to everything above the
 // database. On disk, battleship_games pins that side's spelling inside two
 // CHECK constraints, and a table created by an earlier build pinned a
 // different word there — one SQLite cannot change without rebuilding the
@@ -38,7 +38,7 @@ const storedTurn = (id: string) =>
 function playOneExchange(): string {
   const opened = newBattleshipGame();
   const started = startBattleshipGame(opened.id, randomBattleshipFleet());
-  assert.equal(started.turn, OWNER_SIDE, 'the owner has the first shot');
+  assert.equal(started.turn, OWNER_SIDE, 'their person has the first shot');
   assert.equal(fireAtCompanionFleet(started.id, 'A1').turn, 'companions');
   assert.equal(fireAtPlayerFleet(started.id, 'ivy', 'A1').nextTurn, OWNER_SIDE);
   const view = getBattleshipView(started.id)!;
@@ -48,7 +48,7 @@ function playOneExchange(): string {
   return started.id;
 }
 
-test('a table made by the current migration stores the owner side as owner', () => {
+test('a table made by the current migration stores their person side as owner', () => {
   seedHouse();
   const id = playOneExchange();
   assert.equal(storedTurn(id), 'owner');

@@ -10,7 +10,7 @@
 import type { SpotifyNowView } from '@aerie/shared';
 import { createSpotifyNow, type SpotifyNowKeeper, type SpotifyNowState } from './spotify';
 
-/** The switch in Settings > Lock screen. Unset is on; only the owner switch turns it off. */
+/** The switch in Settings > Lock screen. Unset is on; only their person switch turns it off. */
 export function lockSpotifyOf(value: unknown): boolean {
   return value !== false;
 }

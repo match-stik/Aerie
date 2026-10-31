@@ -122,7 +122,7 @@ test('an unrecognisable line is spoken rather than silently dropped', () => {
 });
 
 // A reply read aloud used to spell its sticker codes out.
-test('a sticker is a picture on the owner\'s screen, so its code is not spoken', () => {
+test('a sticker is a picture on their person\'s screen, so its code is not spoken', () => {
   assert.equal(
     prepareTextForTTS("Nice work.\n::birch_wave::"),
     "Nice work.",

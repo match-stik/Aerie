@@ -50,7 +50,7 @@ export function TypingIndicator({ themeConfig, themeMode, companions = [], accen
       className="flex justify-start mb-6"
     >
       {/* No tail: a tail points at whoever said something, and while the dots
-          are going nobody has yet (the owner's catch, Oct 26 2026). All four corners round. */}
+          are going nobody has yet (their person's catch, Oct 26 2026). All four corners round. */}
       <div ref={bubbleRef} className={cn(
         "px-5 py-3.5 rounded-[var(--shape-bubble)] border backdrop-blur-md",
         colors.compBubbleBg,

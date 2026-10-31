@@ -139,7 +139,7 @@ export function markSurfaced(ids: number[]): void {
   tx(ids);
 }
 
-/** Close a proposal. `by` is the slug of whoever decided: a companion's, or the owner's (getOwnerSlug()). */
+/** Close a proposal. `by` is the slug of whoever decided: a companion's, or their person's (getOwnerSlug()). */
 export function resolveProposal(id: number, status: Exclude<ProposalStatus, 'pending'>, by: string): boolean {
   const info = getDb()
     .prepare(

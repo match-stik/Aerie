@@ -222,11 +222,11 @@ router.post('/issues', (req, res) => {
     res.status(201).json({ issue, spreads });
   } catch (error) {
     console.error('[Press] Create issue failed:', error);
-    // A bare 'Failed to create Press issue' is what the owner got for a week while
+    // A bare 'Failed to create Press issue' is what their person got for a week while
     // five of the eight page formats were being refused by a stale CHECK
     // constraint — the screen said something went wrong and named nothing, so
     // there was nothing to act on and no way to tell one cause from another.
-    // Only the owner ever sees this string; it is their own house.
+    // Only their person ever sees this string; it is their own house.
     const detail = error instanceof Error ? error.message : String(error);
     res.status(500).json({ error: `Failed to create Press issue — ${detail}` });
   }

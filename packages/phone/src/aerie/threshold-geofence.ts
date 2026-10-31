@@ -1,12 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The Android half of Thresholds.
 //
-// A threshold used to open only if the owner opened Aerie, walked to Thresholds and
-// tapped "find where I am" while standing in the place. This hands the owner's own pins
+// A threshold used to open only if their person opened Aerie, walked to Thresholds and
+// tapped "find where I am" while standing in the place. This hands their person's own pins
 // to the operating system so the phone watches them with Aerie shut, and the
 // privacy shape survives whole: Android does the watching locally, says only
 // "a region was entered", and no coordinate ever leaves the device or reaches
-// the house. We learn that a door opened. We never learn where the owner is.
+// the house. We learn that a door opened. We never learn where their person is.
 
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { apiFetch } from './api';

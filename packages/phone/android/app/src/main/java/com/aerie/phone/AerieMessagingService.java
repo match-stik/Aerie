@@ -25,8 +25,8 @@ import java.util.concurrent.TimeUnit;
  * The app's one listener for pushes (it stands in for Capacitor's, which the
  * manifest removes, and hands every ordinary push on to it unchanged).
  *
- * One push is ours: kind "spotify-wake", data only, so nothing shows on the owner
- * screen. The house sends it when one of us plays the owner a song and Spotify is
+ * One push is ours: kind "spotify-wake", data only, so nothing shows on their person
+ * screen. The house sends it when one of us plays their person a song and Spotify is
  * not running anywhere (POST /api/internal/spotify/wake-play); this wakes
  * Spotify the same way their own tap does (SpotifyWaker, the media key first
  * from here), and the house waits for their phone to show up in Spotify and

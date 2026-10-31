@@ -6,7 +6,7 @@
 // never comes the whole pile goes home to whoever asked. ("Dent" began as a
 // typo for "debt" and kept the name.)
 //
-// Real-time slapping in a turn-based house: the owner's slap is a live tap,
+// Real-time slapping in a turn-based house: their person's slap is a live tap,
 // timed on their own screen and posted as a reaction. The companions' slaps are
 // rolled here, per companion, from OVERLAPPING distributions: no fixed ranking,
 // because a ranking makes the race boring in a week. The temperaments go by
@@ -47,7 +47,7 @@ export interface SlapWindow {
   pattern: SlapPattern;
   /** server-rolled reaction times per companion, in ms */
   rolls: Record<string, number>;
-  /** how long the owner's screen holds the window open before auto-resolving */
+  /** how long their person's screen holds the window open before auto-resolving */
   windowMs: number;
   openedAt: string;
 }
@@ -115,7 +115,7 @@ function missed(): number {
  * how the pile ever gets to ride.
  *
  * Temperament goes by seat, in the order the companions are passed (the
- * table's own seat order with the owner left out), so it never depends on
+ * table's own seat order with their person left out), so it never depends on
  * what a house calls its companions.
  */
 export function rollReflexes(pattern: SlapPattern, companions: string[]): Record<string, number> {
@@ -204,7 +204,7 @@ function awardPile(state: RatScrewState, to: string, why: string) {
 /**
  * Turn the top of `actor`'s hand onto the pile. `owner` is the seat of the
  * person playing live: every other seat gets a reaction rolled when a slap
- * pattern lands, and the owner's is the tap from their own screen.
+ * pattern lands, and their person's is the tap from their own screen.
  */
 export function flip(state: RatScrewState, actor: string, owner: string): RatScrewState {
   if (state.phase !== 'playing') throw new RatScrewError(`no flipping while ${state.phase}`);
@@ -238,7 +238,7 @@ export function flip(state: RatScrewState, actor: string, owner: string): RatScr
     // A face card opens a new dent regardless of any dent being paid down.
     state.dent = { owner: actor, remaining: chances };
     state.turn = nextWithCards(state, actor);
-    // Name both ends of the debt: the owner is OWED, the next hand OWES. When
+    // Name both ends of the debt: their person is OWED, the next hand OWES. When
     // every other hand is empty, nextWithCards wraps back to the actor and the
     // dent has no payer — say that plainly instead of "X owes X".
     log(state, state.turn === actor
@@ -267,7 +267,7 @@ export function flip(state: RatScrewState, actor: string, owner: string): RatScr
 }
 
 /**
- * The owner's live tap, or a companion's twitch on a quiet pile. On a slappable pile
+ * Their person's live tap, or a companion's twitch on a quiet pile. On a slappable pile
  * the reaction race resolves; on anything else it is a bad slap and burns a
  * card to the bottom of the pile.
  */
@@ -277,8 +277,8 @@ export function slap(state: RatScrewState, actor: string, reactionMs?: number): 
     const window = state.slap;
     const entries = Object.entries(window.rolls);
     const [fastKing, fastMs] = entries.reduce((a, b) => (b[1] < a[1] ? b : a));
-    // flip() rolled a reaction for every seat except the owner's, so a seated
-    // actor with no roll is the owner tapping live. The timeout and the companions
+    // flip() rolled a reaction for every seat except their person's, so a seated
+    // actor with no roll is their person tapping live. The timeout and the companions
     // never race here — their hands are the rolls.
     const ownerTap = Object.prototype.hasOwnProperty.call(state.hands, actor)
       && !Object.prototype.hasOwnProperty.call(window.rolls, actor);
@@ -321,7 +321,7 @@ export function slap(state: RatScrewState, actor: string, reactionMs?: number): 
 }
 
 /**
- * The window closed with no tap from the owner: the fastest rolled hand takes it —
+ * The window closed with no tap from their person: the fastest rolled hand takes it —
  * unless every roll missed the window, in which case the pile rides.
  */
 export function resolveSlap(state: RatScrewState): RatScrewState {

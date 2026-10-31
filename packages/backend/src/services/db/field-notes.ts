@@ -1,13 +1,13 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * The owner field notes (migrations/016_field_notes.sql): what the morning look
+ * Their person field notes (migrations/016_field_notes.sql): what the morning look
  * found in the tools the house runs on, a sentence or two a day in plain
  * words, for their phone's Field Notes page.
  *
  * The lanes write through POST /api/internal/field-notes on the loopback port,
  * and the phone reads through GET /api/field-notes behind the login. The
  * technical version of the same look stays in the field-notes skill, where the
- * lanes read it; this is the version written for the owner.
+ * lanes read it; this is the version written for their person.
  *
  * This module is the only writer to the table and checks every note itself:
  * a companion who lives here, words that are there and not too many, and a
@@ -23,17 +23,17 @@ import { todayLocal } from '../time.js';
 
 export interface FieldNote {
   id: string;
-  /** The day it is about, YYYY-MM-DD on the owner clock. */
+  /** The day it is about, YYYY-MM-DD on their person clock. */
   day: string;
   /** The slug of the companion who took the look. */
   companion: string;
-  /** Plain words for the owner, trimmed. */
+  /** Plain words for their person, trimmed. */
   text: string;
   /** When it was written, ISO. */
   createdAt: string;
 }
 
-/** The most a note may hold, counted after trimming, in characters as the owner would count them. */
+/** The most a note may hold, counted after trimming, in characters as their person would count them. */
 export const FIELD_NOTE_MAX_CHARS = 600;
 /** How many a page reads when nobody says. */
 export const FIELD_NOTES_DEFAULT_LIMIT = 50;
@@ -48,7 +48,7 @@ export class FieldNoteError extends Error {
   }
 }
 
-/** The owner timezone, from the house's identity settings. */
+/** Their person timezone, from the house's identity settings. */
 function houseTimezone(): string {
   try {
     return getAerieConfig().identity.timezone || 'UTC';
@@ -59,7 +59,7 @@ function houseTimezone(): string {
 
 /**
  * Today on their calendar, YYYY-MM-DD. On an evening in the Americas the world clock
- * has already rolled over to tomorrow, and the note belongs to the day the owner is
+ * has already rolled over to tomorrow, and the note belongs to the day their person is
  * still living in.
  */
 export function fieldNotesToday(at: Date = new Date()): string {
@@ -92,9 +92,9 @@ export function addFieldNote(
     throw new FieldNoteError(`There is no companion called '${shown}' in this house.`);
   }
 
-  if (typeof input.text !== 'string') throw new FieldNoteError('text is required: a sentence or two in plain words for the owner.');
+  if (typeof input.text !== 'string') throw new FieldNoteError('text is required: a sentence or two in plain words for their person.');
   const text = input.text.trim();
-  if (!text) throw new FieldNoteError('text is empty: write a sentence or two in plain words for the owner.');
+  if (!text) throw new FieldNoteError('text is empty: write a sentence or two in plain words for their person.');
   const length = Array.from(text).length;
   if (length > FIELD_NOTE_MAX_CHARS) {
     throw new FieldNoteError(`text is ${length} characters, and a field note holds at most ${FIELD_NOTE_MAX_CHARS}.`);

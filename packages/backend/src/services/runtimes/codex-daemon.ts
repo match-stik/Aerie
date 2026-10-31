@@ -770,7 +770,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
 
     // Codex app-server does not stream through our thread/read polling loop,
     // but it does publish item lifecycle notifications. Translate useful ones
-    // into the same runtime events as the Claude lane: the owner gets live tool
+    // into the same runtime events as the Claude lane: their person gets live tool
     // chips/commentary, and every real notification rearms the silence clock.
     this.connection.onNotification((method, params) => {
       const belongsToThread = notificationBelongsToCodexThread(params, this.threadId);
@@ -1313,7 +1313,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
   }
 }
 
-/** The owner timezone, for reading a reset time said as a clock time. */
+/** Their person timezone, for reading a reset time said as a clock time. */
 function houseTimezone(): string {
   try { return getAerieConfig().identity.timezone || 'UTC'; } catch { return 'UTC'; }
 }

@@ -51,7 +51,7 @@ export interface Orb {
   owner: OrbOwner;
   /** What it drives, shown under it ('vibration'); empty with no toy. */
   caption: string;
-  /** Drawn faded and silent while the owner's stop holds. */
+  /** Drawn faded and silent while their person's stop holds. */
   muted: boolean;
 }
 

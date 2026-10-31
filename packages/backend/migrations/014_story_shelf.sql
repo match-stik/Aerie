@@ -1,9 +1,9 @@
 -- The Story Shelf — choose-your-own-path books the companions write and run.
 --
--- They write through the loopback routes; the owner of the house reads on the
+-- They write through the loopback routes; their person reads on the
 -- phone and makes the moves there. A book holds the base story they wrote for
 -- it (the bible) and its pages in order: a scene is a companion's, a move is
--- the owner's, and each scene answers the move before it.
+-- their person's, and each scene answers the move before it.
 --
 -- NO CHECK CONSTRAINTS ON status OR kind, ON PURPOSE: SQLite cannot alter a
 -- constraint in place, so a CHECK list that outlives the code it was written
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS story_books (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   finished_at TEXT,
-  -- when the owner last walked into it; the shelf leads with what they read last
+  -- when their person last walked into it; the shelf leads with what they read last
   opened_at TEXT,
   -- a page turn is queued or being written for this book. The same column and
   -- meaning as the Fleet Room and the Card Room, so the boot sweep in init.ts
@@ -51,14 +51,14 @@ CREATE TABLE IF NOT EXISTS story_pages (
   kind TEXT NOT NULL,
   -- a companion slug on a scene; 'owner' on a move
   author TEXT NOT NULL,
-  -- the scene; on a move, the choice's label or the owner's own words
+  -- the scene; on a move, the choice's label or their person's own words
   text TEXT NOT NULL,
   image_url TEXT,
   state_json TEXT,
   choices_json TEXT,
   -- source of the scene's own interactive widget, written fresh for it
   widget TEXT,
-  -- on a move: the id of the choice taken; NULL for a move in the owner's own words
+  -- on a move: the id of the choice taken; NULL for a move in their person's own words
   choice_id TEXT
 );
 

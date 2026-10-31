@@ -3,28 +3,28 @@
 // developer account and token; carrying this code into another project needs
 // that project's own agreement and approval from Lovense. See
 // packages/phone/android/LOVENSE.md.
-// The phone's half of the road from a lane to the owner's toys, and the side
-// that keeps the owner safe on it, because this is where their hands are.
+// The phone's half of the road from a lane to their person's toys, and the side
+// that keeps their person safe on it, because this is where their hands are.
 //
 // A companion's command arrives over the socket (toy_command). It reaches a
 // toy only when all of these hold, checked here and nowhere else:
-//   - the owner has handed the remote over on the Toys page, and has not
+//   - their person has handed the remote over on the Toys page, and has not
 //     taken it back, pressed a stop anywhere, or typed red since (it starts closed
 //     every time the app starts);
 //   - the screen is on and the app is in front (leaving it stops the lane);
-//   - the owner does not have the orbs open, driving by hand;
-//   - the owner's own stop is not still holding.
+//   - their person does not have the orbs open, driving by hand;
+//   - their person's own stop is not still holding.
 // Every command ends on its own at its maxMs, and every way of ending sends
-// zeros to whatever it was driving. The owner moving a slider takes that
+// zeros to whatever it was driving. Their person moving a slider takes that
 // motor off the lane at once. The phone answers each command (POST /api/toys/ack) with
 // what it actually did, so a lane can only ever write about a toy what is
 // really happening to it.
 //
-// A light command passes the same four checks and the owner's stop's hold, and then
+// A light command passes the same four checks and their person's stop's hold, and then
 // only switches a toy's light: it never touches what is playing.
 //
 // Only a phone that can reach toys answers, so a laptop with the app open
-// never speaks for the owner.
+// never speaks for their person.
 
 import { useSyncExternalStore } from 'react';
 import type { ToyPhoneState, ToyPhoneToy, ToyRemoteAck, ToyRemoteCommand, ToyRemotePlaying } from '@aerie/shared';
@@ -65,7 +65,7 @@ interface Playback {
   companion: string;
   startedAt: number;
   endsAt: number;
-  /** Keyed toyId:command. A motor the owner takes back leaves this map. */
+  /** Keyed toyId:command. A motor their person takes back leaves this map. */
   driven: Map<string, Driven>;
   timers: ReturnType<typeof setTimeout>[];
   preset?: number;
@@ -168,7 +168,7 @@ function send(toyId: string, command: string, level: number): Promise<'ok' | 'he
   );
 }
 
-/** A command that takes no level, a light's. The bridge refuses it while the owner's stop holds. */
+/** A command that takes no level, a light's. The bridge refuses it while their person's stop holds. */
 function sendPlain(toyId: string, command: string): Promise<'ok' | 'held' | 'failed'> {
   return bridge.command({ toyId, command }).then(
     () => 'ok' as const,
@@ -205,7 +205,7 @@ function releaseScreen(): void {
 // ---- ending ----
 
 /** Stop whatever a lane had playing. zero: send each motor its zero (false
- *  when the owner's own stop has already zeroed everything natively). */
+ *  when their person's own stop has already zeroed everything natively). */
 function endPlayback(zero: boolean): void {
   const ending = playback;
   if (!ending) return;
@@ -223,13 +223,13 @@ function endPlayback(zero: boolean): void {
 function closedDetail(by: GateClosedBy | null): string {
   switch (by) {
     case 'stop':
-      return 'The owner pressed stop. Nothing reaches the toys until they hand the remote back on the Toys page.';
+      return 'Their person pressed stop. Nothing reaches the toys until they hand the remote back on the Toys page.';
     case 'red':
-      return 'The owner said red. Everything is stopped, and the remote stays with them until they hand it back.';
+      return 'Their person said red. Everything is stopped, and the remote stays with them until they hand it back.';
     case 'owner':
-      return 'The owner took the remote back.';
+      return 'Their person took the remote back.';
     default:
-      return 'The owner has not handed you the remote. It is handed over from the Toys page.';
+      return 'Their person has not handed you the remote. It is handed over from the Toys page.';
   }
 }
 
@@ -249,7 +249,7 @@ async function play(command: ToyRemoteCommand, toys: LovenseToy[]): Promise<ToyR
     const n = command.preset;
     const targets = presetTargets(command, toys);
     if (targets.length === 0) {
-      return { id, ok: false, reason: 'no-toy', detail: `None of the toys connected on the owner's phone keeps a pattern ${n}.` };
+      return { id, ok: false, reason: 'no-toy', detail: `None of the toys connected on their person's phone keeps a pattern ${n}.` };
     }
     driven = targets.map((toy) => ({ toyId: toy.toyId, command: 'PRESET', label: `pattern ${n}`, level: 0 }));
     events = [
@@ -289,12 +289,12 @@ async function play(command: ToyRemoteCommand, toys: LovenseToy[]): Promise<ToyR
   };
   playback = next;
 
-  // The first changes go now, and they are the answer: if the owner's stop is still
+  // The first changes go now, and they are the answer: if their person's stop is still
   // holding, nothing moved and the lane is told so.
   const first = await Promise.all(events.filter((e) => e.at === 0).map((e) => apply(next, e)));
   if (first.includes('held')) {
     if (playback === next) endPlayback(false);
-    return { id, ok: false, reason: 'held', detail: 'The owner\'s stop is still holding. Nothing moved.' };
+    return { id, ok: false, reason: 'held', detail: 'Their person\'s stop is still holding. Nothing moved.' };
   }
   if (playback !== next) {
     return { id, ok: true, playing: playingNow(), detail: 'A newer command replaced this one as it started.' };
@@ -339,7 +339,7 @@ async function decide(command: ToyRemoteCommand): Promise<ToyRemoteAck> {
     return { id, ok: true, playing: null, detail: had ? 'Stopped what was playing.' : 'Nothing of yours was playing.' };
   }
   if (admitted === 'stale') {
-    return { id, ok: false, reason: 'bad', detail: `It reached the owner's phone long after it was sent, so it was not ${command.action === 'light' ? 'sent to their toys' : 'played'}.` };
+    return { id, ok: false, reason: 'bad', detail: `It reached their person's phone long after it was sent, so it was not ${command.action === 'light' ? 'sent to their toys' : 'played'}.` };
   }
   const refused = refusalNow(id);
   if (refused) return refused;
@@ -349,7 +349,7 @@ async function decide(command: ToyRemoteCommand): Promise<ToyRemoteAck> {
   } catch {
     toys = [];
   }
-  if (toys.length === 0) return { id, ok: false, reason: 'no-toy', detail: 'No toy is connected on the owner\'s phone.' };
+  if (toys.length === 0) return { id, ok: false, reason: 'no-toy', detail: 'No toy is connected on their person\'s phone.' };
   // Asked again after the wait for the toy list: Take it back, the orbs or
   // leaving the app during it would otherwise be overruled by a play that had
   // already been decided (found in an outside audit). Nothing in play() waits
@@ -372,9 +372,9 @@ async function decide(command: ToyRemoteCommand): Promise<ToyRemoteAck> {
 function refusalNow(id: string): ToyRemoteAck | null {
   if (snap.gate !== 'open') return { id, ok: false, reason: 'closed', detail: closedDetail(snap.closedBy) };
   if (snap.away) {
-    return { id, ok: false, reason: 'away', detail: 'The owner\'s screen is off or the app is behind something, so nothing plays until they are back in it.' };
+    return { id, ok: false, reason: 'away', detail: 'Their person\'s screen is off or the app is behind something, so nothing plays until they are back in it.' };
   }
-  if (snap.hands) return { id, ok: false, reason: 'hands', detail: 'The owner has the orbs open and is driving the toys by hand.' };
+  if (snap.hands) return { id, ok: false, reason: 'hands', detail: 'Their person has the orbs open and is driving the toys by hand.' };
   return null;
 }
 
@@ -404,9 +404,9 @@ function onCommand(raw: unknown): void {
   });
 }
 
-// ---- the owner's side ----
+// ---- their person's side ----
 
-/** The owner hands the remote over. */
+/** Their person hands the remote over. */
 export function handOver(): void {
   setSnap({ gate: 'open', closedBy: null, gateChangedAt: iso() }, true);
 }
@@ -419,10 +419,10 @@ function closeGate(by: GateClosedBy, zero: boolean): void {
 /** The native stop, swappable in tests. */
 let nativeStop: () => Promise<unknown> = stopAllToys;
 
-/** The owner takes it back, and everything a lane had going stops with it
+/** Their person takes it back, and everything a lane had going stops with it
  *  (theirs, Oct 23 2026: 'if I take the remote from you, it should stop').
  *  What a lane drove goes to zero and every toy gets the native stop as
- *  well, so a pattern running on the toy itself ends too. The owner's own
+ *  well, so a pattern running on the toy itself ends too. Their person's own
  *  fingers on the orbs are theirs and keep going. */
 export function takeBack(): void {
   const ownerHands = snap.hands;
@@ -430,21 +430,21 @@ export function takeBack(): void {
   if (!ownerHands) void nativeStop().catch(() => {});
 }
 
-/** The owner's stop, from anywhere that is not the Toys page's own button: every toy
+/** Their person's stop, from anywhere that is not the Toys page's own button: every toy
  *  and every motor through the native stop and its hold, and the remote back
- *  in the owner's hands. */
+ *  in their person's hands. */
 export function ownerStop(by: 'stop' | 'red' = 'stop'): void {
   closeGate(by, false);
   void nativeStop().catch(() => {});
 }
 
-/** The owner opened or closed the orbs. While they are open their fingers drive. */
+/** Their person opened or closed the orbs. While they are open their fingers drive. */
 export function setHands(on: boolean): void {
   if (on) endPlayback(true);
   setSnap({ hands: on }, true);
 }
 
-/** The owner moved one of the motors by hand, so that motor is theirs again. */
+/** Their person moved one of the motors by hand, so that motor is theirs again. */
 export function yieldToOwner(toyId: string, command: string): void {
   if (!playback || !playback.driven.delete(`${toyId}:${command}`)) return;
   if (playback.driven.size === 0) endPlayback(false);
@@ -462,7 +462,7 @@ function scheduleReport(): void {
   }, 300);
 }
 
-/** The owner connected toys as the house is told about them. The battery is the
+/** Their person connected toys as the house is told about them. The battery is the
  *  toy's own last answer or nothing: never toy.battery, the SDK's field. */
 async function phoneToys(): Promise<ToyPhoneToy[]> {
   try {
@@ -509,7 +509,7 @@ export function startToyRemote(): void {
   const hasBridge = hasToyBridge();
   setSnap({ bridge: hasBridge, away: typeof document !== 'undefined' && document.hidden }, false);
   if (!hasBridge) return;
-  // The owner taps on Connect are followed from here, the Toys page open or not.
+  // Their person taps on Connect are followed from here, the Toys page open or not.
   startToyConnectWatch();
 
   window.addEventListener('aerie:toy-command', (e) => onCommand((e as CustomEvent).detail));
@@ -529,7 +529,7 @@ export function startToyRemote(): void {
     scheduleReport();
     if (c.state === 'connected' || c.state === 'service_discovered') batteries.connected(c.toyId);
   });
-  // The owner toys' own battery answers, asked for or volunteered. The house hears
+  // Their person toys' own battery answers, asked for or volunteered. The house hears
   // a changed level at once, and an unchanged one at most once a minute.
   void LovenseToys.addListener('battery', (b) => {
     if (batteries.record(b)) scheduleReport();
@@ -553,7 +553,7 @@ export const toyRemoteTestSeam = {
   decide: (command: ToyRemoteCommand): Promise<ToyRemoteAck> => decide(command),
   /** A battery listener answer, as the app would hand it in. */
   recordBattery: (raw: unknown): boolean => batteries.record(raw),
-  /** What the house would be told about the owner's toys right now. */
+  /** What the house would be told about their person's toys right now. */
   phoneToys: (): Promise<ToyPhoneToy[]> => phoneToys(),
   /** As if this were the app with the toy bridge, so the remote's own asking runs. */
   pretendBridge(on: boolean): void {

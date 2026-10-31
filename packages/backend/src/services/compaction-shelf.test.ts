@@ -187,7 +187,7 @@ test('a write that fails marks nothing as read, so the next read shelves it', as
 
 test('an older phone opening a summary the old way still gets the whole text', async () => {
   // A phone built before Oct 21 2026 opens a summary by asking for the list
-  // with full=1 when its row says truncated, until the owner refreshes it.
+  // with full=1 when its row says truncated, until their person refreshes it.
   const h = house();
   try {
     h.write('primary', 'aaa.jsonl', [squash('2026-10-19T10:00:00.000Z', 'the whole old way')]);

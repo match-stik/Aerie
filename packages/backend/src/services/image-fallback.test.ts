@@ -12,7 +12,7 @@ import {
 } from './image-fallback.js';
 
 // THE GUARANTEE, and the only one worth a test on its own: an outage must never
-// turn into a bill. A metered backend can be reached deliberately or because the owner
+// turn into a bill. A metered backend can be reached deliberately or because their person
 // typed it into the chain, never because the free one fell over.
 test('the default chain contains nothing metered', () => {
   for (const backend of DEFAULT_FALLBACK_CHAIN) {
@@ -26,7 +26,7 @@ test('the requested backend goes first and nothing gets two goes', () => {
   assert.deepEqual(planAttempts('openart', []), ['openart']);
 });
 
-test('a chain the owner wrote is honoured, including a metered one they typed themselves', () => {
+test('a chain their person wrote is honoured, including a metered one they typed themselves', () => {
   assert.deepEqual(parseFallbackChain('antigravity,openart'), ['antigravity', 'openart']);
   assert.deepEqual(parseFallbackChain(' CODEX , antigravity '), ['codex', 'antigravity']);
   assert.deepEqual(parseFallbackChain('antigravity,openai'), ['antigravity', 'openai']);

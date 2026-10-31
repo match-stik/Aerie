@@ -5,7 +5,7 @@
 // whoever plays it says what suit it counts as from then on. Stuck means draw
 // until you can go. Empty your hand and you win.
 //
-// The owner's hand is a fan they can tap; anything unplayable is dimmed rather than
+// Their person's hand is a fan they can tap; anything unplayable is dimmed rather than
 // hidden, so the rule teaches itself by being visible.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../../aerie';
@@ -50,13 +50,13 @@ interface EightsBoardProps {
 
 export function EightsBoard({ tableId, colors, onTableId }: EightsBoardProps) {
   const { owner, loaded: rosterLoaded, labelOf, sigilOf } = useHouseRoster();
-  // The owner's seat is the house's answer (GET /api/companions), never a
+  // Their person's seat is the house's answer (GET /api/companions), never a
   // name in the code.
   const ownerSeat = owner?.slug ?? '';
   const [game, setGame] = useState<EightsGame | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** the eight the owner has tapped, waiting on a suit */
+  /** the eight their person has tapped, waiting on a suit */
   const [calling, setCalling] = useState<CardId | null>(null);
   const tableRef = useRef<string | null>(tableId);
   const inFlight = useRef(false);
@@ -215,7 +215,7 @@ export function EightsBoard({ tableId, colors, onTableId }: EightsBoardProps) {
         </div>
       )}
 
-      {/* the owner's hand — unplayable cards stay visible and dimmed, so the rule shows */}
+      {/* their person's hand — unplayable cards stay visible and dimmed, so the rule shows */}
       <div className="flex flex-wrap items-end justify-center gap-1.5 pb-2">
         {mine.map((card) => {
           const ok = myTurn && playable(card, top, game.suit) && !calling;

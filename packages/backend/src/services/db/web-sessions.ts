@@ -32,7 +32,7 @@ export function getWebSession(token: string): WebSession | null {
 }
 
 // Push a live session's expiry further out. Sliding renewal: living in the app
-// should never log the owner out, so an active session keeps buying itself more time.
+// should never log their person out, so an active session keeps buying itself more time.
 export function touchWebSession(token: string, expiresAt: string): void {
   const stmt = getDb().prepare('UPDATE web_sessions SET expires_at = ? WHERE token = ?');
   stmt.run(expiresAt, token);

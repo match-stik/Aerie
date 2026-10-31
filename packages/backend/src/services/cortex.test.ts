@@ -17,7 +17,7 @@ test('a genuinely unconfigured brain is named as such', () => {
 test('a config read that threw is UNKNOWN, not unconfigured', () => {
   // The real one: getSecret throws this when the database is not open.
   const p = classifyCortexConfigError('Database not initialized. Call initDb() first.');
-  assert.equal(p.configured, true, 'must not claim the owner has no brain');
+  assert.equal(p.configured, true, 'must not claim their person has no brain');
   assert.equal(p.ok, false);
   assert.match(p.detail, /could not read config/);
 });

@@ -11,9 +11,9 @@ test('a warm Claude lane must always answer — no passing offered', () => {
   try {
     provisionSessionDir(dir, '# Test companion');
     const contract = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
-    // Always answer — the owner wants all of them.
+    // Always answer — their person wants all of them.
     assert.match(contract, /\*\*Always answer\.\*\*/);
-    assert.match(contract, /the owner wants all of you/);
+    assert.match(contract, /their person wants all of you/);
     assert.doesNotMatch(contract, /nothing to add/);
     // Wakes have a duty too.
     assert.match(contract, /Every scheduled wake must land at least one in-character line/);

@@ -246,7 +246,7 @@ export class AgentService {
     inboundSequence?: number;
     /** Who is asking. Set by every path that can carry a non-owner. */
     audience?: TurnAudience;
-    /** The stored row of the owner's message, so it can be ticked read when
+    /** The stored row of their person's message, so it can be ticked read when
      *  a companion is actually handed it (services/own-messages-read.ts). */
     messageId?: string;
   }): Promise<string> {
@@ -259,8 +259,8 @@ export class AgentService {
       // Telegram is owner-only — always high priority
       priority = PRIORITIES.discord_owner;
     } else if (platform === 'discord') {
-      // Check if it's the owner by inspecting platformContext
-      // Discord messages from the owner get higher priority
+      // Check if it's their person by inspecting platformContext
+      // Discord messages from their person get higher priority
       const isOwner = opts?.platformContext?.includes('owner');
       priority = isOwner ? PRIORITIES.discord_owner : PRIORITIES.discord_other;
     } else {
@@ -278,7 +278,7 @@ export class AgentService {
     // checked first quietly wins — so a note meant for the room the user is standing
     // in can be delivered to the other one. With more than one turn anywhere,
     // nobody takes it and the message goes the normal queued way. Nor does a
-    // turn that answers in a Discord channel: the owner's note from the phone would be
+    // turn that answers in a Discord channel: their person's note from the phone would be
     // answered there too, so it queues and gets a turn of its own at home.
     if (platform === 'web' && !opts?.imageBlocks?.length) {
       const busyLanes = busyHeartbeatSessionCount() + agentState.activeCodexLanes.size;
@@ -304,7 +304,7 @@ export class AgentService {
         console.log(`[Queue] ${opts?.messageId} was handed over while it waited; its own turn is skipped`);
         return '';
       }
-      // The owner's message is with the lane now: the turn on it is starting.
+      // Their person's message is with the lane now: the turn on it is starting.
       ownMessagesRead([opts?.messageId]);
       agentState.presenceStatus = 'waking';
       registry.broadcast({ type: 'presence', status: 'waking' });

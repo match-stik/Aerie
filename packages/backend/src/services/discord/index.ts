@@ -102,7 +102,7 @@ export function isQueueRefusal(response: string): boolean {
 /**
  * Their home thread, as seen from a Discord room: the most recently active one,
  * never the room's own channel thread. Guests in a listening room keep that
- * thread newest, and the owner's messages were following it out of their own
+ * thread newest, and their person's messages were following it out of their own
  * (Oct 19 2026).
  * The room's thread is still the answer when it is the only thread there is.
  */
@@ -232,13 +232,13 @@ export class DiscordService {
       noteSpoke(message.channelId, message.author.id);
 
       // Ignore unknown bots — allow bots with UserRules. The one exception is
-      // a ping to a role we hold: that comes home to the owner as a note from anyone
+      // a ping to a role we hold: that comes home to their person as a note from anyone
       // (heldPingDecision), and a note is never an answer.
       if (message.author.bot) {
         const botRule = getUserRule(message.author.id);
         if (!botRule) {
           if (heldRoleNamesOf(message).length === 0) return;
-          console.log(`[Discord] Unknown bot ${message.author.username} pinged a role we hold; holding it for the owner`);
+          console.log(`[Discord] Unknown bot ${message.author.username} pinged a role we hold; holding it for their person`);
         } else {
           console.log(`[Discord] Known bot message: ${botRule.name}`);
         }
@@ -279,7 +279,7 @@ export class DiscordService {
     const isOwner = userId === DISCORD_CONFIG.ownerUserId;
 
     // Defer non-owner Discord messages when owner is actively chatting on web UI
-    // This prevents Discord conversations from interrupting the owner's flow
+    // This prevents Discord conversations from interrupting their person's flow
     // Uses web-specific activity — Telegram activity should NOT trigger deferral
     if (!isOwner) {
       const ownerActiveMinutes = this.registry.minutesSinceLastUserWebActivity();
@@ -317,9 +317,9 @@ export class DiscordService {
     let typingInterval: ReturnType<typeof setInterval> | null = null;
 
     try {
-      // A ping that reaches us only through a role is held for the owner: it lands
-      // in their thread under a line saying who pinged which role where, the owner gets
-      // a notification if the owner is not looking, and nobody answers in the
+      // A ping that reaches us only through a role is held for their person: it lands
+      // in their thread under a line saying who pinged which role where, their person gets
+      // a notification if their person is not looking, and nobody answers in the
       // channel (see heldRoleNames). It comes home from anyone, so it skips the
       // trust fences in preflight and passes only heldPingGate. Their own
       // messages are never held.
@@ -352,7 +352,7 @@ export class DiscordService {
 
       // Two shapes of no. A plain denial is a door and nothing comes through
       // it. `deliver` is the cool-off: we are not going to answer, and the
-      // message still lands in the room, unread, exactly where the owner reads it.
+      // message still lands in the room, unread, exactly where their person reads it.
       // It falls through the whole routing block below on purpose — the thread
       // a guest's words belong in is not a second question just because we are
       // being quiet — and stops at the line before generation.
@@ -362,9 +362,9 @@ export class DiscordService {
       // can never come through it.
       const waiting = result.allowed && judged !== 'answer';
       const heardOnly = cooledOff || waiting;
-      // The other kind of heard: a message ABOUT the owner that was not addressed to
+      // The other kind of heard: a message ABOUT their person that was not addressed to
       // us. It takes the cool-off's held path, and on the way it is routed to
-      // where the owner is reading, labeled with why, and allowed to wake their phone.
+      // where their person is reading, labeled with why, and allowed to wake their phone.
       const ownerMention = cooledOff ? result.ownerMention : undefined;
 
       if (!result.allowed && !heardOnly) {
@@ -450,9 +450,9 @@ export class DiscordService {
           console.log(`[Discord] Non-owner following cached routing to: ${threadName} (${threadId})`);
         } else if (ownerMention || mentionsBot(firstMessage)) {
           // @mention or reply to bot — route to owner's active thread if one exists.
-          // A message about the owner goes the same way, because the whole point of
-          // delivering it is that it lands where the owner is reading.
-          const why = ownerMention ? `message about the owner (${ownerMention})` : '@mention/reply';
+          // A message about their person goes the same way, because the whole point of
+          // delivering it is that it lands where their person is reading.
+          const why = ownerMention ? `message about their person (${ownerMention})` : '@mention/reply';
           const activeThread = homeThreadFrom(channelId);
           if (activeThread) {
             threadId = activeThread.id;
@@ -510,7 +510,7 @@ export class DiscordService {
         console.log(`[Discord] Created thread: ${threadName} (${threadId})`);
       }
 
-      // Where a message about the owner was said, in the names the owner would use for it:
+      // Where a message about their person was said, in the names their person would use for it:
       // read off the message itself first, then the client's caches, and the
       // raw id only when neither knows.
       const place = ownerMention
@@ -526,7 +526,7 @@ export class DiscordService {
       const now = new Date().toISOString();
 
       // The line over a held role ping, in the middle like any system line,
-      // so the owner can see why a guest is in their thread and that nobody answered.
+      // so their person can see why a guest is in their thread and that nobody answered.
       const heldRolesLabel = heldRoles.map((r) => `@${r}`).join(', ');
       const heldChannel = this.client.channels.cache.get(channelId);
       const heldChannelName = heldChannel && 'name' in heldChannel ? `#${(heldChannel as TextChannel).name}` : 'a channel';
@@ -569,7 +569,7 @@ export class DiscordService {
           discordDisplayName: displayNameOf(firstMessage),
           // Their face, caught on the way in — the phone draws it on the guest
           // avatar rail instead of a letter in a circle. Member first so a
-          // server-specific avatar wins, which is what the owner sees in Discord;
+          // server-specific avatar wins, which is what their person sees in Discord;
           // author is the fallback and always answers, even for someone who
           // has never set one (Discord serves its own default at that URL).
           // Stored per message on purpose: change your avatar and the next
@@ -583,7 +583,7 @@ export class DiscordService {
           // Their reply to somebody else, heard and not ours: kept out of every
           // history our lanes read, so nothing comes back to answer it.
           ...(isOwner && waiting ? { judgeHeard: true } : {}),
-          // A message about the owner rather than to us says so, and where it was
+          // A message about their person rather than to us says so, and where it was
           // said, so the phone can label it without looking anything up.
           ...(ownerMention && place
             ? { ownerMention, discordChannelName: place.channelName, discordGuildName: place.guildName }
@@ -613,8 +613,8 @@ export class DiscordService {
         });
       }
 
-      // A message about the owner wakes their phone: the one kind of heard message
-      // that does. Through sendIfOffline, so it stays quiet while the owner is already
+      // A message about their person wakes their phone: the one kind of heard message
+      // that does. Through sendIfOffline, so it stays quiet while their person is already
       // looking at the app. Not awaited: a push is a network round trip, and
       // while this batch is still running, the next one from the same person
       // in the same channel is skipped as already processing.
@@ -632,15 +632,15 @@ export class DiscordService {
         }
       }
 
-      // The cool-off ends here, and so does a message about the owner. Stored,
+      // The cool-off ends here, and so does a message about their person. Stored,
       // broadcast, unread — everything except the answer. Nothing below this
       // line runs, and the counter and the clock are both deliberately
       // untouched: the window is measured from our last ANSWER, so the room
       // reopens on time however long they keep talking.
       if (heardOnly) return;
 
-      // A held role ping stops here too: stored, broadcast, unread, and the owner's
-      // phone told if the owner is not looking at it.
+      // A held role ping stops here too: stored, broadcast, unread, and their person's
+      // phone told if their person is not looking at it.
       if (holdForHer) {
         getPushService()?.sendIfOffline({
           title: displayNameOf(firstMessage),
@@ -648,7 +648,7 @@ export class DiscordService {
           threadId,
           tag: `role-ping-${lastMessage.id}`,
         }).catch((err) => console.warn('[Discord] Role ping push failed:', err));
-        console.log(`[Discord] Held a role ping (${heldRolesLabel}) from ${firstMessage.author.username} for the owner: ${threadName}`);
+        console.log(`[Discord] Held a role ping (${heldRolesLabel}) from ${firstMessage.author.username} for their person: ${threadName}`);
         return;
       }
 
@@ -776,7 +776,7 @@ export class DiscordService {
         // Read checks on their own messages (a guest's are not theirs to tick).
         messageId: turn.incomingMsgId,
         // Who is asking, so the lane's tool gate can tell a guest's turn
-        // from the owner's. A batch is one author (the debouncer keys on
+        // from their person's. A batch is one author (the debouncer keys on
         // channel and author), so one audience covers the whole turn.
         audience: discordTurnAudience(isOwner, getUserRule(userId)?.trustLevel),
       },

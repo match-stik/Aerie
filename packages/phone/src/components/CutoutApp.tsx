@@ -53,7 +53,7 @@ const CUTOUT_SESSION_KEY = 'aerie.cutout.session';
 
 /** How faint the cut-away picture sits behind the working one — the main view and
  *  the magnifier read this SAME number, because two copies of a value that must
- *  agree is the bug rather than the plan. The owner's call if it wants to be stronger. */
+ *  agree is the bug rather than the plan. Their person's call if it wants to be stronger. */
 const GHOST_OPACITY = 0.55;
 
 interface BatchItem {
@@ -371,8 +371,8 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
   // session id, so all this has to remember is the pointers and the colour settings —
   // small enough for localStorage and far simpler than a database.
   // A picture the house has swept (a session untouched for a week) is not put
-  // back: the owner gets an empty page to start fresh on, like the GIF Lab, instead
-  // of tiles with no pictures in them (the owner's ask, Oct 26 2026).
+  // back: their person gets an empty page to start fresh on, like the GIF Lab, instead
+  // of tiles with no pictures in them (their person's ask, Oct 26 2026).
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -493,7 +493,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
 
   /** Key every queued image with the colour already proved on the first one.
    *  Sequential rather than parallel: this shells out to Python per image, and a
-   *  phone firing twenty at once at the owner's own box helps nobody. */
+   *  phone firing twenty at once at their person's own box helps nobody. */
   const keyBatch = useCallback(async () => {
     if (!batch.length) return;
     setError('');
@@ -528,7 +528,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
 
   /** Find the subject in every picture still waiting, with the same edge settings.
    *  The point: not tapping each one in turn. Sequential for the same reason keying
-   *  is, because every one is a model run on the owner's own box. */
+   *  is, because every one is a model run on their person's own box. */
   const subjectBatch = useCallback(async () => {
     if (!batch.length) return;
     setError('');

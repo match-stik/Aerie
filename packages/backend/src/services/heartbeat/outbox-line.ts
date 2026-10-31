@@ -107,7 +107,7 @@ export function parseOutboxLine(
 }
 
 /**
- * The card a reply carries above it on the owner's phone.
+ * The card a reply carries above it on their person's phone.
  *
  * The field used to be called `thinking`. It was renamed `card` on a guess
  * rather than a finding: Opus 5.5's reasoning_extraction safeguard kept

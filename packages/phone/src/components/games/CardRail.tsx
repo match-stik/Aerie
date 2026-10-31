@@ -2,7 +2,7 @@
 // The rail beside the table.
 //
 // Solitaire is the one game there is that you play alone, and this table has
-// chairs for the companions anyway. The owner's line goes into the Card Room's own
+// chairs for the companions anyway. Their person's line goes into the Card Room's own
 // thread, the companions answer with the board in front of them, and the reply
 // comes back over the socket with a poll behind it as a net.
 //
@@ -40,7 +40,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
   const [pending, setPending] = useState(false);
   const [draft, setDraft] = useState('');
   // A sticker at the table, the same tray as chat, on a line of its own; Enter
-  // is a new line here and the button sends (the owner's ask, Oct 26 2026).
+  // is a new line here and the button sends (their person's ask, Oct 26 2026).
   const [stickers, setStickers] = useState(false);
   const draftBox = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -73,7 +73,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
   }, [load]);
 
   // The socket is the fast path and the poll is the net. The room broadcasts
-  // when a turn closes, but a dropped socket would otherwise leave the owner looking
+  // when a turn closes, but a dropped socket would otherwise leave their person looking
   // at "at the table…" for ever with the reply already sitting in the thread.
   useEffect(() => {
     if (!pending) return;
@@ -98,7 +98,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
     const content = draft.trim();
     if (!content || !tableId) return;
     setDraft('');
-    // Show the owner's line immediately; the server writes the real row and the next
+    // Show their person's line immediately; the server writes the real row and the next
     // refresh replaces this one.
     setMessages((m) => [...m, { id: `local-${Date.now()}`, role: 'user', content, createdAt: '' }]);
     setPending(true);
