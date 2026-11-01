@@ -42,11 +42,8 @@ import { createMessage } from '../db.js';
 import { registry } from '../ws/connection-registry.js';
 import { ownMessagesRead } from '../own-messages-read.js';
 import * as cortex from '../cortex.js';
-import { ambientRecall, unfiledNoticings } from './whisper.js';
 import { roomVoicesBlock, type RoomVoices } from './room-voices.js';
-import { readShelf, stickerShelfBlock } from './sticker-shelf.js';
-import { ownerReactionsBlock } from './owner-reactions.js';
-import { ownerStatusBlock } from './owner-status.js';
+import { buildTurnExtras, joinTurnExtras } from './turn-extras.js';
 import { outageNotices } from './outage-notices.js';
 import { getAllBlocks } from '../memory-blocks.js';
 import { contextWindowFor } from '../usage-pricing.js';
@@ -1568,53 +1565,32 @@ export class InteractiveCliRuntime implements AgentRuntime {
     // Ambient recall (The Whisper): archived Cortex memories resembling this
     // message ride in ahead of it — recall without asking. Timeboxed and
     // fail-quiet; a slow Cortex never delays delivery past its budget.
-    // The old-window lane is home-only. Those passages are their person's private
-    // chats from earlier platforms, and a turn with an audience came from
-    // Discord, their person's or a guest's, where the answer lands in a room other
-    // people read. Their person's phone and the house's own wakes carry no
-    // audience (turn-audience.ts). A guest's turn gets no recall at all: the
-    // guest's own words would choose which memories surfaced, into a room the
-    // guest reads.
-    const whisperBlock = guestTurn ? '' : await ambientRecall(input.prompt, key, fresh, { archive: !this.options.audience });
-
-    // The Archivist's noticings, handed over rather than written onto the walls.
-    // Same quiet channel as recall — deliberately not gated on Cortex, so the
-    // companions still get them when ambient recall is off or unreachable.
-    // Not on a guest's turn either: the noticings are about their person.
-    let unfiledBlock = '';
-    if (!guestTurn) {
-      try { unfiledBlock = unfiledNoticings(); } catch { /* never delay a turn */ }
-    }
-
-    // The sticker shelf (services/heartbeat/sticker-shelf.ts): a handful of the
-    // companions' own stickers in view, so they get used. Not on a guest's
-    // turn: a sticker in a Discord reply is fine, but the shelf is the house's.
-    let stickerBlock = '';
-    if (!guestTurn) {
-      try { stickerBlock = stickerShelfBlock(readShelf(this.options.roomVoices), input.prompt); } catch { /* never delay a turn */ }
-    }
-
-    // Their person reactions since this lane last spoke in this room (owner-reactions.ts),
-    // so a reaction their person leaves us is felt rather than found by accident. Not on
-    // a guest's turn, and the mark does not move there, so they wait for theirs.
-    let reactionsBlock = '';
+    // The per-turn blocks, through the one door both lanes share
+    // (turn-extras.ts). The old-window lane is home-only: those passages are
+    // their private chats from the earlier houses, and a turn with an audience
+    // came from Discord, where the answer lands in a room other people read.
+    // A guest's turn gets none of them; every one is about their person. Their reactions
+    // are read since this lane last spoke in this room, and on a guest's turn
+    // the mark does not move, so they wait for theirs.
     const reactionThread = this.options.threadId;
+    let reactionsSince: string | undefined;
+    const now = new Date().toISOString();
     if (!guestTurn && reactionThread) {
-      const now = new Date().toISOString();
       const marks = state.reactionsSince ?? (state.reactionsSince = {});
-      const since = marks[reactionThread] ?? state.lastTurnAt;
-      if (since) {
-        try { reactionsBlock = ownerReactionsBlock(reactionThread, since, now); } catch { /* never delay a turn */ }
-      }
+      reactionsSince = marks[reactionThread] ?? state.lastTurnAt;
       marks[reactionThread] = now;
     }
-
-    // Their own status (owner-status.ts), when their person has set one: where their person is, in
-    // their words, so nobody guesses it from the clock. Not on a guest's turn.
-    let ownerStatus = '';
-    if (!guestTurn) {
-      try { ownerStatus = ownerStatusBlock(getAerieConfig().identity.timezone); } catch { /* never delay a turn */ }
-    }
+    const extras = await buildTurnExtras({
+      prompt: input.prompt,
+      laneKey: key,
+      fresh,
+      guest: guestTurn,
+      archive: !this.options.audience,
+      roomVoices: this.options.roomVoices,
+      threadId: reactionThread,
+      reactionsSince,
+      now,
+    });
 
     // Side notes sent while the last turn was working. The session may read
     // them live from io/side-notes.jsonl, but nothing guarantees it looked —
@@ -1664,7 +1640,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       ...(timeLabel ? { time: timeLabel } : {}),
       channel: 'aerie',
       author: this.options.userName || 'user',
-      content: contextBlock + catchUpBlock + missedBlock + whisperBlock + unfiledBlock + stickerBlock + reactionsBlock + ownerStatus + sideNoteBlock
+      content: contextBlock + catchUpBlock + missedBlock + joinTurnExtras(extras) + sideNoteBlock
         + roomVoicesBlock(this.options.roomVoices) + this.clampForInbox(input.prompt, 60_000),
       turn: turnId,
       ...(images.length > 0 ? { images } : {}),

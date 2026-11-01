@@ -1,4 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { readThreadModel, threadTurnModel, modelLaneKey } from './thread-model.js';
+import { SHARED_LANE_KEY } from '../heartbeat/lane-dir.js';
 import type { ImageBlockParam } from './claude-types.js';
 import { getMessages, getThread } from '../db.js';
 import { getAerieConfig } from '../../config.js';
@@ -342,9 +344,14 @@ export async function dispatchAgentTurn(
   const platform = platformOpts?.platform || 'web';
 
   // Two-tier model: autonomous wakes use their own configured model
-  const model = isAutonomous
+  const houseModel = isAutonomous
     ? cfg.agent.model_autonomous
     : (cfg.agent.model || process.env.AGENT_MODEL || 'claude-sonnet-4-6');
+  // A thread can carry its own model (services/agent/thread-model.ts); the
+  // route is worked out from whichever one this turn actually asks for.
+  const threadModel = isAutonomous ? null : readThreadModel(threadId);
+  const model = threadTurnModel(threadModel, isAutonomous, houseModel);
+  if (threadModel) console.log(`[Agent] Thread ${threadId} on its own model: ${threadModel}`);
 
   // ─── Runtime Routing ───────────────────────────────────────────
   const requestedRouting = isAutonomous
@@ -435,10 +442,13 @@ export async function dispatchAgentTurn(
         // A fresh stream id per lane — each lane's reply is its own message,
         // so the bubbles arrive staggered as each companion finishes rather
         // than all at once at the end.
+        const laneOwn = threadModel && laneRoute === 'cli'
+          ? modelLaneKey(lane.id, laneModel, companionTurnModel(companionRowOrNull(lane.id), isAutonomous, houseModel))
+          : null;
         const reply = await runtime.processViaRouter(
           threadId, laneContent, laneModel, lanePrompt, platform,
           crypto.randomUUID(), lane.id,
-          laneRoute === 'codex-cli' ? codexPlatformOpts : platformOpts,
+          laneRoute === 'codex-cli' ? codexPlatformOpts : (laneOwn ? { ...platformOpts, _laneKey: laneOwn } : platformOpts),
           laneRoute, isAutonomous,
         );
         if (reply && reply.trim()) {
@@ -535,5 +545,14 @@ export async function dispatchAgentTurn(
       'codex-cli', isAutonomous,
     );
   }
-  return runtime.processViaRouter(threadId, content, cliModel, cliPrompt, platform, streamMsgId, cliCompanionId, platformOpts, 'cli', isAutonomous);
+  // A thread on its own model gets a room of its own on that model rather
+  // than rebuilding the usual one at every switch (thread-model.ts).
+  const naturalModel = companionTurnModel(companionRowOrNull(cliCompanionId), isAutonomous, houseModel);
+  const ownLane = threadModel ? modelLaneKey(cliCompanionId || SHARED_LANE_KEY, cliModel, naturalModel) : null;
+  if (ownLane) console.log(`[Agent] Thread ${threadId} rides the ${cliModel} room (${ownLane}) beside the usual one`);
+  return runtime.processViaRouter(
+    threadId, content, cliModel, cliPrompt, platform, streamMsgId, cliCompanionId,
+    ownLane ? { ...platformOpts, _laneKey: ownLane } : platformOpts,
+    'cli', isAutonomous,
+  );
 }

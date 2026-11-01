@@ -19,9 +19,9 @@
  * already filed, kept on disk so a restart cannot reset it. With no watermark
  * the floor is the start of the turn, so nothing older can ever be filed now.
  */
-import { readFileSync, renameSync, writeFileSync } from 'fs';
+import { readFileSync, renameSync, statSync, writeFileSync } from 'fs';
 import { replyKey } from '../agent/session-list.js';
-import { forEachLine } from '../transcript-lines.js';
+import { forEachLineFrom } from '../transcript-lines.js';
 
 export const USAGE_WATERMARK_FILE = '.usage-watermark';
 
@@ -44,9 +44,8 @@ const SYNTHETIC_MODEL = '<synthetic>';
 
 /** Counts one transcript line at a time: every reply that started after
  *  sinceMs, each counted once. */
-function usageCounter(sinceMs: number): { take: (line: string) => void; turn: TurnUsage } {
+function usageCounter(sinceMs: number, seen: Set<string> = new Set<string>()): { take: (line: string) => void; turn: TurnUsage } {
   const turn: TurnUsage = { requests: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
-  const seen = new Set<string>();
   const take = (line: string): void => {
     if (!line.includes('"usage"')) return;
     let entry: any;
@@ -86,13 +85,31 @@ export function usageSince(raw: string, sinceMs: number): TurnUsage {
 
 /** The same count straight off the file, a line at a time and never the whole
  *  file at once: this runs after every turn on the live room's transcript,
- *  which at 159 MB, read whole, filled the backend's heap (Oct 21 2026). */
+ *  which at 159 MB, read whole, filled the backend's heap (Oct 21 2026).
+ *
+ *  And it carries on from where the last turn's read stopped (Oct 29 2026):
+ *  walking a 191 MB transcript from the top took about 1.5 s before every
+ *  reply could land. Nothing before that offset can count again, because the
+ *  watermark only moves forward past everything already read, and the reply
+ *  ids seen there are kept so a later record of an old reply stays out. A file
+ *  that shrank, or a floor lower than the last one, starts over from the top. */
+interface TurnWalk { offset: number; sinceMs: number; seen: Set<string> }
+const turnWalks = new Map<string, TurnWalk>();
+
 export async function usageSinceFile(path: string, sinceMs: number): Promise<TurnUsage | undefined> {
   try {
-    const counter = usageCounter(sinceMs);
-    await forEachLine(path, counter.take);
+    const size = statSync(path).size;
+    const prior = turnWalks.get(path);
+    const walk = prior && size >= prior.offset && sinceMs >= prior.sinceMs
+      ? prior
+      : { offset: 0, sinceMs, seen: new Set<string>() };
+    const counter = usageCounter(sinceMs, walk.seen);
+    walk.offset = await forEachLineFrom(path, walk.offset, counter.take);
+    walk.sinceMs = sinceMs;
+    turnWalks.set(path, walk);
     return counter.turn;
   } catch {
+    turnWalks.delete(path);
     return undefined;
   }
 }

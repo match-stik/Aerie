@@ -1177,13 +1177,16 @@ select:not([class*="rounded"]):focus-visible {
 
 /* Flash highlight when a search result is jumped to. The ring fades out
  * over ~1.6s so the target message stands out without staying loud. */
+/* A search hit lights up. Theirs, Oct 31 2026: six pixels of ring was 'massive',
+   and a wash behind the row was a block they'd rather not have; 'I would rather
+   have the ring back'. So a thin ring in the accent. */
 @keyframes msg-flash {
-  0%   { box-shadow: 0 0 0 0 currentColor; }
-  20%  { box-shadow: 0 0 0 6px currentColor; }
-  100% { box-shadow: 0 0 0 0 transparent; }
+  0%       { box-shadow: 0 0 0 0 transparent; }
+  12%, 60% { box-shadow: 0 0 0 2px var(--aerie-accent, currentColor); }
+  100%     { box-shadow: 0 0 0 2px transparent; }
 }
 .msg-flash {
-  animation: msg-flash 1.6s ease-out;
+  animation: msg-flash 2.4s ease-out;
   border-radius: var(--shape-bubble, 1rem);
 }
 

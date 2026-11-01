@@ -102,10 +102,10 @@ export function RoomLines({ lines, companions, sides }: RoomLinesProps) {
         }
         if (!settings) return <PlainLine key={line.id} line={line} />;
         if (line.role === 'user') {
-          return <RoomBubble key={line.id} id={line.id} content={line.content} createdAt={line.createdAt} fromOwner />;
+          return <div key={line.id} data-msg-id={line.id}><RoomBubble id={line.id} content={line.content} createdAt={line.createdAt} fromOwner /></div>;
         }
         return (
-          <React.Fragment key={line.id}>
+          <div key={line.id} data-msg-id={line.id}>
             {sectionsOf(line, companions).map((section) => (
               <RoomBubble
                 key={section.key}
@@ -117,7 +117,7 @@ export function RoomLines({ lines, companions, sides }: RoomLinesProps) {
                 mirror={sides?.get(section.key) ?? false}
               />
             ))}
-          </React.Fragment>
+          </div>
         );
       })}
     </>

@@ -2,7 +2,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { isBackSwipe } from './lib/edge-swipe';
 import { runBackHandler } from './lib/back-stack';
+import { ExportSheet } from './components/ExportSheet';
 import { useBackHandler } from './lib/use-back-handler';
+import { holdAtBottom, holdMessageInView, searchJumpReporter } from './lib/hold-message';
 import localforage from 'localforage';
 import { MessageBubble } from './components/MessageBubble';
 import { RoomBubbleContext, type RoomBubbleSettings } from './components/RoomBubble';
@@ -58,10 +60,8 @@ import { VoiceModeOverlay } from './components/VoiceModeOverlay';
 import { StudioJobTray } from './components/StudioJobTray';
 import { APPS, DOCK_APPS, drawerColumnsOf, migrateAppIds, type AppDef } from './lib/apps';
 
-import { Share } from '@capacitor/share';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 import { THEMES, contrastTextColor, onAccentInk, resolveThemeColors, themeRadiusPx, shapeVarsFor, setLivePalette, paletteVars, flattenOver, selectedFill, fitForWhite } from './lib/theme';
 import { PALETTES } from './lib/palettes';
@@ -228,6 +228,14 @@ export type OsScreen =
   | 'pet'
   | 'inbox';
 
+const reportSearchJump = searchJumpReporter((body) => {
+  void apiFetch('/api/client-errors', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  }).catch(() => {});
+});
+
 export default function App() {
   const [osState, setOsState] = useState<OsScreen>('locked');
   // Where the Messages chat header back button returns to — 'home' unless
@@ -310,6 +318,7 @@ export default function App() {
   const isLoading = ksLoadingThread || (ksConnection !== 'connected' && ksMessages.length === 0);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showExport, setShowExport] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -349,6 +358,30 @@ export default function App() {
     return () => clearTimeout(handle);
   }, [searchQuery, isSearching]);
   
+  // Theirs, Oct 31 2026: the list stopped at thirty, so a common search looked
+  // like it ended months early, with far more further back.
+  const [searchLoadingMore, setSearchLoadingMore] = useState(false);
+  const loadMoreSearchResults = async () => {
+    const q = searchQuery.trim();
+    if (!q || searchLoadingMore) return;
+    setSearchLoadingMore(true);
+    try {
+      const res = await apiFetch(`/api/search?q=${encodeURIComponent(q)}&limit=30&offset=${searchResults.length}`);
+      if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+      const data = await res.json();
+      const more: SearchResult[] = Array.isArray(data.results) ? data.results : [];
+      setSearchResults((prev) => {
+        const seen = new Set(prev.map((r) => r.messageId));
+        return [...prev, ...more.filter((r) => !seen.has(r.messageId))];
+      });
+      if (typeof data.total === 'number') setSearchTotal(more.length === 0 ? searchResults.length : data.total);
+    } catch (err) {
+      console.warn('[Aerie] Search failed:', err);
+    } finally {
+      setSearchLoadingMore(false);
+    }
+  };
+
   // Modals
   const [showSettings, setShowSettings] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
@@ -532,6 +565,7 @@ export default function App() {
   // backend already answers the question — the header just never asked.
   // A label, not a lock: the user is still free to stay.
   const [isTreehouseThread, setIsTreehouseThread] = useState(false);
+  const [treehouseJumpTo, setTreehouseJumpTo] = useState<string | null>(null);
   useEffect(() => {
     if (!ksActiveThreadId) { setIsTreehouseThread(false); return; }
     let stale = false;
@@ -585,7 +619,12 @@ export default function App() {
   // 4 staggered scrollToBottom timeouts (10ms / 100ms / 500ms / 1200ms)
   // don't yank the view back to the bottom after we've scrolled to the
   // search target.
+  // A bubble's key is its id alone. It used to carry its place in the list too,
+  // so a page of older messages shifted every place and rebuilt every bubble,
+  // pictures starting over, whenever they scrolled back.
   const pendingJumpMessageId = useRef<string | null>(null);
+  /** Lets go of the previous search hit, so a second search never fights the first. */
+  const jumpHoldStopRef = useRef<(() => void) | null>(null);
 
   // App Settings State
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
@@ -750,46 +789,47 @@ export default function App() {
   // search-result jumps. The element is rendered with data-msg-id below.
   // Retries a few times if the element isn't in the DOM yet (React may still
   // be rendering the new messages after loadThreadAround).
-  const scrollToMessageId = (messageId: string, retries = 5) => {
+  // The hold itself is lib/hold-message.ts; the Treehouse page uses it too.
+  // onDone fires when it lets go, so the jump guard is held exactly as long.
+  const scrollToMessageId = (messageId: string, onDone?: () => void, needle?: string) => {
     const container = scrollContainerRef.current;
-    if (!container) return;
-    const el = container.querySelector<HTMLElement>(`[data-msg-id="${messageId}"]`);
-    if (!el) {
-      if (retries > 0) {
-        setTimeout(() => scrollToMessageId(messageId, retries - 1), 100);
-      }
-      return;
-    }
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el.classList.add('msg-flash');
-    el.style.color = colors.accent;
-    setTimeout(() => {
-      el.classList.remove('msg-flash');
-      el.style.color = '';
-    }, 1800);
+    if (!container) { onDone?.(); return; }
+    jumpHoldStopRef.current?.();
+    jumpHoldStopRef.current = holdMessageInView(container, messageId, { onDone, needle, report: reportSearchJump });
   };
 
   const handleSearchSelect = async (result: SearchResult) => {
+    const searchedFor = searchQuery;
     setIsSearching(false);
     setSearchQuery('');
+    // A hit in the treehouse opens the treehouse (theirs, Oct 31 2026: 'that does
+    // go back to me falling into the treehouse'). Only the room they chose is
+    // ever in the chat, so nothing here can land them in ours by accident.
+    const inTreehouse = await apiFetch(`/api/threads/${result.threadId}/is-treehouse`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => !!d?.isTreehouse)
+      .catch(() => false);
+    if (inTreehouse) {
+      setTreehouseJumpTo(result.messageId);
+      setAppReturnTo('messages');
+      setOsState('treehouse');
+      return;
+    }
     if (osState !== 'messages') setOsState('messages');
     // Suppresses the thread-switch auto-scroll-to-bottom timeouts so they
-    // don't override our scrollToMessageId. Held for ~1.5s — slightly longer
-    // than the latest staggered scrollToBottom (1200ms) — then released so
-    // normal auto-scroll on new messages can resume.
+    // don't override our scrollToMessageId. Held for as long as the hit is
+    // (scrollToMessageId's onDone), then released so normal auto-scroll on
+    // new messages can resume.
     pendingJumpMessageId.current = result.messageId;
     const release = () => {
-      pendingJumpMessageId.current = null;
+      if (pendingJumpMessageId.current === result.messageId) pendingJumpMessageId.current = null;
     };
 
     const alreadyLoaded = ksMessages.some((m) => m.id === result.messageId);
     if (alreadyLoaded && result.threadId === ksActiveThreadId) {
       // No thread switch — scroll to the message, but keep the guard up
       // for a bit so other scroll effects don't override us.
-      setTimeout(() => {
-        scrollToMessageId(result.messageId);
-        setTimeout(release, 1500);
-      }, 50);
+      setTimeout(() => scrollToMessageId(result.messageId, release, searchedFor), 50);
       return;
     }
 
@@ -799,8 +839,7 @@ export default function App() {
     // stays put after we've placed it.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        scrollToMessageId(result.messageId);
-        setTimeout(release, 1500);
+        scrollToMessageId(result.messageId, release, searchedFor);
       });
     });
   };
@@ -824,8 +863,11 @@ export default function App() {
       setIsAtBottom(atBottom);
 
       // Within 200px of the top — fire a load-older page (once at a time).
+      // Not during a search jump: the page above would shift the whole list
+      // under the hit while it is being held.
       if (
         container.scrollTop < 200 &&
+        !pendingJumpMessageId.current &&
         !loadingOlderRef.current &&
         hasMoreOlderRef.current &&
         ksActiveThreadId &&
@@ -868,6 +910,16 @@ export default function App() {
         behavior: instant ? 'auto' : 'smooth'
       });
     }
+  };
+
+  // Theirs, Oct 31 2026: the arrow 'didn't quite land all the way there', a sliver
+  // of the newest bubble cut off and the arrow still up. It scrolled once, and
+  // the bubbles and pictures that came in after made the bottom further away.
+  // So it keeps going to the bottom until the bottom has stopped moving, and
+  // lets go the moment they touch the screen.
+  const keepAtBottom = () => {
+    const container = scrollContainerRef.current;
+    if (container) holdAtBottom(container);
   };
 
   // Auto-scroll on tab switch or app open
@@ -1167,139 +1219,17 @@ export default function App() {
     setAppSettings(prev => ({ ...prev, ...updates }));
   };
 
+  // The whole thread, from the house (theirs, Oct 31 2026: 'it should do what it
+  // suggests'). It used to write out only the messages this phone had loaded,
+  // the newest fifty plus whatever they had scrolled through. The house streams
+  // every message as a text file sent as an attachment, which is the one
+  // signal the Android app's download listener answers (lib/download.ts).
   const exportChat = async (_type: 'main' | 'private' = 'main') => {
-    const sourceMessages = messages;
-    const formattedText = sourceMessages.map(msg => {
-      const date = new Date(msg.timestamp).toLocaleString();
-      const sender = msg.direction === 'inbound' ? 'You' : (msg.sender || Object.values(contacts).map(c => c.name).join(' & '));
-      
-      let content = msg.content.trim();
-      
-      // Handle Voice Notes
-      if (content.startsWith('[VOICE]:')) {
-        const voiceContent = content.replace('[VOICE]:', '').trim();
-        const firstColon = voiceContent.indexOf(': ');
-        if (firstColon !== -1 && firstColon < 20) {
-          const speaker = voiceContent.substring(0, firstColon).trim();
-          const text = voiceContent.substring(firstColon + 2).trim();
-          content = `[Voice Note from ${speaker}]: ${text}`;
-        } else {
-          content = `[Voice Note]: ${voiceContent}`;
-        }
-      } else if (msg.type === 'voice') {
-        content = `[Voice Note]: ${content}`;
-      }
-      
-      // Handle GIFs
-      if (content.includes('[GIF]:')) {
-        const parts = content.split('[GIF]:');
-        const textPart = parts[0].trim();
-        const urlPart = parts[1].trim();
-        content = textPart ? `${textPart}\n[GIF sent]: ${urlPart}` : `[GIF sent]: ${urlPart}`;
-      } else if (msg.type === 'gif') {
-        content = `[GIF sent]: ${content}`;
-      }
-      
-      // Handle Images
-      if (content.includes('[IMG]:')) {
-        const parts = content.split('[IMG]:');
-        const textPart = parts[0].trim();
-        const urlPart = parts[1] ? parts[1].trim() : '';
-        
-        if (msg.direction === 'inbound') {
-          content = textPart ? `${textPart}\n[Image sent]` : '[Image sent]';
-        } else {
-          if (/^data:/i.test(urlPart)) {
-            content = textPart ? `${textPart}\n[Image sent]` : '[Image sent]';
-          } else {
-            content = textPart ? `${textPart}\n[Image sent]: ${urlPart}` : `[Image sent]: ${urlPart}`;
-          }
-        }
-      }
-
-      // Handle Files
-      if (content.includes('[FILE:')) {
-        const fileMatch = content.match(/\[FILE:(.*?)\]:?/);
-        if (fileMatch) {
-          const fileName = fileMatch[1] || 'document.pdf';
-          const parts = content.split(fileMatch[0]);
-          const textPart = parts[0].trim();
-          content = textPart ? `${textPart}\n[File sent: ${fileName}]` : `[File sent: ${fileName}]`;
-        }
-      }
-      
-      // Handle JSON GIFs (fallback)
-      if (content.startsWith('{') && content.endsWith('}')) {
-        try {
-          const parsed = JSON.parse(content);
-          if (parsed.type === 'gif' && parsed.url) {
-            content = `[GIF sent]: ${parsed.url}`;
-          }
-        } catch (e) {}
-      }
-      
-      // Handle raw URLs that are media
-      try {
-        const url = new URL(content);
-        const pathname = url.pathname.toLowerCase();
-        const isTrustedDomain = (hostname: string, domain: string) => {
-          return hostname === domain || hostname.endsWith('.' + domain);
-        };
-        if (pathname.match(/\.(gif)$/) || 
-            (isTrustedDomain(url.hostname, 'giphy.com') && pathname.includes('/media/')) ||
-            isTrustedDomain(url.hostname, 'media.tenor.com')) {
-          content = `[GIF sent]: ${content}`;
-        } else if (pathname.match(/\.(jpeg|jpg|png|webp)$/) || 
-            isTrustedDomain(url.hostname, 'firebasestorage.googleapis.com')) {
-          if (msg.direction === 'inbound') {
-            content = '[Image sent]';
-          } else {
-            content = `[Image sent]: ${content}`;
-          }
-        }
-      } catch (e) {}
-      
-      return `[${date}] ${sender}:\n${content}\n`;
-    }).join('\n----------------------------------------\n\n');
-
-    const fileName = `aerie-chat-export-${new Date().toISOString().split('T')[0]}.txt`;
-
-    try {
-      try {
-        const fileResult = await Filesystem.writeFile({
-          path: fileName,
-          data: formattedText,
-          directory: Directory.Cache,
-          encoding: Encoding.UTF8
-        });
-
-        await Share.share({
-          title: 'Exported Chat',
-          text: 'Here is the exported chat history.',
-          url: fileResult.uri,
-          dialogTitle: 'Share Chat Export'
-        });
-        return;
-      } catch (capacitorErr) {
-        // Fallback for web
-        const blob = new Blob([formattedText], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 100);
-      }
-    } catch (e) {
-      console.error('Failed to export chat:', e);
-      setError('Failed to export chat. Please try again.');
-      setTimeout(() => setError(null), 5000);
-    }
+    if (!activeThread) return;
+    setShowExport(true);
   };
+
+
 
   // Persist metadata
   useEffect(() => {
@@ -1471,6 +1401,50 @@ export default function App() {
       window.removeEventListener('pointerup', up);
     };
   }, [osState, showSettings, appReturnTo]);
+
+  // The browser's own back, for the web app (theirs, Oct 31 2026). On an Android
+  // phone the system back gesture goes to the browser, and the browser walks
+  // its history, which this phone never used for navigation, so back took them
+  // straight out of Aerie. Now, while they are anywhere with somewhere to step
+  // back to, one mark sits in the browser's history; when the browser goes
+  // back it lands on that mark instead of leaving, and the house takes the same
+  // step the app's back gesture takes, then puts the mark back if there is
+  // still somewhere to go. At the home screen there is no mark, so back leaves
+  // as a browser should. The APK never does any of this: its back comes to the
+  // listener above first.
+  const backStateRef = useRef({ osState, showSettings });
+  backStateRef.current = { osState, showSettings };
+  const backMarkRef = useRef(false);
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
+    const deep = () => {
+      const st = backStateRef.current;
+      return st.showSettings || (st.osState !== 'home' && st.osState !== 'locked');
+    };
+    const mark = () => {
+      if (backMarkRef.current || !deep()) return;
+      try { window.history.pushState({ aerieBack: true }, ''); backMarkRef.current = true; } catch { /* history refused; back behaves as before */ }
+    };
+    const onPop = () => {
+      if (!backMarkRef.current) return;
+      backMarkRef.current = false;
+      const st = backStateRef.current;
+      if (st.showSettings) { if (!runBackHandler()) setShowSettings(false); }
+      else if (st.osState === 'appdrawer') { if (!runBackHandler()) setOsState('home'); }
+      else if (!runBackHandler() && st.osState !== 'home' && st.osState !== 'locked') closeApp();
+      // Let the step land, then leave a fresh mark if they are still deep.
+      window.setTimeout(mark, 0);
+    };
+    window.addEventListener('popstate', onPop);
+    if (deep()) mark();
+    else if (backMarkRef.current) {
+      // Back home some other way (a tap, the home button): take the spare mark
+      // out of history, so their next back leaves on the first press.
+      backMarkRef.current = false;
+      try { window.history.back(); } catch { /* nothing to take back */ }
+    }
+    return () => window.removeEventListener('popstate', onPop);
+  }, [osState, showSettings]);
 
 
   // Slideshow Effect moved to AppBackground component
@@ -1652,8 +1626,9 @@ export default function App() {
             : vi === 0 ? 'first' : vi === voiceSections.length - 1 ? 'last' : 'middle';
           nodes.push(
             <motion.div
-              key={`${msg.id}-${index}-v${vi}`}
+              key={`${msg.id}-v${vi}`}
               data-msg-id={vi === 0 ? msg.id : undefined}
+              data-msg-part={sec.content.trim() ? msg.id : undefined}
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.2 }}
@@ -1672,7 +1647,7 @@ export default function App() {
       } else {
         nodes.push(
           <motion.div
-            key={`${msg.id}-${index}`}
+            key={msg.id}
             data-msg-id={msg.id}
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2136,6 +2111,8 @@ export default function App() {
               userAvatar={appSettings.userAvatar}
               userAvatarColor={appSettings.userAvatarColor}
               ownerName={ownerName}
+              jumpTo={treehouseJumpTo}
+              onJumpTaken={() => setTreehouseJumpTo(null)}
             />
           </RoomBubbleContext.Provider>
         )}
@@ -2472,10 +2449,10 @@ export default function App() {
               className={cn("text-center text-xs sm:text-sm font-bold uppercase tracking-widest leading-tight opacity-80 cursor-pointer flex items-center gap-1.5", theme.mode === 'light' ? 'text-black' : 'text-white')}
               onClick={() => setShowThreadSwitcher(true)}
             >
-              {activeThread ? activeThread.name : 'No thread'}
+              {activeThread ? activeThread.name : isTreehouseThread ? 'The Treehouse' : 'No thread'}
               <ChevronLeft size={12} className="-rotate-90 opacity-60" />
             </button>
-            <ModelPill themeConfig={activeTheme} themeMode={theme.mode} />
+            <ModelPill themeConfig={activeTheme} themeMode={theme.mode} threadModel={activeThread?.model ?? null} />
             <RateLimitBanner themeConfig={activeTheme} themeMode={theme.mode} />
             <ContextIndicator themeConfig={activeTheme} themeMode={theme.mode} />
           </div>
@@ -2486,6 +2463,8 @@ export default function App() {
             results={searchResults}
             total={searchTotal}
             loading={searchLoading}
+            loadingMore={searchLoadingMore}
+            onLoadMore={loadMoreSearchResults}
             onSelect={handleSearchSelect}
             themeConfig={activeTheme}
             themeMode={theme.mode}
@@ -2573,12 +2552,18 @@ export default function App() {
         threadId={ksActiveThreadId}
         isAtBottom={isAtBottom}
         onJumpToLatest={() => {
+          // The arrow outranks a search hit still being held.
+          jumpHoldStopRef.current?.();
           if (ksIsViewingAround && ksActiveThreadId) {
             // We're viewing a search-around window — reload the thread to get
             // the actual latest messages, then scroll to bottom.
-            loadThread(ksActiveThreadId).then(() => scrollToBottom(true, true));
+            loadThread(ksActiveThreadId).then(() => {
+              scrollToBottom(true, true);
+              keepAtBottom();
+            });
           } else {
             scrollToBottom(false, true);
+            keepAtBottom();
           }
         }}
         generating={generating}
@@ -2621,6 +2606,9 @@ export default function App() {
 
       {/* Modals (Moved outside so they overlay the entire OS) */}
       <AnimatePresence>
+        {showExport && activeThread && (
+          <ExportSheet threadId={activeThread.id} onClose={() => setShowExport(false)} />
+        )}
         {showSettings && (
           <SettingsDashboard
             theme={theme}

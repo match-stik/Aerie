@@ -32,6 +32,7 @@ export function threadsToSummaries(threads: Thread[]): ThreadSummary[] {
     last_activity_at: t.last_activity_at,
     last_message_preview: getLastMessagePreview(t.id),
     pinned_at: t.pinned_at ?? null,
+    model: t.model ?? null,
   }));
 }
 

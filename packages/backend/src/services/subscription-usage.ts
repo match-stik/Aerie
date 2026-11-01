@@ -6,9 +6,12 @@
  * - Claude: the same OAuth usage endpoint the Claude CLI polls for its own
  *   /usage screen, using the access token already on disk. Never touches
  *   the refresh token — the CLI owns that lifecycle.
- * - Codex: the daemon stamps rate-limit state into every session
- *   transcript's token_count events. Reading the freshest stamp costs
- *   nothing and refreshes every sweep.
+ * - Codex: the same usage endpoint Codex's own /status reads, with the access
+ *   token on disk and never the refresh token. The daemon also stamps
+ *   rate-limit state into every session transcript's token_count events, but
+ *   only when a Codex turn runs, so on a quiet day the newest stamp can be from
+ *   a window that has already reset (theirs, Nov 1 2026: 'sitting at the same
+ *   amount for a while'). The stamp is now only the fallback.
  */
 
 import { promises as fs } from 'node:fs';
@@ -22,6 +25,9 @@ const CLAUDE_TOKEN_URL = 'https://platform.claude.com/v1/oauth/token';
 // secret; the rotating refresh token remains only in ~/.claude.
 const CLAUDE_CODE_CLIENT_ID = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
 const CODEX_SESSIONS_DIR = path.join(os.homedir(), '.codex', 'sessions');
+const CODEX_AUTH_PATH = path.join(os.homedir(), '.codex', 'auth.json');
+const CODEX_USAGE_URL = 'https://chatgpt.com/backend-api/wham/usage';
+const CODEX_USAGE_TIMEOUT_MS = 10_000;
 const USAGE_CACHE_MS = 60_000;
 // How many of the newest transcripts to scan before concluding there is no
 // rate-limit stamp — a just-started session may not have one yet.
@@ -250,6 +256,62 @@ export function parseCodexTokenCountLine(line: Record<string, unknown>): CodexUs
   };
 }
 
+function parseCodexLiveWindow(value: unknown): CodexWindow | null {
+  if (!value || typeof value !== 'object') return null;
+  const window = value as Record<string, unknown>;
+  const usedPercent = num(window.used_percent);
+  if (usedPercent === null) return null;
+  const seconds = num(window.limit_window_seconds);
+  const resetsUnix = num(window.reset_at);
+  return {
+    usedPercent,
+    windowMinutes: seconds === null ? null : Math.round(seconds / 60),
+    resetsAt: resetsUnix ? new Date(resetsUnix * 1000).toISOString() : null,
+  };
+}
+
+/** The live usage endpoint's answer, in the shape the transcript stamp gives. */
+export function parseCodexLiveUsage(body: Record<string, unknown>, readAt: Date): CodexUsage | null {
+  const rateLimit = body.rate_limit as Record<string, unknown> | undefined;
+  if (!rateLimit || typeof rateLimit !== 'object') return null;
+  const primary = parseCodexLiveWindow(rateLimit.primary_window);
+  if (!primary) return null;
+  const credits = (body.credits ?? {}) as Record<string, unknown>;
+  return {
+    usedPercent: primary.usedPercent,
+    windowMinutes: primary.windowMinutes,
+    resetsAt: primary.resetsAt,
+    planType: typeof body.plan_type === 'string' ? body.plan_type : 'unknown',
+    capturedAt: readAt.toISOString(),
+    secondary: parseCodexLiveWindow(rateLimit.secondary_window),
+    creditsBalance: typeof credits.balance === 'string' ? credits.balance : null,
+    creditsUnlimited: credits.unlimited === true,
+    hasCredits: credits.has_credits === true,
+    limitReached: rateLimit.limit_reached === true ? 'limit_reached' : null,
+  };
+}
+
+/** Null on any failure: the caller falls back to the newest transcript stamp. */
+async function fetchCodexLiveUsage(): Promise<CodexUsage | null> {
+  try {
+    const auth = JSON.parse(await fs.readFile(CODEX_AUTH_PATH, 'utf8')) as {
+      tokens?: { access_token?: unknown; account_id?: unknown };
+    };
+    const token = auth.tokens?.access_token;
+    if (typeof token !== 'string' || !token) return null;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      'User-Agent': 'codex_cli_rs',
+    };
+    if (typeof auth.tokens?.account_id === 'string') headers['ChatGPT-Account-Id'] = auth.tokens.account_id;
+    const res = await fetch(CODEX_USAGE_URL, { headers, signal: AbortSignal.timeout(CODEX_USAGE_TIMEOUT_MS) });
+    if (!res.ok) return null;
+    return parseCodexLiveUsage(await res.json() as Record<string, unknown>, new Date());
+  } catch {
+    return null;
+  }
+}
+
 interface ClaudeCredentials {
   accessToken: string;
   refreshToken: string | null;
@@ -458,6 +520,11 @@ let codexCache: { at: number; data: CodexUsage } | null = null;
 export async function getCodexUsage(): Promise<CodexUsage> {
   if (codexCache && Date.now() - codexCache.at < USAGE_CACHE_MS) {
     return codexCache.data;
+  }
+  const live = await fetchCodexLiveUsage();
+  if (live) {
+    codexCache = { at: Date.now(), data: live };
+    return live;
   }
   for (const filePath of await newestCodexTranscripts(CODEX_SCAN_FILES)) {
     let content: string;

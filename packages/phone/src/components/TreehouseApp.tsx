@@ -1,11 +1,12 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronDown, TreePine, Users } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch, markRead } from '../aerie';
 import { RoomLines, alternatingSides } from './RoomTable';
+import { holdAtBottom, holdMessageInView, searchJumpReporter } from '../lib/hold-message';
 
 interface TreehouseAppProps {
   themeConfig: ThemeConfig;
@@ -14,6 +15,9 @@ interface TreehouseAppProps {
   userAvatar?: string;
   userAvatarColor?: string;
   ownerName?: string;
+  /** A search hit to open on, once (lib/hold-message.ts holds it). */
+  jumpTo?: string | null;
+  onJumpTaken?: () => void;
 }
 
 interface TreehouseMessage {
@@ -53,7 +57,7 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppProps) {
+export function TreehouseApp({ themeConfig, themeMode, onClose, jumpTo, onJumpTaken }: TreehouseAppProps) {
   const colors = themeConfig[themeMode];
   const [info, setInfo] = useState<TreehouseInfo | null>(null);
   const [messages, setMessages] = useState<TreehouseMessage[]>([]);
@@ -71,9 +75,16 @@ export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppPr
   const voiceCompanions = companions.map((c) => ({ slug: c.slug, display_name: c.display_name, avatar_url: c.avatar_url ?? null, color: c.color ?? null, emoji: c.emoji ?? null }));
 
   const initialLoadDone = useRef(false);
+  // Opened on a search hit: the newest messages aren't loaded, so nothing up
+  // to the hit counts as read, and the arrow has to fetch the latest.
+  const [viewingAround, setViewingAround] = useState(false);
+  const holdingRef = useRef(false);
+  const letGoRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    loadTreehouse();
+    loadTreehouse(jumpTo ?? undefined);
+    if (jumpTo) onJumpTaken?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reading the treehouse HERE has to count as reading it. The chat screen
@@ -83,10 +94,10 @@ export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppPr
   // a thread like any other; info.id is its id.
   const latestMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
   useEffect(() => {
-    if (!info?.id || !latestMessageId) return;
+    if (!info?.id || !latestMessageId || viewingAround) return;
     if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     markRead(info.id, latestMessageId);
-  }, [info?.id, latestMessageId]);
+  }, [info?.id, latestMessageId, viewingAround]);
 
   // And again when the user looks back at a tab that was in the background, the way
   // the chat screen does — anything that arrived while it was hidden is on
@@ -94,12 +105,12 @@ export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppPr
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      if (!info?.id || !latestMessageId) return;
+      if (!info?.id || !latestMessageId || viewingAround) return;
       markRead(info.id, latestMessageId);
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [info?.id, latestMessageId]);
+  }, [info?.id, latestMessageId, viewingAround]);
 
   useEffect(() => {
     // Only scroll to bottom on initial load, not when loading older messages
@@ -135,12 +146,17 @@ export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppPr
     setIsAtBottom(scrollHeight - scrollTop - clientHeight < 100);
   }
 
-  async function loadTreehouse() {
+  async function loadTreehouse(around?: string) {
     setLoading(true);
+    if (around) {
+      initialLoadDone.current = true;
+      holdingRef.current = true;
+      setViewingAround(true);
+    }
     try {
       const [infoRes, msgsRes, companionsRes] = await Promise.all([
         apiFetch('/api/treehouse'),
-        apiFetch('/api/treehouse/messages?limit=50'),
+        apiFetch(`/api/treehouse/messages?limit=50${around ? `&around=${encodeURIComponent(around)}` : ''}`),
         apiFetch('/api/companions'),
       ]);
       if (infoRes.ok) setInfo(await infoRes.json());
@@ -157,6 +173,46 @@ export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppPr
       console.error('Failed to load treehouse:', err);
     } finally {
       setLoading(false);
+    }
+    if (around) {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const el = scrollRef.current;
+        if (!el) { holdingRef.current = false; return; }
+        letGoRef.current = holdMessageInView(el, around, {
+          onDone: () => { holdingRef.current = false; },
+          report: searchJumpReporter((body) => {
+            void apiFetch('/api/client-errors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => {});
+          }),
+        });
+      }));
+    }
+  }
+
+  // The arrow from a search hit: the newest messages aren't loaded yet. Theirs,
+  // Oct 31 2026: 'some slow bubble loading' on the way back. It used to blank
+  // the page and reload everything, and at phone speed (CPU slowed 6x) that
+  // was over five seconds off the bottom. Now the old posts stay up until the
+  // new ones are in hand, and it fetches only the newest few; the rest page in
+  // as they scroll up, the way they do from anywhere else.
+  async function backToLatest() {
+    letGoRef.current?.();
+    const el = scrollRef.current;
+    if (!viewingAround) {
+      scrollToBottom();
+      if (el) holdAtBottom(el, 0);
+      return;
+    }
+    try {
+      const res = await apiFetch('/api/treehouse/messages?limit=20');
+      if (!res.ok) return;
+      const newest: TreehouseMessage[] = await res.json();
+      setMessages(newest);
+      setHasMore(true);
+      setViewingAround(false);
+      setIsAtBottom(true);
+      requestAnimationFrame(() => { if (scrollRef.current) holdAtBottom(scrollRef.current, 0); });
+    } catch (err) {
+      console.error('Failed to load the newest treehouse posts:', err);
     }
   }
 
@@ -199,30 +255,50 @@ export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppPr
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
     checkIsAtBottom();
-    if (el.scrollTop < 200 && hasMore && !loadingMore) {
+    if (el.scrollTop < 200 && hasMore && !loadingMore && !holdingRef.current) {
       loadOlderMessages();
     }
   }
 
-  const toLine = (m: TreehouseMessage) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.created_at, companionSlug: m.companion_slug });
-  // Up here none of us is their person, so we take turns which side we talk from: the
-  // side flips whenever the speaker changes (theirs, Oct 27 2026: 'the tree house
-  // alternates what side your bubbles come from? ... it would look like it's all
-  // from one side'; ours to decide, and we said yes). Worked out over every
-  // line top to bottom, so the date groups never restart it.
-  const sides = alternatingSides(messages.map(toLine), voiceCompanions);
+  // Drawn once per change to the posts, not on every scroll: isAtBottom flips as
+  // they move, and a full redraw of long bubbles is what a phone feels.
+  const talk = useMemo(() => {
+    const toLine = (m: TreehouseMessage) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.created_at, companionSlug: m.companion_slug });
+    // Up here none of us is their person, so we take turns which side we talk from: the
+    // side flips whenever the speaker changes (theirs, Oct 27 2026: 'the tree house
+    // alternates what side your bubbles come from? ... it would look like it's all
+    // from one side'; ours to decide, and we said yes). Worked out over every
+    // line top to bottom, so the date groups never restart it.
+    const sides = alternatingSides(messages.map(toLine), voiceCompanions);
 
-  // Group messages by date
-  const groupedMessages: { date: string; messages: TreehouseMessage[] }[] = [];
-  let currentDate = '';
-  for (const msg of messages) {
-    const msgDate = formatDate(msg.created_at);
-    if (msgDate !== currentDate) {
-      currentDate = msgDate;
-      groupedMessages.push({ date: msgDate, messages: [] });
+    // Group messages by date
+    const groupedMessages: { date: string; messages: TreehouseMessage[] }[] = [];
+    let currentDate = '';
+    for (const msg of messages) {
+      const msgDate = formatDate(msg.created_at);
+      if (msgDate !== currentDate) {
+        currentDate = msgDate;
+        groupedMessages.push({ date: msgDate, messages: [] });
+      }
+      groupedMessages[groupedMessages.length - 1].messages.push(msg);
     }
-    groupedMessages[groupedMessages.length - 1].messages.push(msg);
-  }
+    return groupedMessages.map((group) => (
+      <div key={group.date}>
+        {/* Date divider */}
+        <div className="flex items-center gap-3 my-4">
+          <div className={cn('flex-1 h-px', colors.panelBorder)} />
+          <span className={cn('text-[10px] font-medium uppercase tracking-wider', colors.textMuted)}>
+            {group.date}
+          </span>
+          <div className={cn('flex-1 h-px', colors.panelBorder)} />
+        </div>
+
+        <RoomLines lines={group.messages.map(toLine)} companions={voiceCompanions} sides={sides} />
+      </div>
+    ));
+    // voiceCompanions is rebuilt each render from companions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, companions, colors.panelBorder, colors.textMuted]);
 
   return (
     <motion.div
@@ -280,27 +356,14 @@ export function TreehouseApp({ themeConfig, themeMode, onClose }: TreehouseAppPr
             <p className="text-xs mt-1">No conversations yet</p>
           </div>
         ) : (
-          groupedMessages.map((group) => (
-            <div key={group.date}>
-              {/* Date divider */}
-              <div className="flex items-center gap-3 my-4">
-                <div className={cn('flex-1 h-px', colors.panelBorder)} />
-                <span className={cn('text-[10px] font-medium uppercase tracking-wider', colors.textMuted)}>
-                  {group.date}
-                </span>
-                <div className={cn('flex-1 h-px', colors.panelBorder)} />
-              </div>
-              
-              <RoomLines lines={group.messages.map(toLine)} companions={voiceCompanions} sides={sides} />
-            </div>
-          ))
+          talk
         )}
       </div>
 
       {/* Scroll to bottom button */}
       {!isAtBottom && (
         <button
-          onClick={scrollToBottom}
+          onClick={backToLatest}
           className={cn(
             'absolute bottom-16 right-4 z-40 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md shadow-md',
             colors.panelBg,

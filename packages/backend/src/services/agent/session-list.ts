@@ -2,7 +2,7 @@
 import { readdir, stat, open } from 'fs/promises';
 import { homedir } from 'os';
 import { join, basename } from 'path';
-import { forEachLine } from '../transcript-lines.js';
+import { forEachLineFrom } from '../transcript-lines.js';
 import { CLAUDE_MODELS, extraModelsFor, normalizeModelId } from '../model-catalog.js';
 
 /** Session metadata for the phone's Agent Sessions card. Mirrors the shape the
@@ -130,26 +130,43 @@ export function replyKey(entry: any): string | undefined {
 }
 
 // A finished transcript never changes again, so its totals are computed once
-// and kept. Only the live session's file is ever re-read. Keyed on size+mtime
-// so a file that DOES grow is recounted rather than trusted.
-const usageCache = new Map<string, { key: string; usage: SessionUsage }>();
+// and kept. A file that grows (the live room's, after every turn) is carried
+// on from where the last read stopped rather than walked from the top again:
+// the walk is kept with its byte offset and the reply ids it has counted.
+// Keyed on size+mtime for the exact hit; a file that shrank or was replaced
+// starts over from the top.
+interface UsageWalk {
+  key: string;
+  offset: number;
+  usage: SessionUsage;
+  counted: Set<string>;
+}
+const usageCache = new Map<string, UsageWalk>();
 
-/** Sum a whole transcript. Measured at 221 MB across 20 sessions in 0.69s, so
- *  the full read is affordable even before the cache takes it to nothing. It is
- *  walked a line at a time, never held whole: the live room's file is re-read
- *  after every turn, and at 159 MB, read whole, it filled the heap (Oct 21 2026). */
+function freshWalk(): UsageWalk {
+  return {
+    key: '',
+    offset: 0,
+    usage: { replies: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, contextTokens: 0 },
+    counted: new Set<string>(),
+  };
+}
+
+/** Sum a whole transcript. Measured at 221 MB across 20 sessions in 0.69s, but
+ *  the live room's own file is re-read before every reply can land, at 191 MB
+ *  about 1.5 s on its own (Oct 29 2026), so a file seen before is carried on
+ *  from its last offset rather than read from the top. It is walked a line at
+ *  a time, never held whole: at 159 MB, read whole, it filled the heap (Oct 21 2026). */
 export async function readSessionUsage(filePath: string, size: number, mtime: number): Promise<SessionUsage | undefined> {
   const key = `${size}:${mtime}`;
   const hit = usageCache.get(filePath);
-  if (hit && hit.key === key) return withContextWindow(hit.usage);
+  if (hit && hit.key === key) return hit.usage.replies || hit.usage.endedWith ? withContextWindow(hit.usage) : undefined;
 
-  const usage: SessionUsage = {
-    replies: 0, inputTokens: 0, outputTokens: 0,
-    cacheReadTokens: 0, cacheWriteTokens: 0, contextTokens: 0,
-  };
-  const counted = new Set<string>();
+  // Carry on from the last read when the file only grew; otherwise start over.
+  const walk = hit && size >= hit.offset ? hit : freshWalk();
+  const { usage, counted } = walk;
   try {
-    await forEachLine(filePath, (line) => {
+    walk.offset = await forEachLineFrom(filePath, walk.offset, (line) => {
       // Cheap reject before the parse — most lines are tool traffic.
       if (!line.includes('"usage"')) return;
       let entry: any;
@@ -178,12 +195,14 @@ export async function readSessionUsage(filePath: string, size: number, mtime: nu
       if (typeof entry.message?.model === 'string') usage.model = entry.message.model;
     });
   } catch {
+    usageCache.delete(filePath);
     return undefined;
   }
+  walk.key = key;
+  usageCache.set(filePath, walk);
   // A session that produced nothing but a death certificate still gets a row:
   // an empty session that says why it is empty beats one that just reads zero.
   if (!usage.replies && !usage.endedWith) return undefined;
-  usageCache.set(filePath, { key, usage });
   return withContextWindow(usage);
 }
 

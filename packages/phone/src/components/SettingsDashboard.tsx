@@ -27,6 +27,7 @@ import {
 import { AppShell } from "./AppShell";
 import Cropper from "react-easy-crop";
 import { PushNotifications } from "@capacitor/push-notifications";
+import { disableWebPush, enableWebPush } from "../lib/web-push";
 import { Capacitor } from "@capacitor/core";
 import { AppTheme, ThemeId, ThemeMode, AppSettings, EmojiPack } from "../types";
 import { QuickReactionsSetting } from "./QuickReactionsSetting";
@@ -217,17 +218,20 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
           return;
         }
       } else {
-        // Non-native (web) path is intentionally a no-op. The PWA web-push
-        // transport was pulled because the service worker was firing
-        // notification events the rest of the app misread as live
-        // activity. Push lights up when you ship the APK.
-        alert("Push notifications only work in the Android/iOS app.");
-        return;
+        // A browser: web push (lib/web-push.ts). The worker it uses only shows
+        // a notification and brings the house forward on a tap; it caches
+        // nothing and controls no page, unlike the one pulled in May.
+        const out = await enableWebPush();
+        if (out.ok === false) {
+          alert(out.reason);
+          return;
+        }
       }
+    } else if (!Capacitor.isNativePlatform()) {
+      // Off in a browser means this browser stops getting them; other
+      // devices keep theirs.
+      await disableWebPush();
     }
-    // Disabling is a setting-flag flip — no transport-specific teardown.
-    // Capacitor manages its own registration lifecycle; the no-op web path
-    // has nothing to undo.
 
     onSettingsChange({ pushNotificationsEnabled: isEnabling });
   };
@@ -2061,7 +2065,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                         Push Notifications
                       </span>
                       <span className={cn("text-xs", colors.textMuted)}>
-                        Enable native push notifications
+                        {Capacitor.isNativePlatform() ? "Enable native push notifications" : "Get notifications in this browser"}
                       </span>
                     </div>
                     <Toggle

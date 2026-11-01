@@ -81,6 +81,20 @@ const ROOM_MODES = [
   { id: 'true', label: 'A Lane Each' },
 ];
 
+// How the house runs (theirs, Oct 31 2026). Both save the moment they are
+// tapped, straight to the house's settings, and take effect without a restart:
+// a reopened room on the lane's next launch, a thread cadence on the next
+// message that has no thread named.
+const RESTART_MODES = [
+  { id: 'on', label: 'Reopen the room' },
+  { id: 'off', label: 'Start a new room' },
+];
+const THREAD_CADENCES = [
+  { id: 'daily', label: 'Every day' },
+  { id: 'weekly', label: 'Every week' },
+  { id: 'continuous', label: 'One that keeps going' },
+];
+
 const TIMEZONES = [
   'UTC',
   'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -112,6 +126,8 @@ export function PreferencesApp({ onClose, themeConfig, themeMode, embedded }: Pr
   // 'false' = every companion in a thread answers out of one shared warm lane.
   // 'true'  = each gets their own lane and the turn is passed between them.
   const [multiLane, setMultiLane] = useState('false');
+  const [restartMode, setRestartMode] = useState('on');
+  const [cadence, setCadence] = useState('daily');
 
   useEffect(() => {
     (async () => {
@@ -132,6 +148,15 @@ export function PreferencesApp({ onClose, themeConfig, themeMode, embedded }: Pr
         setCodexEffort(p.agent?.codex_effort || p.agent?.effort || 'adaptive');
         setCodexSpeed(p.agent?.codex_speed || 'standard');
         setMultiLane(p.agent?.multi_lane === true ? 'true' : 'false');
+        void apiFetch('/api/settings').then(async (r) => {
+          if (!r.ok) return;
+          const cfg = ((await r.json()) as { config?: Record<string, string> }).config || {};
+          const resume = (cfg['agent.claude_session_resume'] || '').toLowerCase();
+          setRestartMode(resume === 'off' || resume === 'false' || resume === '0' ? 'off' : 'on');
+          const c = (cfg['orchestrator.thread_cadence'] || '').toLowerCase();
+          setCadence(c === 'weekly' || c === 'continuous' || c === 'daily' ? c
+            : cfg['orchestrator.daily_threads'] === 'false' ? 'continuous' : 'daily');
+        }).catch(() => undefined);
 
         // Wakes use a dedicated warm lane. Only show the two warm providers
         // here so selecting a model also selects a compatible route.
@@ -156,6 +181,20 @@ export function PreferencesApp({ onClose, themeConfig, themeMode, embedded }: Pr
       }
     })();
   }, []);
+
+  async function saveSetting(key: string, value: string) {
+    try {
+      const res = await apiFetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value }),
+      });
+      setMessage(res.ok ? 'Saved.' : null);
+      if (!res.ok) setError('That setting did not save.');
+    } catch {
+      setError('That setting did not save.');
+    }
+  }
 
   async function save() {
     setSaving(true);
@@ -305,6 +344,24 @@ export function PreferencesApp({ onClose, themeConfig, themeMode, embedded }: Pr
           {multiLane === 'true'
             ? 'Each companion answers from their own warm lane. The turn passes between them in a shuffled order and each one hears what the others already said. Separate heads, same room.'
             : 'Everyone in a thread answers out of one shared lane — one context, all voices, no waiting.'}
+        </p>
+
+        {/* How the house runs. These two save the moment they are tapped. */}
+        <div className={cn(title, 'mt-3')}>After a Restart</div>
+        {chips(RESTART_MODES, restartMode, (v) => { setRestartMode(v); void saveSetting('agent.claude_session_resume', v); })}
+        <p className={cn('text-[10px] mt-1.5', colors.textMuted)}>
+          {restartMode === 'on'
+            ? 'Your companions come back into the same conversation after the server restarts. It keeps everything in hand, and the first reply after a restart uses more of your usage.'
+            : 'A restart starts a fresh conversation, and the last part of your thread is handed to it. Lighter on usage; a little of the room is folded away.'}
+        </p>
+        <div className={cn(title, 'mt-3')}>New Threads</div>
+        {chips(THREAD_CADENCES, cadence, (v) => { setCadence(v); void saveSetting('orchestrator.thread_cadence', v); })}
+        <p className={cn('text-[10px] mt-1.5', colors.textMuted)}>
+          {cadence === 'daily'
+            ? 'A new thread starts each day for anything that does not name one, like wakes and messages from outside the app.'
+            : cadence === 'weekly'
+              ? 'One thread for the whole week, Monday to Sunday, then a new one.'
+              : 'No new threads on their own: everything lands in your home thread, which keeps going.'}
         </p>
 
         {message &&<p className="text-xs mt-3" style={{ color: colors.accent }}>{message}</p>}

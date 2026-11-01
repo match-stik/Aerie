@@ -99,7 +99,7 @@ test('their person’s lines at the table wear their face, the way the chat puts
   // Their person's lines go through the chat's own bubble on the house's one table, which
   // carries their face and side exactly as the chat does.
   const table = read('./RoomTable.tsx');
-  assert.match(table, /<RoomBubble key=\{line\.id\} id=\{line\.id\} content=\{line\.content\} createdAt=\{line\.createdAt\} fromOwner \/>/);
+  assert.match(table, /<RoomBubble id=\{line\.id\} content=\{line\.content\} createdAt=\{line\.createdAt\} fromOwner \/>/);
   assert.match(read('./RoomBubble.tsx'), /userAvatar=\{s\.userAvatar\}/);
 });
 

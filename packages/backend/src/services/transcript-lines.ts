@@ -1,5 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { createReadStream } from 'fs';
+import { stat } from 'fs/promises';
 
 /**
  * Hand every line of a file to `take`, one at a time, and never the whole
@@ -27,4 +28,37 @@ export async function forEachLine(path: string, take: (line: string) => void): P
     carry = text.slice(start);
   }
   if (carry) take(carry);
+}
+
+/**
+ * The same walk, starting at byte `start` and handing over only COMPLETE lines;
+ * resolves to the byte offset just past the last newline it read, so the next
+ * call can carry on from there. A partial last line is left for next time
+ * rather than handed over half-written.
+ *
+ * Why it exists (Oct 29 2026, their catch: the note above a reply showed up and
+ * the bubble under it sat as dots for a while). The two readers above ran over
+ * the live room's WHOLE transcript before every reply could land, about 1.5 s
+ * each on a 191 MB file and growing with the room, so the card arrived and the
+ * words waited three-plus seconds behind it. Reading only what was appended
+ * since the last turn takes that to nothing.
+ */
+export async function forEachLineFrom(path: string, start: number, take: (line: string) => void): Promise<number> {
+  const size = (await stat(path)).size;
+  if (start >= size) return start;
+  let carry: Buffer = Buffer.alloc(0);
+  let consumed = start;
+  for await (const chunk of createReadStream(path, { start, end: size - 1 })) {
+    const buf: Buffer = carry.length ? Buffer.concat([carry, chunk as Buffer]) : (chunk as Buffer);
+    let from = 0;
+    let newline = buf.indexOf(10, from);
+    while (newline !== -1) {
+      take(buf.toString('utf8', from, newline));
+      consumed += newline + 1 - from;
+      from = newline + 1;
+      newline = buf.indexOf(10, from);
+    }
+    carry = buf.subarray(from);
+  }
+  return consumed;
 }

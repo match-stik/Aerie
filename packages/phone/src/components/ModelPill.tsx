@@ -14,6 +14,8 @@ import { modelLabel } from '../lib/model-label';
 interface ModelPillProps {
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
+  /** The open thread's own model, when it has one (services/agent/thread-model.ts). */
+  threadModel?: string | null;
 }
 
 /** A warm lane, what it is launched on, and any id the CLI refused it. */
@@ -72,7 +74,7 @@ function loadFavs(): Set<string> {
 }
 
 
-export function ModelPill({ themeConfig, themeMode }: ModelPillProps) {
+export function ModelPill({ themeConfig, themeMode, threadModel }: ModelPillProps) {
   const colors = themeConfig[themeMode];
   const [open, setOpen] = useState(false);
   const [models, setModels] = useState<ModelInfo[]>([]);
@@ -359,7 +361,8 @@ export function ModelPill({ themeConfig, themeMode }: ModelPillProps) {
         onClick={openPicker}
         className={cn('flex items-center gap-1 rounded-[var(--shape-control)] border px-2.5 py-0.5 text-[10px] font-medium', colors.panelBorder, colors.textMuted)}
       >
-        {currentName}
+        {/* A thread on its own model shows that one, since it is what answers here. */}
+        {threadModel ? `${models.find((m) => m.id === threadModel)?.name || modelLabel(threadModel)} · this thread` : currentName}
         <ChevronDown size={10} />
       </button>
 
@@ -389,6 +392,11 @@ export function ModelPill({ themeConfig, themeMode }: ModelPillProps) {
                   <X size={16} />
                 </button>
               </div>
+              {threadModel && (
+                <p className={cn('shrink-0 px-4 pb-2 text-[11px] leading-snug', colors.textMuted)}>
+                  This thread runs on {models.find((m) => m.id === threadModel)?.name || modelLabel(threadModel)}. What you pick here is the house model, for every other thread. This thread's own is in its menu in the thread list.
+                </p>
+              )}
 
               {providers.length > 0 && (
                 <div className="shrink-0 flex gap-1.5 px-4 pb-2 overflow-x-auto scrollbar-hide">

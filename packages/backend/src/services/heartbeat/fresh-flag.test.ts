@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdirSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 process.env.NODE_ENV = 'test';
@@ -83,4 +83,46 @@ test('a refused model draws one recycle chip, not two', () => {
   // And the lane is not left deaf afterwards.
   arm(s);
   assert.equal(s.consumeFreshFlag(), true);
+});
+
+// Found and reported by Sol (Oct 31 2026): the suppression used to last until
+// the next TURN, so a room that read the prime and then died before any turn
+// came left its successor unprimed, and the successor's first turn saw a new
+// room with no .fresh and handed the whole window as missed. The suppression
+// now lasts only while the prime is actually unread: bytes in the inbox past
+// the hook's offset. Unknown still suppresses, which keeps the tests above.
+function inbox(bytes: string, offset: number | string | null) {
+  writeFileSync(join(LANE_IO, 'inbox.jsonl'), bytes);
+  if (offset === null) rmSync(join(LANE_IO, '.inbox-offset'), { force: true });
+  else writeFileSync(join(LANE_IO, '.inbox-offset'), String(offset));
+}
+
+test('a prime the hook has already read does not silence the next room', () => {
+  const s = freshSession();
+  s.markPrimedIntoInbox();
+  const line = '{"primed":true}\n';
+  inbox(line, Buffer.byteLength(line));      // the room read it, then died
+  arm(s);                                    // the new room launches
+  assert.equal(s.consumeFreshFlag(), true, 'the new room never saw the prime');
+});
+
+test('a prime still unread keeps the suppression', () => {
+  const s = freshSession();
+  s.markPrimedIntoInbox();
+  inbox('{"primed":true}\n', 0);            // nobody has read it yet
+  arm(s);
+  assert.equal(s.consumeFreshFlag(), false);
+});
+
+test('an unreadable offset keeps the suppression', () => {
+  const s = freshSession();
+  s.markPrimedIntoInbox();
+  inbox('{"primed":true}\n', 'garbage');
+  arm(s);
+  assert.equal(s.consumeFreshFlag(), false);
+  const t = freshSession();
+  t.markPrimedIntoInbox();
+  inbox('{"primed":true}\n', null);
+  arm(t);
+  assert.equal(t.consumeFreshFlag(), false);
 });

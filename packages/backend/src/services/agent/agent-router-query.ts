@@ -8,10 +8,14 @@ import type { DoneEvent, RuntimeTurnInput } from '../runtimes/types.js';
 import { createMessage, getMessages, updateThreadActivity } from '../db.js';
 import { recordUsageEvent } from '../db/usage.js';
 import { registry } from '../ws/connection-registry.js';
-import { getAerieConfig } from '../../config.js';
+import { getAerieConfig, PROJECT_ROOT } from '../../config.js';
+import { join } from 'path';
 import { getRouterTools, executeRouterTool } from '../tools-bridge.js';
 import { getCompanion, getThreadCompanions, listCompanions } from '../db/companions.js';
-import { roomVoicesFor, type RoomVoices } from '../heartbeat/room-voices.js';
+import { roomVoicesBlock, roomVoicesFor, type RoomVoices } from '../heartbeat/room-voices.js';
+import { buildTurnExtras, joinTurnExtras } from '../heartbeat/turn-extras.js';
+import { CODEX_RECEIPT_LANE, markCodexCompacted, newestHandedUserAt, selectCodexMissed, takeCodexCompactedNote, writeCodexThreadReceipt } from '../heartbeat/codex-receipt.js';
+import { latestOtherLaneHandedWatermark, missedInboundBanner } from '../heartbeat/runtime.js';
 import { companionTurnEffort } from './companion-effort.js';
 import { buildSegments, type ThinkingInsertion } from './agent-segment-builder.js';
 import type { ToolInsertion } from '../hooks.js';
@@ -31,6 +35,7 @@ import { CODEX_OPERATING_CONTRACT } from '../runtimes/codex-operating-contract.j
 import { formatCodexSideNoteHandover, readCodexSideNotesFrom } from '../runtimes/codex-side-notes.js';
 import { effectiveAgentProvider, type AgentRouting } from './agent-route-selection.js';
 import { getPushService } from '../push.js';
+import { modelLanesBeside, seedModelLaneTools } from './thread-model.js';
 import { buildCompanionPush } from '../push-notify.js';
 
 /** A row the Discord judge stored as heard and not ours to answer (see services/discord/judge.ts). */
@@ -53,6 +58,11 @@ interface RouterQueryRuntimeContext {
  * channel history assembled for it. Only Discord carries one — the phone and
  * Telegram have no surrounding room to describe.
  */
+
+/** When each Codex lane last read their reactions in a room. In memory: after a
+ *  restart the first turn just skips the block rather than replaying them. */
+const codexReactionMarks = new Map<string, string>();
+
 export function platformFrameFor(
   platform: 'web' | 'discord' | 'telegram' | 'api',
   platformContext: unknown,
@@ -63,12 +73,11 @@ export function platformFrameFor(
 }
 
 /**
- * Whether their person's Codex side notes are handed into this turn. Only on a
- * Codex turn, and never on a guest's: the answer lands in a room the guest
- * reads, so the notes wait for their person's own next turn, the same as on the
- * Claude lane.
- * Today guests are answered by the gated Claude lane; this holds for the day
- * one is answered here instead.
+ * Whether their Codex side notes are handed into this turn. Only on a Codex
+ * turn, and never on a guest's: the answer lands in a room the guest reads,
+ * so their notes wait for their own next turn, the same as on the Claude lane.
+ * A guest's Codex turn also runs locked (runtimes/codex-daemon.ts), the Codex
+ * half of the Claude lane's hooks/gate.cjs.
  */
 export function handsCodexSideNotes(routing: AgentRouting, audience: TurnAudience | undefined): boolean {
   return routing === 'codex-cli' && audience?.kind !== 'guest';
@@ -138,13 +147,29 @@ export async function processViaRouter(
 
   const cfg = getAerieConfig();
   const effectiveProvider = effectiveAgentProvider(effectiveModel, routing, cfg.agent.provider);
+  // A thread on its own model rides a room of its own (thread-model.ts).
+  const ownLaneKey = typeof platformOpts?._laneKey === 'string' && platformOpts._laneKey
+    ? platformOpts._laneKey
+    : null;
+  if (ownLaneKey && routing === 'cli') {
+    seedModelLaneTools(join(PROJECT_ROOT, 'data', 'heartbeat'), ownLaneKey, activeCompanionId || 'primary');
+  }
   let heartbeatThreadLaneKeys: string[] | undefined;
   if (routing === 'cli') {
     try {
-      heartbeatThreadLaneKeys = [...new Set([
+      const roomKeys = [
         'primary',
         ...(activeCompanionId ? [activeCompanionId] : []),
         ...getThreadCompanions(threadId).map((companion) => companion.companion_id),
+      ];
+      heartbeatThreadLaneKeys = [...new Set([
+        ...roomKeys,
+        // The Codex lane writes the same receipt (heartbeat/codex-receipt.ts),
+        // so a scene they had there is not handed back here as missed.
+        CODEX_RECEIPT_LANE,
+        // And so do the model rooms beside them.
+        ...modelLanesBeside(join(PROJECT_ROOT, 'data', 'heartbeat'), roomKeys),
+        ...(ownLaneKey ? [ownLaneKey] : []),
       ])];
     } catch {
       // No roster means no safe cross-lane claim. The missed-message net then
@@ -156,7 +181,7 @@ export async function processViaRouter(
   // some of them has to say so in the turn itself (heartbeat/room-voices.ts).
   // A companion's own lane writes only that companion and needs no line.
   let roomVoices: RoomVoices | null = null;
-  if (routing === 'cli' && !activeCompanionId) {
+  if ((routing === 'cli' || routing === 'codex-cli') && !activeCompanionId) {
     try {
       roomVoices = roomVoicesFor(
         getThreadCompanions(threadId).map((c) => ({
@@ -176,7 +201,12 @@ export async function processViaRouter(
 
   // Check for existing Codex daemon session to resume (lazy-load sessions from DB on first access)
   loadCodexSessionsIfNeeded(runtimeContext.agentState);
-  const codexSessionKey = codexLaneKey(threadId, activeCompanionId);
+  // A guest's turns get a Codex room of their own beside theirs. Codex keeps a
+  // room's settings across a resume, so a guest's locked settings (read-only,
+  // no web search) must never land on the room they talk in, and theirs must
+  // never reach a guest.
+  const codexSessionKey = codexLaneKey(threadId, activeCompanionId)
+    + (turnAudience?.kind === 'guest' ? ':guest' : '');
   const existingCodexSession = runtimeContext.agentState.codexDaemonSessions.get(codexSessionKey);
   const codexTail = routing === 'codex-cli'
     ? getMessages({ threadId, limit: 50 })
@@ -236,6 +266,10 @@ export async function processViaRouter(
       resumeThreadId: existingCodexSession,  // Resume warm session if exists
       resumeHistory,
       aerieThreadId: threadId,  // For loading history on recovery
+      // A guest's turn runs locked: read-only, every ask refused
+      // (runtimes/codex-daemon.ts, GUEST_SANDBOX_POLICY and guestRefusal).
+      guest: turnAudience?.kind === 'guest',
+      onCompacted: () => markCodexCompacted(join(PROJECT_ROOT, 'data', 'heartbeat'), codexSessionKey),
       onTurnHanded: () => {
         if (codexSideNoteHandoverOffset !== undefined) {
           const priorOffset = runtimeContext.agentState.codexSideNoteOffsets.get(codexSessionKey);
@@ -243,6 +277,15 @@ export async function processViaRouter(
             runtimeContext.agentState.codexSideNoteOffsets.set(codexSessionKey, codexSideNoteHandoverOffset);
             persistCodexSideNoteOffset(codexSessionKey, codexSideNoteHandoverOffset);
           }
+        }
+        if (handThroughSequence !== undefined && turnAudience?.kind !== 'guest') {
+          // The same receipt a Claude lane leaves, so the Claude lanes' missed
+          // net can see this lane was handed their messages.
+          writeCodexThreadReceipt(
+            join(PROJECT_ROOT, 'data', 'heartbeat'),
+            threadId,
+            newestHandedUserAt(codexTail, handThroughSequence),
+          );
         }
         if (handThroughSequence !== undefined) {
           const priorSequence = runtimeContext.agentState.codexHandedSequences.get(codexSessionKey);
@@ -264,7 +307,7 @@ export async function processViaRouter(
       },
     },
     cliOptions: {
-      sessionKey: activeCompanionId || 'primary',
+      sessionKey: ownLaneKey || activeCompanionId || 'primary',
       userName: platformOpts?.discordAuthor || cfg.identity.user_name,
       audience: turnAudience,
       companionName:
@@ -329,11 +372,50 @@ export async function processViaRouter(
     // place every lane's prompt is built.
     const platformFrame = platformFrameFor(platform, platformOpts?.platformContext);
 
+    // The Codex lane gets the same per-turn blocks the Claude lane does, from
+    // the same door (heartbeat/turn-extras.ts): the whisper, the unfiled
+    // noticings, the sticker shelf, their reactions, their status, and the line
+    // naming who is in a room that holds only some of us.
+    let codexExtras = '';
+    if (routing === 'codex-cli') {
+      const guest = turnAudience?.kind === 'guest';
+      const markKey = `${codexSessionKey}\u0000${threadId}`;
+      const now = new Date().toISOString();
+      const reactionsSince = guest ? undefined : codexReactionMarks.get(markKey);
+      if (!guest) codexReactionMarks.set(markKey, now);
+      const extras = await buildTurnExtras({
+        prompt: content,
+        laneKey: codexSessionKey,
+        fresh: !existingCodexSession,
+        guest,
+        archive: !turnAudience,
+        roomVoices,
+        threadId,
+        reactionsSince,
+        now,
+      });
+      // The missed-message net, as the Claude lanes have it: theirs this room
+      // was handed as catch-up that no other lane left a receipt for.
+      let missedBanner = '';
+      if (!guest && existingCodexSession) {
+        try {
+          const laneKeys = ['primary', ...getThreadCompanions(threadId).map((c) => c.companion_id)];
+          const elsewhere = latestOtherLaneHandedWatermark(
+            join(PROJECT_ROOT, 'data', 'heartbeat'), laneKeys, CODEX_RECEIPT_LANE, threadId,
+          );
+          const missed = selectCodexMissed(codexTail, lastHandedSequence, handThroughSequence, liveInboundSequence, elsewhere);
+          if (missed.length > 0) missedBanner = missedInboundBanner(missed.length, false) + '\n\n';
+        } catch { /* never delay a turn */ }
+      }
+      const squashNote = takeCodexCompactedNote(join(PROJECT_ROOT, 'data', 'heartbeat'), codexSessionKey);
+      codexExtras = squashNote + missedBanner + joinTurnExtras(extras) + roomVoicesBlock(roomVoices);
+    }
+
     const input = {
       // The handover leads, because a note their person sent into a busy lane is older
       // than the message now arriving and reads as nonsense underneath it.
       prompt: (codexSideNoteHandover ? codexSideNoteHandover + '\n\n' : '')
-        + platformFrame + withdrawn + content,
+        + codexExtras + platformFrame + withdrawn + content,
       model: effectiveModel,
       provider: effectiveProvider,
       systemPrompt,

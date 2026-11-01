@@ -118,10 +118,14 @@ export function toPhoneMessage(km: AerieMessage): PhoneMessage {
     via: discordUsername ? 'Discord' : undefined,
     // Only a guest's message can be about their person; their own rows never are.
     mentionLabel: km.role === 'system' && discordUsername ? ownerMentionLabel(km.metadata) : undefined,
+    // The oldest treehouse rows (May and early June 2026) predate both the
+    // metadata and the voice headers, and name their author only in
+    // companion_id, as a slug. Theirs, Oct 31 2026: a search hit landed on one
+    // and we had no faces. A companion_id that is a uuid matches no slug.
     companionSlug:
       typeof (km.metadata as { companionSlug?: unknown } | null)?.companionSlug === 'string'
         ? ((km.metadata as { companionSlug: string }).companionSlug)
-        : undefined,
+        : km.companion_id ?? undefined,
     segments: extractSegments(km.metadata),
     replyToId: km.reply_to_id ?? undefined,
     replyToPreview: km.reply_to_preview ?? undefined,

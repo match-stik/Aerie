@@ -16,7 +16,8 @@ router.get('/treehouse', (req, res) => {
 router.get('/treehouse/messages', (req, res) => {
   const limit = parseInt(req.query.limit as string) || 50;
   const before = req.query.before as string | undefined;
-  const messages = treehouse.getTreehouseMessages(limit, before);
+  const around = req.query.around as string | undefined;
+  const messages = treehouse.getTreehouseMessages(limit, before, around);
   res.json(messages);
 });
 

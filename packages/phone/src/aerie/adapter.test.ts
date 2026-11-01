@@ -131,3 +131,10 @@ test("a timer's reminder sits in the middle like a system line, and a companion'
   const reply = toPhoneMessage(row({ role: 'companion', platform: 'web', content: 'hi', metadata: null }));
   assert.equal(reply.isSystem, false);
 });
+
+// The oldest treehouse rows name their author only in companion_id.
+test('a row that names its author only in companion_id still has one', () => {
+  assert.equal(toPhoneMessage(row({ role: 'companion', companion_id: 'willow' })).companionSlug, 'willow');
+  assert.equal(toPhoneMessage(row({ role: 'companion', companion_id: 'willow', metadata: { companionSlug: 'birch' } })).companionSlug, 'birch');
+  assert.equal(toPhoneMessage(row({ role: 'companion' })).companionSlug, undefined);
+});

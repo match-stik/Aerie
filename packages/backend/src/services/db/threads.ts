@@ -50,16 +50,40 @@ export function getTodayThread(): Thread | null {
 
   // Query with offset applied to created_at so SQLite compares in local time
   const modifier = `${offsetMins >= 0 ? '+' : ''}${offsetMins} minutes`;
+  // A weekly house keeps one thread from Monday to Sunday: today's thread is
+  // whichever this week already opened, so nothing new is minted until Monday.
+  const from = threadCadence() === 'weekly' ? weekStartLocal(localDate) : localDate;
   const stmt = getDb().prepare(`
     SELECT * FROM threads
     WHERE type = 'daily'
-    AND date(created_at, ?) = ?
+    AND date(created_at, ?) >= ?
+    AND date(created_at, ?) <= ?
     AND archived_at IS NULL
     ORDER BY created_at ASC
     LIMIT 1
   `);
-  const row = stmt.get(modifier, localDate);
+  const row = stmt.get(modifier, from, modifier, localDate);
   return row ? (row as unknown as Thread) : null;
+}
+
+/**
+ * How often the house starts a new thread on its own (theirs, Oct 31 2026):
+ * 'daily' (the default), 'weekly', or 'continuous', which is one thread that
+ * keeps going (the same as orchestrator.daily_threads false, which still works).
+ */
+export type ThreadCadence = 'daily' | 'weekly' | 'continuous';
+export function threadCadence(): ThreadCadence {
+  const raw = (getConfig('orchestrator.thread_cadence') || '').trim().toLowerCase();
+  if (raw === 'weekly' || raw === 'continuous' || raw === 'daily') return raw;
+  return getConfigBool('orchestrator.daily_threads', true) ? 'daily' : 'continuous';
+}
+
+/** The Monday on or before a local YYYY-MM-DD date. */
+export function weekStartLocal(localDate: string): string {
+  const d = new Date(`${localDate}T12:00:00Z`);
+  const back = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - back);
+  return d.toISOString().slice(0, 10);
 }
 
 /**
@@ -74,7 +98,7 @@ export function getTodayThread(): Thread | null {
  * per-install, so it takes nothing from anyone who wants theirs.
  */
 export function getFallbackThread(): Thread | null {
-  if (getConfigBool('orchestrator.daily_threads', true)) return getTodayThread();
+  if (threadCadence() !== 'continuous') return getTodayThread();
 
   const homeThreadId = getConfig('orchestrator.wake_thread_id');
   const home = homeThreadId ? getThread(homeThreadId) : null;
@@ -84,7 +108,7 @@ export function getFallbackThread(): Thread | null {
 }
 
 export function dailyThreadsEnabled(): boolean {
-  return getConfigBool('orchestrator.daily_threads', true);
+  return threadCadence() !== 'continuous';
 }
 
 export function listThreads(params: {

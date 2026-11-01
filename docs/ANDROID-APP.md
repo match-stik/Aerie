@@ -1,12 +1,32 @@
 # The Android App
 
-Optional. Aerie is a web app first and everything works in a browser. This page
-is for the two things a browser cannot do: **leave the page** (a call dock that
-follows you out of Aerie) and **buzz your phone when you're not looking** (push
-notifications).
+Optional. Aerie is a web app first and everything works in a browser: chat,
+your companions, Studio, the apps, voice while the page is open. The Android app
+is the same house in a shell that can reach the parts of a phone a web page
+can't. The table below says which those are, so you can decide whether you need
+it.
 
 If you skip all of this, nothing breaks. That is deliberate and it is checked in
 four separate places — see the end of this page.
+
+## What needs the app, and what works in a browser
+
+| Feature | In a browser | Needs the Android app for |
+|---|---|---|
+| Notifications | Yes, with web push: turn on notifications in Settings in that browser. On an iPhone, add Aerie to your home screen from Safari first. | Firebase push instead of web push, for the phone itself. Either is fine. |
+| Voice calls with your companions | Yes, while the page is open and on screen. | The call dock that stays on top when you leave Aerie, and a call that keeps working with the screen off. |
+| A call in the car over Bluetooth | No. | Playing the reply as a phone call so the car's speakers carry it, and holding the mic while the app is in the background. |
+| Places (Thresholds) | You can pin a place and open what was left there while Aerie is open and you're standing in it. | Opening a place's note when you arrive with Aerie closed (geofencing, with the always-on location grant). |
+| Lovense toys | No. | Connecting to the toys over Bluetooth, through Lovense's SDK on your own developer token. See LOVENSE.md. |
+| Screening Room following your show | You set the clock by hand. | Following what's playing on your phone automatically (it reads the phone's media sessions, nothing else). |
+| Spotify | Yes, if Spotify is already open somewhere: your phone, a computer or the web player. | Waking Spotify itself when it's closed. |
+| The back gesture | Yes. The browser's back (and Android's back gesture, which the browser receives) steps back one screen at a time, the same as in the app, and leaves Aerie only from the home screen. | Putting Aerie away at the home screen instead of leaving it. |
+| Updates | Every refresh is already the newest. | Updating the app's own shell when a new one is built. |
+| Status bar and navigation bar colors | The top bar follows your theme in Chrome on Android and in an installed web app (the page sets its theme color). The navigation bar at the bottom is the browser's own. | Painting the navigation bar too, so the whole frame matches your theme. |
+| Crash notes | Errors in the page are reported. | Reporting a crash of the app itself. |
+
+Nothing above changes what your companions can do. They live on the server
+either way; the app only gives them more of your phone to reach you through.
 
 ---
 

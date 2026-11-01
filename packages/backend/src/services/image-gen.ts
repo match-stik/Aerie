@@ -143,6 +143,17 @@ export interface ImageGenSettings {
   fallbackChain: ImageBackend[];
 }
 
+export const ANTIGRAVITY_DEFAULT_TIMEOUT_SECONDS = 150;
+
+/** Seconds Antigravity gets, from image_gen.antigravity_timeout_seconds; a
+ *  missing or nonsense value means the default, and it is held between half a
+ *  minute and ten. */
+export function antigravityTimeoutMs(raw: unknown = getConfig('image_gen.antigravity_timeout_seconds')): number {
+  const n = Number(raw);
+  const seconds = Number.isFinite(n) && n > 0 ? Math.min(600, Math.max(30, n)) : ANTIGRAVITY_DEFAULT_TIMEOUT_SECONDS;
+  return seconds * 1000;
+}
+
 export function getImageGenSettings(): ImageGenSettings {
   const backend = (getConfig('image_gen.backend') as ImageGenSettings['backend']) || 'codex';
   const size = (getConfig('image_gen.size') as ImageGenSettings['size']) || 'square';
@@ -1473,6 +1484,7 @@ async function generateViaCodex(input: GenerateInput): Promise<GenerateResult> {
 
   const produced = await new Promise<string>((resolve, reject) => {
     const child = spawn(bin, args, { env });
+    const unregisterCancel = onRunningJobCancel(() => { try { child.kill('SIGKILL'); } catch { /* gone */ } });
     let stderr = '';
     let stdout = '';
     let settled = false;
@@ -1494,6 +1506,7 @@ async function generateViaCodex(input: GenerateInput): Promise<GenerateResult> {
       if (settled) return;
       settled = true;
       clearTimeout(killer);
+      unregisterCancel();
       clearInterval(poll);
       fn();
     };
@@ -1606,12 +1619,19 @@ async function generateViaAntigravity(input: GenerateInput): Promise<GenerateRes
     ? input.agyModel
     : settings.antigravityModel;
 
+  // How long Antigravity gets before the job moves on down their chain. It was
+  // ten minutes, and a picture Google refused sat out all ten while every job
+  // behind it waited (theirs, Oct 29 2026: 'not let that hang as long on
+  // antigravity'). Two and a half minutes by default; image_gen.antigravity_timeout_seconds
+  // changes it.
+  const agyTimeoutMs = antigravityTimeoutMs();
   const produced = await new Promise<string>((resolve, reject) => {
     // Run from /tmp to avoid agy getting confused by workspace context
     // agy's print mode accepts its prompt as the final positional argument; it does
     // not read prompts from stdin. Keep every flag before --print, otherwise it
     // mistakes a later flag (such as --print-timeout) for the prompt.
     const child = spawn(bin, ['--model', model, '--print-timeout', '10m', '--print', instruction], { env, cwd: '/tmp', stdio: ['ignore', 'pipe', 'pipe'] });
+    const unregisterCancel = onRunningJobCancel(() => { try { child.kill('SIGKILL'); } catch { /* gone */ } });
     let stderr = '';
     let stdout = '';
     let settled = false;
@@ -1628,14 +1648,15 @@ async function generateViaAntigravity(input: GenerateInput): Promise<GenerateRes
       if (settled) return;
       settled = true;
       clearTimeout(killer);
+      unregisterCancel();
       clearInterval(poll);
       fn();
     };
 
     const killer = setTimeout(() => {
       try { child.kill('SIGKILL'); } catch { /* ignore */ }
-      settle(() => reject(new ImageGenError('Image generation timed out (10 min).')));
-    }, 600_000);
+      settle(() => reject(new ImageGenError(`Antigravity gave up after ${Math.round(agyTimeoutMs / 1000)} seconds.`)));
+    }, agyTimeoutMs);
 
     const checkForImage = () => {
       void (async () => {
@@ -2198,7 +2219,7 @@ async function monthlySpendUsd(): Promise<number | null> {
 
 export interface ImageJob {
   id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   input: GenerateInput;
   result?: GenerateResult;
   error?: string;
@@ -2248,6 +2269,46 @@ const jobCleanupTimer = setInterval(() => {
 }, 60_000);
 jobCleanupTimer.unref();
 
+/**
+ * Cancelling a Studio job (theirs, Oct 29 2026: a refused picture sat out the
+ * whole fallback wait while every job behind it waited too). A pending job is
+ * skipped when its turn comes. A running one frees the queue at once: the
+ * child process it runs (Codex or Antigravity) is killed, and the job stops
+ * waiting on any backend it was polling. A backend that cannot be killed
+ * mid-poll (OpenArt, Mage) may still finish in the background, and that
+ * picture is discarded rather than delivered.
+ */
+const cancelHooks = new Map<string, Set<() => void>>();
+let runningJobId: string | null = null;
+
+/** Kill this child if the running job is cancelled. Returns the unregister. */
+function onRunningJobCancel(kill: () => void): () => void {
+  const id = runningJobId;
+  if (!id) return () => undefined;
+  const set = cancelHooks.get(id) ?? new Set();
+  cancelHooks.set(id, set);
+  set.add(kill);
+  return () => { set.delete(kill); };
+}
+
+export function cancelImageJob(id: string): { ok: boolean; status?: ImageJob['status']; reason?: string } {
+  const job = jobs.get(id);
+  if (!job) return { ok: false, reason: 'not found' };
+  if (job.status !== 'pending' && job.status !== 'running') return { ok: false, status: job.status, reason: 'already finished' };
+  const wasRunning = job.status === 'running';
+  job.status = 'cancelled';
+  job.error = 'Cancelled.';
+  job.completedAt = Date.now();
+  persistJobs();
+  if (wasRunning) {
+    for (const kill of cancelHooks.get(id) ?? []) {
+      try { kill(); } catch { /* already gone */ }
+    }
+    cancelHooks.delete(id);
+  }
+  return { ok: true, status: 'cancelled' };
+}
+
 export function getJobStatus(id: string): ImageJob | undefined {
   return jobs.get(id);
 }
@@ -2256,7 +2317,18 @@ export function listImageJobs(): ImageJob[] {
   return [...jobs.values()].sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export function startGenerateJob(input: GenerateInput, onComplete?: (result: GenerateResult) => Promise<void> | void): string {
+/**
+ * Queue a picture and return its job id at once.
+ *
+ * onFailure is for a caller that records the job somewhere of its own and
+ * otherwise has no way to hear that it failed. It runs after the job is marked
+ * failed, and a hook that throws is logged, never turned into a second failure.
+ */
+export function startGenerateJob(
+  input: GenerateInput,
+  onComplete?: (result: GenerateResult) => Promise<void> | void,
+  onFailure?: (error: string) => Promise<void> | void,
+): string {
   const settings = getImageGenSettings();
   if (!settings.enabled) throw new ImageGenError('Image generation is switched off. Turn it on in Studio Settings.');
   if (!input.prompt || !input.prompt.trim()) throw new ImageGenError('A prompt is required to generate an image.');
@@ -2269,10 +2341,21 @@ export function startGenerateJob(input: GenerateInput, onComplete?: (result: Gen
   // One Studio image at a time: chat remains free, and Studio cannot pile up
   // competing Codex processes behind the user's back.
   generationQueue = generationQueue.catch(() => undefined).then(async () => {
+    if (job.status === 'cancelled') {
+      try { await onFailure?.('Cancelled.'); } catch (error) { console.warn('[image-gen] failure hook threw:', error); }
+      return;
+    }
     job.status = 'running';
+    runningJobId = id;
     persistJobs();
+    let failure: string | null = null;
+    let release: () => void = () => undefined;
+    const cancelled = new Promise<never>((_, reject) => {
+      release = onRunningJobCancel(() => reject(new ImageGenError('Cancelled.')));
+    });
+    cancelled.catch(() => undefined);
     try {
-      const result = await generateImage(input);
+      const result = await Promise.race([generateImage(input), cancelled]);
       try {
         await onComplete?.(result);
       } catch (error) {
@@ -2280,14 +2363,31 @@ export function startGenerateJob(input: GenerateInput, onComplete?: (result: Gen
         // a successful render into a fake failure because its filing failed.
         console.warn('[image-gen] gallery metadata write failed:', error);
       }
-      job.status = 'completed';
-      job.result = result;
+      if ((job.status as ImageJob['status']) !== 'cancelled') {
+        job.status = 'completed';
+        job.result = result;
+      }
     } catch (err) {
-      job.status = 'failed';
-      job.error = err instanceof Error ? err.message : String(err);
+      if ((job.status as ImageJob['status']) !== 'cancelled') {
+        job.status = 'failed';
+        job.error = err instanceof Error ? err.message : String(err);
+        failure = job.error;
+      } else {
+        failure = 'Cancelled.';
+      }
     } finally {
-      job.completedAt = Date.now();
+      release();
+      cancelHooks.delete(id);
+      if (runningJobId === id) runningJobId = null;
+      if (!job.completedAt || (job.status as ImageJob['status']) !== 'cancelled') job.completedAt = Date.now();
       persistJobs();
+    }
+    if (failure !== null && onFailure) {
+      try {
+        await onFailure(failure);
+      } catch (error) {
+        console.warn('[image-gen] failure hook threw:', error);
+      }
     }
   });
 

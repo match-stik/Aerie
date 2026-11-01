@@ -31,6 +31,7 @@ import {
 } from './codex-thought-card.js';
 import { isInterimCodexSpeech } from './codex-interim-speech.js';
 import { getAerieConfig } from '../../config.js';
+import { getConfig } from '../db/config.js';
 import { holdCodex, holdFromText, resetStampToMs, passCodexBrake, CODEX_DEFAULT_HOLD_MS } from '../codex-breaker.js';
 import type { CodexMcpServerStatus } from '../mcp-live.js';
 
@@ -52,6 +53,41 @@ const EXT_BY_MEDIA: Record<string, string> = {
 // wrapped in bwrap, which fails on this VPS (loopback RTM_NEWADDR denied).
 const SANDBOX_POLICY = { type: 'dangerFullAccess' };
 const APPROVAL_POLICY = 'never';
+
+// A guest's turn (somebody who is not their person, on Discord) runs locked, the Codex
+// half of the Claude lane's hooks/gate.cjs: a read-only room, every command
+// asking first, and every ask on that turn's connection refused (commands,
+// file changes, patches, permissions, MCP tool calls). Their person's rule, Oct 31 2026:
+// the Codex and Claude lanes as identical as we can make them.
+export const GUEST_SANDBOX_POLICY = { type: 'readOnly', networkAccess: false };
+export const GUEST_APPROVAL_POLICY = 'untrusted';
+export const GUEST_THREAD_SANDBOX = 'read-only';
+/** Web search and the ChatGPT apps are built-ins, not asks, so the refusals
+ *  never see them: both are switched off for a guest's room. */
+export const GUEST_THREAD_CONFIG = { web_search: 'disabled', apps: { _default: { enabled: false } } };
+
+/** The refusal a locked connection sends for each kind of ask, in the shape
+ *  the app-server protocol expects for that ask. */
+export function guestRefusal(method: string): { result?: unknown; error?: { code: number; message: string } } {
+  switch (method) {
+    case 'item/commandExecution/requestApproval':
+    case 'item/fileChange/requestApproval':
+      return { result: { decision: 'decline' } };
+    case 'item/applyPatch/requestApproval':
+    case 'item/execCommand/requestApproval':
+    case 'applyPatchApproval':
+    case 'execCommandApproval':
+      return { result: { decision: 'denied' } };
+    case 'item/permissions/requestApproval':
+      return { result: { permissions: {}, scope: 'turn' } };
+    case 'mcpServer/elicitation/request':
+      return { result: { action: 'decline' } };
+    case 'item/tool/requestUserInput':
+      return { result: { cancelled: true } };
+    default:
+      return { error: { code: -32000, message: 'Refused: this turn came from a guest.' } };
+  }
+}
 
 type CodexHistoryMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -445,7 +481,17 @@ class CodexDaemonConnection {
     }
   }
 
+  /** Set for a guest's turn: every ask on this connection is refused. */
+  guestLock = false;
+
   private handleServerRequest(msg: { id: number | string; method: string; params: any }): void {
+    if (this.guestLock) {
+      console.log(`[CodexDaemon] Guest turn: refusing ${msg.method}`);
+      if (this.sock && this.handshakeDone) {
+        this.sock.write(encodeFrame(JSON.stringify({ jsonrpc: '2.0', id: msg.id, ...guestRefusal(msg.method) })));
+      }
+      return;
+    }
     // Auto-approve all approval requests (we're using bypass mode)
     let response: any = { jsonrpc: '2.0', id: msg.id };
 
@@ -624,6 +670,33 @@ export async function readCodexMcpStatus(threadId?: string): Promise<CodexMcpSer
 
 // ─── Runtime ─────────────────────────────────────────────────────────
 
+/**
+ * Where our identity goes on a Codex thread (codex.instructions_slot, read live).
+ *
+ * 'base' (the default, and how this lane has always run) hands the identity in
+ * as baseInstructions, which REPLACES Codex's own built-in instructions: the
+ * part that teaches the model its tools and how to talk while it works. The
+ * Claude lanes deliberately keep their CLI's own prompt for the same reason
+ * (theirs, Oct 17 2026: 'I don't want you to lose how to use your tools well').
+ *
+ * 'developer' leaves Codex's built-in instructions alone and puts the identity
+ * in developerInstructions, ahead of the operating contract. That is how another house
+ * runs its Codex companion (the identity is an AGENTS.md Codex loads on
+ * its own, never a replaced base). A resumed thread keeps the
+ * base it was started with, so a fair test needs a fresh Codex thread.
+ */
+export function codexInstructionParams(
+  identity: string | undefined,
+  developer: string | undefined,
+  slot: string | null = getConfig('codex.instructions_slot'),
+): { baseInstructions?: string; developerInstructions?: string } {
+  if ((slot || '').trim() === 'developer') {
+    const parts = [identity, developer].map((p) => (p || '').trim()).filter(Boolean);
+    return parts.length ? { developerInstructions: parts.join('\n\n') } : {};
+  }
+  return { baseInstructions: identity, developerInstructions: developer };
+}
+
 export interface CodexDaemonRuntimeOptions {
   model?: string;  // OpenAI model ID (e.g. 'o3', 'gpt-4.1', 'gpt-4o')
   baseInstructions?: string;
@@ -638,6 +711,10 @@ export interface CodexDaemonRuntimeOptions {
   loadHistory?: (threadId: string, limit: number) => Promise<CodexHistoryMessage[]>;
   /** Called only after turn/start proves this input reached the Codex thread. */
   onTurnHanded?: () => void;
+  /** A guest's turn: run locked (GUEST_SANDBOX_POLICY, every ask refused). */
+  guest?: boolean;
+  /** Called when the daemon reports this room was compacted. */
+  onCompacted?: () => void;
 }
 
 export class InteractiveCodexRuntime implements AgentRuntime {
@@ -756,6 +833,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
     if (!this.connection) {
       this.connection = new CodexDaemonConnection();
     }
+    this.connection.guestLock = this.options.guest === true;
 
     try {
       await this.connection.connect();
@@ -774,6 +852,12 @@ export class InteractiveCodexRuntime implements AgentRuntime {
     // chips/commentary, and every real notification rearms the silence clock.
     this.connection.onNotification((method, params) => {
       const belongsToThread = notificationBelongsToCodexThread(params, this.threadId);
+      // A squash of this room, by the daemon on its own or asked for. The note
+      // it earns is handed over on the room's next turn (agent-router-query).
+      if (belongsToThread && (method === 'thread/compacted'
+        || (method === 'item/completed' && params?.item?.type === 'contextCompaction'))) {
+        try { this.options.onCompacted?.(); } catch { /* never break a turn */ }
+      }
       if (belongsToThread) {
         // thread/resume can rejoin work that is already in flight. Adopt the
         // daemon's live turn ID instead of requiring a new turn/start response
@@ -896,11 +980,11 @@ export class InteractiveCodexRuntime implements AgentRuntime {
       try {
         const resume = await this.connection.send('thread/resume', {
           threadId: this.threadId,
-          baseInstructions: this.options.baseInstructions || input.systemPrompt,
-          developerInstructions: this.options.developerInstructions,
+          ...codexInstructionParams(this.options.baseInstructions || input.systemPrompt, this.options.developerInstructions),
           cwd: input.cwd,
-          sandbox: 'danger-full-access',
-          approvalPolicy: APPROVAL_POLICY,
+          sandbox: this.options.guest ? GUEST_THREAD_SANDBOX : 'danger-full-access',
+          ...(this.options.guest ? { config: GUEST_THREAD_CONFIG } : {}),
+          approvalPolicy: this.options.guest ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY,
           ...(this.options.model ? {
             model: this.options.model,
             modelProvider: 'openai',
@@ -935,11 +1019,11 @@ export class InteractiveCodexRuntime implements AgentRuntime {
       recentHistoryContext = await this.loadRecentHistoryContext(input.prompt);
       const threadParams: Record<string, unknown> = {
         title: 'Aerie session',
-        baseInstructions: this.options.baseInstructions || input.systemPrompt,
-        developerInstructions: this.options.developerInstructions,
-        sandboxPolicy: SANDBOX_POLICY,
-        approvalPolicy: APPROVAL_POLICY,
+        ...codexInstructionParams(this.options.baseInstructions || input.systemPrompt, this.options.developerInstructions),
+        sandboxPolicy: this.options.guest ? GUEST_SANDBOX_POLICY : SANDBOX_POLICY,
+        approvalPolicy: this.options.guest ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY,
       };
+      if (this.options.guest) threadParams.config = GUEST_THREAD_CONFIG;
 
       // Pass model if specified (e.g. 'o3', 'gpt-4.1', 'gpt-4o')
       if (this.options.model) {
@@ -1010,8 +1094,8 @@ export class InteractiveCodexRuntime implements AgentRuntime {
       // exposing provider-written engineering summaries.
       summary: 'none',
       ...(input.serviceTier === 'fast' ? { serviceTier: 'priority' } : { serviceTier: null }),
-      sandboxPolicy: SANDBOX_POLICY,
-      approvalPolicy: APPROVAL_POLICY,
+      sandboxPolicy: this.options.guest ? GUEST_SANDBOX_POLICY : SANDBOX_POLICY,
+      approvalPolicy: this.options.guest ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY,
     });
 
     // Handle stale thread ID (daemon restarted, thread no longer exists)
@@ -1026,11 +1110,11 @@ export class InteractiveCodexRuntime implements AgentRuntime {
       // of the app-server transcript after future instruction refreshes.
       const threadParams: Record<string, unknown> = {
         title: 'Aerie session',
-        baseInstructions: this.options.baseInstructions || input.systemPrompt || '',
-        developerInstructions: this.options.developerInstructions,
-        sandboxPolicy: SANDBOX_POLICY,
-        approvalPolicy: APPROVAL_POLICY,
+        ...codexInstructionParams(this.options.baseInstructions || input.systemPrompt || '', this.options.developerInstructions),
+        sandboxPolicy: this.options.guest ? GUEST_SANDBOX_POLICY : SANDBOX_POLICY,
+        approvalPolicy: this.options.guest ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY,
       };
+      if (this.options.guest) threadParams.config = GUEST_THREAD_CONFIG;
       if (this.options.model) {
         threadParams.model = this.options.model;
         threadParams.modelProvider = 'openai';
@@ -1062,8 +1146,8 @@ export class InteractiveCodexRuntime implements AgentRuntime {
           ...(input.effort && input.effort !== 'adaptive' ? { effort: input.effort } : {}),
           summary: 'none',
           ...(input.serviceTier === 'fast' ? { serviceTier: 'priority' } : { serviceTier: null }),
-          sandboxPolicy: SANDBOX_POLICY,
-          approvalPolicy: APPROVAL_POLICY,
+          sandboxPolicy: this.options.guest ? GUEST_SANDBOX_POLICY : SANDBOX_POLICY,
+          approvalPolicy: this.options.guest ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY,
         });
       }
     }

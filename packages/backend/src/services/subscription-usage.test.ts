@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseClaudeUsage, parseCodexTokenCountLine } from './subscription-usage.js';
+import { parseClaudeUsage, parseCodexLiveUsage, parseCodexTokenCountLine } from './subscription-usage.js';
 
 test('parses a real-shaped Claude usage payload', () => {
   const usage = parseClaudeUsage({
@@ -222,4 +222,32 @@ test('a failed Claude read hands back the last good reading, labelled stale with
 
   const fresh = await claudeUsageOrLastGood(async () => good, { at, data: good });
   assert.equal(fresh.stale, undefined, 'a fresh reading carries no label');
+});
+
+test('parses the live Codex usage answer into the stamp shape', () => {
+  const readAt = new Date('2026-11-01T13:20:00.000Z');
+  const usage = parseCodexLiveUsage({
+    plan_type: 'plus',
+    rate_limit: {
+      limit_reached: false,
+      primary_window: { used_percent: 12, limit_window_seconds: 18000, reset_at: 1793557166 },
+      secondary_window: { used_percent: 55, limit_window_seconds: 604800, reset_at: 1793783807 },
+    },
+    credits: { has_credits: false, unlimited: false, balance: '0' },
+  }, readAt);
+  assert.ok(usage);
+  assert.equal(usage.usedPercent, 12);
+  assert.equal(usage.windowMinutes, 300);
+  assert.equal(usage.resetsAt, new Date(1793557166 * 1000).toISOString());
+  assert.equal(usage.secondary?.usedPercent, 55);
+  assert.equal(usage.secondary?.windowMinutes, 10080);
+  assert.equal(usage.capturedAt, readAt.toISOString());
+  assert.equal(usage.planType, 'plus');
+  assert.equal(usage.creditsBalance, '0');
+  assert.equal(usage.limitReached, null);
+});
+
+test('a live Codex answer with no window is not a reading', () => {
+  assert.equal(parseCodexLiveUsage({ plan_type: 'plus' }, new Date()), null);
+  assert.equal(parseCodexLiveUsage({ rate_limit: { primary_window: {} } }, new Date()), null);
 });

@@ -13,6 +13,8 @@ export interface Thread {
   last_activity_at: string | null;
   unread_count: number;
   pinned_at: string | null;
+  /** This thread's own model; null rides the house model. */
+  model?: string | null;
 }
 
 export type Platform = 'web' | 'discord' | 'telegram' | 'api';
@@ -240,6 +242,8 @@ export interface ThreadSummary {
   last_activity_at: string | null;
   last_message_preview: string | null;
   pinned_at: string | null;
+  /** This thread's own model; null rides the house model. */
+  model?: string | null;
 }
 
 export interface SearchResult {

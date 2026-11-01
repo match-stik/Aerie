@@ -31,6 +31,8 @@ export interface ThreadSummary {
   last_activity_at: string | null;
   last_message_preview: string | null;
   pinned_at: string | null;
+  /** This thread's own model; null or absent rides the house model. */
+  model?: string | null;
 }
 
 export interface Reaction {

@@ -2,6 +2,8 @@
 import { parse as parseCookie } from 'cookie';
 import { Router, type Response as ExpressResponse } from 'express';
 import crypto from 'crypto';
+import { writeThreadExport, type ExportedFile } from '../services/thread-export.js';
+import yazl from 'yazl';
 import { settingsForClient } from '../services/settings-view.js';
 import { fileIdsInUse } from '../services/file-references.js';
 import { pipeWholeStream, wakeWholeStreamWaiters, wholeFromFinished } from '../services/tts-whole.js';
@@ -803,6 +805,7 @@ router.get('/threads', (req, res) => {
           created_at: lastMsg.created_at,
         } : null,
         pinned_at: thread.pinned_at ?? null,
+        model: thread.model ?? null,
       };
     });
 
@@ -850,6 +853,63 @@ router.post('/threads', (req, res) => {
   } catch (error) {
     console.error('Error creating thread:', error);
     res.status(500).json({ error: 'Failed to create thread' });
+  }
+});
+
+// The whole thread, from the house (services/thread-export.ts): every message,
+// or only those between ?from= and ?to= (dates, YYYY-MM-DD, to inclusive).
+// ?format=zip packs the conversation as text with every picture beside it in
+// a pictures/ folder the text points at, streamed as it is built so a thread
+// of gigabytes never sits in memory; pictures go in as stored, since they are
+// already compressed, and the text is deflated. Sent as an attachment, the
+// one signal the Android app's download listener answers.
+router.get('/threads/:id/export', (req, res) => {
+  try {
+    const thread = getThread(req.params.id);
+    if (!thread) { res.status(404).json({ error: 'Thread not found' }); return; }
+    const isDay = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const from = isDay(req.query.from) ? `${req.query.from}T00:00:00.000Z` : undefined;
+    const to = isDay(req.query.to)
+      ? new Date(Date.parse(`${req.query.to}T00:00:00.000Z`) + 86_400_000).toISOString()
+      : undefined;
+    const zip = req.query.format === 'zip';
+    const config = getAerieConfig();
+    const day = new Date().toISOString().slice(0, 10);
+    const slug = String(thread.name || 'thread').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'thread';
+    const range = from || to ? `-${(req.query.from as string) || 'start'}-to-${(req.query.to as string) || day}` : '';
+    const base = `aerie-${slug}${range}-${day}`;
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const opts = {
+      userName: config.identity.user_name || 'You',
+      companionsName: config.identity.companion_name || 'Companions',
+      origin, from, to,
+    };
+    const heading = `${thread.name || 'Thread'} - exported ${new Date().toLocaleString('en-US')}\n\n`;
+
+    if (!zip) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${base}.txt"`);
+      res.write(heading);
+      writeThreadExport(thread.id, opts, (chunk) => { res.write(chunk); });
+      res.end();
+      return;
+    }
+
+    const files: ExportedFile[] = [];
+    const parts: string[] = [heading];
+    writeThreadExport(thread.id, { ...opts, onFile: (f) => files.push(f) }, (chunk) => { parts.push(chunk); });
+    const archive = new yazl.ZipFile();
+    archive.addBuffer(Buffer.from(parts.join(''), 'utf8'), 'conversation.txt', { compress: true });
+    for (const f of files) archive.addFile(f.path, f.name, { compress: false });
+    archive.end();
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${base}.zip"`);
+    archive.outputStream.pipe(res);
+    archive.outputStream.on('error', (err: Error) => { console.error('Export zip failed:', err); res.end(); });
+  } catch (error) {
+    console.error('Error exporting thread:', error);
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to export thread' });
+    else res.end();
   }
 });
 
@@ -1761,8 +1821,21 @@ router.patch('/threads/:id', (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
+    // A thread's own model (services/agent/thread-model.ts): a model id, or
+    // null or '' to put it back on the house model. Absent leaves it alone.
+    const hasModel = Object.prototype.hasOwnProperty.call(req.body ?? {}, 'model');
+    const rawModel = hasModel ? req.body.model : undefined;
 
-    if (!name || typeof name !== 'string') {
+    if (hasModel && rawModel !== null && typeof rawModel !== 'string') {
+      res.status(400).json({ error: 'model must be a model id, or null for the house model' });
+      return;
+    }
+    const model = typeof rawModel === 'string' ? rawModel.trim().slice(0, 200) : null;
+    if (!hasModel && (!name || typeof name !== 'string')) {
+      res.status(400).json({ error: 'Thread name required' });
+      return;
+    }
+    if (name !== undefined && (typeof name !== 'string' || !name.trim())) {
       res.status(400).json({ error: 'Thread name required' });
       return;
     }
@@ -1774,19 +1847,21 @@ router.patch('/threads/:id', (req, res) => {
     }
 
     const db = getDb();
-    db.prepare('UPDATE threads SET name = ? WHERE id = ?').run(name, id);
+    if (typeof name === 'string') db.prepare('UPDATE threads SET name = ? WHERE id = ?').run(name, id);
+    if (hasModel) db.prepare('UPDATE threads SET model = ? WHERE id = ?').run(model || null, id);
 
     // Broadcast updated thread to all clients
     registry.broadcast({
       type: 'thread_updated',
       thread: {
         id: thread.id,
-        name,
+        name: typeof name === 'string' ? name : thread.name,
         type: thread.type,
         unread_count: thread.unread_count,
         last_activity_at: thread.last_activity_at,
         last_message_preview: null,
         pinned_at: thread.pinned_at ?? null,
+        model: hasModel ? (model || null) : (thread.model ?? null),
       },
     });
 
@@ -2151,8 +2226,9 @@ router.get('/push/subscriptions', (req, res) => {
 router.post('/push/test', async (req, res) => {
   try {
     const pushService = req.app.locals.pushService as PushService | undefined;
-    if (!pushService?.isConfigured()) {
-      res.status(503).json({ error: 'Push not configured — add the Firebase service-account JSON as fcm_service_account in Settings → Keys.' });
+    const hasWebPush = listPushSubscriptions().some(s => s.type === 'web_push');
+    if (!pushService || (!pushService.isConfigured() && !hasWebPush)) {
+      res.status(503).json({ error: 'Push not configured — turn on notifications in this browser (Settings), or add the Firebase service-account JSON as fcm_service_account in Settings → Keys for the Android app.' });
       return;
     }
 

@@ -684,6 +684,9 @@ export function initDb(dbPath: string): Database.Database {
   // Add companion_id columns
   try { db.exec('ALTER TABLE messages ADD COLUMN companion_id TEXT'); } catch {}
   try { db.exec('ALTER TABLE threads ADD COLUMN default_companion_id TEXT'); } catch {}
+  // A thread's own model (theirs, Oct 31 2026: the per-thread model picker).
+  // Null means the house model, which is every thread until they pick one.
+  try { db.exec('ALTER TABLE threads ADD COLUMN model TEXT'); } catch {}
   // usage_events is created BELOW, so its ALTER lives below too. It used to sit
   // on this line and it could never have worked on a new install: the table did
   // not exist yet, the ALTER threw "no such table", the empty catch ate it, and

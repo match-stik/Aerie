@@ -14,9 +14,11 @@
 
 import { createSign } from 'crypto';
 import { registry } from './ws/connection-registry.js';
-import { getSecret } from './secrets.js';
+import { getSecret, setSecret } from './secrets.js';
+import webpush from 'web-push';
 import {
   listPushSubscriptions,
+  removePushSubscription,
   removePushSubscriptionByToken,
   touchPushSubscriptionById,
 } from './db/push.js';
@@ -84,9 +86,72 @@ export class PushService {
     return this.account !== null;
   }
 
-  /** Legacy web-push subscribe path — always null now; the APK uses FCM. */
+  /**
+   * Web push, for people running the house in a browser instead of the APK
+   * (theirs, Oct 29 2026: both options in the kit). The VAPID pair is made the
+   * first time a browser asks for it and kept in the secrets store, so it
+   * never changes under a device that already subscribed. Nothing here caches
+   * the app or touches a fetch: the service worker that receives these only
+   * shows a notification and opens the right thread on a tap (push-sw.js).
+   */
   getVapidPublicKey(): string | null {
-    return null;
+    return this.vapidKeys()?.publicKey ?? null;
+  }
+
+  private vapidKeys(): { publicKey: string; privateKey: string } | null {
+    try {
+      let publicKey = getSecret('vapid_public_key');
+      let privateKey = getSecret('vapid_private_key');
+      if (!publicKey || !privateKey) {
+        const made = webpush.generateVAPIDKeys();
+        setSecret('vapid_public_key', made.publicKey);
+        setSecret('vapid_private_key', made.privateKey);
+        publicKey = made.publicKey;
+        privateKey = made.privateKey;
+        console.log('PushService: made a VAPID key pair for web push.');
+      }
+      return { publicKey, privateKey };
+    } catch (err) {
+      console.warn('PushService: no VAPID keys for web push:', err);
+      return null;
+    }
+  }
+
+  /** Web push to every browser that turned it on; answers how many took it. */
+  private async sendWebPush(payload: PushPayload): Promise<number> {
+    const subs = listPushSubscriptions().filter(s => s.type === 'web_push' && s.endpoint && s.keys_p256dh && s.keys_auth);
+    if (subs.length === 0) return 0;
+    const keys = this.vapidKeys();
+    if (!keys) return 0;
+    const body = JSON.stringify({
+      title: payload.title,
+      body: payload.body,
+      ...(payload.threadId ? { threadId: payload.threadId } : {}),
+      ...(payload.tag ? { tag: payload.tag } : {}),
+      ...(payload.url ? { url: payload.url } : {}),
+    });
+    let taken = 0;
+    await Promise.all(subs.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint!, keys: { p256dh: sub.keys_p256dh!, auth: sub.keys_auth! } },
+          body,
+          { vapidDetails: { subject: 'mailto:aerie@localhost', publicKey: keys.publicKey, privateKey: keys.privateKey }, TTL: 3600 },
+        );
+        touchPushSubscriptionById(sub.id);
+        taken++;
+      } catch (err) {
+        const status = (err as { statusCode?: number }).statusCode;
+        // Gone for good: the browser dropped this subscription.
+        if (status === 404 || status === 410) {
+          removePushSubscription(sub.endpoint!);
+          console.log(`PushService: dropped a web push subscription the browser no longer has (${sub.id}).`);
+          return;
+        }
+        console.error(`PushService: web push failed (${status ?? 'no status'}):`, (err as Error).message?.slice(0, 200));
+      }
+    }));
+    return taken;
   }
 
   /** Sign a service-account JWT and trade it for a short-lived access token.
@@ -146,8 +211,9 @@ export class PushService {
     }
   }
 
-  /** Deliver a notification to every registered device. */
+  /** Deliver a notification to every registered device, phones and browsers. */
   async sendPush(payload: PushPayload): Promise<void> {
+    await this.sendWebPush(payload);
     await this.sendToEveryDevice(token => ({
       token,
       notification: { title: payload.title, body: payload.body },

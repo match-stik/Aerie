@@ -45,6 +45,7 @@ import {
   recordGalleryMeta,
   startGenerateJob,
   getJobStatus,
+  cancelImageJob,
   listImageJobs,
   ImageGenError,
   REFS_DIR,
@@ -764,6 +765,14 @@ function jobResponse(job: ReturnType<typeof getJobStatus>) {
 // Studio itself unmounts.
 router.get('/studio/jobs', (_req, res) => {
   res.json({ jobs: listImageJobs().slice(0, 20).map((job) => jobResponse(job)) });
+});
+
+// Cancel a picture: a pending one is skipped, a running one frees the queue at
+// once (services/image-gen.ts, cancelImageJob).
+router.post('/studio/jobs/:id/cancel', (req, res) => {
+  const out = cancelImageJob(String(req.params.id));
+  if (!out.ok && out.reason === 'not found') { res.status(404).json({ success: false, ...out }); return; }
+  res.json({ success: out.ok, ...out });
 });
 
 router.get('/studio/jobs/:id', (req, res) => {

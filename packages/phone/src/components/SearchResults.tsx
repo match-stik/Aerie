@@ -20,6 +20,8 @@ interface SearchResultsProps {
   results: SearchResult[];
   total: number;
   loading: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
   onSelect: (result: SearchResult) => void;
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
@@ -73,6 +75,8 @@ export function SearchResults({
   results,
   total,
   loading,
+  loadingMore,
+  onLoadMore,
   onSelect,
   themeConfig,
   themeMode,
@@ -132,6 +136,17 @@ export function SearchResults({
               </li>
             ))}
           </ul>
+          {onLoadMore && results.length < total && (
+            <button
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className={cn('flex w-full items-center justify-center gap-2 border-t px-4 py-3 text-xs font-medium', colors.panelBorder)}
+              style={{ color: colors.accent }}
+            >
+              {loadingMore && <Loader2 size={14} className="animate-spin" />}
+              {loadingMore ? 'Loading…' : 'Show more'}
+            </button>
+          )}
         </>
       )}
     </div>

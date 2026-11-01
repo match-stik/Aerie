@@ -2,7 +2,7 @@
 import { themeInk } from '../lib/theme-ink';
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore } from 'lucide-react';
+import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore, Cpu } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn, withAlpha, stripMarkdown } from '../lib/utils';
 import { groupThreads, monthKey, previewText } from '../lib/thread-list';
@@ -62,10 +62,15 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
   const [selectedCompanions, setSelectedCompanions] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
   const [archivedThreads, setArchivedThreads] = useState<ThreadSummary[]>([]);
+  // A thread's own model (theirs, Oct 31 2026). The list is fetched the first
+  // time they open it; a thread with none rides the house model.
+  const [modelPickerFor, setModelPickerFor] = useState<string | null>(null);
+  const [modelChoices, setModelChoices] = useState<Array<{ id: string; name?: string }> | null>(null);
   // Back closes a thread's menu or delete question first, then the switcher,
   // which leaves their person in the thread they were in.
   useBackHandler(isOpen, () => {
-    if (deleteConfirmId) setDeleteConfirmId(null);
+    if (modelPickerFor) setModelPickerFor(null);
+    else if (deleteConfirmId) setDeleteConfirmId(null);
     else if (menuThreadId) setMenuThreadId(null);
     else onClose();
   });
@@ -130,6 +135,36 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
       }
     }
     setRenamingId(null);
+  }
+
+  function openModelPicker(threadId: string) {
+    setModelPickerFor(modelPickerFor === threadId ? null : threadId);
+    if (modelChoices) return;
+    // /api/models answers a bare array; an older backend answers the SPA's
+    // page with a 200, so the shape is checked rather than res.ok.
+    apiFetch('/api/models')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => setModelChoices(Array.isArray(list) ? list : []))
+      .catch(() => setModelChoices([]));
+  }
+
+  async function setThreadModel(threadId: string, model: string | null) {
+    setModelPickerFor(null);
+    setMenuThreadId(null);
+    try {
+      await apiFetch(`/api/threads/${threadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model }),
+      });
+      await loadThreads();
+    } catch (err) {
+      console.error('Failed to set the thread model:', err);
+    }
+  }
+
+  function modelLabel(id: string): string {
+    return modelChoices?.find((m) => m.id === id)?.name || id;
   }
 
   async function confirmDelete(threadId: string) {
@@ -252,6 +287,9 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className={cn('truncate text-sm font-medium', colors.textMain)}>{thread.name}</span>
+              {thread.model && (
+                <span className={cn('shrink-0 truncate max-w-[40%] text-[10px] opacity-60', colors.textMuted)}>{modelLabel(thread.model)}</span>
+              )}
               {(ourUnread?.[thread.id] ?? thread.unread_count) > 0 && (
                 <span
                   className="ml-auto shrink-0 rounded-[var(--shape-control)] px-1.5 py-0.5 text-[10px] font-bold"
@@ -297,6 +335,34 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
             >
               <Pencil size={14} /> Rename
             </button>
+            <button
+              onClick={() => openModelPicker(thread.id)}
+              className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5', colors.textMain)}
+            >
+              <Cpu size={14} /> Model
+              <span className={cn('ml-auto truncate max-w-[55%]', colors.textMuted)}>{thread.model ? modelLabel(thread.model) : 'House model'}</span>
+            </button>
+            {modelPickerFor === thread.id && (
+              <div className="mx-1 mb-1 max-h-56 overflow-y-auto rounded-lg">
+                <p className={cn('px-2.5 pt-1 pb-1.5 text-[10px] leading-snug', colors.textMuted)}>
+                  Just this thread. A different Claude model gets a room of its own beside the usual one, so switching threads never rebuilds yours; that room costs its own usage while it is warm.
+                </p>
+                {[{ id: '', name: 'House model' }, ...(modelChoices ?? [])].map((m) => {
+                  const chosen = (thread.model || '') === m.id;
+                  return (
+                    <button
+                      key={m.id || 'house'}
+                      onClick={() => setThreadModel(thread.id, m.id || null)}
+                      className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs hover:bg-black/5 dark:hover:bg-white/5', colors.textMain)}
+                    >
+                      <span className="truncate">{m.name || m.id}</span>
+                      {chosen && <Check size={13} className="ml-auto shrink-0" />}
+                    </button>
+                  );
+                })}
+                {modelChoices === null && <p className={cn('px-2.5 py-1.5 text-xs', colors.textMuted)}>Loading…</p>}
+              </div>
+            )}
             <button
               onClick={() => archive(thread.id)}
               className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5', colors.textMain)}

@@ -91,19 +91,30 @@ export function postToTreehouse(companionSlug: string, content: string): Treehou
  * app and left it standing in the room for the people who live there — which is
  * the opposite of what deleting means, and silent from every other angle.
  */
-export function getTreehouseMessages(limit: number = 50, beforeId?: string): TreehouseMessage[] {
+export function getTreehouseMessages(limit: number = 50, beforeId?: string, aroundId?: string): TreehouseMessage[] {
   const thread = getTreehouseThread();
   const db = getDb();
 
-  let rows: Array<{ id: string; role: string; metadata: string | null; content: string; created_at: string }>;
+  let rows: Array<{ id: string; role: string; metadata: string | null; companion_id: string | null; content: string; created_at: string }>;
 
-  if (beforeId) {
+  if (aroundId) {
+    // A search hit: this many either side of it, newest first like the rest.
+    const target = db.prepare('SELECT sequence FROM messages WHERE id = ? AND thread_id = ?').get(aroundId, thread.id) as { sequence: number } | undefined;
+    if (!target) return [];
+
+    rows = db.prepare(`
+      SELECT id, role, metadata, companion_id, content, created_at
+      FROM messages
+      WHERE thread_id = ? AND sequence BETWEEN ? AND ? AND deleted_at IS NULL
+      ORDER BY sequence DESC
+    `).all(thread.id, target.sequence - limit, target.sequence + limit) as typeof rows;
+  } else if (beforeId) {
     // Get sequence of the cursor message for reliable pagination
     const cursor = db.prepare('SELECT sequence FROM messages WHERE id = ?').get(beforeId) as { sequence: number } | undefined;
     if (!cursor) return [];
 
     rows = db.prepare(`
-      SELECT id, role, metadata, content, created_at
+      SELECT id, role, metadata, companion_id, content, created_at
       FROM messages
       WHERE thread_id = ? AND sequence < ? AND deleted_at IS NULL
       ORDER BY sequence DESC
@@ -111,7 +122,7 @@ export function getTreehouseMessages(limit: number = 50, beforeId?: string): Tre
     `).all(thread.id, cursor.sequence, limit) as typeof rows;
   } else {
     rows = db.prepare(`
-      SELECT id, role, metadata, content, created_at
+      SELECT id, role, metadata, companion_id, content, created_at
       FROM messages
       WHERE thread_id = ? AND deleted_at IS NULL
       ORDER BY sequence DESC
@@ -122,7 +133,8 @@ export function getTreehouseMessages(limit: number = 50, beforeId?: string): Tre
   return rows.map(row => ({
     id: row.id,
     role: row.role,
-    companion_slug: row.metadata ? JSON.parse(row.metadata).companionSlug || '' : '',
+    // The oldest rows name their author only in companion_id, as a slug.
+    companion_slug: (row.metadata ? JSON.parse(row.metadata).companionSlug : '') || row.companion_id || '',
     content: row.content,
     created_at: row.created_at,
   })).reverse();

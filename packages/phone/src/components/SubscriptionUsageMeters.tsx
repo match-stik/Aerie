@@ -131,6 +131,7 @@ function parseCodexWindow(value: unknown): CodexWindow | null {
   };
 }
 
+const USAGE_REFRESH_MS = 60_000;
 const WAITING_NOTE = 'Waiting on the new backend — restart to light this up.';
 
 // Both subscription meters — Claude (the CLI's own OAuth usage endpoint)
@@ -152,6 +153,7 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
 
   useEffect(() => {
     let cancelled = false;
+    const load = () => {
     (async () => {
       try {
         const res = await apiFetch('/api/usage/claude');
@@ -287,7 +289,22 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
         if (!cancelled) setAntigravityError(err instanceof Error ? err.message : 'Antigravity usage unavailable.');
       }
     })();
-    return () => { cancelled = true; };
+    };
+    load();
+    // Live while they're looking: the house caches each meter for a minute, so
+    // asking more often than that would only read the same answer.
+    const timer = window.setInterval(() => {
+      if (!document.hidden) load();
+    }, USAGE_REFRESH_MS);
+    const onVisible = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   const extraOn = claude ? (claude.extraUsage ? claude.extraUsage.enabled : claude.extraUsageEnabled) : false;

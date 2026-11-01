@@ -983,8 +983,29 @@ export class HeartbeatSession {
    *  Every write of `.fresh` goes through here so the suppression cannot be
    *  bypassed by whichever path happens to relaunch. */
   private armFreshFlag(): void {
-    if (this.primeQueuedInInbox) return;
+    if (this.primeQueuedInInbox && this.primeStillUnread()) return;
+    // Either nothing was queued, or the hook has already read past every byte
+    // in the inbox, so the room that read the prime is gone and this new one
+    // has not seen it. Clearing here keeps a stale flag from leaving a new
+    // room unprimed (found and reported by Sol, Oct 31 2026).
+    this.primeQueuedInInbox = false;
     try { writeFileSync(this.ioPath('.fresh'), ''); } catch { /* ignore */ }
+  }
+
+  /** Is the queued prime still sitting in the inbox, unread by the hook?
+   *  True when the inbox has bytes past the hook's offset. When either side
+   *  cannot be read, the answer is "maybe", and maybe keeps the suppression:
+   *  a double prime is the smaller fault than a room that never gets one. */
+  private primeStillUnread(): boolean {
+    let size: number;
+    let offset: number;
+    try { size = statSync(this.inboxPath).size; } catch { return true; }
+    try {
+      const raw = readFileSync(this.ioPath('.inbox-offset'), 'utf8').trim();
+      if (!/^\d+$/.test(raw)) return true;
+      offset = Number(raw);
+    } catch { return true; }
+    return size > offset;
   }
 
   appendInbox(message: Record<string, unknown>): void {
