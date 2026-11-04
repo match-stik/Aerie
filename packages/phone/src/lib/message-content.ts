@@ -3,6 +3,7 @@
 // the adapter wraps attachments in, Discord's raw syntax, stickers and emoji as
 // markdown images. No React and no store, so it can be tested on its own.
 
+import { discordEmotesToMarkdown } from './discord-emotes';
 import { stickerLinesAsParagraphs } from './sticker-lines';
 import { extractVideoUrls, safeVideoSrc } from './video-attachments';
 
@@ -52,10 +53,11 @@ export function parseMessageContent(
   // inline images straight off the Discord CDN (gif when animated, png
   // otherwise; the demoji: branch of the img renderer sizes them like
   // emotes). New ingests also resolve mentions server-side via cleanContent.
+  // Emote tokens are drawn on every message, ours included: our Discord
+  // replies carry them too, sometimes on a '# ' line (lib/discord-emotes.ts).
+  textContent = discordEmotesToMarkdown(textContent);
   if (message.via && textContent.includes('<')) {
     textContent = textContent
-      .replace(/<(a?):(\w+):(\d+)>/g, (_m, anim, name, id) =>
-        `![demoji:${name}](https://cdn.discordapp.com/emojis/${id}.${anim ? 'gif' : 'png'}?size=48)`)
       // Bridged Discord stickers — the gateway appends <dsticker:name:id.ext>
       // tokens (stickers aren't message content on Discord's side); unfold
       // them into the same sticker: img form house stickers use.
@@ -104,7 +106,7 @@ export function parseMessageContent(
   // Discord demoji images alike).
   let isEmoteOnly = false;
   if (textContent) {
-    const strippedOfEmotes = textContent.replace(/!\[d?emoji:[^\]]*\]\([^)]*\)/g, '');
+    const strippedOfEmotes = textContent.replace(/!\[d?emoji(?:-big)?:[^\]]*\]\([^)]*\)/g, '');
     isEmoteOnly = strippedOfEmotes !== textContent && strippedOfEmotes.trim() === '';
   }
   // Jumbo when the message is nothing but emotes; comfortably larger inline otherwise.

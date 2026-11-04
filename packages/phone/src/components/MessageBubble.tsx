@@ -780,14 +780,15 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                             );
                           }
                           // Bridged Discord emote — alt is "demoji:name", src the Discord CDN url.
-                          if (alt?.startsWith('demoji:') && src) {
-                            const name = alt.slice('demoji:'.length);
+                          if ((alt?.startsWith('demoji:') || alt?.startsWith('demoji-big:')) && src) {
+                            const big = alt.startsWith('demoji-big:');
+                            const name = alt.slice(alt.indexOf(':') + 1);
                             return (
                               <img
                                 src={src}
                                 alt={`:${name}:`}
                                 title={`:${name}:`}
-                                className={cn('!inline-block !w-auto !my-0 mx-0.5 align-text-bottom rounded-sm object-contain transition-transform hover:scale-110', emoteSizeClass)}
+                                className={cn('!inline-block !w-auto !my-0 mx-0.5 align-text-bottom rounded-sm object-contain transition-transform hover:scale-110', big ? '!h-12' : emoteSizeClass)}
                                 referrerPolicy="no-referrer"
                               />
                             );
