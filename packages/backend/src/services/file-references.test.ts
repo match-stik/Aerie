@@ -29,6 +29,7 @@ const NOT_A_STORED_FILE: Record<string, string> = {
   'stickers.filename': 'sticker art lives in its own folder, not the file store',
   'emojis.filename': 'emoji art lives in its own folder, not the file store',
   'artifacts.thumbnail': 'an inline preview, not a file id',
+  'press_spreads.thumbnail_stale': 'a flag saying the shelf picture needs repainting, not a file id',
 };
 
 test('every column that holds a file is either kept by Clean orphans or explained', () => {

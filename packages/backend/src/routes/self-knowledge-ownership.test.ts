@@ -63,7 +63,7 @@ test('accepting re-warms the entry fully', () => {
 });
 
 test('the route requires a companion and refuses another companion\'s entry', () => {
-  const src = readFileSync(join(HERE, 'internal.ts'), 'utf-8');
+  const src = readFileSync(join(HERE, 'internal/self-knowledge.ts'), 'utf-8');
   const start = src.indexOf('function reviewOwnEntry');
   assert.ok(start > 0, 'reviewOwnEntry should be the shared handler for accept and dismiss');
   const body = src.slice(start, start + 1600);
@@ -83,7 +83,7 @@ test('the route requires a companion and refuses another companion\'s entry', ()
 });
 
 test('both accept and dismiss go through the ownership check', () => {
-  const src = readFileSync(join(HERE, 'internal.ts'), 'utf-8');
+  const src = readFileSync(join(HERE, 'internal/self-knowledge.ts'), 'utf-8');
   assert.match(
     src, /self-knowledge\/:id\/accept['"`],\s*\(req, res\) => reviewOwnEntry\(req, res, 'accepted'\)/,
     'accept must route through reviewOwnEntry',

@@ -68,7 +68,7 @@ test('the switch reaches all three cards, from Settings, and nothing is blurred'
   assert.match(lock, /const look = useLockCardLook\(cards, wallpaper\);/, 'one look, from their person switch and the wallpaper behind it');
   assert.doesNotMatch(lock, /rounded-2xl border border-white\/15 bg-black\/45/, 'no card keeps the old fixed dark');
   assert.match(read('../App.tsx'), /cards=\{lockCardsOf\(theme\.lockCards\)\}/, 'their person switch reaches the lock screen');
-  const settings = read('../components/SettingsDashboard.tsx');
+  const settings = read('../components/settings/LockPane.tsx');
   assert.match(settings, /\[\["dark", "Dark"\], \["light", "Light"\], \["auto", "Auto"\]\]/, 'Settings offers dark, light and auto');
   assert.match(settings, /onClick=\{\(\) => onThemeChange\(\{ lockCards: id \}\)\}/, 'and keeps their pick');
   for (const source of [lock, read('./lock-cards.ts'), read('../components/LockSpotifyCard.tsx')]) {

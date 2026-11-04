@@ -6,6 +6,7 @@ import {
   Users, X,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { apiFetch } from '../aerie';
 import { useBackHandler } from '../lib/use-back-handler';
 import { SegmentedControl } from '../ui';
 import { GifApp } from './GifApp';
@@ -34,6 +35,13 @@ import { ZoomableImage } from './ZoomableImage';
 export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
   const colors = themeConfig[themeMode];
   const [section, setSection] = useState<StudioSection>('create');
+  // The Stop sits on the queue row that is painting, theirs (Nov 3 2026: 'pops up
+  // next to the image line in the queue that it's currently working on').
+  const [stopping, setStopping] = useState<Set<string>>(() => new Set());
+  const stopJob = useCallback(async (id: string) => {
+    setStopping((prev) => new Set(prev).add(id));
+    try { await apiFetch(`/api/studio/jobs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }); } catch { /* the next poll shows the truth */ }
+  }, []);
 
   const {
     backend, setBackend, backendStatus, windowWarning,
@@ -394,6 +402,17 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
                     <span className={cn("truncate max-w-[120px]", colors.textMuted)} title={job.prompt}>
                       {job.prompt.slice(0, 30)}{job.prompt.length > 30 ? '...' : ''}
                     </span>
+                    {job.status === 'running' && (
+                      <button
+                        type="button"
+                        onClick={() => { void stopJob(job.id); }}
+                        disabled={stopping.has(job.id)}
+                        className="shrink-0 rounded-[var(--shape-chip)] border px-2 py-0.5 text-[11px] font-medium disabled:opacity-50"
+                        style={{ borderColor: 'color-mix(in srgb, var(--aerie-accent) 40%, transparent)', color: 'var(--aerie-accent)' }}
+                      >
+                        {stopping.has(job.id) ? 'Stopping' : 'Stop'}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

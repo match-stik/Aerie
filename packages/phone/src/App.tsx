@@ -2,10 +2,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { isBackSwipe } from './lib/edge-swipe';
 import { runBackHandler } from './lib/back-stack';
+import { useBrowserBack } from './lib/use-browser-back';
+import { useSettingsSync } from './lib/use-settings-sync';
+import { PLAIN_APPS } from './components/plain-apps';
 import { ExportSheet } from './components/ExportSheet';
 import { useBackHandler } from './lib/use-back-handler';
 import { holdAtBottom, holdMessageInView, searchJumpReporter } from './lib/hold-message';
-import localforage from 'localforage';
 import { MessageBubble } from './components/MessageBubble';
 import { RoomBubbleContext, type RoomBubbleSettings } from './components/RoomBubble';
 import { TypingIndicator } from './components/TypingIndicator';
@@ -19,27 +21,13 @@ import { ContactInfo } from './components/ContactInfo';
 import { LockScreen } from './components/LockScreen';
 import { HomeScreen } from './components/HomeScreen';
 import { RadarApp } from './components/RadarApp';
-import { WeatherApp } from './components/WeatherApp';
 import { NotesApp } from './components/NotesApp';
-import { JournalApp } from './components/JournalApp';
-import { FieldNotesApp } from './components/FieldNotesApp';
-import { LettersApp } from './components/LettersApp';
-import { ThresholdsApp } from './components/ThresholdsApp';
-import { ToysApp } from './components/ToysApp';
 import { StoryShelfApp } from './components/StoryShelfApp';
-import { SpotifyApp } from './components/SpotifyApp';
-import { StudioApp } from './components/StudioApp';
 import { GamesApp } from './components/GamesApp';
 import { ThreadSwitcher } from './components/ThreadSwitcher';
 import { AppDrawer } from './components/AppDrawer';
-import { StatusApp } from './components/StatusApp';
-import { IntegrationsApp } from './components/IntegrationsApp';
-import { AgentApp } from './components/AgentApp';
 import { PacksApp } from './components/PacksApp';
-import { CommandCenterApp } from './components/CommandCenterApp';
 import { ModelPill } from './components/ModelPill';
-import { CanvasApp } from './components/CanvasApp';
-import { PressApp } from './components/PressApp';
 import { CompanionsApp } from './components/CompanionsApp';
 
 interface DBCompanion {
@@ -51,11 +39,6 @@ interface DBCompanion {
   emoji: string | null;
 }
 import { TreehouseApp } from './components/TreehouseApp';
-import { MemoryApp } from './components/MemoryApp';
-import { ArtifactsApp } from './components/ArtifactsApp';
-import { FilesApp } from './components/FilesApp';
-import { PetApp } from './components/PetApp';
-import { InboxApp } from './components/InboxApp';
 import { VoiceModeOverlay } from './components/VoiceModeOverlay';
 import { StudioJobTray } from './components/StudioJobTray';
 import { APPS, DOCK_APPS, drawerColumnsOf, migrateAppIds, type AppDef } from './lib/apps';
@@ -65,9 +48,8 @@ import { Capacitor } from '@capacitor/core';
 
 import { THEMES, contrastTextColor, onAccentInk, resolveThemeColors, themeRadiusPx, shapeVarsFor, setLivePalette, paletteVars, flattenOver, selectedFill, fitForWhite } from './lib/theme';
 import { PALETTES } from './lib/palettes';
-import { guardTheme } from './lib/theme-guard';
+import { DEFAULT_THEME, readSavedTheme, useCustomThemeStyles, useThemeFrame } from './lib/use-app-theme';
 import { applyThemeUpdate } from './lib/wallpaper-mode';
-const KNOWN_THEME_IDS: ReadonlySet<string> = new Set(Object.keys(THEMES));
 import {
   AerieLoginGate,
   useMessages,
@@ -97,10 +79,6 @@ import {
   loadThread,
   loadThreadAround,
   loadOlderMessages,
-  fetchServerSettings,
-  pushServerSettings,
-  houseKeepsLinkedFiles,
-  storeInlinePicture,
   useAerie,
   markRead,
   unlockVoicePlayback,
@@ -108,18 +86,16 @@ import {
 } from './aerie';
 import { fetchOwnerFromPreferences, ownerFromCompanionsPayload } from './lib/owner';
 import { StreamingReply } from './components/StreamingReply';
-import { collectLocalExtras } from './components/SetupSync';
 import { ContextIndicator } from './components/ContextIndicator';
 import { CompactionBanner } from './components/CompactionBanner';
 import { RateLimitBanner } from './components/RateLimitBanner';
 import { SearchResults, type SearchResult } from './components/SearchResults';
+import { useMessageSearch } from './lib/use-message-search';
 import { DateDivider } from './components/DateDivider';
 import { splitMessageVoices } from './lib/voices';
 import { deliverLastCrashReport } from './aerie/pocket-voice';
 import { syncArmedPlaces } from './aerie/threshold-geofence';
 import { startMediaReporter } from './aerie/media-reporter';
-import { paintSystemBars } from './aerie/system-chrome';
-import { barColorsFor } from './lib/system-bar-colors';
 import { lockSpotifyOf } from './lib/lock-spotify';
 import { lockCardsOf } from './lib/lock-cards';
 import { headerWord } from './lib/presence-word';
@@ -132,14 +108,8 @@ import { bubbleLookOf } from './lib/bubble-look';
 import { drawerLookOf } from './lib/drawer-look';
 import { bodyStack, fontsOf, titleStack } from './lib/fonts';
 import { layoutGap, summarizeKeyboardChange, type LayoutFrame, frameTiming, type LongTaskEntry } from './lib/layout-gap';
-import { inlineWallpapers, swapWallpapers } from './lib/wallpaper-files';
 import { startToyRemote } from './aerie/toy-remote';
 import { ToyRemotePill } from './components/ToyRemotePill';
-
-const DEFAULT_THEME: AppTheme = {
-  mode: 'dark',
-  id: 'pal-smoke',
-};
 
 const DEFAULT_CONTACTS: Record<string, ContactProfile> = {
   companion1: {
@@ -319,68 +289,12 @@ export default function App() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [replyTo, setReplyTo] = useState<Message | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
-
-  // Server-side search — debounced fetch against /api/search. Results render
-  // in a panel below the header; clicking jumps to the message (loading the
-  // target thread first if needed).
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searchTotal, setSearchTotal] = useState(0);
-  const [searchLoading, setSearchLoading] = useState(false);
-  useEffect(() => {
-    if (!isSearching) return;
-    const q = searchQuery.trim();
-    if (!q) {
-      setSearchResults([]);
-      setSearchTotal(0);
-      setSearchLoading(false);
-      return;
-    }
-    setSearchLoading(true);
-    const handle = setTimeout(async () => {
-      try {
-        const res = await apiFetch(`/api/search?q=${encodeURIComponent(q)}&limit=30`);
-        if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-        const data = await res.json();
-        setSearchResults(Array.isArray(data.results) ? data.results : []);
-        setSearchTotal(typeof data.total === 'number' ? data.total : 0);
-      } catch (err) {
-        console.warn('[Aerie] Search failed:', err);
-        setSearchResults([]);
-        setSearchTotal(0);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [searchQuery, isSearching]);
-  
-  // Theirs, Oct 31 2026: the list stopped at thirty, so a common search looked
-  // like it ended months early, with far more further back.
-  const [searchLoadingMore, setSearchLoadingMore] = useState(false);
-  const loadMoreSearchResults = async () => {
-    const q = searchQuery.trim();
-    if (!q || searchLoadingMore) return;
-    setSearchLoadingMore(true);
-    try {
-      const res = await apiFetch(`/api/search?q=${encodeURIComponent(q)}&limit=30&offset=${searchResults.length}`);
-      if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-      const data = await res.json();
-      const more: SearchResult[] = Array.isArray(data.results) ? data.results : [];
-      setSearchResults((prev) => {
-        const seen = new Set(prev.map((r) => r.messageId));
-        return [...prev, ...more.filter((r) => !seen.has(r.messageId))];
-      });
-      if (typeof data.total === 'number') setSearchTotal(more.length === 0 ? searchResults.length : data.total);
-    } catch (err) {
-      console.warn('[Aerie] Search failed:', err);
-    } finally {
-      setSearchLoadingMore(false);
-    }
-  };
+  const {
+    searchQuery, setSearchQuery, isSearching, setIsSearching,
+    searchResults, searchTotal, searchLoading, searchLoadingMore, loadMoreSearchResults,
+  } = useMessageSearch();
 
   // Modals
   const [showSettings, setShowSettings] = useState(false);
@@ -389,32 +303,7 @@ export default function App() {
   useBackHandler(osState === 'messages' && isSearching, () => { setIsSearching(false); setSearchQuery(''); });
 
   // Theme State
-  const [theme, setTheme] = useState<AppTheme>(() => {
-    const saved = localStorage.getItem('aerie_theme');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Handle legacy theme migration
-        if (parsed.accentColor) {
-          return { mode: parsed.mode || 'dark', id: 'pal-obsidian' };
-        }
-        
-        // Handle theme name migrations
-        if (parsed.id === 'light-orange') parsed.id = 'peach';
-        if (parsed.id === 'light-yellow') parsed.id = 'lemon';
-        if (parsed.id === 'light-blue') parsed.id = 'sky';
-
-        // Strip wallpapers from localStorage load to prevent flashing old cached wallpapers
-        // that failed to update due to quota limits
-        delete parsed.wallpaper;
-        delete parsed.lockScreenWallpaper;
-        delete parsed.wallpapers;
-        delete parsed.modeWallpapers;
-        return guardTheme(parsed, KNOWN_THEME_IDS);
-      } catch (e) {}
-    }
-    return DEFAULT_THEME;
-  });
+  const [theme, setTheme] = useState<AppTheme>(readSavedTheme);
   // Read only while the lock screen is up and its message card can show.
   const lockUnread = useLockUnread(lockThreads, osState === 'locked' && lockShowOf(theme.lockShow) !== 'nothing');
   // The home screen's Messages badge counts the same way, only what we said to
@@ -424,78 +313,8 @@ export default function App() {
   // And the thread list's number on each room, while the list is open.
   const switcherUnread = useLockUnread(lockThreads, showThreadSwitcher);
 
-  // Update theme-color meta tag, Native Status Bar, and Body Background
-  useEffect(() => {
-    const activeTheme = THEMES[theme.id] || THEMES['monochrome'];
-    const colors = activeTheme[theme.mode];
-    setLivePalette(activeTheme.palette, theme.mode);
-    const resolved = resolveThemeColors(colors);
-    const pageBgColor = theme.id === 'custom'
-      ? (theme.customColors?.[theme.mode]?.pageBg || (theme.mode === 'light' ? '#FFFFFF' : '#000000'))
-      : resolved.pageBg;
-
-    // The frame: white in Daylight, black in Midnight, top
-    // and bottom, with the page color living inside it. Which screen wears
-    // what is decided in lib/system-bar-colors.ts.
-    const { bars: themeColor, body: bodyColor } = barColorsFor({
-      mode: theme.mode,
-      osState,
-      hasWallpaper: !!theme.wallpaper,
-      showSettings,
-      pageBg: pageBgColor,
-    });
-
-    // Replace the meta node instead of mutating it — Chrome-on-Android
-    // PWAs often skip repainting the status bar when only the content
-    // attribute changes, which left the previous mode's color up top
-    // until the app was fully relaunched.
-    document.querySelector('meta[name="theme-color"]')?.remove();
-    const metaThemeColor = document.createElement('meta');
-    metaThemeColor.setAttribute('name', 'theme-color');
-    metaThemeColor.setAttribute('content', themeColor);
-    document.head.appendChild(metaThemeColor);
-    
-    // The page behind the apps (lib/system-bar-colors.ts): the frame's color,
-    // so the instant after a keyboard closes shows the footer, not a block.
-    document.body.style.backgroundColor = bodyColor;
-    document.documentElement.style.backgroundColor = bodyColor;
-
-    // Update Native Capacitor / Cordova properties
-    const cap = (window as any).Capacitor;
-    if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
-      const syncNativeBars = async () => {
-        // The APK's bars belong to the native window, so the meta above never
-        // reaches them; the app's own SystemChrome plugin paints both, the
-        // strip under the footer the same color as the one over the header.
-        await paintSystemBars(themeColor);
-      };
-      syncNativeBars();
-    }
-  }, [theme, osState, showSettings]);
-
-  const customThemeStyles = useMemo(() => {
-    if (theme.id !== 'custom' || !theme.customColors) return null;
-    const modeColors = theme.customColors[theme.mode];
-    
-    // Default to monochrome logic if custom colors are missing
-    const isDark = theme.mode === 'dark';
-    
-    return `
-      :root {
-        --custom-pageBg: ${modeColors.pageBg || (isDark ? '#09090B' : '#F4F4F5')};
-        --custom-panelBg: ${modeColors.panelBg || (isDark ? '#18181B' : '#ffffff')};
-        --custom-panelBorder: ${modeColors.panelBorder || (isDark ? '#FAFAFA' : '#18181B')};
-        --custom-textMain: ${modeColors.textMain || (isDark ? '#FAFAFA' : '#18181B')};
-        --custom-textMuted: ${modeColors.textMuted || (isDark ? '#FAFAFA' : '#18181B')};
-        --custom-userBubbleBg: ${modeColors.userBubbleBg || (isDark ? '#FAFAFA' : '#18181B')};
-        --custom-userBubbleText: ${modeColors.userBubbleText || (isDark ? '#09090B' : '#ffffff')};
-        --custom-compBubbleBg: ${modeColors.compBubbleBg || (isDark ? '#FAFAFA' : '#18181B')};
-        --custom-compBubbleText: ${modeColors.compBubbleText || (isDark ? '#FAFAFA' : '#18181B')};
-        --custom-accent: ${modeColors.accent || (isDark ? '#FAFAFA' : '#18181B')};
-        --custom-accentText: ${modeColors.accentText || modeColors.accent || (isDark ? '#FAFAFA' : '#18181B')};
-      }
-    `;
-  }, [theme]);
+  useThemeFrame(theme, osState, showSettings);
+  const customThemeStyles = useCustomThemeStyles(theme);
 
   // Contacts State
   const [contacts, setContacts] = useState<Record<string, ContactProfile>>(() => {
@@ -665,53 +484,14 @@ export default function App() {
     return migrateAppIds(ids).map((id) => byId.get(id)).filter((a): a is AppDef => !!a);
   }, [appSettings.dockAppIds]);
 
-  const [isLoaded, setIsLoaded] = useState(false);
-  // Goes true once we've reconciled local state with whatever the server
-  // had stored. Until then, we don't push changes back — would race the
-  // initial fetch and risk overwriting newer server state with stale
-  // localStorage from a different browser.
-  const serverSettingsHydrated = useRef(false);
-  // The same moment as state, so an effect can wait on it.
-  const [settingsHydrated, setSettingsHydrated] = useState(false);
-
-  // Load from localforage on mount (for large data like base64 images)
-  useEffect(() => {
-    const loadPersistedData = async () => {
-      try {
-        const savedTheme = await localforage.getItem<AppTheme>('aerie_theme');
-        if (savedTheme) {
-          setTheme(guardTheme(savedTheme, KNOWN_THEME_IDS));
-        }
-
-        const savedContacts = await localforage.getItem<any>('aerie_contacts');
-        if (savedContacts) {
-          setContacts(savedContacts);
-        }
-
-        const savedSettings = await localforage.getItem<any>('aerie_settings');
-        if (savedSettings) {
-          const migrated = {
-            ...savedSettings,
-            ...(Array.isArray(savedSettings.dockAppIds) ? { dockAppIds: migrateAppIds(savedSettings.dockAppIds) } : {}),
-          };
-          setAppSettings(prev => ({ ...prev, ...migrated }));
-        }
-      } catch (e) {
-        console.error('Failed to load data from localforage:', e);
-      } finally {
-        setIsLoaded(true);
-      }
-    };
-    loadPersistedData();
-  }, []);
-
-  // After local cache is loaded + we're authenticated, reconcile against
-  // the server blob so theme/contacts/appSettings follow the user across
-  // browsers. Server wins for keys it knows about; if the server is
-  // empty, the next push effect will seed it from whatever loaded
-  // locally. Guarded by serverSettingsHydrated so we don't re-fire on
-  // every state change.
   const authenticated = useAerie((s) => s.auth.authenticated);
+  const { isLoaded, settingsHydrated } = useSettingsSync({
+    theme, setTheme, contacts, setContacts, appSettings, setAppSettings, authenticated,
+    onContactSaveFailed: (message) => {
+      setError(message);
+      setTimeout(() => setError(null), 5000);
+    },
+  });
 
   // A native crash cannot report itself — the session cookie is HttpOnly, so
   // the dying process has nothing to authenticate with. The shell leaves the
@@ -721,53 +501,6 @@ export default function App() {
     void deliverLastCrashReport();
   }, [authenticated]);
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (!authenticated) return;
-    if (serverSettingsHydrated.current) return;
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | undefined;
-    const attempt = async () => {
-      try {
-        const blob = await fetchServerSettings();
-        if (cancelled) return;
-        if (blob) {
-          if (blob.theme) setTheme((prev) => guardTheme({ ...prev, ...blob.theme! }, KNOWN_THEME_IDS));
-          if (blob.contacts) setContacts((prev) => ({ ...prev, ...blob.contacts! }));
-          if (blob.appSettings) {
-            const serverAppSettings = {
-              ...blob.appSettings,
-              ...(Array.isArray(blob.appSettings.dockAppIds)
-                ? { dockAppIds: migrateAppIds(blob.appSettings.dockAppIds) }
-                : {}),
-            };
-            setAppSettings((prev) => ({ ...prev, ...serverAppSettings }));
-          }
-        }
-        // Only mark hydration complete when the fetch SUCCEEDED. A null
-        // blob here means the server confirmed it has no stored settings
-        // — safe to mark hydrated so the push effect seeds the server
-        // with our local state. Errors (network / auth / parse) throw
-        // and land in the catch below, leaving hydration false so the
-        // push effect stays blocked and CAN'T overwrite the real
-        // server-side data with local defaults.
-        serverSettingsHydrated.current = true;
-        setSettingsHydrated(true);
-      } catch (err) {
-        console.warn('[Settings] sync failed, will retry once:', err);
-        if (cancelled || retryTimer) return;
-        retryTimer = setTimeout(() => {
-          retryTimer = undefined;
-          if (!cancelled) void attempt();
-        }, 5000);
-      }
-    };
-    void attempt();
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-    };
-  }, [isLoaded, authenticated]);
 
   // Local metadata for reactions and bookmarks (persisted in localStorage)
   const [localMetadata, setLocalMetadata] = useState<Record<string, { reactions?: string[], isBookmarked?: boolean }>>(() => {
@@ -811,6 +544,9 @@ export default function App() {
       .catch(() => false);
     if (inTreehouse) {
       setTreehouseJumpTo(result.messageId);
+      setAppReturnTo('messages');
+      // Back from the page goes to the chat they searched in, not wherever the
+      // last app happened to return to.
       setAppReturnTo('messages');
       setOsState('treehouse');
       return;
@@ -994,80 +730,6 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [theme.mode]);
-
-  // Persist Theme (Local)
-  useEffect(() => {
-    if (!isLoaded) return;
-    localforage.setItem('aerie_theme', theme).catch(e => {
-      console.error('Failed to save theme to localforage:', e);
-    });
-    try {
-      const themeForLocalStorage = { ...theme };
-      delete themeForLocalStorage.wallpaper;
-      delete themeForLocalStorage.lockScreenWallpaper;
-      delete themeForLocalStorage.wallpapers;
-      delete themeForLocalStorage.modeWallpapers;
-      localStorage.setItem('aerie_theme', JSON.stringify(themeForLocalStorage));
-    } catch (e) {}
-  }, [theme, isLoaded]);
-
-  // Persist Contacts
-  useEffect(() => {
-    if (!isLoaded) return;
-    localforage.setItem('aerie_contacts', contacts).catch(e => {
-      console.error('Failed to save contacts to localforage:', e);
-      setError('Failed to save contact image. The image might be too large.');
-      setTimeout(() => setError(null), 5000);
-    });
-    try {
-      localStorage.setItem('aerie_contacts', JSON.stringify(contacts));
-    } catch (e) {}
-  }, [contacts, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localforage.setItem('aerie_settings', appSettings).catch(e => {
-      console.error('Failed to save settings to localforage:', e);
-    });
-    try {
-      localStorage.setItem('aerie_settings', JSON.stringify(appSettings));
-    } catch (e) {}
-  }, [appSettings, isLoaded]);
-
-  // Push theme + contacts + appSettings to /api/settings whenever any
-  // of them change. Debounced 1s so quickly-typed changes don't fire a
-  // PUT per keystroke. Gated on serverSettingsHydrated.current so we
-  // never overwrite the server with localStorage before reconciling.
-  useEffect(() => {
-    if (!isLoaded || !authenticated) return;
-    if (!serverSettingsHydrated.current) return;
-    const t = setTimeout(() => {
-      void pushServerSettings({ theme, contacts, appSettings, extras: collectLocalExtras() });
-    }, 1000);
-    return () => clearTimeout(t);
-  }, [theme, contacts, appSettings, isLoaded, authenticated]);
-
-  // Wallpapers move out of the settings blob into the house's file store,
-  // once per open, and only after the house has said it keeps the files its
-  // settings link to (lib/wallpaper-files.ts). Each picture is swapped for
-  // its link only once the house has confirmed it; anything that fails stays
-  // inline and is tried again next time the app opens.
-  const wallpaperMoveRan = useRef(false);
-  useEffect(() => {
-    if (!settingsHydrated || !authenticated || wallpaperMoveRan.current) return;
-    if (!houseKeepsLinkedFiles()) return;
-    const pending = inlineWallpapers(theme);
-    if (pending.length === 0) return;
-    wallpaperMoveRan.current = true;
-    void (async () => {
-      const links = new Map<string, string>();
-      for (const picture of pending) {
-        const link = await storeInlinePicture(picture);
-        if (link) links.set(picture, link);
-      }
-      if (links.size > 0) setTheme((prev) => swapWallpapers(prev, links));
-    })();
-  }, [settingsHydrated, authenticated, theme]);
 
   // Reconcile custom emojis with the backend on first successful connect:
   // upload any legacy base64 entries, pull anything new, and write the
@@ -1402,50 +1064,7 @@ export default function App() {
     };
   }, [osState, showSettings, appReturnTo]);
 
-  // The browser's own back, for the web app (theirs, Oct 31 2026). On an Android
-  // phone the system back gesture goes to the browser, and the browser walks
-  // its history, which this phone never used for navigation, so back took them
-  // straight out of Aerie. Now, while they are anywhere with somewhere to step
-  // back to, one mark sits in the browser's history; when the browser goes
-  // back it lands on that mark instead of leaving, and the house takes the same
-  // step the app's back gesture takes, then puts the mark back if there is
-  // still somewhere to go. At the home screen there is no mark, so back leaves
-  // as a browser should. The APK never does any of this: its back comes to the
-  // listener above first.
-  const backStateRef = useRef({ osState, showSettings });
-  backStateRef.current = { osState, showSettings };
-  const backMarkRef = useRef(false);
-  useEffect(() => {
-    if (Capacitor.isNativePlatform()) return;
-    const deep = () => {
-      const st = backStateRef.current;
-      return st.showSettings || (st.osState !== 'home' && st.osState !== 'locked');
-    };
-    const mark = () => {
-      if (backMarkRef.current || !deep()) return;
-      try { window.history.pushState({ aerieBack: true }, ''); backMarkRef.current = true; } catch { /* history refused; back behaves as before */ }
-    };
-    const onPop = () => {
-      if (!backMarkRef.current) return;
-      backMarkRef.current = false;
-      const st = backStateRef.current;
-      if (st.showSettings) { if (!runBackHandler()) setShowSettings(false); }
-      else if (st.osState === 'appdrawer') { if (!runBackHandler()) setOsState('home'); }
-      else if (!runBackHandler() && st.osState !== 'home' && st.osState !== 'locked') closeApp();
-      // Let the step land, then leave a fresh mark if they are still deep.
-      window.setTimeout(mark, 0);
-    };
-    window.addEventListener('popstate', onPop);
-    if (deep()) mark();
-    else if (backMarkRef.current) {
-      // Back home some other way (a tap, the home button): take the spare mark
-      // out of history, so their next back leaves on the first press.
-      backMarkRef.current = false;
-      try { window.history.back(); } catch { /* nothing to take back */ }
-    }
-    return () => window.removeEventListener('popstate', onPop);
-  }, [osState, showSettings]);
-
+  useBrowserBack(osState, showSettings, setShowSettings, setOsState, closeApp);
 
   // Slideshow Effect moved to AppBackground component
 
@@ -1498,6 +1117,7 @@ export default function App() {
   }, [generating]);
 
   const activeTheme = THEMES[theme.id] || THEMES['monochrome'];
+  const PlainApp = PLAIN_APPS[osState];
   const colors = activeTheme[theme.mode];
   // The faces at the top of a conversation follow the Rings choice too.
   const headerThemeRings = bubbleLookOf(theme).rings === 'theme';
@@ -2021,33 +1641,9 @@ export default function App() {
             look={drawerLookOf(theme)}
           />
         )}
-        {osState === 'status' && (
-          <StatusApp
-            key="status"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'memory' && (
-          <MemoryApp
-            key="memory"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'integrations' && (
-          <IntegrationsApp
-            key="integrations"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'agent' && (
-          <AgentApp
-            key="agent"
+        {PlainApp && (
+          <PlainApp
+            key={osState}
             onClose={closeApp}
             themeConfig={activeTheme}
             themeMode={theme.mode}
@@ -2062,30 +1658,6 @@ export default function App() {
               setAppSettings((prev) => ({ ...prev, customEmojis: merged }));
               void refreshEmojiPacks();
             }}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'commandcenter' && (
-          <CommandCenterApp
-            key="commandcenter"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'canvas' && (
-          <CanvasApp
-            key="canvas"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'press' && (
-          <PressApp
-            key="press"
-            onClose={closeApp}
             themeConfig={activeTheme}
             themeMode={theme.mode}
           />
@@ -2125,54 +1697,6 @@ export default function App() {
             companions={dbCompanions}
           />
         )}
-        {osState === 'weather' && (
-          <WeatherApp
-            key="weather"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'fieldnotes' && (
-          <FieldNotesApp
-            key="fieldnotes"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'journal' && (
-          <JournalApp
-            key="journal"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'letters' && (
-          <LettersApp
-            key="letters"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'thresholds' && (
-          <ThresholdsApp
-            key="thresholds"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'toys' && (
-          <ToysApp
-            key="toys"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
         {osState === 'shelf' && (
           <RoomBubbleContext.Provider value={roomBubbleSettings}>
             <StoryShelfApp
@@ -2182,14 +1706,6 @@ export default function App() {
               themeMode={theme.mode}
             />
           </RoomBubbleContext.Provider>
-        )}
-        {osState === 'spotify' && (
-          <SpotifyApp
-            key="spotify"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
         )}
         {osState === 'notes' && (
           <NotesApp
@@ -2214,46 +1730,6 @@ export default function App() {
               themeMode={theme.mode}
             />
           </RoomBubbleContext.Provider>
-        )}
-        {osState === 'studio' && (
-          <StudioApp
-            key="studio"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'artifacts' && (
-          <ArtifactsApp
-            key="artifacts"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'files' && (
-          <FilesApp
-            key="files"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'pet' && (
-          <PetApp
-            key="pet"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
-        )}
-        {osState === 'inbox' && (
-          <InboxApp
-            key="inbox"
-            onClose={closeApp}
-            themeConfig={activeTheme}
-            themeMode={theme.mode}
-          />
         )}
       </AnimatePresence>
 

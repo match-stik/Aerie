@@ -100,7 +100,7 @@ export function CardRail({ tableId, colors }: { tableId: string | null; colors: 
     setDraft('');
     // Show their person's line immediately; the server writes the real row and the next
     // refresh replaces this one.
-    setMessages((m) => [...m, { id: `local-${Date.now()}`, role: 'user', content, createdAt: '' }]);
+    setMessages((m) => [...m, { id: `local-${Date.now()}`, role: 'user', content, createdAt: new Date().toISOString() }]);
     setPending(true);
     await apiFetch('/api/games/cards/chat', {
       method: 'POST',

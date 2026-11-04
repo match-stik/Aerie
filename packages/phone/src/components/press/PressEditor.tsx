@@ -99,6 +99,7 @@ import type {
   UploadedFile,
 } from './types';
 import { PRESS_WORKSPACE_COLOR, parsePressScene } from './types';
+import { fileToDataURL, hydrateFiles } from './scene-files';
 
 declare global {
   interface Window {
@@ -157,15 +158,6 @@ function sceneContentSignature(elements: readonly ExcalidrawElement[], gridSize:
     element.versionNonce,
     element.isDeleted ? 1 : 0,
   ].join(':')).join('|')}`;
-}
-
-function fileToDataURL(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error || new Error('Could not read file'));
-    reader.readAsDataURL(blob);
-  });
 }
 
 async function uploadBlob(blob: Blob, filename: string): Promise<UploadedFile> {
@@ -286,31 +278,6 @@ function normalizePressChrome(
     return kind !== 'page' && kind !== 'page-shadow';
   });
   return [createPageShadowElement(spreadId, scene), page, ...content];
-}
-
-async function hydrateFiles(refs: Record<string, PressFileRef>): Promise<BinaryFiles> {
-  const entries = await Promise.all(Object.entries(refs).map(async ([id, ref]) => {
-    try {
-      let dataURL = ref.inlineDataURL;
-      if (!dataURL && ref.storageFileId) {
-        const response = await apiFetch(`/api/files/${ref.storageFileId}`);
-        if (!response.ok) return null;
-        dataURL = await fileToDataURL(await response.blob());
-      }
-      if (!dataURL) return null;
-      const file: BinaryFileData = {
-        id: id as FileId,
-        dataURL: dataURL as DataURL,
-        mimeType: ref.mimeType as BinaryFileData['mimeType'],
-        created: Date.now(),
-        lastRetrieved: Date.now(),
-      };
-      return [id, file] as const;
-    } catch {
-      return null;
-    }
-  }));
-  return Object.fromEntries(entries.filter((entry): entry is readonly [string, BinaryFileData] => !!entry)) as BinaryFiles;
 }
 
 function safeFilename(value: string): string {
@@ -590,12 +557,26 @@ export default function PressEditor({
   // swallowed on purpose: a thumbnail must never be able to cost the user the save it came
   // from. Throttled, because an autosave can fire every few seconds and an export plus
   // an upload is far more expensive than the scene write it is following.
+  // A save inside the throttle used to be dropped outright, so the shelf could keep a
+  // picture of the page as it was before their last change (their catch, Nov 3 2026: the
+  // drive-in's picture had the ticket sticker blown up huge long after they'd sized it
+  // back). Now it waits out the throttle and paints once at the end.
   const lastThumbAtRef = useRef(0);
-  const refreshThumbnail = useCallback(async () => {
+  const trailingThumbRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshThumbnail = useCallback(async (force = false) => {
     const api = apiRef.current;
     if (!api) return;
     const now = Date.now();
-    if (now - lastThumbAtRef.current < 45_000) return;
+    const waited = now - lastThumbAtRef.current;
+    if (!force && waited < 45_000) {
+      if (!trailingThumbRef.current) {
+        trailingThumbRef.current = setTimeout(() => {
+          trailingThumbRef.current = null;
+          void refreshThumbnailRef.current();
+        }, 45_000 - waited);
+      }
+      return;
+    }
     lastThumbAtRef.current = now;
     try {
       const blob = await exportToBlob({
@@ -625,6 +606,59 @@ export default function PressEditor({
       lastThumbAtRef.current = 0;
     }
   }, [spread.id]);
+  const refreshThumbnailRef = useRef(refreshThumbnail);
+  useEffect(() => { refreshThumbnailRef.current = refreshThumbnail; }, [refreshThumbnail]);
+  // Leaving the page inside the throttle used to cancel its last picture with it, so a
+  // change made just before they backed out never reached the shelf. Paint it on the
+  // way out instead; the export reads the scene before the editor is torn down.
+  useEffect(() => () => {
+    if (trailingThumbRef.current) {
+      clearTimeout(trailingThumbRef.current);
+      trailingThumbRef.current = null;
+      void refreshThumbnailRef.current(true);
+    }
+  }, []);
+  // A page made outside the editor (a lane composing a scrapbook page) has no picture
+  // on the shelf until something saves it, so the first open paints one, after the
+  // photos have had a moment to load.
+  useEffect(() => {
+    if (spread.thumbnail_file_id) return;
+    const timer = setTimeout(() => { void refreshThumbnailRef.current(); }, 4000);
+    return () => clearTimeout(timer);
+  }, [spread.id, spread.thumbnail_file_id]);
+
+  // Their catch, Nov 3 2026: taking a screenshot turned the page black until they tapped
+  // it. The phone can drop a canvas's pixels when the app steps aside for a moment, and
+  // the drawing only repaints when something changes, so nothing did. When the page
+  // comes back into view, nudge the view a hair and back, which makes it paint again.
+  // Each return is also posted as [client-error] press-repaint, so the next black page
+  // names which of these the phone actually sent.
+  useEffect(() => {
+    let lastReport = 0;
+    const repaint = (event: Event) => {
+      if (event.type === 'visibilitychange' && document.visibilityState !== 'visible') return;
+      const api = apiRef.current;
+      if (!api) return;
+      requestAnimationFrame(() => {
+        const state = api.getAppState();
+        api.updateScene({ appState: { scrollX: state.scrollX + 0.01 } });
+        requestAnimationFrame(() => api.updateScene({ appState: { scrollX: state.scrollX } }));
+      });
+      if (Date.now() - lastReport > 10_000) {
+        lastReport = Date.now();
+        void apiFetch('/api/client-errors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ where: 'press-repaint', message: JSON.stringify({ event: event.type, hidden: document.visibilityState }) }),
+        }).catch(() => {});
+      }
+    };
+    const events = ['visibilitychange', 'focus', 'pageshow', 'resize'];
+    for (const name of events) (name === 'visibilitychange' ? document : window).addEventListener(name, repaint);
+    return () => {
+      for (const name of events) (name === 'visibilitychange' ? document : window).removeEventListener(name, repaint);
+    };
+  }, []);
 
   const enqueueSave = useCallback((
     snapshot: SceneSnapshot,
@@ -669,8 +703,11 @@ export default function PressEditor({
   }, [enqueueSave]);
 
   useEffect(() => () => {
+    const pending = !!saveTimerRef.current;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     if (latestRef.current && !photoLabSessionRef.current) enqueueSave(latestRef.current, false);
+    // A change still waiting on its save when they leave gets its shelf picture too.
+    if (pending) void refreshThumbnailRef.current(true);
   }, [enqueueSave]);
 
   function updateSelection(snapshot: SceneSnapshot) {

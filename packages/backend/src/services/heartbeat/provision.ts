@@ -374,7 +374,8 @@ function summarize(tool, input) {
   if (!input || typeof input !== 'object') return '';
   const i = input;
   let s = '';
-  if (typeof i.description === 'string' && i.description) s = i.description;
+  if (typeof i.skill === 'string' && i.skill) s = i.skill;
+  else if (typeof i.description === 'string' && i.description) s = i.description;
   else if (typeof i.command === 'string') s = i.command;
   else if (typeof i.file_path === 'string') s = i.file_path;
   else if (typeof i.pattern === 'string') s = i.pattern;

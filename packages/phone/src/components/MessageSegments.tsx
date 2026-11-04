@@ -14,6 +14,7 @@ import { resolveStickerRef, useStickerVersion } from '../aerie';
 import { isStickerOnly, stickerLinesAsParagraphs } from '../lib/sticker-lines';
 import { coalesceThinkingSegments, plainThinkingText, thinkingTitle } from '../lib/thinking';
 import { CodeBlock } from './CodeBlock';
+import { ToolList } from './ToolList';
 
 interface MessageSegmentsProps {
   segments: MessageSegment[];
@@ -100,11 +101,12 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
   const isLight = textClass === 'text-white' || /text-\[#[CDEFcdef]/i.test(textClass || '');
 
   // Count visible tool segments for the summary badge
-  const visibleToolCount = useMemo(() => {
+  const visibleTools = useMemo(() => {
     return segments.filter(
-      (seg) => seg.type === 'tool' && !isHiddenTool(seg as MessageSegment & { type: 'tool' })
-    ).length;
+      (seg): seg is MessageSegment & { type: 'tool' } => seg.type === 'tool' && !isHiddenTool(seg as MessageSegment & { type: 'tool' })
+    );
   }, [segments]);
+  const visibleToolCount = visibleTools.length;
 
   const toggleThinking = (i: number) =>
     setOpenThinking((prev) => {
@@ -252,17 +254,12 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
           if (!toolSummaryRendered && visibleToolCount > 0) {
             toolSummaryRendered = true;
             return (
-              <div
+              <ToolList
                 key="tool-summary"
-                className={cn(
-                  'my-0.5 flex items-center gap-1.5 self-start rounded-[var(--shape-control)] border px-2.5 py-1 text-[11px] opacity-60',
-                  colors.panelBorder
-                )}
-                style={{ background: 'rgba(127,127,127,0.08)' }}
-              >
-                <Wrench size={11} className="shrink-0" />
-                <span>{visibleToolCount} tool{visibleToolCount !== 1 ? 's' : ''} used</span>
-              </div>
+                tools={visibleTools}
+                borderClass={colors.panelBorder}
+                finished
+              />
             );
           }
 

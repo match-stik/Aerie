@@ -249,7 +249,7 @@ Voice:
 
 Image generation:
 
-- `services/image-gen.ts` owns Studio backend probing, references, drawers, gallery metadata/thumbnails, `generateImage`, and background `ImageJob`s.
+- `services/image-gen.ts` and its folder `services/image-gen/` (one file per painter, plus drawers, gallery, settings) own Studio backend probing, references, drawers, gallery metadata/thumbnails, `generateImage`, and background `ImageJob`s.
 - `routes/studio.ts` is the HTTP surface for that service.
 - `services/files.ts`, `visual-blocks.ts`, and `archive-artifact.ts` provide stored-file lookup, model image blocks, and generated artifact archival.
 

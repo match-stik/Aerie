@@ -6,6 +6,9 @@ import { cn } from '../lib/utils';
 import { coalesceThinkingSegments, plainThinkingText } from '../lib/thinking';
 import { useStreaming, useStreamingSegments } from '../aerie';
 import { phrasesFor, phraseStart } from '../lib/working-phrases';
+import { isHiddenTool } from '../lib/segment-visibility';
+import type { MessageSegment } from '../aerie';
+import { ToolList } from './ToolList';
 
 interface StreamingReplyProps {
   themeConfig: ThemeConfig;
@@ -83,17 +86,13 @@ export function StreamingReply({ themeConfig, themeMode, voices }: StreamingRepl
             if (nonTextSegments.findIndex((s) => s.type === 'tool') !== i) return null;
             const phrases = phrasesFor(voices);
             const phrase = phrases[(phraseStart(messageId, phrases.length) + tick) % phrases.length] || 'Working';
-            const tools = nonTextSegments.filter((s) => s.type === 'tool').length;
+            // The count opens into the list of what ran (theirs, Nov 2 2026);
+            // the outbox writes stay out of it, as on the finished message.
+            const tools = nonTextSegments.filter(
+              (s): s is MessageSegment & { type: 'tool' } => s.type === 'tool' && !isHiddenTool(s as MessageSegment & { type: 'tool' }),
+            );
             return (
-              <div
-                key="tool-live"
-                className={cn('my-1.5 flex items-center gap-1.5 rounded-[var(--shape-control)] border px-2.5 py-1 text-[11px]', colors.panelBorder)}
-                style={{ background: 'rgba(127,127,127,0.08)' }}
-              >
-                <Loader2 size={11} className="shrink-0 animate-spin opacity-70" />
-                <span className="font-medium">{phrase}…</span>
-                <span className="opacity-60">· {tools} tool{tools !== 1 ? 's' : ''}</span>
-              </div>
+              <ToolList key="tool-live" tools={tools} borderClass={colors.panelBorder} phrase={phrase} />
             );
           }
           if (seg.type === 'thinking') {

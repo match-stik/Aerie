@@ -152,6 +152,16 @@ export function initDb(dbPath: string): Database.Database {
   if (!pressPackColumns.has('source_file_id')) db.exec('ALTER TABLE press_packs ADD COLUMN source_file_id TEXT');
   if (!pressPackColumns.has('metadata_json')) db.exec("ALTER TABLE press_packs ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'");
 
+  // A page changed from outside the editor (a lane composing a scrapbook page) has no
+  // way to paint its own shelf picture, so the house marks it stale and the phone's
+  // shelf paints it the next time the shelf opens (theirs, Nov 3 2026: 'Can you make it
+  // so they update even if it's just you touching it?'). Any scene save without a
+  // picture in the same request marks it; a picture arriving clears it.
+  const pressSpreadColumns = new Set(
+    (db.prepare('PRAGMA table_info(press_spreads)').all() as Array<{ name: string }>).map((column) => column.name),
+  );
+  if (!pressSpreadColumns.has('thumbnail_stale')) db.exec('ALTER TABLE press_spreads ADD COLUMN thumbnail_stale INTEGER NOT NULL DEFAULT 0');
+
   // 001 wrote push_subscriptions with a type list of web_push and apns, which
   // predates Android push entirely — so an FCM device token from the APK was
   // refused by the CHECK constraint and every registration silently failed.

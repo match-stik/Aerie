@@ -237,7 +237,7 @@ test("a press's sentence is shown by the button that made it, once", () => {
 test('the phone opens it from the drawer', () => {
   const shell = read('../App.tsx');
   assert.match(shell, /\| 'spotify'/);
-  assert.match(shell, /osState === 'spotify' && \(\s*<SpotifyApp/);
+  assert.match(read('./plain-apps.tsx'), /spotify: SpotifyApp,/);
   assert.match(read('../lib/apps.ts'), /\{ id: SPOTIFY_APP_ID, name: 'Spotify', icon: Music, category: 'Fun', kind: 'screen', screen: 'spotify' \}/);
 });
 

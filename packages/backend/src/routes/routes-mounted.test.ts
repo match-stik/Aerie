@@ -134,7 +134,10 @@ test('every route inside internal.ts is declared under /internal, so the guard c
     "internalRoutes is no longer mounted at '/api' — re-check this test's premise before changing it.",
   );
 
-  const internal = readFileSync(join(ROUTES_DIR, 'internal.ts'), 'utf8');
+  const internal = [
+    join(ROUTES_DIR, 'internal.ts'),
+    ...readdirSync(join(ROUTES_DIR, 'internal')).filter((f) => f.endsWith('.ts')).map((f) => join(ROUTES_DIR, 'internal', f)),
+  ].map((file) => readFileSync(file, 'utf8')).join('\n');
   const declaration = /router\.(get|post|put|patch|delete|all|use|route)\(\s*(['"`])([^'"`]*)\2/g;
 
   const escapes: string[] = [];

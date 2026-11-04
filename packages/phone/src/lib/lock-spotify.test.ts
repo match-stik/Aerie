@@ -229,5 +229,5 @@ test('on their lock screen: wired through the house, under their person switch, 
   assert.match(lock, /data-lock-frame=""/, 'the frame it measures against');
   assert.match(app, /spotify=\{lockSpotifyOf\(theme\.lockSpotify\)\}/, 'their person switch reaches the lock screen');
   assert.match(app, /spotifyApp=\{APPS\.find\(\(a\) => a\.id === 'spotify'\)\}/, 'and the app its tap opens');
-  assert.match(read('../components/SettingsDashboard.tsx'), /onClick=\{\(\) => onThemeChange\(\{ lockSpotify: on \}\)\}/, 'Settings has the switch');
+  assert.match(read('../components/settings/LockPane.tsx'), /onClick=\{\(\) => onThemeChange\(\{ lockSpotify: on \}\)\}/, 'Settings has the switch');
 });

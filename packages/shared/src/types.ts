@@ -176,6 +176,8 @@ export interface PressSpread {
   sort_order: number;
   scene_json: string;
   thumbnail_file_id: string | null;
+  /** 1 when the scene changed after its shelf picture was painted. */
+  thumbnail_stale?: number;
   created_at: string;
   updated_at: string;
 }

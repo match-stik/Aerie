@@ -9,6 +9,7 @@ import { basename, join } from 'path';
 import { existsSync } from 'fs';
 import { getConfig, setConfig } from '../services/db/config.js';
 import { getCodexUsage } from '../services/subscription-usage.js';
+import { discoverCodexModels } from '../services/codex-model-discovery.js';
 import { decodeSketchDataUrl, saveSketch, sketchPaths, pruneSketches } from '../services/studio-sketch.js';
 import { studioWindowWarning, warnThresholdFrom } from '../services/studio-window-warning.js';
 import type { StudioWindowWarning } from '../services/studio-window-warning.js';
@@ -852,6 +853,8 @@ async function codexEnhance(prompt: string, model: string): Promise<string> {
   });
 }
 
+const ENHANCE_FALLBACK_MODEL = 'gpt-5.6-luna';
+
 router.post('/studio/enhance', async (req, res) => {
   try {
     const { prompt, backend, codexModel } = req.body as {
@@ -870,9 +873,26 @@ router.post('/studio/enhance', async (req, res) => {
     // naming a service its owner never chose. On the Codex backend it expands
     // with the very model you are generating with; anywhere else it uses Luna,
     // the fast utility lane.
-    const codexModelForEnhance = backend === 'codex' && codexModel ? codexModel : 'gpt-5.6-luna';
+    // An image-only model (gpt-image-2) cannot write a prompt at all, so the wand goes
+    // to Luna for those; and if the picked model fails for any other reason, Luna gets
+    // one try before anything else (theirs, Nov 3 2026: 'My prompt enhancement keeps
+    // failing', with gpt-image-2 picked: every press died in Codex and then in an
+    // Ollama fallback that names a model Ollama does not have).
+    const picked = backend === 'codex' && codexModel ? codexModel : ENHANCE_FALLBACK_MODEL;
+    // The picker can hand over a model Codex cannot run on this account (an OpenArt key
+    // like gpt-image-2 rides the same field), so only a model the account lists is used.
+    const listed = discoverCodexModels('codex').map((model) => model.id);
+    const runnable = listed.length ? listed.includes(picked) : !/^gpt-image/i.test(picked);
+    const codexModelForEnhance = runnable ? picked : ENHANCE_FALLBACK_MODEL;
     try {
-      const enhanced = await codexEnhance(prompt.trim(), codexModelForEnhance);
+      let enhanced: string;
+      try {
+        enhanced = await codexEnhance(prompt.trim(), codexModelForEnhance);
+      } catch (firstError) {
+        if (codexModelForEnhance === ENHANCE_FALLBACK_MODEL) throw firstError;
+        console.warn(`[studio] enhance on ${codexModelForEnhance} failed; trying ${ENHANCE_FALLBACK_MODEL}:`, firstError);
+        enhanced = await codexEnhance(prompt.trim(), ENHANCE_FALLBACK_MODEL);
+      }
       res.json({ enhanced });
       return;
     } catch (codexError) {

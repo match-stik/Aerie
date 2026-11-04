@@ -28,6 +28,7 @@ import { baselineFrom, BASELINE_FILE } from './block-drift.js';
 import { outageNotices, type OutageKind } from './outage-notices.js';
 import { atomicWrite } from './atomic-write.js';
 import { laneDirName } from './lane-dir.js';
+import { laneSwitchEnv } from './lane-switches.js';
 
 const IS_WIN = process.platform === 'win32';
 const WATCHDOG_TIMEOUT = (parseInt(process.env.HEARTBEAT_WATCHDOG_TIMEOUT || '300', 10)) * 1000;
@@ -1408,6 +1409,8 @@ export class HeartbeatSession {
     // goes in as a character. No-ops where the console is already UTF-8.
     env.PYTHONUTF8 = '1';
     env.PYTHONIOENCODING = 'utf-8';
+    // Claude Code's own per-model switches, set by the house (lane-switches.ts).
+    Object.assign(env, laneSwitchEnv());
 
     const args = buildLaunchArgs({
       model: this.model,

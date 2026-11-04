@@ -155,21 +155,9 @@ export function StudioJobTray({ onOpen, inStudio = false }: { onOpen: () => void
           and the box itself now dismisses on tap WITHOUT opening the Studio,
           because "make it go away" and "take me to Studio" are two different
           wants and only one of them was available. */}
-      {/* Cancel, theirs (Oct 29 2026): a picture a painter refused used to hold
-          the whole queue for minutes. In the Studio only, like the error words. */}
-      {active && inStudio && (
-        <button
-          type="button"
-          onClick={async () => {
-            try { await apiFetch(`/api/studio/jobs/${encodeURIComponent(job.id)}/cancel`, { method: 'POST' }); } catch { /* the next poll shows the truth */ }
-            setJob(null);
-          }}
-          className="h-9 px-3 rounded-[var(--shape-chip)] border bg-neutral-950/85 text-[11px] font-medium shadow-lg backdrop-blur-md"
-          style={{ borderColor: 'color-mix(in srgb, var(--aerie-accent) 40%, transparent)', color: 'var(--aerie-accent)' }}
-        >
-          Cancel
-        </button>
-      )}
+      {/* Cancel used to sit here (Oct 29 2026). It moved onto the painting
+          row of the Studio's queue (Nov 3 2026), so the stop is beside the
+          picture it stops. */}
       {failed && inStudio && (
         <button
           type="button"

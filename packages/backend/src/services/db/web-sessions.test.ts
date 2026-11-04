@@ -45,7 +45,7 @@ test('a password change keeps the person who made it and signs everybody else ou
 
 test('the preferences route ends the other sessions when the password changes', () => {
   // The route writes the real config file, so it is read here rather than run.
-  const api = readFileSync(join(SRC, 'routes', 'api.ts'), 'utf-8');
+  const api = readFileSync(join(SRC, 'routes', 'api', 'preferences.ts'), 'utf-8');
   const route = api.slice(api.indexOf("router.put('/preferences'"));
   const handler = route.slice(0, route.indexOf('\nrouter.'));
   assert.match(handler, /passwordChanged/);

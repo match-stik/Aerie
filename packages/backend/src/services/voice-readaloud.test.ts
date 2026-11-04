@@ -47,7 +47,7 @@ test('splitting moves no characters — the post is spoken whole', () => {
 });
 
 test('read-aloud sends a single voice through the chunked renderer too', () => {
-  const src = readFileSync(new URL('../routes/api.ts', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../routes/api/message-tts.ts', import.meta.url), 'utf8');
   const at = src.lastIndexOf('read-aloud-${id}.mp3');
   assert.ok(at > 0, 'the read-aloud render should still be here');
   const block = src.slice(Math.max(0, at - 2200), at);
@@ -61,7 +61,7 @@ test('read-aloud sends a single voice through the chunked renderer too', () => {
 });
 
 test('the whole-text fallback is refused when it could only 400', () => {
-  const src = readFileSync(new URL('../routes/api.ts', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../routes/api/message-tts.ts', import.meta.url), 'utf8');
   assert.match(
     src,
     /joined\.length > PROVIDER_MAX_REQUEST_CHARS\) throw err;/,
@@ -73,7 +73,7 @@ test('the STREAMING read-aloud path cuts by length as well as by speaker', () =>
   // splitByCompanion cuts by SPEAKER only. The live path built its job straight
   // off that, so one voice talking at length was one segment and one oversized
   // request. Same fault, second door — found in the same hour as the first.
-  const src = readFileSync(new URL('../routes/api.ts', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../routes/api/message-tts.ts', import.meta.url), 'utf8');
   assert.match(src, /const renderable = splitSegmentsForRender\(prepared\)/);
   assert.equal(
     src.includes('segments: prepared.map((segment, index) => createLiveTtsSegment'),

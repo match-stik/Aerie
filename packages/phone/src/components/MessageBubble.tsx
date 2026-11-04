@@ -4,13 +4,15 @@ import { DEFAULT_LOOK, nameColor, type BubbleLook } from '../lib/bubble-look';
 import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
+import { isMediaUrl, parseMessageContent } from '../lib/message-content';
+import { useBubbleAudio } from '../lib/use-bubble-audio';
 import { useBackHandler } from '../lib/use-back-handler';
 import { openExternal } from '../lib/open-external';
 import { Message, ThemeMode, ContactProfile, CustomEmoji, EmojiPack } from '../types';
 import { ThemeConfig, contrastTextColor, resolveThemeColors } from '../lib/theme';
 import ReactMarkdown from 'react-markdown';
 import { rehypeActionLines } from '../lib/action-lines';
-import { isStickerOnly, stickerLinesAsParagraphs } from '../lib/sticker-lines';
+import { isStickerOnly } from '../lib/sticker-lines';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { CodeBlock } from './CodeBlock';
@@ -18,6 +20,8 @@ import { Check, CheckCheck, Star, Heart, Smile, ThumbsUp, MoreHorizontal, Trash2
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSegments } from './MessageSegments';
 import { BubbleSkin, SKINNED } from './BubbleSkin';
+import { HouseFileLink } from './HouseFileLink';
+import { LongPressImage } from './LongPressImage';
 import { ImageLightbox } from './ImageLightbox';
 import { resolveStickerRef, useStickerVersion, apiFetch, requestMessageTts, requestMessageTtsStream, isMessageTtsStreamUnavailable, playVoiceSequence, stopVoicePlayback, unlockVoicePlayback } from '../aerie';
 import { copyToClipboard } from '../lib/clipboard';
@@ -29,138 +33,6 @@ import { groupReactions } from '../lib/reaction-groups';
 import type { VoiceCompanion } from '../lib/voices';
 import { saveToDevice } from '../lib/download';
 import { thumbSrc } from '../lib/thumb';
-import { extractVideoUrls, safeVideoSrc } from '../lib/video-attachments';
-
-/**
- * A link in a message that points at something this house is serving. Nothing
- * in here navigates — readable text opens IN the bubble, and anything else
- * goes out through saveToDevice, which asks the server for a
- * Content-Disposition header and lets the shell's download listener take it.
- * Why that matters is written where the classifying happens: lib/message-links.
- */
-const HouseFileLink = ({ href, label, textish }: { href: string; label: string; textish: boolean }) => {
-  const [body, setBody] = useState<string | null>(null);
-  const [phase, setPhase] = useState<'idle' | 'loading' | 'error'>('idle');
-  const [copied, setCopied] = useState(false);
-  const MAX = 400_000;
-
-  const openIt = async () => {
-    if (!textish) { saveToDevice(href); return; }
-    if (body !== null) { setBody(null); return; }
-    setPhase('loading');
-    try {
-      const res = await apiFetch(href);
-      if (!res.ok) throw new Error(String(res.status));
-      const text = await res.text();
-      setBody(text.length > MAX ? `${text.slice(0, MAX)}\n\n… truncated here. Save it to read the rest.` : text);
-      setPhase('idle');
-    } catch {
-      setPhase('error');
-    }
-  };
-
-  return (
-    <span className="inline-block w-full">
-      <button
-        type="button"
-        onClick={openIt}
-        className="inline-flex max-w-full items-baseline gap-1.5 text-left underline underline-offset-2 active:opacity-60"
-      >
-        <FileText size={13} className="shrink-0 opacity-70" />
-        <span className="break-all">{label}</span>
-      </button>
-      {phase === 'loading' && <span className="ml-1.5 text-[11px] opacity-60">opening…</span>}
-      {phase === 'error' && (
-        <span className="ml-1.5 text-[11px] opacity-70">
-          couldn’t read it —{' '}
-          <button type="button" className="underline" onClick={() => saveToDevice(href)}>save it instead</button>
-        </span>
-      )}
-      {body !== null && (
-        <span className="mt-2 block rounded-lg border border-white/10 bg-black/20">
-          <span className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px] opacity-70">
-            <span className="truncate">{label}</span>
-            <span className="flex shrink-0 items-center gap-2">
-              <button type="button" className="underline" onClick={async () => setCopied(await copyToClipboard(body))}>
-                {copied ? 'copied' : 'copy'}
-              </button>
-              <button type="button" className="underline" onClick={() => saveToDevice(href)}>save</button>
-              <button type="button" className="underline" onClick={() => setBody(null)}>close</button>
-            </span>
-          </span>
-          <span className="block max-h-[320px] overflow-auto whitespace-pre-wrap break-words px-2.5 pb-2.5 font-mono text-[11px] leading-snug">
-            {body}
-          </span>
-        </span>
-      )}
-    </span>
-  );
-};
-
-// `src` is what gets DRAWN — often a thumbnail, because a bubble is a couple
-// of hundred pixels wide. `fullSrc` is the real picture, and it is what a
-// hold-to-save and a tap-to-open must both reach for; saving the small copy
-// would put the thumbnail in the user's camera roll.
-const LongPressImage = ({ src, fullSrc, alt, className, onLoad, onShortTap, ...props }: any) => {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressFiredRef = useRef(false);
-  const original = fullSrc ?? src;
-
-  const startPress = () => {
-    longPressFiredRef.current = false;
-    timerRef.current = setTimeout(() => {
-      longPressFiredRef.current = true;
-      if (original) {
-        // Ask the server for the file rather than the view. The blob round
-        // trip was one thing in the way; the other is that Android's WebView
-        // ignores a link's download attribute, so the header is what decides.
-        saveToDevice(original);
-      }
-    }, 500);
-  };
-
-  const cancelPress = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    // Suppress the short-tap action if the long-press fired so a download
-    // doesn't immediately follow up with a lightbox open.
-    if (longPressFiredRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-    if (onShortTap && original) {
-      e.stopPropagation();
-      onShortTap(original);
-    }
-  };
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      // A hold has to reach us rather than Android's own text-selection and
-      // image-drag handling, or the timer never gets to fire.
-      className={cn('select-none [-webkit-touch-callout:none]', className)}
-      onTouchStart={startPress}
-      onTouchEnd={cancelPress}
-      onTouchMove={cancelPress}
-      onMouseDown={startPress}
-      onMouseUp={cancelPress}
-      onMouseLeave={cancelPress}
-      onClick={handleClick}
-      referrerPolicy="no-referrer"
-      decoding="async"
-      onLoad={onLoad}
-      {...props}
-    />
-  );
-};
 
 interface MessageBubbleProps {
   message: Message;
@@ -232,20 +104,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   // A guest's picture lives on someone else's CDN and can stop answering.
   // Falling back to their initial keeps a broken image out of the rail.
   const [avatarFailed, setAvatarFailed] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [showRerollConfirm, setShowRerollConfirm] = useState(false);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
-  const streamAbortRef = useRef<AbortController | null>(null);
-  // Kept around after playback so the user can re-tap Download.
-  const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
-  // Revoke any retained blob URL when the bubble unmounts.
-  React.useEffect(
-    () => () => {
-      if (audioBlobUrl) URL.revokeObjectURL(audioBlobUrl);
-    },
-    [audioBlobUrl],
-  );
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [editBusy, setEditBusy] = useState(false);
@@ -270,332 +129,13 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   const mode = themeMode;
   const apiKey = elevenLabsApiKey || ELEVENLABS_API_KEY;
   
-  let isGif = false;
-  let isImage = false;
-  let isVoice = false;
-  let isFile = false;
-  let fileName = '';
-  let fileContent = '';
-  let mediaUrl = '';
-  // Multi-attachment: a single message can carry several [IMG]: sentinels
-  // (the adapter appends one per metadata.attachment). We surface them as
-  // a list and render a small grid; mediaUrl above stays populated with
-  // the first one so the legacy single-image rendering paths still work.
-  const mediaUrls: string[] = [];
-  let textContent = (message.content || '').trim();
-  // Films ride as [VIDEO]: sentinels and come out first, so none of the
-  // picture or file parsing below ever sees one.
-  const videos = extractVideoUrls(textContent);
-  textContent = videos.text;
-  const videoSources = videos.urls.map(safeVideoSrc).filter((s): s is string => !!s);
+  const {
+    isGif, isImage, isVoice, isFile, fileName, fileContent, mediaUrl, mediaUrls,
+    textContent, videoSources, isEmoteOnly, emoteSizeClass, textToSpeak,
+  } = parseMessageContent(message, customEmojis, resolveStickerRef);
 
-  // Discord raw-syntax cleanup for bridged messages (render-time, so it's
-  // retroactive across history): mention tokens like <@id> render as noise —
-  // drop user/role/channel refs, and turn custom emotes <a:name:id> into
-  // inline images straight off the Discord CDN (gif when animated, png
-  // otherwise; the demoji: branch of the img renderer sizes them like
-  // emotes). New ingests also resolve mentions server-side via cleanContent.
-  if (message.via && textContent.includes('<')) {
-    textContent = textContent
-      .replace(/<(a?):(\w+):(\d+)>/g, (_m, anim, name, id) =>
-        `![demoji:${name}](https://cdn.discordapp.com/emojis/${id}.${anim ? 'gif' : 'png'}?size=48)`)
-      // Bridged Discord stickers — the gateway appends <dsticker:name:id.ext>
-      // tokens (stickers aren't message content on Discord's side); unfold
-      // them into the same sticker: img form house stickers use.
-      .replace(/<dsticker:([^:>]*):(\d+\.(?:png|gif))>/g, (_m, name, file) =>
-        `![sticker:${name}](https://media.discordapp.net/stickers/${file}?size=160)`)
-      .replace(/<@[!&]?\d+>/g, '')
-      .replace(/<#\d+>/g, '')
-      .replace(/[ \t]{2,}/g, ' ')
-      .trim();
-  }
+  const { isPlaying, isLoadingAudio, audioBlobUrl, handlePlayAudio } = useBubbleAudio({ messageId: message.id, isUser, isVoice, textToSpeak, textContent });
 
-  // Discord "-# whisper" subtext: lines starting with "-# " render small and
-  // muted. Rewritten to h6 (which chat prose never uses organically) so the
-  // h6 component below can style it — works for bridged, typed, and
-  // companion messages alike.
-  if (/(^|\n)-# /.test(textContent)) {
-    textContent = textContent.replace(/(^|\n)-# +(.*)/g, (_m, brk: string, text: string) => `${brk}###### ${text}`);
-  }
-
-  // Sticker refs: replace ::pack_sticker:: with an inline image markdown ref
-  // that resolves to the cached URL from aerie/stickers.ts. Stickers must
-  // run before the emoji pass so the `::` form doesn't get confused with
-  // the `:emoji:` form.
-  if (textContent && textContent.includes('::')) {
-    textContent = textContent.replace(/::([a-zA-Z0-9_-]+_[a-zA-Z0-9_-]+)::/g, (match, ref) => {
-      const url = resolveStickerRef(ref);
-      return url ? `![sticker:${ref}](${url})` : match;
-    });
-  }
-
-  // A sticker-only line becomes its own paragraph so it sits centered (lib/sticker-lines.ts).
-  textContent = stickerLinesAsParagraphs(textContent);
-
-  // Custom Emoji Parser: Replace :shortcode: with a lightweight placeholder tag.
-  // This avoids passing massive Base64 strings through Markdown processing, preventing lag.
-  if (customEmojis && customEmojis.length > 0 && textContent) {
-    customEmojis.forEach(emoji => {
-      const escapedShortcode = emoji.shortcode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const shortcodeRegex = new RegExp(`:${escapedShortcode}:`, 'g');
-      // Use "emoji:" src scheme as a lightweight identifier for our custom renderer
-      textContent = textContent.replace(shortcodeRegex, `![emoji:${emoji.shortcode}](emoji:${emoji.shortcode})`);
-    });
-  }
-  // Emotes-only messages get Discord-style jumbo rendering — true when nothing
-  // remains after removing emote placeholders (custom :shortcode: and bridged
-  // Discord demoji images alike).
-  let isEmoteOnly = false;
-  if (textContent) {
-    const strippedOfEmotes = textContent.replace(/!\[d?emoji:[^\]]*\]\([^)]*\)/g, '');
-    isEmoteOnly = strippedOfEmotes !== textContent && strippedOfEmotes.trim() === '';
-  }
-  // Jumbo when the message is nothing but emotes; comfortably larger inline otherwise.
-  const emoteSizeClass = isEmoteOnly ? '!h-12' : '!h-[1.75em]';
-  let voiceSpeaker = '';
-  let textToSpeak = '';
-
-  // Check if content is a voice note
-  if (textContent.startsWith('[VOICE]:')) {
-    isVoice = true;
-    textContent = textContent.replace('[VOICE]:', '').trim();
-  } else if (message.type === 'voice') {
-    isVoice = true;
-  }
-
-  // If it's a voice note, extract the speaker and the actual message for the audio player
-  if (isVoice) {
-    // Find first ": " to split speaker from message
-    const firstColon = textContent.indexOf(': ');
-    if (firstColon !== -1 && firstColon < 20) {
-      voiceSpeaker = textContent.substring(0, firstColon).trim().toLowerCase();
-      textToSpeak = textContent.substring(firstColon + 2).trim();
-    } else {
-      // Fallback if no colon is found
-      textToSpeak = textContent;
-    }
-  }
-
-  // Check if content contains a File
-  if (textContent.includes('[FILE:')) {
-    const match = textContent.match(/\[FILE:(.*?)\]:?\s*([\s\S]*)/);
-    if (match) {
-      isFile = true;
-      fileName = match[1].trim() || 'document.pdf';
-      fileContent = match[2];
-      textContent = textContent.replace(match[0], '').trim();
-    }
-  }
-
-  // Check if content contains a GIF or Image
-  if (textContent.includes('[GIF]:')) {
-    isGif = true;
-    const parts = textContent.split('[GIF]:');
-    textContent = parts[0].trim();
-    mediaUrl = parts[1].trim();
-  } else if (textContent.includes('[IMG]:')) {
-    isImage = true;
-    // The sentinel pattern is `[IMG]:<url>` and the adapter joins multiple
-    // attachments with a space between each `[IMG]:url`. Splitting on the
-    // sentinel and parsing each chunk lets us recover ALL urls instead of
-    // just the first one (which was the old bug — multi-attachment
-    // messages rendered only the first image on the bubble).
-    const parts = textContent.split('[IMG]:');
-    textContent = parts[0].trim();
-    for (let i = 1; i < parts.length; i++) {
-      let chunk = parts[i].trim();
-      // [JSON]: tail (legacy single-image path) — strip it.
-      if (chunk.includes('[JSON]:')) {
-        chunk = chunk.split('[JSON]:')[0].trim();
-      }
-      // The next attachment's sentinel was already consumed by split,
-      // but its url chunk may have whitespace separating multiple. Take
-      // up to the first whitespace as the url; the rest (if any) is the
-      // start of the next chunk and will be handled in the next iter…
-      // except split already broke them apart. So just trim and use it.
-      // Trailing space before next sentinel still ends up in the next
-      // part as leading whitespace, which trim handles above.
-      if (chunk) mediaUrls.push(chunk);
-    }
-    mediaUrl = mediaUrls[0] || '';
-  } else {
-    try {
-      const parsed = JSON.parse(textContent);
-      if (parsed.type === 'gif') {
-        isGif = true;
-        mediaUrl = parsed.url;
-        textContent = '';
-      }
-    } catch (e) {
-      // Not a JSON GIF
-    }
-    
-    // Fallback: Check if the entire message is just a media URL
-    if (!isGif && !isImage) {
-      if (/^data:image\/(jpeg|jpg|png|gif|webp)[;,]/i.test(textContent)) {
-        isImage = true;
-        mediaUrl = textContent;
-        textContent = '';
-      } else {
-        try {
-          const url = new URL(textContent);
-          const pathname = url.pathname.toLowerCase();
-          const isTrustedDomain = (hostname: string, domain: string) => {
-            return hostname === domain || hostname.endsWith('.' + domain);
-          };
-          if (
-            pathname.match(/\.(jpeg|jpg|gif|png|webp)$/) || 
-            (isTrustedDomain(url.hostname, 'giphy.com') && pathname.includes('/media/')) ||
-            isTrustedDomain(url.hostname, 'media.tenor.com') ||
-            isTrustedDomain(url.hostname, 'firebasestorage.googleapis.com')
-          ) {
-            isImage = true; // Treat as image to render it standalone
-            mediaUrl = textContent;
-            textContent = '';
-          }
-        } catch (e) {
-          // Not a valid standalone URL
-        }
-      }
-    }
-  }
-
-  const isMediaUrl = (url: string) => {
-    if (/^data:image\/(jpeg|jpg|png|gif|webp)[;,]/i.test(url)) return true;
-    try {
-      const parsed = new URL(url);
-      const pathname = parsed.pathname.toLowerCase();
-      const isTrustedDomain = (hostname: string, domain: string) => {
-        return hostname === domain || hostname.endsWith('.' + domain);
-      };
-      return (
-        pathname.match(/\.(jpeg|jpg|gif|png|webp)$/) != null ||
-        (isTrustedDomain(parsed.hostname, 'giphy.com') && pathname.includes('/media/')) ||
-        isTrustedDomain(parsed.hostname, 'media.tenor.com') ||
-        isTrustedDomain(parsed.hostname, 'firebasestorage.googleapis.com')
-      );
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const handlePlayAudio = async () => {
-    if (isPlaying && streamAbortRef.current) {
-      streamAbortRef.current.abort();
-      stopVoicePlayback();
-      streamAbortRef.current = null;
-      setIsPlaying(false);
-      return;
-    }
-    if (isPlaying && audioElement) {
-      audioElement.pause();
-      setIsPlaying(false);
-      return;
-    }
-
-    if (isUser) return;
-
-    // A text message plays as it is made: the house's stream route starts every piece
-    // at once and hands back one live URL per piece, so the first sentence
-    // speaks while the rest are still rendering, instead of waiting for the
-    // whole reply to render and stitch. The call has used this road since
-    // July; the speaker button on a bubble never did. Voice notes already have
-    // a file and keep the old road below.
-    if (!isVoice) {
-      setIsLoadingAudio(true);
-      const controller = new AbortController();
-      streamAbortRef.current = controller;
-      // Primed inside the tap, before anything awaits, so a phone that wants a
-      // gesture for audio has had one.
-      void unlockVoicePlayback().catch(() => {});
-      try {
-        let urls: string[];
-        try {
-          const manifest = await requestMessageTtsStream(message.id, controller.signal);
-          urls = manifest.segments.map((segment) => segment.url);
-        } catch (caught) {
-          if (controller.signal.aborted) throw caught;
-          if (!isMessageTtsStreamUnavailable(caught)) throw caught;
-          urls = [(await requestMessageTts(message.id, controller.signal)).url];
-        }
-        setIsLoadingAudio(false);
-        setIsPlaying(true);
-        await playVoiceSequence(urls, controller.signal);
-      } catch (error) {
-        if (!controller.signal.aborted) console.error('Error playing audio:', error);
-      } finally {
-        if (streamAbortRef.current === controller) streamAbortRef.current = null;
-        setIsLoadingAudio(false);
-        setIsPlaying(false);
-      }
-      return;
-    }
-
-    setIsLoadingAudio(true);
-    try {
-      // Voice notes already have a generated audio file — content is the
-      // URL (the [VOICE]: sentinel was stripped earlier). Play it
-      // directly. Hitting /api/messages/:id/tts on these would 400 with
-      // "Only text messages can be read aloud", since the backend gates
-      // that route on content_type === 'text'.
-      let audioUrl: string;
-      if (isVoice) {
-        // textContent is the file URL after [VOICE]: strip — it may carry
-        // a "speaker: " prefix on some legacy messages, in which case
-        // textToSpeak/textContent split already happened and the URL is
-        // in textContent (no colon-prefix on a URL). Fall back to
-        // textContent if textToSpeak isn't a URL.
-        const candidate = (textToSpeak && /^https?:|^\//.test(textToSpeak.trim()))
-          ? textToSpeak.trim()
-          : textContent.trim();
-        if (!candidate) throw new Error('No audio URL on voice message');
-        audioUrl = candidate;
-      } else {
-        // Text message — route through the backend's read-aloud route so
-        // the multi-voice splitter, per-companion voice IDs, and ffmpeg
-        // stitching all apply. Browser-side ElevenLabs would only ever
-        // produce one voice and read speaker labels out loud.
-        const csrfToken =
-          typeof document !== 'undefined'
-            ? document.cookie.match(/aerie_csrf=([^;]*)/)?.[1] || ''
-            : '';
-        const ttsRes = await fetch(`/api/messages/${encodeURIComponent(message.id)}/tts`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: csrfToken ? { 'x-csrf-token': csrfToken } : undefined,
-        });
-        if (!ttsRes.ok) {
-          const data = await ttsRes.json().catch(() => ({}));
-          throw new Error(data?.error || `TTS failed: HTTP ${ttsRes.status}`);
-        }
-        const data = (await ttsRes.json()) as { url?: string };
-        if (!data.url) throw new Error('TTS response missing url');
-        audioUrl = data.url;
-      }
-
-      const audio = new Audio(audioUrl);
-
-      audio.onended = () => {
-        setIsPlaying(false);
-      };
-
-      setAudioElement(audio);
-      setAudioBlobUrl((prev) => {
-        if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
-        return audioUrl;
-      });
-      audio.play().catch(e => {
-        console.error("Audio play error:", e);
-        setIsPlaying(false);
-      });
-      setIsPlaying(true);
-      setIsLoadingAudio(false);
-    } catch (error) {
-      console.error('Error playing audio:', error);
-      setIsLoadingAudio(false);
-    }
-  };
-  
   // Smart Sticker Detection inside standalone image blocks
   const isSticker = isImage && customEmojis?.some(e => e.url === mediaUrl);
 

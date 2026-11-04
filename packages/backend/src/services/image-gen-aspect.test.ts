@@ -10,7 +10,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const backendSource = readFileSync(new URL('./image-gen.ts', import.meta.url), 'utf8');
+const backendSource = ['./image-gen/settings.ts', './image-gen/common.ts']
+  .map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))
+  .join('\n');
 
 const ratioOf = (key: string) => {
   const row = new RegExp(`'${key}': \\{[^}]*apiSize: '(\\d+)x(\\d+)'`).exec(backendSource);

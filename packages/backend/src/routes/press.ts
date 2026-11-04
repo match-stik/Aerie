@@ -334,6 +334,29 @@ router.post('/issues/:id/spreads', (req, res) => {
   }
 });
 
+/** Whether a spread's shelf picture is behind its scene after a PATCH. */
+export function nextThumbnailStale(change: { previous: number; pictureSent: boolean; sceneChanged: boolean }): number {
+  if (change.pictureSent) return 0;
+  if (change.sceneChanged) return 1;
+  return change.previous ? 1 : 0;
+}
+
+// The spreads whose shelf picture is behind their scene, with the scene, so the phone's
+// shelf can paint them without anyone opening the page.
+router.get('/spreads/stale', (_req, res) => {
+  try {
+    const spreads = getDb().prepare(`
+      SELECT * FROM press_spreads
+      WHERE thumbnail_stale = 1 OR (thumbnail_file_id IS NULL AND scene_json != '{}')
+      ORDER BY updated_at DESC LIMIT 24
+    `).all() as PressSpread[];
+    res.json({ spreads });
+  } catch (error) {
+    console.error('[Press] Read stale spreads failed:', error);
+    res.status(500).json({ error: 'Failed to read stale Press spreads' });
+  }
+});
+
 router.patch('/spreads/:id', (req, res) => {
   try {
     const spread = spreadById(req.params.id);
@@ -347,7 +370,8 @@ router.patch('/spreads/:id', (req, res) => {
       return;
     }
     let sceneJson = spread.scene_json;
-    if (req.body?.sceneJson !== undefined || req.body?.scene_json !== undefined) {
+    const sceneSent = req.body?.sceneJson !== undefined || req.body?.scene_json !== undefined;
+    if (sceneSent) {
       const parsed = parseScene(req.body.sceneJson ?? req.body.scene_json);
       if (!parsed) {
         res.status(400).json({ error: 'Scene must be valid Press scene v1 JSON and under 8 MB' });
@@ -360,14 +384,21 @@ router.patch('/spreads/:id', (req, res) => {
       : (typeof req.body.thumbnailFileId === 'string' && UUID_RE.test(req.body.thumbnailFileId)
         ? req.body.thumbnailFileId
         : null);
+    // A picture in the request is the current one; a changed scene without one leaves
+    // the shelf's picture behind until a phone paints it (see thumbnail_stale in init.ts).
+    const stale = nextThumbnailStale({
+      previous: spread.thumbnail_stale ?? 0,
+      pictureSent: req.body?.thumbnailFileId !== undefined,
+      sceneChanged: sceneSent && sceneJson !== spread.scene_json,
+    });
     const now = new Date().toISOString();
     const db = getDb();
     db.transaction(() => {
       db.prepare(`
         UPDATE press_spreads
-        SET title = ?, scene_json = ?, thumbnail_file_id = ?, updated_at = ?
+        SET title = ?, scene_json = ?, thumbnail_file_id = ?, thumbnail_stale = ?, updated_at = ?
         WHERE id = ?
-      `).run(title, sceneJson, thumbnail, now, spread.id);
+      `).run(title, sceneJson, thumbnail, stale, now, spread.id);
       db.prepare('UPDATE press_issues SET updated_at = ? WHERE id = ?').run(now, spread.issue_id);
     })();
     res.json({ spread: spreadById(spread.id) });

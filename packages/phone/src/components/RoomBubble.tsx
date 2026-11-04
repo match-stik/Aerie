@@ -47,9 +47,13 @@ export interface RoomBubbleProps {
 export function RoomBubble({ id, content, createdAt, fromOwner = false, voice = null, groupPos = 'only', mirror = false }: RoomBubbleProps) {
   const s = useContext(RoomBubbleContext);
   if (!s) return null;
+  // A line just sent is drawn before the house has written its row, and a
+  // blank or unreadable stamp made the bubble's time throw and take the whole
+  // phone down (Nov 4 2026, every message at a games table).
+  const stamp = createdAt && !Number.isNaN(Date.parse(createdAt)) ? createdAt : new Date().toISOString();
   const message: Message = {
     id,
-    timestamp: createdAt,
+    timestamp: stamp,
     direction: fromOwner ? 'inbound' : 'outbound',
     content,
     read: 1,

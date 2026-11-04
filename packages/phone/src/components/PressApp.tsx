@@ -121,6 +121,18 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
 
   useEffect(() => { void loadIssues(); }, []);
 
+  // Pages changed from outside the editor get their shelf pictures painted here, then
+  // the shelf reloads to show them. Imported on demand so the shelf opens before the
+  // drawing library does.
+  useEffect(() => {
+    let cancelled = false;
+    void import('./press/shelf-painter')
+      .then(({ paintStaleSpreads }) => paintStaleSpreads())
+      .then((painted) => { if (painted > 0 && !cancelled) void loadIssues(); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => {
     try {
       window.localStorage.setItem('aerie.press.spread-rail-collapsed', String(spreadRailCollapsed));
