@@ -35,10 +35,12 @@ function post(path: string, headers: Record<string, string> = {}): Request {
   });
 }
 
-test('with no secret set, the worker answers the way it always has', async () => {
+test('with no secret set, the worker turns everyone away unless the owner opts out', async () => {
+  // Fails closed since Nov 6 2026: a forgotten secret no longer opens the bot to anyone.
   const worker = await loadWorker();
-  assert.equal((await worker.fetch(post('/mcp'), {}, ctx)).status, 200);
-  assert.equal((await worker.fetch(post('/sse'), {}, ctx)).status, 200);
+  assert.equal((await worker.fetch(post('/mcp'), {}, ctx)).status, 401);
+  assert.equal((await worker.fetch(post('/sse'), {}, ctx)).status, 401);
+  assert.equal((await worker.fetch(post('/mcp'), { ALLOW_UNAUTHENTICATED: 'true' }, ctx)).status, 200);
 });
 
 test('with a secret set, a call with no key is turned away on both doors', async () => {

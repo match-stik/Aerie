@@ -788,79 +788,17 @@ router.get('/studio/jobs/:id', (req, res) => {
 
 import { textCompletion, loadProviderConfig } from '../services/router.js';
 import { getConfig as getDbConfig } from '../services/db/config.js';
-import { spawn } from 'child_process';
-import { homedir, tmpdir } from 'os';
-import { readFile, unlink } from 'fs/promises';
 
-const ENHANCE_SYSTEM = `You are an image generation prompt enhancer. Your job is to expand simple prompts into vivid, detailed descriptions suitable for AI image generation.
+import { ENHANCE_SYSTEM, enhanceRequest, enhanceWithCodex } from '../services/studio-enhance.js';
 
-Rules:
-- Keep the enhanced prompt under 150 words
-- Add specific details: lighting, atmosphere, style, composition, textures
-- Maintain the original intent — don't change the subject or scene
-- Output ONLY the enhanced prompt, no explanations or commentary
-- Use natural descriptive language, not keyword spam`;
-
-// Resolve the same standalone Codex install used by Studio image generation.
-// PM2 does not inherit ~/.local/bin in PATH, so command lookup is unreliable.
-function findCodexBin(): string | null {
-  const configured = getDbConfig('image_gen.codex_bin')
-    || process.env.CODEX_BIN
-    || join(homedir(), '.local', 'bin', 'codex');
-  return existsSync(configured) ? configured : null;
-}
-
-// Run codex exec for prompt enhancement with a specific model
-async function codexEnhance(prompt: string, model: string): Promise<string> {
-  const codexBin = findCodexBin();
-  if (!codexBin) throw new Error('Codex not installed');
-
-  const outputFile = join(tmpdir(), `aerie-enhance-${Date.now()}.txt`);
-  const fullPrompt = `${ENHANCE_SYSTEM}\n\nExpand this prompt:\n${prompt}`;
-
-  return new Promise((resolve, reject) => {
-    const proc = spawn(codexBin, [
-      'exec',
-      '-m', model,
-      '--ephemeral',
-      '--skip-git-repo-check',
-      '-o', outputFile,
-      fullPrompt,
-    ], {
-      env: { ...process.env, HOME: homedir() },
-      stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: 60000,
-    });
-
-    let stderr = '';
-    proc.stderr?.on('data', (d) => { stderr += d.toString(); });
-
-    proc.on('close', async (code) => {
-      try {
-        if (code !== 0) {
-          reject(new Error(`Codex exited ${code}: ${stderr.slice(0, 200)}`));
-          return;
-        }
-        const result = await readFile(outputFile, 'utf-8');
-        await unlink(outputFile).catch(() => {});
-        resolve(result.trim());
-      } catch (err) {
-        reject(err);
-      }
-    });
-
-    proc.on('error', reject);
-  });
-}
-
-const ENHANCE_FALLBACK_MODEL = 'gpt-5.6-luna';
 
 router.post('/studio/enhance', async (req, res) => {
   try {
-    const { prompt, backend, codexModel } = req.body as {
+    const { prompt, backend, codexModel, style } = req.body as {
       prompt?: string;
       backend?: string;
       codexModel?: string;
+      style?: string;
     };
     if (!prompt?.trim()) {
       res.status(400).json({ error: 'prompt is required' });
@@ -878,21 +816,8 @@ router.post('/studio/enhance', async (req, res) => {
     // one try before anything else (theirs, Nov 3 2026: 'My prompt enhancement keeps
     // failing', with gpt-image-2 picked: every press died in Codex and then in an
     // Ollama fallback that names a model Ollama does not have).
-    const picked = backend === 'codex' && codexModel ? codexModel : ENHANCE_FALLBACK_MODEL;
-    // The picker can hand over a model Codex cannot run on this account (an OpenArt key
-    // like gpt-image-2 rides the same field), so only a model the account lists is used.
-    const listed = discoverCodexModels('codex').map((model) => model.id);
-    const runnable = listed.length ? listed.includes(picked) : !/^gpt-image/i.test(picked);
-    const codexModelForEnhance = runnable ? picked : ENHANCE_FALLBACK_MODEL;
     try {
-      let enhanced: string;
-      try {
-        enhanced = await codexEnhance(prompt.trim(), codexModelForEnhance);
-      } catch (firstError) {
-        if (codexModelForEnhance === ENHANCE_FALLBACK_MODEL) throw firstError;
-        console.warn(`[studio] enhance on ${codexModelForEnhance} failed; trying ${ENHANCE_FALLBACK_MODEL}:`, firstError);
-        enhanced = await codexEnhance(prompt.trim(), ENHANCE_FALLBACK_MODEL);
-      }
+      const enhanced = await enhanceWithCodex(prompt, backend === 'codex' ? codexModel : undefined, style);
       res.json({ enhanced });
       return;
     } catch (codexError) {
@@ -901,7 +826,7 @@ router.post('/studio/enhance', async (req, res) => {
       if (!config.ollama?.base_url) throw codexError;
       console.warn('[studio] enhance Codex route failed; falling back to Ollama:', codexError);
       const model = getDbConfig('agent.archivist_model') || 'deepseek-v4-pro';
-      const enhanced = await textCompletion(ENHANCE_SYSTEM, prompt.trim(), model, 'ollama', config);
+      const enhanced = await textCompletion(ENHANCE_SYSTEM, enhanceRequest(prompt, style), model, 'ollama', config);
       res.json({ enhanced });
     }
   } catch (error) {

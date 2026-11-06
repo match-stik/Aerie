@@ -9,12 +9,15 @@ import { GenerateInput, GenerateResult, ImageGenError, MAX_REFS_PER_SUBJECT, new
 const OPENART_VIDEO_ONLY = new Set([
   'grok-imagine-1-5', 'gemini-omni-flash', 'wan2-7', 'pixverseV6',
   'byte-plus-seedance-2', 'byte-plus-seedance-2-fast', 'byte-plus-seedance-2-mini',
+  'gemini-omni-1-1-flash', 'veo3-1', 'fal-h3-max', 'fal-h3-max-turbo', 'kling-v3',
+  'byte-plus-seedance-2-5', 'byte-plus-seedance-2-5-draft', 'minimax-h3', 'wan3-0',
+  'gemini-omni-1-2-flash', 'kling-4-omni', 'flux-3-video',
 ]);
 
 /** Models whose only video mode is image2video (no element/text modes). */
 const OPENART_I2V_ONLY = new Set(['grok-imagine-1-5']);
 /** Models without element2video — fall back to image2video when refs exist. */
-const OPENART_NO_ELEMENT = new Set(['pixverseV6', 'grok-imagine-1-5']);
+const OPENART_NO_ELEMENT = new Set(['pixverseV6', 'grok-imagine-1-5', 'fal-h3-max-turbo', 'kling-v3', 'flux-3-video']);
 
 function openartMode(media: 'image' | 'video', model: string, hasRefs: boolean): string {
   if (media === 'image') return hasRefs ? 'image2image' : 'text2image';
@@ -69,8 +72,14 @@ async function openartAuth(): Promise<{ url: string; token: string }> {
     entry.access_token = t.access_token;
     if (t.refresh_token) entry.refresh_token = t.refresh_token;
     entry.expires_at = Date.now() + (t.expires_in ? t.expires_in * 1000 : 3600_000);
-    creds[key] = entry;
-    await fs.writeFile(credFile, JSON.stringify(creds, null, 2));
+    // Re-read just before writing so a token Codex refreshed meanwhile is not
+    // overwritten, then swap the file in whole (temp file and rename), owner-only.
+    let latest: Record<string, OpenArtCredEntry> = creds;
+    try { latest = JSON.parse(await fs.readFile(credFile, 'utf8')); } catch { /* keep what we read */ }
+    latest[key] = entry;
+    const tmp = `${credFile}.${process.pid}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(latest, null, 2), { mode: 0o600 });
+    await fs.rename(tmp, credFile);
   }
   return { url: entry.server_url || 'https://mcp.openart.ai/mcp', token: entry.access_token };
 }

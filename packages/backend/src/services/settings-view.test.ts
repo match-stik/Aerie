@@ -12,3 +12,13 @@ test('the settings the phone gets carry no stored secret', () => {
   });
   assert.deepEqual(view, { 'agent.model': 'claude-opus-5-5', 'heartbeat.autocompact_tokens': '800000' });
 });
+
+test('the settings door refuses secrets, security switches, auth and app_settings', async () => {
+  const { isGuardedSettingKey } = await import('./settings-view.js');
+  for (const k of ['secret:discord_bot_token', 'SECRET:x', 'security.csrf_mode', 'auth.password', 'app_settings', ' app_settings ']) {
+    assert.equal(isGuardedSettingKey(k), true, k);
+  }
+  for (const k of ['agent.model', 'orchestrator.thread_cadence', 'agent.claude_session_resume', 'voice.tts_model']) {
+    assert.equal(isGuardedSettingKey(k), false, k);
+  }
+});

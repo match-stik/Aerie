@@ -72,6 +72,8 @@ class CodexDaemonSupervisor {
     const stopProc = spawn(CODEX_BIN, ['app-server', 'daemon', 'stop'], {
       stdio: 'ignore',
     });
+    // A missing binary is an 'error' event; unheard, it would take the process down.
+    stopProc.on('error', (err) => console.warn('[CodexSupervisor] stop failed:', err.message));
     await new Promise<void>((resolve) => {
       stopProc.on('close', () => resolve());
       setTimeout(resolve, 2000); // timeout fallback
@@ -110,6 +112,7 @@ class CodexDaemonSupervisor {
         env: cortexToken ? { ...process.env, CORTEX_AUTH_TOKEN: cortexToken } : process.env,
         stdio: 'ignore',
       });
+      this.daemonProcess.on('error', (err) => console.warn('[CodexSupervisor] start failed:', err.message));
 
       this.daemonProcess.unref();
       this.weStartedIt = true;
@@ -144,7 +147,7 @@ class CodexDaemonSupervisor {
       console.log('[CodexSupervisor] Stopping daemon...');
       spawn(CODEX_BIN, ['app-server', 'daemon', 'stop'], {
         stdio: 'ignore',
-      });
+      }).on('error', (err) => console.warn('[CodexSupervisor] stop failed:', err.message));
       this.daemonProcess = null;
     }
   }

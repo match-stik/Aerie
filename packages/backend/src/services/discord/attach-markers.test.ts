@@ -64,3 +64,10 @@ test('a file with no name tag goes out under its stored name, and a missing one 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("a guest's reply loses every marker and attaches nothing", async () => {
+  const { stripAttachmentMarkers } = await import('./attach-markers.js');
+  const out = stripAttachmentMarkers('here you go [discord-attach:0f8e1c2a-1111-4222-8333-444455556666]\n\n\n[DISCORD-ATTACH:abc] done');
+  assert.equal(out, 'here you go \n\n done');
+  assert.doesNotMatch(out, /discord-attach/i);
+});

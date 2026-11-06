@@ -79,20 +79,13 @@ const VALID_QUALITY: Quality[] = ['auto', 'low', 'medium', 'high'];
  * every Gemini fallback fail at the door with a picker full of dead options.
  * The CLI will print the live list if you hand it a name it does not know:
  *   agy --model ZZZ -p hi
- * Non-image models (Claude, GPT-OSS) are deliberately not here.
+ * Non-image models (Claude, GPT-OSS) are deliberately not here. Read Nov 6 2026
+ * with `agy models`: only 3.8 Flash is left, so 3.7, 3.6 and 3.1 Pro came out.
  */
 export const ANTIGRAVITY_MODELS = [
   'Gemini 3.8 Flash (High)',
   'Gemini 3.8 Flash (Medium)',
   'Gemini 3.8 Flash (Low)',
-  'Gemini 3.7 Flash (High)',
-  'Gemini 3.7 Flash (Medium)',
-  'Gemini 3.7 Flash (Low)',
-  'Gemini 3.6 Flash (High)',
-  'Gemini 3.6 Flash (Medium)',
-  'Gemini 3.6 Flash (Low)',
-  'Gemini 3.1 Pro (High)',
-  'Gemini 3.1 Pro (Low)',
 ] as const;
 
 /** The one that has actually been seen to take a picture. Defined once because a

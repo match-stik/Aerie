@@ -9,6 +9,7 @@ import { codexHold, codexHoldMessage, holdCodex, holdFromText, CODEX_DEFAULT_HOL
 import { GALLERY_DIR, IMAGE_EXTS, codexBin, codexHome, getImageGenSettings } from './settings.js';
 import { DEFAULT_CODEX_IMAGE_MODEL, GenerateInput, GenerateResult, ImageGenError, newGalleryName, pairwiseDistinctions, resolveLabelledRefs, resolveSize, subjectBuildNotes } from './common.js';
 import { onRunningJobCancel } from './cancel.js';
+import { openSync, readSync, closeSync } from 'fs';
 
 /** Pull the agent's own closing words out of a `codex exec` stdout tail.
  *  Codex prints `[timestamp] codex` before each thing it says and
@@ -26,6 +27,21 @@ function lastCodexMessage(stdout: string): string {
   }
   const text = (spoken.length ? spoken : lines.map((l) => l.trim()).filter(Boolean).slice(-6)).join(' ');
   return text.replace(/\s+/g, ' ').trim().slice(-500);
+}
+
+/** True when the file starts with PNG, JPEG, GIF or WEBP magic bytes. */
+export function looksLikeImageFile(path: string): boolean {
+  try {
+    const fd = openSync(path, 'r');
+    const head = Buffer.alloc(12);
+    try { readSync(fd, head, 0, 12, 0); } finally { closeSync(fd); }
+    return (head[0] === 0x89 && head.toString('latin1', 1, 4) === 'PNG')
+      || (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff)
+      || head.toString('latin1', 0, 4) === 'GIF8'
+      || (head.toString('latin1', 0, 4) === 'RIFF' && head.toString('latin1', 8, 12) === 'WEBP');
+  } catch {
+    return false;
+  }
 }
 
 async function findNewestCodexImage(since: number): Promise<string | null> {
@@ -131,7 +147,10 @@ export async function generateViaCodex(input: GenerateInput): Promise<GenerateRe
       // Codex runs. Keep only a small tail for RESULT_PATH parsing.
       stdout = (stdout + chunk).slice(-20_000);
       const match = stdout.match(/RESULT_PATH=(\/[^\r\n]+)/);
-      if (match?.[1]) stdoutPath = match[1].trim();
+      // Only a path that is really a picture: a prompt that talked Codex into
+      // printing some other file's path would otherwise copy it into the
+      // gallery (security audit, Nov 6 2026).
+      if (match?.[1] && looksLikeImageFile(match[1].trim())) stdoutPath = match[1].trim();
     };
 
     const settle = (fn: () => void) => {

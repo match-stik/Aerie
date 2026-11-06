@@ -15,6 +15,8 @@ import memoryProposalsRoutes from './internal/memory-proposals.js';
 import thresholdsRoutes from './internal/thresholds.js';
 import compactionRoutes from './internal/compaction.js';
 import presenceRoutes from './internal/presence.js';
+import paintRoutes from './internal/paint.js';
+import discordSayRoutes from './internal/discord-say.js';
 import { isLocalhost, isPathAllowed } from './internal/local.js';
 import journalRoutes from './internal/journal.js';
 import selfKnowledgeRoutes from './internal/self-knowledge.js';
@@ -771,5 +773,7 @@ router.use(selfKnowledgeRoutes);
 router.use(familyRoutes);
 router.use(screeningRoutes);
 router.use(storyShelfRoutes);
+router.use(paintRoutes);
+router.use(discordSayRoutes);
 
 export default router;

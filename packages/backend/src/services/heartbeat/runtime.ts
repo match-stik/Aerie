@@ -35,6 +35,7 @@ import { outboxCard, parseOutboxLine } from './outbox-line.js';
 import { projectKeyForDir, readSessionUsage } from '../agent/session-list.js';
 import { USAGE_WATERMARK_FILE, readUsageWatermark, usageSinceFile, writeUsageWatermark } from './turn-usage.js';
 import { isArchiveRecord } from '../archive-artifact.js';
+import { fetchPublic } from '../public-fetch.js';
 
 import { getAerieConfig, PROJECT_ROOT } from '../../config.js';
 import { localClock12, localDateFull, localStamp } from '../time.js';
@@ -351,11 +352,14 @@ async function downloadImageUrl(url: string): Promise<string | null> {
     }
 
     if (!/^https?:\/\//i.test(url)) return null;
-    const res = await fetch(url, { headers: { 'User-Agent': 'Aerie/1.0' } });
-    if (!res.ok) return null;
-    const ct = res.headers.get('content-type') || '';
+    // Only the open internet, with a size cap and a timeout: a model-written
+    // URL must not reach the box's own ports or the cloud metadata address
+    // (security audit, Nov 6 2026).
+    const fetched = await fetchPublic(url, { maxBytes: 25 * 1024 * 1024, timeoutMs: 30_000, accept: 'image/*' });
+    if (!fetched) return null;
+    const ct = fetched.contentType;
     if (!ct.startsWith('image/')) return null;
-    const buf = Buffer.from(await res.arrayBuffer());
+    const buf = fetched.bytes;
     const ext = ct.includes('png') ? '.png' : ct.includes('gif') ? '.gif' : ct.includes('webp') ? '.webp' : '.jpg';
     const filename = `downloaded${ext}`;
     ensureFilesDir();

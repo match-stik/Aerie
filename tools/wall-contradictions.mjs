@@ -108,8 +108,11 @@ function readWalls(argv) {
     .trim().split('\n').filter(Boolean);
   return names.map((name) => {
     const [scope, label] = name.split('/');
+    // Quotes doubled, so a label with an apostrophe cannot end the string and
+    // run SQL of its own (Nov 6 2026 audit).
+    const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
     return { name, text: execFileSync('sqlite3', [db,
-      `select content from memory_blocks where scope='${scope}' and label='${label}'`], { encoding: 'utf8' }) };
+      `select content from memory_blocks where scope=${q(scope)} and label=${q(label)}`], { encoding: 'utf8' }) };
   });
 }
 

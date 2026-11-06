@@ -102,8 +102,11 @@ export function loginHandler(req: Request, res: Response): void {
     return;
   }
 
-  const { password } = req.body;
-  if (!password) {
+  const { password } = req.body ?? {};
+  // A password is a short string or nothing. An object with a huge `length`
+  // made Buffer.from build a gigabyte array before any comparison (security
+  // audit, Nov 6 2026), so anything else is turned away before it is touched.
+  if (typeof password !== 'string' || !password || password.length > 1024) {
     res.status(400).json({ error: 'Password required' });
     return;
   }
@@ -191,4 +194,32 @@ export function sessionCheckHandler(req: Request, res: Response): void {
   renewSessionIfStale(req, res, session);
 
   res.json({ authenticated: true });
+}
+
+/**
+ * Whether a password change may go ahead (Nov 6 2026 audit). It needs the
+ * current password, so a stolen session or a same-site request cannot change
+ * it or blank it; the new one has to be a real string, since an empty password
+ * turns the lock off after the next restart; and while APP_PASSWORD is set in
+ * the environment it wins over the file anyway, so a change there would only
+ * look like it worked.
+ */
+export function checkPasswordChange(
+  current: unknown,
+  next: unknown,
+  configured: string,
+  envOverride: boolean,
+): { ok: true } | { ok: false; status: number; error: string } {
+  if (envOverride) return { ok: false, status: 409, error: 'The password is set by APP_PASSWORD in the server environment; change it there.' };
+  if (typeof next !== 'string' || !next.trim() || next.length > 1024) return { ok: false, status: 400, error: 'A new password is required.' };
+  if (configured) {
+    if (typeof current !== 'string' || current.length > 1024) return { ok: false, status: 403, error: 'Enter your current password to change it.' };
+    const a = Buffer.from(current);
+    const b = Buffer.from(configured);
+    const len = Math.max(a.length, b.length);
+    const pa = Buffer.alloc(len); const pb = Buffer.alloc(len);
+    a.copy(pa); b.copy(pb);
+    if (!(crypto.timingSafeEqual(pa, pb) && a.length === b.length)) return { ok: false, status: 403, error: 'Current password is not right.' };
+  }
+  return { ok: true };
 }

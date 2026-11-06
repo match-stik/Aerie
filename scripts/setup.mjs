@@ -33,11 +33,14 @@ async function main() {
   console.log('\n  Aerie runs on your Claude Code subscription — no API key needed.');
   console.log('  Make sure you\'re logged into Claude Code: claude login');
 
-  // Write aerie.yaml
+  // Write aerie.yaml. Every value goes in as a JSON string, which YAML reads
+  // as a quoted string, so a quote or backslash in a name or the password can
+  // neither break the file nor add keys of its own (Nov 6 2026 audit).
+  const q = (v) => JSON.stringify(String(v));
   const yamlContent = `identity:
-  companion_name: "${companionName}"
-  user_name: "${userName}"
-  timezone: "${timezone}"
+  companion_name: ${q(companionName)}
+  user_name: ${q(userName)}
+  timezone: ${q(timezone)}
 
 server:
   port: 3002
@@ -45,7 +48,7 @@ server:
   db_path: "./data/aerie.db"
 
 auth:
-  password: "${password}"
+  password: ${q(password)}
 
 agent:
   cwd: "."
@@ -87,8 +90,14 @@ cors:
   origins: []
 `;
 
-  writeFileSync('aerie.yaml', yamlContent);
-  console.log('\n  Created: aerie.yaml');
+  // Never over an existing house: its password and settings would be lost.
+  if (existsSync('aerie.yaml')) {
+    console.log('\n  aerie.yaml already exists, so it was left as it is. Move it aside to run setup fresh.');
+  } else {
+    // It holds the password, so only its owner can read it.
+    writeFileSync('aerie.yaml', yamlContent, { mode: 0o600 });
+    console.log('\n  Created: aerie.yaml');
+  }
 
   // Write .env if not exists
   if (!existsSync('.env')) {
@@ -122,7 +131,7 @@ cors:
   apps: [{
     name: 'aerie',
     script: 'packages/backend/dist/server.js',
-    cwd: '${resolve().replace(/\\/g, '/')}',
+    cwd: ${JSON.stringify(resolve().replace(/\\/g, '/'))},
     node_args: '--experimental-vm-modules',
     env: {
       NODE_ENV: 'production',
@@ -141,8 +150,12 @@ cors:
 };
 `;
 
-  writeFileSync('ecosystem.config.cjs', pm2Config);
-  console.log('  Created: ecosystem.config.cjs');
+  if (existsSync('ecosystem.config.cjs')) {
+    console.log('  ecosystem.config.cjs already exists, so it was left as it is.');
+  } else {
+    writeFileSync('ecosystem.config.cjs', pm2Config);
+    console.log('  Created: ecosystem.config.cjs');
+  }
 
   // Print startup instructions
   console.log(`

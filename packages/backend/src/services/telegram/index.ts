@@ -4,6 +4,7 @@
 // Supports: text, photos, voice messages, audio files, documents.
 // Outbound: text + voice notes (ElevenLabs TTS with tone tags).
 
+import { randomInt } from 'crypto';
 import { Telegraf } from 'telegraf';
 import type { Context } from 'telegraf';
 import type { Update } from 'telegraf/types';
@@ -24,6 +25,8 @@ type ConnectionRegistry = typeof registryInstance;
 
 export class TelegramService {
   private bot: Telegraf;
+  /** One-time code the first /start must carry, printed to this house's log. */
+  private pairingCode = '';
   private agentService: AgentService;
   private voiceService: VoiceService;
   private registry: ConnectionRegistry;
@@ -53,6 +56,10 @@ export class TelegramService {
     if (!token) throw new Error('TELEGRAM_BOT_TOKEN not set');
 
     this.bot = new Telegraf(token);
+    if (!getTelegramConfig().ownerChatId) {
+      this.pairingCode = randomInt(100000, 1000000).toString();
+      console.log(`[Telegram] Not linked yet. To link your chat, send the bot: /start ${this.pairingCode}`);
+    }
     this.debouncer = new TelegramDebouncer();
     this.debouncer.onBatch(this.handleBatch.bind(this));
     this.setupHandlers();
@@ -83,7 +90,17 @@ export class TelegramService {
       const telegramConfig = getTelegramConfig();
 
       if (!telegramConfig.ownerChatId) {
-        // First connection — store this as their person's chat
+        // First connection. It used to be whoever sent /start first, so a
+        // stranger who found the bot before its owner did became the owner
+        // (Nov 6 2026 audit). Now the first /start must carry the pairing
+        // code this house printed to its own log when the bot came up.
+        const offered = (ctx.message?.text || '').trim().split(/\s+/)[1] || '';
+        if (!this.pairingCode || offered !== this.pairingCode) {
+          await ctx.reply('This bot is not linked yet. Send /start followed by the pairing code from your Aerie server log.');
+          console.log(`[Telegram] /start from ${chatId} without the right pairing code; the code is ${this.pairingCode}`);
+          return;
+        }
+        this.pairingCode = '';
         setConfig('telegram.ownerChatId', chatId);
         await ctx.reply(`Connected. This chat is now linked to ${config.identity.companion_name}.`);
         console.log(`[Telegram] Owner chat ID stored: ${chatId}`);

@@ -22,6 +22,20 @@ export function isPlainName(value: unknown): value is string {
  * @alpha) or a number, which keeps a ':' or a quote from starting a filter
  * option of its own (textfile= would read any file the house can).
  */
+/**
+ * The drawtext option that carries a caption, read from a file rather than
+ * written into the filter. Escaping the words inline never held: a caption
+ * with an apostrophe (It's been 84 years ...) closed the quoted value early,
+ * and drawtext then printed the rest of its own instruction, font and size
+ * included, as tiny text in the corner (Nov 4 2026). A file needs no escaping
+ * at all, and expansion=none keeps a % in the words from being read as a
+ * code. The path is ours (a session folder and a uuid), so it never holds a
+ * quote either.
+ */
+export function drawtextTextFileOption(textFilePath: string): string {
+  return `textfile='${escapeDrawtextValue(textFilePath)}':expansion=none`;
+}
+
 export function escapeDrawtextValue(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/'/g, "'\\''").replace(/:/g, '\\:');
 }

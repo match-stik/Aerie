@@ -56,11 +56,15 @@ function initialize(path = '/mcp', headers: Record<string, string> = {}): Reques
   });
 }
 
-test('with no secret set, the worker answers the way it always has', async () => {
+test('with no secret set, the worker turns everyone away unless the owner opts out', async () => {
+  // Fails closed since Nov 6 2026: with no secret, /auth would let anyone
+  // sign their own Spotify in over the owner's.
   const worker = await loadWorker();
-  assert.equal((await worker.fetch(initialize(), env(null))).status, 200);
-  const auth = await worker.fetch(new Request('https://worker.example/auth'), env(null));
-  assert.equal(auth.status, 302);
+  assert.equal((await worker.fetch(initialize(), env(null))).status, 401);
+  assert.equal((await worker.fetch(new Request('https://worker.example/auth'), env(null))).status, 401);
+  const open = { ...env(null), ALLOW_UNAUTHENTICATED: 'true' } as Env;
+  assert.equal((await worker.fetch(initialize(), open)).status, 200);
+  assert.equal((await worker.fetch(new Request('https://worker.example/auth'), open)).status, 302);
 });
 
 test('with a secret set, /mcp and /auth turn away a call with no key or a wrong one', async () => {

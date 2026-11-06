@@ -9,7 +9,7 @@ import canvasesRoutes from './api/canvases.js';
 import pushRoutes from './api/push.js';
 import artifactsRoutes from './api/artifacts.js';
 import { Router } from 'express';
-import { settingsForClient } from '../services/settings-view.js';
+import { settingsForClient, isGuardedSettingKey } from '../services/settings-view.js';
 import { fileIdsInUse } from '../services/file-references.js';
 import * as babel from '@babel/core';
 import { readdirSync, readFileSync, existsSync } from 'fs';
@@ -255,6 +255,15 @@ router.get('/settings', (req, res) => {
 router.put('/settings', (req, res) => {
   try {
     const { key, value } = req.body;
+    // This door is for settings, not for the secrets store or the security
+    // switches: a stolen session or a same-site request could otherwise
+    // overwrite a key or turn the CSRF check off (Nov 6 2026 audit). Those have
+    // their own doors. Refused before anything is logged, so no value is.
+    if (typeof key === 'string' && isGuardedSettingKey(key)) {
+      console.warn(`[Settings] refused PUT of guarded key ${key}`);
+      res.status(403).json({ error: 'That setting cannot be changed here.' });
+      return;
+    }
     console.log(`[Settings] PUT ${key}=${value} (typeof key=${typeof key}, typeof value=${typeof value})`);
     if (!key || typeof key !== 'string' || typeof value !== 'string') {
       console.log(`[Settings] REJECTED: key/value type mismatch`);

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 process.env.NODE_ENV = 'test';
 const {
-  guestRefusal, GUEST_SANDBOX_POLICY, GUEST_APPROVAL_POLICY, GUEST_THREAD_CONFIG,
+  guestRefusal, GUEST_SANDBOX_POLICY, GUEST_APPROVAL_POLICY, GUEST_THREAD_CONFIG, guestThreadConfig,
 } = await import('./codex-daemon.js');
 
 // Oct 31 2026: a guest's Discord turn on a Codex model ran with full access
@@ -42,4 +42,14 @@ test('the router marks a guest turn and gives it a room apart from theirs', () =
   const src = readFileSync(join(import.meta.dirname, '..', 'agent', 'agent-router-query.ts'), 'utf8');
   assert.match(src, /guest: turnAudience\?\.kind === 'guest'/);
   assert.match(src, /\(turnAudience\?\.kind === 'guest' \? ':guest' : ''\)/);
+});
+
+test("a guest's Codex room has no shell to read a file with, and no MCP servers", () => {
+  // 'untrusted' auto-runs cat and ls, and read-only limits writes, not reads.
+  assert.equal(GUEST_THREAD_CONFIG.features.shell_tool, false);
+  assert.equal(GUEST_THREAD_CONFIG.features.unified_exec, false);
+  const cfg = guestThreadConfig('model = "x"\n[mcp_servers.spotify]\nurl = "u"\n[mcp_servers."cortex"]\nurl = "c"\n[mcp_servers.spotify.http_headers]\n') as { mcp_servers?: Record<string, { enabled: boolean }>; features: unknown };
+  assert.deepEqual(cfg.mcp_servers, { spotify: { enabled: false }, cortex: { enabled: false } });
+  assert.deepEqual(cfg.features, { shell_tool: false, unified_exec: false, multi_agent: false, plugins: false, view_image: false });
+  assert.equal('mcp_servers' in guestThreadConfig(''), false);
 });

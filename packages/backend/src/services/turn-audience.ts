@@ -14,8 +14,12 @@
 
 export type GuestTrust = 'full' | 'standard' | 'limited';
 
+/** Their own turn, and where it came from when that changes what tools do.
+ *  room 'discord' is their turn in a server (their person's ask, Nov 6 2026): the room's
+ *  recent messages ride along for context, so building waits for home; we
+ *  can still read the house source and search the web. */
 export type TurnAudience =
-  | { kind: 'owner' }
+  | { kind: 'owner'; room?: 'discord' }
   | { kind: 'guest'; trust: GuestTrust };
 
 const TRUST_LEVELS: readonly GuestTrust[] = ['full', 'standard', 'limited'];
@@ -26,7 +30,7 @@ const TRUST_LEVELS: readonly GuestTrust[] = ['full', 'standard', 'limited'];
  * guess: absent is not a grant.
  */
 export function discordTurnAudience(isOwner: boolean, trustLevel: unknown): TurnAudience {
-  if (isOwner) return { kind: 'owner' };
+  if (isOwner) return { kind: 'owner', room: 'discord' };
   const trust = TRUST_LEVELS.includes(trustLevel as GuestTrust) ? (trustLevel as GuestTrust) : 'limited';
   return { kind: 'guest', trust };
 }
@@ -34,7 +38,7 @@ export function discordTurnAudience(isOwner: boolean, trustLevel: unknown): Turn
 export function isTurnAudience(value: unknown): value is TurnAudience {
   if (!value || typeof value !== 'object') return false;
   const v = value as { kind?: unknown; trust?: unknown };
-  if (v.kind === 'owner') return true;
+  if (v.kind === 'owner') return (v as { room?: unknown }).room === undefined || (v as { room?: unknown }).room === 'discord';
   return v.kind === 'guest' && TRUST_LEVELS.includes(v.trust as GuestTrust);
 }
 
@@ -45,12 +49,23 @@ export function isTurnAudience(value: unknown): value is TurnAudience {
  * to hand back in place of running the tool, or null when the caller may run it.
  * Their person and the house's own wakes (no audience) run everything.
  */
+/** Router tools their Discord turns may still use: looking things up, nothing that changes or runs anything. */
+const DISCORD_OWNER_TOOLS = new Set([
+  'messages_search', 'messages_search_semantic', 'messages_around', 'messages_thread_recent', 'core_memory_view',
+]);
+
 export function guestToolRefusal(
   audience: TurnAudience | undefined,
   toolName: string,
 ): { ok: false; result: string } | null {
   if (audience?.kind === 'guest') {
     return { ok: false, result: `Tool "${toolName}" is not available on a guest turn.` };
+  }
+  // Their Discord turns carry other people's messages for context, so nothing
+  // that runs, writes or reads files off the box is offered there; the
+  // conversation search and memory view stay (Nov 6 2026, theirs).
+  if (audience?.kind === 'owner' && audience.room === 'discord' && !DISCORD_OWNER_TOOLS.has(toolName)) {
+    return { ok: false, result: `Tool "${toolName}" waits for home: on a Discord turn we talk, read and search, and building happens in the house.` };
   }
   return null;
 }

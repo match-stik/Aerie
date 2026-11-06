@@ -11,6 +11,7 @@ import { Router } from 'express';
 import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs';
 import { homedir } from 'os';
 import { join, resolve, dirname } from 'path';
+import { resolve as resolvePath, sep as pathSep } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -108,7 +109,8 @@ router.put('/xray/memory/:filename', async (req, res) => {
     const filePath = join(MEMORY_DIR, filename);
 
     // Security: ensure we're staying within memory dir
-    if (!filePath.startsWith(MEMORY_DIR)) {
+    // With the separator: a bare prefix let '../memory.md' land beside the folder.
+    if (!resolvePath(filePath).startsWith(resolvePath(MEMORY_DIR) + pathSep)) {
       res.status(400).json({ error: 'Invalid path' });
       return;
     }

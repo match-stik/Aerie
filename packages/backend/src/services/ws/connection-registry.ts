@@ -5,6 +5,8 @@ import type { RealtimeProsodySession } from '../hume-realtime-prosody.js';
 
 export interface ExtendedWebSocket extends WebSocket {
   isAlive: boolean;
+  /** The login session this socket was opened with, re-checked on every heartbeat. */
+  sessionToken?: string;
   userId: string;
   voiceModeEnabled: boolean;
   audioChunks: Buffer[];

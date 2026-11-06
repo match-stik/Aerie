@@ -12,7 +12,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import { getAerieConfig } from '../config.js';
 import { attachmentFilename } from '../services/files.js';
-import { isPlainName, escapeDrawtextValue, isDrawtextColor, isDrawtextSize } from '../services/gif-safety.js';
+import { isPlainName, escapeDrawtextValue, drawtextTextFileOption, isDrawtextColor, isDrawtextSize } from '../services/gif-safety.js';
 import { sweepGifWork } from '../services/gif-work-sweep.js';
 
 const router = Router();
@@ -121,7 +121,14 @@ function drawTextArgs(input: string, drawTextFilter: string, output: string): st
     `[0:v]format=rgba,${drawTextFilter},split[a][b];`
       + '[b]palettegen=reserve_transparent=1:stats_mode=diff[p];'
       + '[a][p]paletteuse=alpha_threshold=128',
-    '-gifflags', '-offsetting',
+    // -transdiff as well as -offsetting: every frame is written whole. With
+    // transdiff on, ffmpeg makes the pixels a frame shares with the last one
+    // see-through and leans on the frame underneath, but the frames it reads
+    // here carry disposal=background, so the frame underneath is cleared and
+    // the shared pixels show as holes: black specks across the face on them
+    // phone (Nov 4 2026, a captioned GIF with 29,030 see-through pixels in one
+    // frame).
+    '-gifflags', '-offsetting-transdiff',
     '-y', output,
   ];
 }
@@ -1250,9 +1257,10 @@ router.post('/gif/create', async (req, res) => {
 
       const { posX, posY } = textPositionExprs({ position, anchor });
 
-      const escapedText = content.replace(/\\/g, '\\\\').replace(/'/g, "'\\''").replace(/:/g, '\\:');
+      const textFile = join(sessionDir, `${outputId}-text.txt`);
+      writeFileSync(textFile, String(content));
       const escapedFont = escapeDrawtextValue(String(fontFamily));
-      const drawTextFilter = `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${fontColor}:${posX}:${posY}:borderw=2:bordercolor=${borderColor}`;
+      const drawTextFilter = `drawtext=${drawtextTextFileOption(textFile)}:font='${escapedFont}':fontsize=${fontSize}:fontcolor=${fontColor}:${posX}:${posY}:borderw=2:bordercolor=${borderColor}`;
 
       await new Promise<void>((resolve, reject) => {
         const args = drawTextArgs(finalGif, drawTextFilter, textTempGif);
@@ -1672,7 +1680,8 @@ router.get('/gif/fonts', async (_req, res) => {
     const proc = spawn('fc-list', [':', 'family']);
     let output = '';
     proc.stdout.on('data', d => output += d.toString());
-    await new Promise<void>((resolve) => proc.on('close', resolve));
+    // No fontconfig on the box is an 'error' event, which unheard ends the process.
+    await new Promise<void>((resolve) => { proc.on('close', resolve); proc.on('error', () => resolve()); });
 
     // fc-list prints every alias a face answers to on one comma-separated line
     // ("Bebas Neue,Bebas Neue Bold"). Only the first is a family drawtext can
@@ -1710,7 +1719,7 @@ router.get('/gif/font-file/:family', async (req, res) => {
     const proc = spawn('fc-match', ['-f', '%{family}\t%{file}', `${family}:style=Regular`]);
     let out = '';
     proc.stdout.on('data', d => out += d.toString());
-    await new Promise<void>((resolve) => proc.on('close', resolve));
+    await new Promise<void>((resolve) => { proc.on('close', resolve); proc.on('error', () => resolve()); });
 
     const [matchedFamilies, file] = out.split('\t');
     // fc-match always answers with something, so an unknown name comes back as
@@ -1784,11 +1793,13 @@ router.post('/gif/add-text/:sessionId/:filename', async (req, res) => {
 
     const { posX, posY } = textPositionExprs({ position, anchor, x, y });
 
-    // Escape text for ffmpeg (single quotes and backslashes)
-    const escapedText = text.replace(/\\/g, '\\\\').replace(/'/g, "'\\''").replace(/:/g, '\\:');
+    // The words go to drawtext in a file, never escaped into the filter
+    // (services/gif-safety.ts has why).
+    const textFile = gifWorkPath(sessionId, `${outputId}-text.txt`) as string;
+    writeFileSync(textFile, text);
     const escapedFont = escapeDrawtextValue(String(fontFamily));
 
-    const drawTextFilter = `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${fontColor}:${posX}:${posY}:borderw=2:bordercolor=${borderColor}`;
+    const drawTextFilter = `drawtext=${drawtextTextFileOption(textFile)}:font='${escapedFont}':fontsize=${fontSize}:fontcolor=${fontColor}:${posX}:${posY}:borderw=2:bordercolor=${borderColor}`;
 
     await new Promise<void>((resolve, reject) => {
       const args = drawTextArgs(gifPath, drawTextFilter, outputPath);

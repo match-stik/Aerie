@@ -285,3 +285,62 @@ test("a guest's reply cannot attach a file however the marker is cased", () => {
     }
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("their own Discord turn reads, searches and replies, and does not build", () => {
+  const { root, lane } = house();
+  try {
+    audience(lane, { turn: 't-dc', audience: { kind: 'owner', room: 'discord' } });
+    // Building waits for home.
+    assert.equal(gate(lane, 'Bash', { command: 'curl -s http://127.0.0.1:3013/api/internal/journal' }).status, 2);
+    assert.equal(gate(lane, 'Write', { file_path: join(root, 'packages', 'backend', 'thing.ts') }).status, 2);
+    assert.equal(gate(lane, 'Edit', { file_path: join(root, 'packages', 'backend', 'thing.ts') }).status, 2);
+    assert.equal(gate(lane, 'mcp__DiscordMCP__discord_send', {}).status, 2);
+    assert.equal(gate(lane, 'Agent', { prompt: 'x' }).status, 2);
+    // Secrets stay out of reach even on their turn here.
+    assert.equal(gate(lane, 'Read', { file_path: join(root, 'aerie.yaml') }).status, 2);
+    assert.equal(gate(lane, 'Read', { file_path: join(root, 'packages', 'backend', '.env') }).status, 2);
+    // Looking, searching and answering still work.
+    assert.equal(gate(lane, 'Read', { file_path: join(root, 'packages', 'backend', 'thing.ts') }).status, 0);
+    assert.equal(gate(lane, 'Read', { file_path: join(lane, 'io', 'side-notes.jsonl') }).status, 0);
+    assert.equal(gate(lane, 'WebSearch', { query: 'x' }).status, 0);
+    assert.equal(gate(lane, 'WebFetch', { url: 'https://example.com', prompt: 'x' }).status, 0);
+    assert.equal(gate(lane, 'Skill', { skill: 'memory' }).status, 0);
+    assert.equal(gate(lane, 'Bash', { command: REPLY('{"turn_id":"t-dc","content":"hi"}') }).status, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('on their Discord turn the paint helper runs, and only a freshly painted picture can be attached', () => {
+  const { root, lane } = house();
+  try {
+    const PAINT = (body: string) => "node hooks/paint.cjs <<'EOF'\n" + body + '\nEOF';
+    audience(lane, { turn: 't-dc', audience: { kind: 'owner', room: 'discord' } });
+    assert.equal(gate(lane, 'Bash', { command: PAINT('{"prompt":"a cat"}') }).status, 0);
+    assert.equal(gate(lane, 'Bash', { command: PAINT('{"prompt":"a cat"}') + '\nrm -rf x' }).status, 2);
+    // A marker for a file nobody painted on this turn is refused.
+    const id = '0f8e1c2a-1111-4222-8333-444455556666';
+    assert.notEqual(reply(lane, JSON.stringify({ turn_id: 't-dc', content: `look [discord-attach:${id}]` })).status, 0);
+    // A picture painted on an earlier turn is refused too.
+    writeFileSync(join(lane, 'io', '.painted'), JSON.stringify({ turn: 't-old', fileIds: [id] }));
+    assert.notEqual(reply(lane, JSON.stringify({ turn_id: 't-dc', content: `look [discord-attach:${id}]` })).status, 0);
+    // This turn's picture goes through.
+    writeFileSync(join(lane, 'io', '.painted'), JSON.stringify({ turn: 't-dc', fileIds: [id] }));
+    assert.equal(reply(lane, JSON.stringify({ turn_id: 't-dc', content: `look [discord-attach:${id}]` })).status, 0);
+
+    // A guest can neither paint nor attach, even a picture painted this turn.
+    audience(lane, { turn: 't-dc', audience: { kind: 'guest', trust: 'full' } });
+    assert.equal(gate(lane, 'Bash', { command: PAINT('{"prompt":"a cat"}') }).status, 2);
+    assert.notEqual(reply(lane, JSON.stringify({ turn_id: 't-dc', content: `look [discord-attach:${id}]` })).status, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('on their Discord turn the speak helper runs, and a guest cannot', () => {
+  const { root, lane } = house();
+  try {
+    const SPEAK = (body: string) => "node hooks/speak.cjs <<'EOF'\n" + body + '\nEOF';
+    audience(lane, { turn: 't-dc', audience: { kind: 'owner', room: 'discord' } });
+    assert.equal(gate(lane, 'Bash', { command: SPEAK('{"text":"hi"}') }).status, 0);
+    assert.equal(gate(lane, 'Bash', { command: SPEAK('{"text":"hi"}') + '\ncat /etc/passwd' }).status, 2);
+    audience(lane, { turn: 't-dc', audience: { kind: 'guest', trust: 'full' } });
+    assert.equal(gate(lane, 'Bash', { command: SPEAK('{"text":"hi"}') }).status, 2);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

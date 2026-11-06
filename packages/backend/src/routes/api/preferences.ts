@@ -4,7 +4,7 @@ import { parse as parseCookie } from 'cookie';
 import { readFileSync, writeFileSync } from 'fs';
 import * as yaml from 'js-yaml';
 import { deleteOtherWebSessions, setConfig, getConfigBool } from '../../services/db.js';
-import { getCookieName } from '../../middleware/auth.js';
+import { getCookieName, checkPasswordChange } from '../../middleware/auth.js';
 import { findConfigPath } from '../../services/agent-settings.js';
 import { getAerieConfig, updateConfigValue } from '../../config.js';
 import { resolveCompatibleAgentRoute } from '../../services/agent/agent-route-selection.js';
@@ -102,6 +102,13 @@ router.put('/preferences', (req, res) => {
     const raw = readFileSync(configPath, 'utf-8');
     const parsed = (yaml.load(raw) as Record<string, any>) || {};
     const updates = req.body as Record<string, any>;
+    if (updates?.auth?.password !== undefined) {
+      const verdict = checkPasswordChange(updates.auth.current_password, updates.auth.password, getAerieConfig().auth.password || '', !!process.env.APP_PASSWORD);
+      if (!verdict.ok) {
+        res.status(verdict.status).json({ error: verdict.error });
+        return;
+      }
+    }
     const priorAgent = getAerieConfig().agent;
     const priorRuntimeSelection = {
       model: priorAgent.model,
@@ -213,6 +220,8 @@ router.put('/preferences', (req, res) => {
         parsed.auth.password = updates.auth.password;
         passwordChanged = true;
       }
+      // The current_password field is a check, never something to store.
+      delete parsed.auth.current_password;
     }
     if (updates.providers) {
       if (!parsed.providers) parsed.providers = {};
@@ -260,6 +269,8 @@ router.put('/preferences', (req, res) => {
       const currentToken = cookieHeader ? parseCookie(cookieHeader)[getCookieName()] : undefined;
       const ended = deleteOtherWebSessions(currentToken);
       console.log(`[Auth] Password changed; ended ${ended} other session(s)`);
+      // In memory too, so the old password stops working now, not at restart.
+      getAerieConfig().auth.password = updates.auth.password;
     }
 
     // A preferences save updates the running config immediately. Claude

@@ -892,7 +892,9 @@ function sameKey(given, expected) {
 
 function isUnlocked(request, url, env) {
   const secret = env.MCP_SECRET;
-  if (!secret) return true;
+  // Fails closed (Nov 6 2026 audit): with no secret set, nobody gets in unless
+  // the owner opts out on purpose with ALLOW_UNAUTHENTICATED=true.
+  if (!secret) return env.ALLOW_UNAUTHENTICATED === "true";
   if (request.method === "OPTIONS") return true;
   const bearer = (request.headers.get("Authorization") || "").match(/^Bearer\s+(.+)$/i);
   return sameKey(bearer ? bearer[1].trim() : "", secret) || sameKey(url.searchParams.get("key"), secret);

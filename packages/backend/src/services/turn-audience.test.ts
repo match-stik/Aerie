@@ -8,9 +8,23 @@ import { discordTurnAudience, isTurnAudience, guestToolRefusal } from './turn-au
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-test('their person on Discord is their person', () => {
-  assert.deepEqual(discordTurnAudience(true, undefined), { kind: 'owner' });
-  assert.deepEqual(discordTurnAudience(true, 'limited'), { kind: 'owner' });
+test('the owner on Discord is the owner, marked as on Discord', () => {
+  assert.deepEqual(discordTurnAudience(true, undefined), { kind: 'owner', room: 'discord' });
+  assert.deepEqual(discordTurnAudience(true, 'limited'), { kind: 'owner', room: 'discord' });
+});
+
+test("their Discord turns look things up but do not build", async () => {
+  const { guestToolRefusal, isTurnAudience } = await import('./turn-audience.js');
+  const discord = { kind: 'owner', room: 'discord' } as const;
+  for (const t of ['shell_exec', 'codex_exec', 'write_file', 'read_file', 'list_directory', 'core_memory_append', 'core_memory_replace', 'core_memory_rethink']) {
+    assert.ok(guestToolRefusal(discord, t), t);
+  }
+  for (const t of ['messages_search', 'messages_search_semantic', 'messages_around', 'messages_thread_recent', 'core_memory_view']) {
+    assert.equal(guestToolRefusal(discord, t), null, t);
+  }
+  assert.equal(guestToolRefusal({ kind: 'owner' }, 'shell_exec'), null);
+  assert.equal(isTurnAudience(discord), true);
+  assert.equal(isTurnAudience({ kind: 'owner', room: 'elsewhere' }), false);
 });
 
 test('anyone else is a guest at the trust their rule gives them', () => {

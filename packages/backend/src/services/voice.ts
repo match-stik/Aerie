@@ -1022,11 +1022,16 @@ export class VoiceService {
    *
    * Each speaker's own voice.note_tags.<slug> go on every piece of their turn.
    */
-  async generateTTSForMessage(
+  /**
+   * Render a voice note to files without posting anything: one mp3 per
+   * speaker run, saved to the file store. The Discord voice door uses this
+   * (their person's ask, Nov 6 2026: voice notes on their Discord turns when they ask), and
+   * generateTTSForMessage posts what it returns into a thread.
+   */
+  async renderVoiceNoteFiles(
     text: string,
-    threadId: string,
     opts: { voice?: string; voiceId?: string } = {},
-  ): Promise<{ messageId: string; fileId: string; messageIds: string[]; fileIds: string[] }> {
+  ): Promise<Array<{ fileMeta: ReturnType<typeof saveFile>; companionSlug: string | null; transcript: string }>> {
     const filename = 'voice-note.mp3';
     const mime = 'audio/mpeg';
     const companions = VoiceService.getVoiceCompanions();
@@ -1057,11 +1062,22 @@ export class VoiceService {
       }
     }));
 
+    const explicitText = text;
+    return runs.map((run, index) => ({
+      fileMeta: saveFile(buffers[index], filename, mime),
+      companionSlug: noteCompanionSlug(run.voice, companions) || null,
+      transcript: explicit ? explicitText : run.segments.map((segment) => segment.text).join('\n\n'),
+    }));
+  }
+
+  async generateTTSForMessage(
+    text: string,
+    threadId: string,
+    opts: { voice?: string; voiceId?: string } = {},
+  ): Promise<{ messageId: string; fileId: string; messageIds: string[]; fileIds: string[] }> {
+    const rendered = await this.renderVoiceNoteFiles(text, opts);
     const created: Array<{ messageId: string; fileId: string }> = [];
-    runs.forEach((run, index) => {
-      const fileMeta = saveFile(buffers[index], filename, mime);
-      const companionSlug = noteCompanionSlug(run.voice, companions);
-      const transcript = explicit ? text : run.segments.map((segment) => segment.text).join('\n\n');
+    rendered.forEach(({ fileMeta, companionSlug, transcript }) => {
       const now = new Date().toISOString();
       const audioMessage = createMessage({
         id: crypto.randomUUID(),

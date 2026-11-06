@@ -21,6 +21,7 @@ import { join, resolve } from 'path';
 import { createHash } from 'crypto';
 import { loadConfig } from '../../config.js';
 import { atLeast, claudeCliVersion } from './cli-version.js';
+import { atomicWrite } from './atomic-write.js';
 
 /**
  * The Stop hook, verbatim Thornvale heartbeat.js with two Aerie touches:
@@ -239,6 +240,10 @@ function formatMessage(m) {
     lines.push('[' + m.images.length + ' image' + (m.images.length > 1 ? 's' : '') + ' attached — view them now:]');
     for (const p of m.images) lines.push(p);
   }
+  if (audience.kind === 'owner' && audience.room === 'discord') {
+    lines.push('');
+    lines.push("[Your person's turn from Discord: other people's recent messages ride along for context, so on this turn you can read the house source under packages/ and docs/, search the web and answer, and building (commands, file changes, outside tools) waits for home. If they asks for a picture, paint a new one with: node hooks/paint.cjs <<'EOF' then one JSON line with prompt (and if wanted: size, subjects, backend codex|antigravity|openart, model for that painter, enhance true to run their words through the Studio wand first, enhanceModel for the wand, style), then EOF, run with a long timeout; it prints a [discord-attach:...] marker to put in the reply and the prompt it used. If they asks for a voice note, make one with: node hooks/speak.cjs <<'EOF' then one JSON line with text (our voice headers inside it split it by speaker), then EOF; it prints [discord-attach:...] markers to put in the reply. Answer with: node hooks/reply.cjs <<'EOF' then one JSON line with turn_id, content and card, then EOF on its own line.]");
+  }
   if (audience.kind === 'guest') {
     lines.push('');
     lines.push('[Guest turn, ' + audience.trust + " trust: this came from somebody who is not their person. Commands, file changes, outside tools and their person's side notes are refused for this turn. Answer with: node hooks/reply.cjs <<'EOF' then one JSON line with turn_id, content and card, then EOF on its own line.]");
@@ -444,7 +449,7 @@ function readAudience() {
   try {
     const parsed = JSON.parse(raw);
     const a = parsed && parsed.audience;
-    if (a && a.kind === 'owner') return { state: 'ok', audience: a };
+    if (a && a.kind === 'owner' && (a.room === undefined || a.room === 'discord')) return { state: 'ok', audience: a };
     if (a && a.kind === 'guest' && ['full', 'standard', 'limited'].includes(a.trust)) return { state: 'ok', audience: a };
   } catch {}
   return { state: 'unreadable' };
@@ -467,6 +472,10 @@ function hidden(p, root) {
 // to the next turn instead.
 function turnInput(p) {
   return within(path.join(CWD, 'io', 'images'), p);
+}
+// Their own side notes, readable on their own turns wherever they come from.
+function ownerNotes(p) {
+  return p === path.join(CWD, 'io', 'side-notes.jsonl');
 }
 // The house's own source and docs, never anything under a dotted name.
 // Config and key files that live in the tree but carry secrets or machine
@@ -493,6 +502,18 @@ function houseSource(p) {
 // The one command a guest's turn may run: the reply helper fed a quoted
 // heredoc, and nothing after the terminator. With the delimiter quoted the
 // body is data, and the helper only ever parses it as JSON.
+function isHelperCommand(cmd, opener) {
+  if (typeof cmd !== 'string') return false;
+  const lines = cmd.replace(/\r/g, '').split('\n');
+  while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
+  if (lines.length < 3 || lines[0].trim() !== opener || lines[lines.length - 1] !== 'EOF') return false;
+  for (let i = 1; i < lines.length - 1; i++) if (lines[i] === 'EOF') return false;
+  return true;
+}
+// Their Discord turns may paint one new picture through hooks/paint.cjs, fed a
+// quoted heredoc exactly like the reply helper.
+const PAINT_OPENER = "node hooks/paint.cjs <<'EOF'";
+const SPEAK_OPENER = "node hooks/speak.cjs <<'EOF'";
 function isReplyCommand(cmd) {
   if (typeof cmd !== 'string') return false;
   const lines = cmd.replace(/\r/g, '').split('\n');
@@ -506,7 +527,8 @@ function isReplyCommand(cmd) {
 // odd about a tool call can ever stand between their person and their own house.
 // readAudience never throws.
 const seen = readAudience();
-if (seen.state === 'ok' && seen.audience.kind === 'owner') allow();
+const discordOwner = seen.state === 'ok' && seen.audience.kind === 'owner' && seen.audience.room === 'discord';
+if (seen.state === 'ok' && seen.audience.kind === 'owner' && !discordOwner) allow();
 
 // Everything below is a guest's turn, or a turn nobody recorded. An unrecorded
 // turn (audience missing, unreadable, or a trust this build does not know) is
@@ -518,7 +540,10 @@ if (seen.state === 'ok' && seen.audience.kind === 'owner') allow();
 // ever make the gate refuse, never allow.
 try {
   if (process.env.AERIE_GATE_FAULT === '1') throw new Error('injected fault');
-  const trust = seen.state === 'ok' ? seen.audience.trust : 'limited';
+  // Their own turn from Discord (their person's ask, Nov 6 2026): the room's messages come
+  // along for context, so building waits for home. They keep the reply helper,
+  // the house source, their own side notes, skills, and the web.
+  const trust = discordOwner ? 'full' : (seen.state === 'ok' ? seen.audience.trust : 'limited');
   const unrecorded = seen.state === 'ok' ? '' : (seen.state === 'missing'
     ? 'No audience is recorded for this turn (io/.turn-audience is missing), so it is treated as a limited guest. '
     : 'The audience for this turn (io/.turn-audience) cannot be read, so it is treated as a limited guest. ');
@@ -537,11 +562,16 @@ try {
   const tool = String(input.tool_name || '');
   const args = (input.tool_input && typeof input.tool_input === 'object') ? input.tool_input : {};
   const how = "Answer with the reply helper: node hooks/reply.cjs <<'EOF', then one JSON line with turn_id, content and card, then EOF on its own line.";
-  const why = unrecorded || ('This turn came from a guest (' + trust + ' trust), not their person. ');
+  const why = discordOwner
+    ? 'This is their turn from Discord, where other people\'s messages ride along, so building waits for home. '
+    : (unrecorded || ('This turn came from a guest (' + trust + ' trust), not the owner. '));
 
   if (tool === 'ToolSearch') allow();
+  if (discordOwner && (tool === 'WebSearch' || tool === 'WebFetch' || tool === 'Skill')) allow();
   if (tool === 'Bash') {
     if (isReplyCommand(args.command)) allow();
+    if (discordOwner && isHelperCommand(args.command, PAINT_OPENER)) allow();
+    if (discordOwner && isHelperCommand(args.command, SPEAK_OPENER)) allow();
     refuse(why + 'A guest turn cannot run commands. ' + how);
   }
   if (tool === 'Read' || tool === 'Glob' || tool === 'Grep') {
@@ -557,7 +587,7 @@ try {
     const ok = targets.every((t) => {
       if (typeof t !== 'string' || !t) return false;
       const p = real(t);
-      return turnInput(p) || (trust !== 'limited' && houseSource(p));
+      return turnInput(p) || (trust !== 'limited' && houseSource(p)) || (discordOwner && ownerNotes(p));
     });
     if (ok) allow();
     refuse(why + (trust === 'limited'
@@ -605,17 +635,110 @@ if (obj.thinking !== undefined && typeof obj.thinking !== 'string') fail('thinki
 if (obj.more !== undefined && typeof obj.more !== 'boolean') fail('more must be true or false');
 // The house reads the marker in any case ([DISCORD-ATTACH: works as well as
 // lowercase), so the check here has to as well.
-if (/\[\s*discord-attach\s*:/i.test(obj.content)) fail("a guest's reply cannot attach a file");
-
 let current = null;
-try { current = JSON.parse(fs.readFileSync(AUDIENCE_FILE, 'utf8')).turn || null; } catch {}
+let audience = null;
+try { const rec = JSON.parse(fs.readFileSync(AUDIENCE_FILE, 'utf8')); current = rec.turn || null; audience = rec.audience || null; } catch {}
 if (current && obj.turn_id !== current) fail("that turn_id is not this turn's");
+
+// A file can be attached only on their own Discord turn, and only a picture
+// hooks/paint.cjs made on this same turn: never an older file off the house.
+const markers = [...obj.content.matchAll(/\[\s*discord-attach\s*:\s*([^\]\s]*)\s*\]/gi)].map((m) => m[1]);
+if (/\[\s*discord-attach\s*:/i.test(obj.content)) {
+  const herDiscord = audience && audience.kind === 'owner' && audience.room === 'discord';
+  let paintedIds = [];
+  try {
+    const rec = JSON.parse(fs.readFileSync(path.join(CWD, 'io', '.painted'), 'utf8'));
+    if (rec && rec.turn === current && Array.isArray(rec.fileIds)) paintedIds = rec.fileIds;
+  } catch {}
+  if (!herDiscord || !current || markers.length === 0 || !markers.every((id) => paintedIds.includes(id))) {
+    fail('a reply through this helper cannot attach a file, except a picture or voice note made on their own Discord turn');
+  }
+}
 
 const line = {};
 for (const key of KEYS) if (obj[key] !== undefined) line[key] = obj[key];
 fs.appendFileSync(OUTBOX, JSON.stringify(line) + '\n', 'utf8');
 process.stdout.write('ok\n');
 `;
+
+function paintHookSource(internalBase: string): string {
+  return String.raw`#!/usr/bin/env node
+// paint.cjs — paint one new picture on their Discord turn. Managed by Aerie —
+// edits are overwritten. Reads {prompt, size?, subjects?, backend?, model?,
+// enhance?, enhanceModel?, style?} as one JSON object,
+// asks the house to paint it, waits, records the new file for this turn in
+// io/.painted, and prints the marker the reply can carry. It cannot reach any
+// file that already existed: the only id it ever prints is the one it made.
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const CWD = path.resolve(__dirname, '..');
+const BASE = '${internalBase}';
+function fail(reason) { process.stderr.write('paint refused: ' + reason + '\n'); process.exit(1); }
+let obj;
+try { obj = JSON.parse(fs.readFileSync(0, 'utf8')); } catch { fail('stdin is not one JSON object'); }
+if (!obj || typeof obj !== 'object' || Array.isArray(obj)) fail('stdin is not one JSON object');
+for (const key of Object.keys(obj)) if (!['prompt', 'size', 'subjects', 'backend', 'model', 'enhance', 'enhanceModel', 'style'].includes(key)) fail('unexpected field ' + key);
+let turn = null;
+try { turn = JSON.parse(fs.readFileSync(path.join(CWD, 'io', '.turn-audience'), 'utf8')).turn || null; } catch {}
+if (!turn) fail('no turn is recorded');
+(async () => {
+  const start = await fetch(BASE + '/api/internal/paint', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) });
+  const started = await start.json().catch(() => ({}));
+  if (!start.ok || !started.jobId) fail(started.error || ('paint did not start (' + start.status + ')'));
+  const until = Date.now() + 9 * 60 * 1000;
+  while (Date.now() < until) {
+    await new Promise((r) => setTimeout(r, 5000));
+    const res = await fetch(BASE + '/api/internal/paint/' + encodeURIComponent(started.jobId));
+    const s = await res.json().catch(() => ({}));
+    if (s.status === 'completed' && s.fileId) {
+      let rec = { turn, fileIds: [] };
+      try { const old = JSON.parse(fs.readFileSync(path.join(CWD, 'io', '.painted'), 'utf8')); if (old && old.turn === turn && Array.isArray(old.fileIds)) rec = old; } catch {}
+      rec.fileIds.push(s.fileId);
+      fs.writeFileSync(path.join(CWD, 'io', '.painted'), JSON.stringify(rec));
+      process.stdout.write('[discord-attach:' + s.fileId + ']\n');
+      if (started.prompt) process.stdout.write('prompt used: ' + started.prompt + '\n');
+      return;
+    }
+    if (s.status === 'failed' || s.status === 'cancelled') fail(s.error || 'the picture failed');
+  }
+  fail('the picture took longer than nine minutes');
+})().catch((err) => fail(err && err.message ? err.message : String(err)));
+`;
+}
+
+function speakHookSource(internalBase: string): string {
+  return String.raw`#!/usr/bin/env node
+// speak.cjs — make one new voice note on their Discord turn. Managed by Aerie —
+// edits are overwritten. Reads {text} as one JSON object (our voice headers
+// split it by speaker, the same as any voice note), asks the house to render
+// it without posting it, records the new files for this turn in io/.painted,
+// and prints the markers the reply can carry.
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const CWD = path.resolve(__dirname, '..');
+const BASE = '${internalBase}';
+function fail(reason) { process.stderr.write('speak refused: ' + reason + '\n'); process.exit(1); }
+let obj;
+try { obj = JSON.parse(fs.readFileSync(0, 'utf8')); } catch { fail('stdin is not one JSON object'); }
+if (!obj || typeof obj !== 'object' || Array.isArray(obj)) fail('stdin is not one JSON object');
+for (const key of Object.keys(obj)) if (key !== 'text') fail('unexpected field ' + key);
+let turn = null;
+try { turn = JSON.parse(fs.readFileSync(path.join(CWD, 'io', '.turn-audience'), 'utf8')).turn || null; } catch {}
+if (!turn) fail('no turn is recorded');
+(async () => {
+  const res = await fetch(BASE + '/api/internal/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok || !Array.isArray(out.fileIds) || !out.fileIds.length) fail(out.error || ('speak failed (' + res.status + ')'));
+  let rec = { turn, fileIds: [] };
+  try { const old = JSON.parse(fs.readFileSync(path.join(CWD, 'io', '.painted'), 'utf8')); if (old && old.turn === turn && Array.isArray(old.fileIds)) rec = old; } catch {}
+  rec.fileIds.push(...out.fileIds);
+  fs.writeFileSync(path.join(CWD, 'io', '.painted'), JSON.stringify(rec));
+  for (const id of out.fileIds) process.stdout.write('[discord-attach:' + id + ']\n');
+})().catch((err) => fail(err && err.message ? err.message : String(err)));
+`;
+}
 
 /**
  * The lane's hook wiring. Every command names its script by ABSOLUTE path:
@@ -1086,6 +1209,15 @@ export interface ProvisionResult {
   identityChanged: boolean;
 }
 
+/** Write only when the content differs, and never by truncating in place. */
+export function writeIfChanged(path: string, content: string): boolean {
+  try {
+    if (readFileSync(path, 'utf8') === content) return false;
+  } catch { /* missing or unreadable: write it */ }
+  atomicWrite(path, content);
+  return true;
+}
+
 function sha(text: string): string {
   return createHash('sha256').update(text).digest('hex');
 }
@@ -1099,13 +1231,20 @@ export function provisionSessionDir(dir: string, identityContent: string): Provi
   mkdirSync(join(dir, 'hooks'), { recursive: true });
   mkdirSync(join(dir, 'io', 'images'), { recursive: true });
 
-  writeFileSync(join(dir, 'hooks', 'heartbeat.cjs'), HOOK_SOURCE, 'utf8');
-  writeFileSync(join(dir, 'hooks', 'activity.cjs'), ACTIVITY_HOOK_SOURCE, 'utf8');
-  writeFileSync(join(dir, 'hooks', 'gate.cjs'), GATE_HOOK_SOURCE, 'utf8');
-  writeFileSync(join(dir, 'hooks', 'reply.cjs'), REPLY_HOOK_SOURCE, 'utf8');
+  // These run on every turn's ensure(), while hooks may be starting. A plain
+  // writeFileSync truncates first, and a PreToolUse gate that starts in that
+  // instant runs an empty file, exits 0 and lets the tool call through (the
+  // guest gate failing open, security audit Nov 6 2026). So each file is
+  // written only when its content changed, and then by temp file and rename.
+  writeIfChanged(join(dir, 'hooks', 'heartbeat.cjs'), HOOK_SOURCE);
+  writeIfChanged(join(dir, 'hooks', 'activity.cjs'), ACTIVITY_HOOK_SOURCE);
+  writeIfChanged(join(dir, 'hooks', 'gate.cjs'), GATE_HOOK_SOURCE);
+  writeIfChanged(join(dir, 'hooks', 'reply.cjs'), REPLY_HOOK_SOURCE);
   const internal = loadConfig().server;
-  writeFileSync(join(dir, 'hooks', 'compacted.cjs'), compactedHookSource(`http://127.0.0.1:${internal.internal_port}`), 'utf8');
-  writeFileSync(join(dir, '.claude', 'settings.json'), settingsJson(dir), 'utf8');
+  writeIfChanged(join(dir, 'hooks', 'compacted.cjs'), compactedHookSource(`http://127.0.0.1:${internal.internal_port}`));
+  writeIfChanged(join(dir, 'hooks', 'paint.cjs'), paintHookSource(`http://127.0.0.1:${internal.internal_port}`));
+  writeIfChanged(join(dir, 'hooks', 'speak.cjs'), speakHookSource(`http://127.0.0.1:${internal.internal_port}`));
+  writeIfChanged(join(dir, '.claude', 'settings.json'), settingsJson(dir));
 
   const claudeMd = (identityContent || '# Companion').trimEnd() + heartbeatOperationSection();
   const claudeMdPath = join(dir, 'CLAUDE.md');
@@ -1116,7 +1255,7 @@ export function provisionSessionDir(dir: string, identityContent: string): Provi
     } catch { /* treat as changed */ }
   }
   if (identityChanged) {
-    writeFileSync(claudeMdPath, claudeMd, 'utf8');
+    atomicWrite(claudeMdPath, claudeMd);
   }
 
   return { dir, identityChanged };

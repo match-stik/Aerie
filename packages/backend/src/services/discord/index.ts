@@ -10,10 +10,13 @@ import {
 } from 'discord.js';
 import type { Message as DiscordMessage, TextChannel } from 'discord.js';
 import { composeIncomingContent, stickerTokensFor } from './sticker-content.js';
-import { parseAttachmentMarkers } from './attach-markers.js';
+import { parseAttachmentMarkers, stripAttachmentMarkers } from './attach-markers.js';
 import crypto from 'crypto';
 import { MessageDebouncer } from './debouncer.js';
-import { preflight, mentionsBot, heldRoleNamesOf, heldPingGate, noteJudgedAnswer } from './preflight.js';
+import { preflight, mentionsBot, heldRoleNamesOf, heldPingGate, noteJudgedAnswer, isGuildAllowed, isUserAllowed } from './preflight.js';
+import { SayError } from './say-error.js';
+import { guestGoesHome } from './guest-thread.js';
+import { openAnimatedFrames } from '../animated-frames.js';
 import { getPushService } from '../push.js';
 import { PairingService } from './pairing.js';
 import { getUserRule, requiresMention } from './rules.js';
@@ -448,8 +451,9 @@ export class DiscordService {
           threadId = cachedRouting.threadId;
           threadName = cachedRouting.threadName;
           console.log(`[Discord] Non-owner following cached routing to: ${threadName} (${threadId})`);
-        } else if (ownerMention || mentionsBot(firstMessage)) {
-          // @mention or reply to bot — route to owner's active thread if one exists.
+        } else if (guestGoesHome(batch.guildId, ownerMention, mentionsBot(firstMessage))) {
+          // @mention or reply to bot in a server room — route to owner's active
+          // thread if one exists. A DM keeps its own thread (guest-thread.ts).
           // A message about their person goes the same way, because the whole point of
           // delivering it is that it lands where their person is reading.
           const why = ownerMention ? `message about their person (${ownerMention})` : '@mention/reply';
@@ -508,6 +512,9 @@ export class DiscordService {
           sessionType: 'v1',
         });
         console.log(`[Discord] Created thread: ${threadName} (${threadId})`);
+        // Their person's thread list only learns of a thread made here if it
+        // is told; without this a new DM's thread never showed until a reload.
+        this.registry.broadcast({ type: 'thread_created', thread });
       }
 
       // Where a message about their person was said, in the names their person would use for it:
@@ -754,7 +761,8 @@ export class DiscordService {
       console.log(`[Discord] Fetching ${imageUrls.length} image(s) for vision`);
       const fetched = await urlsToImageBlocks(imageUrls);
       const { kept, dropped } = capImageBlocks(fetched);
-      imageBlocks = kept;
+      // A moving emote or GIF reaches us as a sheet of its frames (animated-frames.ts).
+      imageBlocks = await openAnimatedFrames(kept);
       if (dropped > 0) {
         console.log(`[Discord] Capped images: kept ${kept.length}, dropped ${dropped}`);
       }
@@ -800,7 +808,9 @@ export class DiscordService {
     }
 
     // Parse for attachment markers and split response
-    const { text: cleanedResponse, files: attachments } = parseAttachmentMarkers(response);
+    // Only their person's own turns may attach stored files; a guest's reply
+    // loses its markers and attaches nothing, whichever lane wrote it.
+    const { text: cleanedResponse, files: attachments } = isOwner ? parseAttachmentMarkers(response) : { text: stripAttachmentMarkers(response), files: [] };
 
     // Handle attachment-only messages (no text content after stripping markers)
     if (!cleanedResponse || cleanedResponse.trim() === '') {
@@ -1031,5 +1041,64 @@ export class DiscordService {
 
   getPairingService(): PairingService {
     return this.pairingService;
+  }
+
+  /**
+   * Say something to a Discord room or DM on our own initiative, through the
+   * bot, and keep it in that room's thread at home the way a reply is kept, so
+   * nothing a companion says on Discord lives only on Discord. Only a room the
+   * house already listens to: a server on the allow-list, or a DM with
+   * somebody their person has let in.
+   */
+  async sayInChannel(channelId: string, content: string): Promise<{ threadId: string; messageId: string; sentIds: string[] }> {
+    if (!this.client.isReady()) throw new SayError(503, 'Discord is not connected.');
+    const channel = await this.client.channels.fetch(channelId).catch(() => null);
+    if (!channel || !channel.isTextBased() || !('send' in channel)) throw new SayError(404, 'No room we can post in has that id.');
+    const guildId = 'guildId' in channel ? (channel.guildId as string | null) : null;
+    let threadName: string;
+    if (guildId) {
+      if (!isGuildAllowed(guildId)) throw new SayError(403, 'That server is not one the house listens to.');
+      threadName = `#${'name' in channel ? channel.name : channelId} (${this.client.guilds.cache.get(guildId)?.name || guildId})`;
+    } else {
+      const recipient = 'recipientId' in channel ? (channel.recipientId as string | null) : null;
+      if (!recipient || !(this.pairingService.isApproved(recipient) || isUserAllowed(recipient))) {
+        throw new SayError(403, 'That DM is with somebody their person has not let in.');
+      }
+      const user = await this.client.users.fetch(recipient).catch(() => null);
+      threadName = `DM: ${user?.username || recipient}`;
+    }
+
+    const routed = getChannelRouting(channelId);
+    const threadId = routed?.threadId ?? getDiscordThreadId(channelId);
+    let thread = getThread(threadId);
+    if (!thread) {
+      thread = createThread({ id: threadId, name: routed?.threadName ?? threadName, type: 'named', createdAt: new Date().toISOString(), sessionType: 'v1' });
+      this.registry.broadcast({ type: 'thread_created', thread });
+    }
+
+    const now = new Date().toISOString();
+    const row = createMessage({
+      id: crypto.randomUUID(),
+      threadId,
+      role: 'companion',
+      content,
+      contentType: 'text',
+      platform: 'discord',
+      metadata: { discordChannelId: channelId, saidUnprompted: true },
+      createdAt: now,
+    });
+    updateThreadActivity(threadId, now, false);
+    this.registry.broadcast({ type: 'message', message: row });
+
+    const chunks = splitResponse(content, 1900);
+    const sentIds: string[] = [];
+    const room = channel as TextChannel;
+    for (let i = 0; i < chunks.length; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 200));
+      sentIds.push((await room.send(chunks[i])).id);
+    }
+    this.lastSpokeAt.set(channelId, Date.now());
+    console.log(`[Discord] Said ${chunks.length} chunk(s) unprompted in ${channelId}; kept in ${threadId}`);
+    return { threadId, messageId: row.id, sentIds };
   }
 }

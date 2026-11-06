@@ -46,9 +46,10 @@ function verifyToken(token: string, sessionToken: string): boolean {
 // Only a request that carries the session cookie gets here, so curl, the
 // lanes and webhooks (no cookie, no Sec-Fetch, no Origin) are untouched.
 //
-// It starts in REPORT mode: the house logs what it would refuse and refuses
-// nothing, so it can be watched against their person real phone before it enforces.
-// security.csrf_mode: 'report' (unset), 'enforce', or 'off'.
+// It ENFORCES by default (Nov 6 2026 audit: report mode refused nothing, and
+// it had been watched against a real phone and enforced since Oct 24).
+// A house whose browser trips it can set 'report' to log instead.
+// security.csrf_mode: 'enforce' (unset), 'report', or 'off'.
 
 export interface CrossSiteSignals {
   secFetchSite?: string;
@@ -83,11 +84,11 @@ export function crossSiteVerdict(signals: CrossSiteSignals): string | null {
 function csrfMode(): 'report' | 'enforce' | 'off' {
   try {
     const value = getConfig('security.csrf_mode');
-    if (value === 'enforce' || value === 'off') return value;
+    if (value === 'report' || value === 'off') return value;
   } catch {
-    // No database yet (tests, first boot): report.
+    // No database yet (tests, first boot): enforce.
   }
-  return 'report';
+  return 'enforce';
 }
 
 export function csrfProtection(req: Request, res: Response, next: NextFunction): void {

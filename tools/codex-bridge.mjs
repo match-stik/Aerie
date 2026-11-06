@@ -4,7 +4,7 @@
 // backend) into Codex CLI's auth via `codex login --with-access-token`.
 // Access token only — the refresh token stays with Aerie so two refreshers
 // never race over rotation ("refresh token already used").
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, chmodSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
@@ -59,4 +59,6 @@ writeFileSync(
   ),
   { mode: 0o600 },
 );
+// mode only applies when the file is created; an existing one keeps its own.
+chmodSync(outPath, 0o600);
 console.log(`Wrote ${outPath} from Aerie's auth (token expires in ${daysLeft.toFixed(1)} days).`);

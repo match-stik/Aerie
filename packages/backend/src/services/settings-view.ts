@@ -17,3 +17,10 @@ export function settingsForClient(config: Record<string, unknown>): Record<strin
   }
   return out;
 }
+
+/** Keys the generic settings door (PUT /api/settings) must never write. */
+export function isGuardedSettingKey(key: string): boolean {
+  const k = key.trim().toLowerCase();
+  return k.startsWith('secret:') || k.startsWith('security.') || k.startsWith('auth.') || k === 'app_settings';
+}
+

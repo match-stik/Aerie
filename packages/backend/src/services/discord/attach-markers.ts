@@ -60,6 +60,16 @@ export interface ParsedAttachments {
   files: AttachmentBuilder[];
 }
 
+/**
+ * Remove every marker and attach nothing. A guest's turn gets this: a guest
+ * who talks a lane into writing a marker would otherwise have a private
+ * upload posted to the channel (security audit, Nov 6 2026). The Claude lane's
+ * reply helper already refuses markers; this covers every lane at the door.
+ */
+export function stripAttachmentMarkers(response: string): string {
+  return response.replace(ATTACH_MARKER_REGEX, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 /** Turn every marker in a reply into a file, and strip the markers from the words. */
 export function parseAttachmentMarkers(response: string, dir: string = DISCORD_FILES_DIR): ParsedAttachments {
   const files: AttachmentBuilder[] = [];

@@ -123,7 +123,7 @@ test('a shared tag we already answered in the room since may be passed', () => {
 test('a beat knows whether we spoke in the room after it opened', () => {
   const source = readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
   assert.ok(source.includes('turn.spokeSinceOpen = (this.lastSpokeAt.get(channelId) ?? 0) > open.openedAt;'));
-  assert.equal(source.split('this.lastSpokeAt.set(channelId, Date.now());').length - 1, 2, 'both send paths mark that we spoke');
+  assert.equal(source.split('this.lastSpokeAt.set(channelId, Date.now());').length - 1, 3, 'every send path marks that we spoke: both reply paths and sayInChannel');
 });
 
 test('a bot turn the judge is holding is not counted until the beat answers it', () => {

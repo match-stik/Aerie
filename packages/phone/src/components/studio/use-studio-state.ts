@@ -75,7 +75,9 @@ export function useStudioState({
 
   // Codex (GPT) model state — persist selection across sessions
   const [codexModel, setCodexModel] = useState(() => {
-    try { return localStorage.getItem('aerie-studio-codex-model') || codexModels[1]?.id || 'gpt-image-2'; } catch { return codexModels[1]?.id || 'gpt-image-2'; }
+    // With nothing saved, start on the house's default image model, the same
+    // one the backend uses when a request names none (DEFAULT_CODEX_IMAGE_MODEL).
+    try { return localStorage.getItem('aerie-studio-codex-model') || 'gpt-5.6-terra'; } catch { return 'gpt-5.6-terra'; }
   });
   // Antigravity (Gemini) model state
   const [agyModel, setAgyModel] = useState(() => {
@@ -497,6 +499,10 @@ export function useStudioState({
     try {
       // If using Codex backend, pass the model so we use that for enhancement
       const body: Record<string, string> = { prompt: prompt.trim() };
+      // Their picked style goes along so the wand writes the scene in it (theirs,
+      // Nov 6 2026); it is still added again when they paint, as before.
+      const pickedStyle = selectedStyle ? promptStyles.find(s => s.name === selectedStyle)?.style : '';
+      if (pickedStyle) body.style = pickedStyle;
       if (backend === 'codex' && codexModel) {
         body.backend = 'codex';
         body.codexModel = codexModel;

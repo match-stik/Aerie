@@ -7,6 +7,12 @@ export const CODEX_MODELS = [
   // Sol and Luna went in Oct 1 2026 after one test picture each came back from
   // Codex on the model asked for, with no fallback. The words are the account's
   // own: 'previous generation workhorse' and 'fast and affordable'.
+  // 6.1 Sol, 6.1 Terra and Reserve went in Nov 6 2026 the same way: one test
+  // picture each came back from Codex on the model asked for, no fallback (the
+  // rollouts name the model). The words are the account's own again.
+  { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', desc: 'Latest Workhorse' },
+  { id: 'gpt-6.1-terra', name: 'GPT-6.1 Terra', desc: 'Newest Terra' },
+  { id: 'gpt-reserve', name: 'GPT-Reserve', desc: 'Fast & Affordable' },
   { id: 'gpt-6-sol', name: 'GPT-6 Sol', desc: 'Workhorse' },
   { id: 'gpt-6-luna', name: 'GPT-6 Luna', desc: 'Fast' },
   { id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol', desc: 'New Frontier' },
@@ -21,23 +27,18 @@ export const CODEX_MODELS = [
 // image-gen.ts — a model the backend does not recognise is silently ignored
 // and the request quietly runs on the default instead. Refreshed Sep 5 2026;
 // the 3.5 family was retired upstream and had been dead in here for months.
+// Trimmed Nov 6 2026 to what `agy models` lists: 3.8 Flash only; 3.7, 3.6 and
+// 3.1 Pro are gone upstream.
 export const ANTIGRAVITY_MODELS = [
-  { id: 'Gemini 3.8 Flash (High)', name: 'Flash 3.8 High', desc: 'Newest Flash' },
+  { id: 'Gemini 3.8 Flash (High)', name: 'Flash 3.8 High', desc: 'Best Quality' },
   { id: 'Gemini 3.8 Flash (Medium)', name: 'Flash 3.8 Med', desc: 'Balanced' },
   { id: 'Gemini 3.8 Flash (Low)', name: 'Flash 3.8 Low', desc: 'Fastest' },
-  { id: 'Gemini 3.7 Flash (High)', name: 'Flash 3.7 High', desc: 'Previous Flash' },
-  { id: 'Gemini 3.7 Flash (Medium)', name: 'Flash 3.7 Med', desc: 'Balanced' },
-  { id: 'Gemini 3.7 Flash (Low)', name: 'Flash 3.7 Low', desc: 'Fastest' },
-  { id: 'Gemini 3.6 Flash (High)', name: 'Flash 3.6 High', desc: 'Older Flash' },
-  { id: 'Gemini 3.6 Flash (Medium)', name: 'Flash 3.6 Med', desc: 'Balanced' },
-  { id: 'Gemini 3.6 Flash (Low)', name: 'Flash 3.6 Low', desc: 'Fastest' },
-  { id: 'Gemini 3.1 Pro (High)', name: 'Pro 3.1 High', desc: 'Best Quality' },
-  { id: 'Gemini 3.1 Pro (Low)', name: 'Pro 3.1 Low', desc: 'Pro Fast' },
 ];
 
-/** The one that has actually taken a picture here. Also the recovery value for
- *  a phone still holding a retired model in localStorage. */
-export const ANTIGRAVITY_DEFAULT_MODEL = 'Gemini 3.1 Pro (High)';
+/** The backend's default too (settings.ts); 3.1 Pro had sat here after agy
+ *  dropped it. Also the recovery value for a phone still holding a retired
+ *  model in localStorage. */
+export const ANTIGRAVITY_DEFAULT_MODEL = 'Gemini 3.8 Flash (High)';
 
 // OpenArt models — key is the picker value (kling-3-omni appears twice, once
 // per media). Credit costs are list price at default config; MCP-originated
@@ -51,6 +52,19 @@ export const OPENART_MODELS: Array<{ key: string; id: string; media: 'image' | '
   { key: 'seedream-4-5', id: 'byte-plus-seedream-4-5', media: 'image', name: 'Seedream 4.5', desc: 'Anime/2D · 15cr' },
   { key: 'seedream-5-lite', id: 'byte-plus-seedream-5-lite', media: 'image', name: 'Seedream 5 Lite', desc: 'Anime/2D · 15cr' },
   { key: 'kling-3-omni-image', id: 'kling-3-omni', media: 'image', name: 'Kling 3 Omni', desc: 'Cheapest · 10cr' },
+  { key: 'nano-banana-2-1', id: 'nano-banana-2-1', media: 'image', name: 'Nano Banana 2.1', desc: 'Newest Nano · 30cr' },
+  { key: 'gpt-image-2-5-flare', id: 'gpt-image-2-5-flare', media: 'image', name: 'GPT Image 2.5 Flare', desc: 'GPT, fast · 40cr' },
+  { key: 'gpt-image-2-5-sunburst', id: 'gpt-image-2-5-sunburst', media: 'image', name: 'GPT Image 2.5 Sunburst', desc: 'GPT, careful · 40cr' },
+  // 2.6 arrived Nov 4 2026 and lists cheaper than 2.5 on OpenArt (34 against 42
+  // with a reference, at default settings, read Nov 6 2026).
+  { key: 'gpt-image-2-6-flare', id: 'gpt-image-2-6-flare', media: 'image', name: 'GPT Image 2.6 Flare', desc: 'Newest GPT, fast · 34cr' },
+  { key: 'gpt-image-2-6-sunburst', id: 'gpt-image-2-6-sunburst', media: 'image', name: 'GPT Image 2.6 Sunburst', desc: 'Newest GPT, careful · 34cr' },
+  { key: 'flux-3-image', id: 'flux-3-image', media: 'image', name: 'FLUX 3 Image', desc: '4K, up to 10 refs · 35cr' },
+  { key: 'recraft-v4-1', id: 'recraft-v4-1', media: 'image', name: 'Recraft V4.1', desc: 'Illustration & vector · 20cr' },
+  { key: 'seedream-5-pro', id: 'byte-plus-seedream-5-pro', media: 'image', name: 'Seedream 5 Pro', desc: 'Anime/2D best · 30cr' },
+  { key: 'wan-2-7-image', id: 'wan2-7-image', media: 'image', name: 'Wan 2.7 Image', desc: 'Faces & text 4K · 15cr' },
+  { key: 'grok-imagine-image-2', id: 'grok-imagine-image-2', media: 'image', name: 'Grok Imagine Image 2.0', desc: 'Editing · 26cr' },
+  { key: 'ideogram-4-5', id: 'ideogram-4-5', media: 'image', name: 'Ideogram 4.5', desc: 'Lettering & layout · 44cr' },
   // Video (5s clips at default config)
   { key: 'pixverse-v6', id: 'pixverseV6', media: 'video', name: 'PixVerse V6', desc: 'Video · Budget 50cr' },
   { key: 'wan-2-7', id: 'wan2-7', media: 'video', name: 'Wan 2.7', desc: 'Video · Cinematic 125cr' },
@@ -60,6 +74,18 @@ export const OPENART_MODELS: Array<{ key: string; id: string; media: 'image' | '
   { key: 'seedance-2-fast', id: 'byte-plus-seedance-2-fast', media: 'video', name: 'Seedance 2.0 Fast', desc: 'Video+Audio · 350cr' },
   { key: 'seedance-2', id: 'byte-plus-seedance-2', media: 'video', name: 'Seedance 2.0', desc: 'Best Video+Audio · 400cr' },
   { key: 'grok-imagine-1-5', id: 'grok-imagine-1-5', media: 'video', name: 'Grok Imagine 1.5', desc: 'Img→Video only · 405cr' },
+  { key: 'fal-h3-max-turbo', id: 'fal-h3-max-turbo', media: 'video', name: 'MiniMax H3 Max Turbo', desc: 'Video · Quickest 75cr' },
+  { key: 'wan-3-0', id: 'wan3-0', media: 'video', name: 'Wan 3.0', desc: 'Video+Audio up to 30s · 100cr' },
+  { key: 'veo-3-1', id: 'veo3-1', media: 'video', name: 'Veo 3.1', desc: 'Video+Audio · 120cr' },
+  { key: 'fal-h3-max', id: 'fal-h3-max', media: 'video', name: 'MiniMax H3 Max', desc: 'Video · Fast 125cr' },
+  { key: 'kling-v3', id: 'kling-v3', media: 'video', name: 'Kling 3.0', desc: 'Video+Audio · 175cr' },
+  { key: 'gemini-omni-1-1-flash', id: 'gemini-omni-1-1-flash', media: 'video', name: 'Gemini Omni 1.1 Flash', desc: 'Video up to 4K · 250cr' },
+  { key: 'seedance-2-5', id: 'byte-plus-seedance-2-5', media: 'video', name: 'Seedance 2.5', desc: 'Video+Audio up to 30s · 300cr' },
+  { key: 'seedance-2-5-draft', id: 'byte-plus-seedance-2-5-draft', media: 'video', name: 'Seedance 2.5 Draft', desc: '480p preview · 300cr' },
+  { key: 'minimax-h3', id: 'minimax-h3', media: 'video', name: 'MiniMax H3', desc: 'Video 2K · 450cr' },
+  { key: 'gemini-omni-1-2-flash', id: 'gemini-omni-1-2-flash', media: 'video', name: 'Gemini Omni 1.2 Flash', desc: 'Newest Omni, up to 4K · 191cr' },
+  { key: 'kling-4-omni', id: 'kling-4-omni', media: 'video', name: 'Kling 4.0', desc: 'Steady characters, up to 30s · 600cr' },
+  { key: 'flux-3-video', id: 'flux-3-video', media: 'video', name: 'FLUX 3 Video', desc: 'Video+Audio up to 20s · 600cr' },
 ];
 
 /**

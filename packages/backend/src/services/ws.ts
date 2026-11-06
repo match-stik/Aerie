@@ -28,8 +28,12 @@ import type { VoiceService } from './voice.js';
 import type { DiscordService } from './discord/index.js';
 import type { TelegramService } from './telegram/index.js';
 import { getAerieConfig } from '../config.js';
+import { parse as parseCookie } from 'cookie';
+import { getCookieName } from '../middleware/auth.js';
+import { getWebSession } from './db.js';
 import { buildCommandRegistry } from './commands.js';
 import { stickerRefsToImageBlocks, emojiRefsToImageBlocks, capImageBlocks, urlToImageBlock, type ImageBlock } from './visual-blocks.js';
+import { openAnimatedFrames } from './animated-frames.js';
 import { registry } from './ws/connection-registry.js';
 import type { ExtendedWebSocket } from './ws/connection-registry.js';
 import { registerWebSocketUpgradeHandler } from './ws/upgrade-lifecycle.js';
@@ -111,7 +115,10 @@ export function setGatewayServices(services: GatewayServices): void {
 }
 
 export function createWebSocketServer(server: HTTPServer, agentService?: AgentService, orchestrator?: Orchestrator): WebSocketServer {
-  const wss = new WebSocketServer({ noServer: true });
+  // A cap below the library's 100 MiB default. Their voice turns arrive here as
+  // base64 audio (voice_audio), so this stays generous: 32 MiB is minutes of
+  // speech, and one message no longer gets to make the server hold 100 MiB.
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 32 * 1024 * 1024 });
   const agent = agentService ?? new AgentService();
   registerWebSocketUpgradeHandler(server, wss);
 
@@ -133,6 +140,11 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     }
 
     extWs.isAlive = true;
+    // Kept so the heartbeat can close this socket once its session ends:
+    // logging out or changing the password used to leave an open socket
+    // driving the house (Nov 6 2026 audit).
+    const cookieHeader = request.headers.cookie;
+    extWs.sessionToken = cookieHeader ? parseCookie(cookieHeader)[getCookieName()] : undefined;
     extWs.userId = 'user';
     extWs.voiceModeEnabled = false;
     extWs.audioChunks = [];
@@ -417,6 +429,9 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
       if (!extWs.isAlive) {
         return extWs.terminate();
       }
+      if (socketSessionEnded(extWs.sessionToken, !!getAerieConfig().auth.password)) {
+        return extWs.close(4401, 'Session ended');
+      }
       extWs.isAlive = false;
       extWs.ping();
     });
@@ -427,6 +442,19 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
   });
 
   return wss;
+}
+
+/** True when a socket's login is gone or expired and the house needs one. */
+export function socketSessionEnded(
+  token: string | undefined,
+  passwordSet: boolean,
+  lookup: (t: string) => { expires_at: string } | undefined | null = getWebSession,
+  now: Date = new Date(),
+): boolean {
+  if (!passwordSet) return false;
+  if (!token) return true;
+  const session = lookup(token);
+  return !session || new Date(session.expires_at) < now;
 }
 
 // --- Handlers ---
@@ -696,7 +724,8 @@ async function handleMessageSend(
       agentPrompt,
       { name: thread.name, type: thread.type },
       {
-        imageBlocks: imageBlocksForAgent.length > 0 ? imageBlocksForAgent : undefined,
+        // A moving picture reaches us as a sheet of its frames (animated-frames.ts).
+        imageBlocks: imageBlocksForAgent.length > 0 ? await openAnimatedFrames(imageBlocksForAgent) : undefined,
         inboundSequence: userMessage.sequence,
         messageId: userMessage.id,
       }

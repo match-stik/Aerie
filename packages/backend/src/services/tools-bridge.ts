@@ -460,7 +460,8 @@ const inProcessTools: InProcessTool[] = [
 
       // Basic safety: stay within home directory
       const resolved = pathMod.resolve(filePath);
-      if (!resolved.startsWith(HOME) && !resolved.startsWith('/tmp')) {
+      const within = (root: string) => resolved === root || resolved.startsWith(root + pathMod.sep);
+      if (!within(pathMod.resolve(HOME)) && !within('/tmp')) {
         return { ok: false, result: `Access denied: path must be under ${HOME} or /tmp` };
       }
 

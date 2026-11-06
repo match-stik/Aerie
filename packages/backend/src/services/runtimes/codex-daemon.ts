@@ -14,7 +14,7 @@ import { createConnection, Socket } from 'net';
 import { randomBytes } from 'crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { tmpdir } from 'os';
+import { homedir, tmpdir } from 'os';
 import { saveFile } from '../files.js';
 import type {
   AgentRuntime,
@@ -63,8 +63,32 @@ export const GUEST_SANDBOX_POLICY = { type: 'readOnly', networkAccess: false };
 export const GUEST_APPROVAL_POLICY = 'untrusted';
 export const GUEST_THREAD_SANDBOX = 'read-only';
 /** Web search and the ChatGPT apps are built-ins, not asks, so the refusals
- *  never see them: both are switched off for a guest's room. */
-export const GUEST_THREAD_CONFIG = { web_search: 'disabled', apps: { _default: { enabled: false } } };
+ *  never see them: both are switched off for a guest's room.
+ *
+ *  So are the shell tools (Nov 6 2026, the security audit): 'untrusted'
+ *  approval runs commands Codex judges safe, cat and ls among them, without
+ *  asking, and a read-only sandbox limits writes, not reads, so a guest could
+ *  have had any file on the box read into the channel. With shell_tool and
+ *  unified_exec off a guest's room has nothing to read a file with, and helper
+ *  agents, plugins and view_image are off too so none of them is a way round (measured:
+ *  asked to read a file beside it, Codex said it could not). Every MCP server
+ *  in the house's config is switched off for the room as well. */
+export const GUEST_THREAD_CONFIG = {
+  web_search: 'disabled',
+  apps: { _default: { enabled: false } },
+  features: { shell_tool: false, unified_exec: false, multi_agent: false, plugins: false, view_image: false },
+};
+
+/** GUEST_THREAD_CONFIG plus every MCP server named in config.toml, disabled. */
+export function guestThreadConfig(configToml?: string): Record<string, unknown> {
+  let text = configToml;
+  if (text === undefined) {
+    try { text = readFileSync(join(process.env.CODEX_HOME || join(homedir(), '.codex'), 'config.toml'), 'utf8'); } catch { text = ''; }
+  }
+  const servers: Record<string, { enabled: false }> = {};
+  for (const m of text.matchAll(/^\s*\[mcp_servers\.("?)([^\]".]+)\1\]\s*$/gm)) servers[m[2]] = { enabled: false };
+  return Object.keys(servers).length ? { ...GUEST_THREAD_CONFIG, mcp_servers: servers } : { ...GUEST_THREAD_CONFIG };
+}
 
 /** The refusal a locked connection sends for each kind of ask, in the shape
  *  the app-server protocol expects for that ask. */
@@ -983,7 +1007,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
           ...codexInstructionParams(this.options.baseInstructions || input.systemPrompt, this.options.developerInstructions),
           cwd: input.cwd,
           sandbox: this.options.guest ? GUEST_THREAD_SANDBOX : 'danger-full-access',
-          ...(this.options.guest ? { config: GUEST_THREAD_CONFIG } : {}),
+          ...(this.options.guest ? { config: guestThreadConfig() } : {}),
           approvalPolicy: this.options.guest ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY,
           ...(this.options.model ? {
             model: this.options.model,
@@ -1023,7 +1047,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
         sandboxPolicy: this.options.guest ? GUEST_SANDBOX_POLICY : SANDBOX_POLICY,
         approvalPolicy: this.options.guest ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY,
       };
-      if (this.options.guest) threadParams.config = GUEST_THREAD_CONFIG;
+      if (this.options.guest) threadParams.config = guestThreadConfig();
 
       // Pass model if specified (e.g. 'o3', 'gpt-4.1', 'gpt-4o')
       if (this.options.model) {
@@ -1114,7 +1138,7 @@ export class InteractiveCodexRuntime implements AgentRuntime {
         sandboxPolicy: this.options.guest ? GUEST_SANDBOX_POLICY : SANDBOX_POLICY,
         approvalPolicy: this.options.guest ? GUEST_APPROVAL_POLICY : APPROVAL_POLICY,
       };
-      if (this.options.guest) threadParams.config = GUEST_THREAD_CONFIG;
+      if (this.options.guest) threadParams.config = guestThreadConfig();
       if (this.options.model) {
         threadParams.model = this.options.model;
         threadParams.modelProvider = 'openai';

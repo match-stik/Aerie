@@ -146,19 +146,22 @@ export function EmojiBrowser({ onSelect, colors, customEmojis, emojiPacks, gridC
               <p className="text-[10px] mt-0.5 italic">Add emojis in the Packs app</p>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center gap-1.5 px-0.5 py-1">
+            // Each emote in its own 40px square, about eight across a phone
+            // (their person's ask, Nov 6 2026: 'can the emoji previews be a little bigger in
+            // the picker? ... they so small'; at 1.4em they ran eleven across).
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1 px-0.5 py-1">
               {activeCustomEmojis.map((emoji) => (
                 <button
                   key={emoji.id}
                   type="button"
                   onClick={() => onSelect(`:${emoji.shortcode}:`)}
-                  className="p-0.5 flex items-center justify-center transition-all duration-300 hover:scale-125 active:scale-95"
+                  className="p-0.5 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
                   title={`:${emoji.shortcode}:`}
                 >
                   <img
                     src={emoji.url}
                     alt={emoji.shortcode}
-                    className="h-[1.4em] w-auto object-contain rounded-sm"
+                    className="h-10 w-10 object-contain rounded-sm"
                     referrerPolicy="no-referrer"
                   />
                 </button>

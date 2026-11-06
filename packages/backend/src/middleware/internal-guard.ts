@@ -54,6 +54,9 @@ const PROXY_HEADERS = [
  * True when this request was made directly against the loopback interface and
  * not relayed by anything. Exported for tests — the rule lives in one place.
  */
+/** 127.0.0.1, localhost or [::1], with or without a port. */
+const LOOPBACK_HOST = /^(?:127\.0\.0\.1|localhost|\[::1\])(?::\d{1,5})?$/i;
+
 export function directLocalCheck(req: {
   socket?: { remoteAddress?: string };
   headers: Record<string, unknown>;
@@ -63,6 +66,12 @@ export function directLocalCheck(req: {
   for (const header of PROXY_HEADERS) {
     if (req.headers[header] !== undefined) return { ok: false, why: `${header} present` };
   }
+  // DNS rebinding: a page in a browser on this box can point its own hostname
+  // at 127.0.0.1 and reach these ports from a loopback socket with no proxy
+  // headers. Its Host header still names the page's site, so only loopback
+  // names are let through (security audit, Nov 6 2026).
+  const host = req.headers.host;
+  if (typeof host === 'string' && host && !LOOPBACK_HOST.test(host)) return { ok: false, why: `host ${host}` };
   return { ok: true };
 }
 

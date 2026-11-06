@@ -36,9 +36,9 @@ export default {
     if (request.method === "GET" && url.pathname === "/") {
       return new Response(JSON.stringify({
         name: "Cortex Brain MCP",
-        version: "2.6.1",
+        version: "2.7.0",
         status: "online",
-        build: "structured-1",
+        build: "oauth-tight-1",
         oauth: oauthOn
           ? "on"
           : (oauthVar === undefined || oauthVar === null || oauthVar === ""
@@ -70,6 +70,17 @@ export default {
     // The switch itself (oauthOn) is defined at the top of this handler, so the
     // health check can report which way it is set.
     const issuer = url.origin;
+    // Compares two tokens in constant time, so how long a wrong guess takes
+    // says nothing about how close it was.
+    const sameToken = (given, expected) => {
+      if (typeof given !== "string" || typeof expected !== "string" || !given || !expected) return false;
+      const a = new TextEncoder().encode(given);
+      const b = new TextEncoder().encode(expected);
+      if (a.length !== b.length) return false;
+      let diff = 0;
+      for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+      return diff === 0;
+    };
     const jsonResponse = (body, status = 200, extraHeaders = {}) => new Response(
       JSON.stringify(body),
       { status, headers: { ...corsHeaders, "Content-Type": "application/json", ...extraHeaders } },
@@ -126,6 +137,23 @@ export default {
         if (!redirectUris.length) {
           return jsonResponse({ error: "invalid_redirect_uri", error_description: "redirect_uris is required" }, 400);
         }
+        // Only apps the owner uses may register (Nov 6 2026 audit): an open
+        // /register let anyone mint a client whose codes go to their own site.
+        // CORTEX_REDIRECT_HOSTS widens it, comma-separated.
+        const allowedHosts = (env.CORTEX_REDIRECT_HOSTS || "claude.ai,claude.com,localhost,127.0.0.1")
+          .split(",").map((h) => h.trim().toLowerCase()).filter(Boolean);
+        const hostOk = (u) => {
+          try {
+            const parsed = new URL(u);
+            const host = parsed.hostname.toLowerCase();
+            const local = host === "localhost" || host === "127.0.0.1";
+            if (parsed.protocol !== "https:" && !(local && parsed.protocol === "http:")) return false;
+            return allowedHosts.some((h) => host === h || host.endsWith("." + h));
+          } catch { return false; }
+        };
+        if (!redirectUris.every(hostOk)) {
+          return jsonResponse({ error: "invalid_redirect_uri", error_description: "redirect_uris must be on an allowed host" }, 400);
+        }
         const clientId = randomId("ctxc_");
         const clientSecret = randomId("ctxs_");
         await env.DB.prepare(
@@ -172,8 +200,8 @@ export default {
             status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain" },
           });
         }
-        if (challenge && challengeMethod !== "S256") {
-          return new Response("Only S256 is supported for code_challenge_method.", {
+        if (!challenge || challengeMethod !== "S256") {
+          return new Response("A code_challenge with code_challenge_method S256 is required.", {
             status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain" },
           });
         }
@@ -182,6 +210,8 @@ export default {
         // where the token gets typed, so each one is escaped before it lands
         // in the HTML (an outside audit found that state or code_challenge
         // carrying a quote could close the attribute and run a script here).
+        let redirectHost = "";
+        try { redirectHost = new URL(redirectUri).host; } catch { redirectHost = "an unknown site"; }
         const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
         const page = (message) => new Response(`<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -200,6 +230,7 @@ export default {
 <form method="POST" action="/authorize">
   <h1>Cortex</h1>
   <p>Sign in with this brain's access token — the same one your house already uses.</p>
+  <p>Signing in for <strong>${esc(redirectHost)}</strong>. If that isn't an app you use, close this page.</p>
   <input type="password" name="cortex_token" autocomplete="current-password" autofocus
          placeholder="Access token" aria-label="Access token">
   <button type="submit">Connect</button>
@@ -209,12 +240,12 @@ export default {
   <input type="hidden" name="state" value="${esc(state)}">
   <input type="hidden" name="code_challenge" value="${esc(challenge)}">
   <input type="hidden" name="code_challenge_method" value="${esc(challengeMethod)}">
-</form></body></html>`, { status: 200, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+</form></body></html>`, { status: 200, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'", "X-Frame-Options": "DENY" } });
 
         if (request.method === "GET") return page("");
 
         const offered = params.get("cortex_token") || "";
-        if (!env.CORTEX_AUTH_TOKEN || offered !== env.CORTEX_AUTH_TOKEN) {
+        if (!env.CORTEX_AUTH_TOKEN || !sameToken(offered, env.CORTEX_AUTH_TOKEN)) {
           return page("That token was not right.");
         }
         const code = randomId("ctxa_");
@@ -243,10 +274,24 @@ export default {
         // spent, so a replay cannot mint a second token.
         if (row) await env.DB.prepare("DELETE FROM oauth_codes WHERE code = ?").bind(code).run();
         if (!row || row.expires_at < Date.now()) return jsonResponse({ error: "invalid_grant" }, 400);
-        if (form.get("redirect_uri") && form.get("redirect_uri") !== row.redirect_uri) {
+        if (form.get("redirect_uri") !== row.redirect_uri) {
           return jsonResponse({ error: "invalid_grant", error_description: "redirect_uri mismatch" }, 400);
         }
-        if (row.code_challenge) {
+        // The code belongs to the client that asked for it, and a client that
+        // sends its secret must send the right one (Nov 6 2026 audit).
+        if ((form.get("client_id") || "") !== row.client_id) {
+          return jsonResponse({ error: "invalid_client", error_description: "client_id mismatch" }, 401);
+        }
+        if (form.get("client_secret")) {
+          const client = await env.DB.prepare("SELECT client_secret FROM oauth_clients WHERE client_id = ?").bind(row.client_id).first();
+          if (!client || !sameToken(form.get("client_secret"), client.client_secret || "")) {
+            return jsonResponse({ error: "invalid_client" }, 401);
+          }
+        }
+        if (!row.code_challenge) {
+          return jsonResponse({ error: "invalid_grant", error_description: "PKCE is required" }, 400);
+        }
+        {
           const verifier = form.get("code_verifier") || "";
           const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
           const b64url = btoa(String.fromCharCode(...new Uint8Array(digest)))
@@ -288,7 +333,7 @@ export default {
         }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const offered = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-      if (offered === expected) return null;
+      if (sameToken(offered, expected)) return null;
 
       if (oauthOn && offered) {
         const row = await env.DB.prepare(
