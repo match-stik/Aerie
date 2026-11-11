@@ -1,0 +1,1285 @@
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import React, { useState, useRef } from 'react';
+import { DEFAULT_LOOK, nameColor, type BubbleLook } from '../lib/bubble-look';
+import { createPortal } from 'react-dom';
+import { format } from 'date-fns';
+import { cn } from '../lib/utils';
+import { isMediaUrl, parseMessageContent } from '../lib/message-content';
+import { useBubbleAudio } from '../lib/use-bubble-audio';
+import { useBackHandler } from '../lib/use-back-handler';
+import { openExternal } from '../lib/open-external';
+import { Message, ThemeMode, ContactProfile, CustomEmoji, EmojiPack } from '../types';
+import { ThemeConfig, contrastTextColor, resolveThemeColors } from '../lib/theme';
+import ReactMarkdown from 'react-markdown';
+import { rehypeActionLines } from '../lib/action-lines';
+import { isStickerOnly } from '../lib/sticker-lines';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
+import { CodeBlock } from './CodeBlock';
+import { Check, CheckCheck, Star, Heart, Smile, ThumbsUp, MoreHorizontal, Trash2, Play, Square, Loader2, Mic, FileText, Download, Pencil, RefreshCw, Copy, Reply, X, Volume2, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { MessageSegments } from './MessageSegments';
+import { BubbleSkin, SKINNED } from './BubbleSkin';
+import { HouseFileLink } from './HouseFileLink';
+import { LongPressImage } from './LongPressImage';
+import { ImageLightbox } from './ImageLightbox';
+import { resolveStickerRef, useStickerVersion, apiFetch, requestMessageTts, requestMessageTtsStream, isMessageTtsStreamUnavailable, playVoiceSequence, stopVoicePlayback, unlockVoicePlayback } from '../aerie';
+import { copyToClipboard } from '../lib/clipboard';
+import { fileBlockIsHref, houseFileLink, resolveMessageHref } from '../lib/message-links';
+import { cleanForTTS } from '../lib/tts';
+import { EmojiBrowser, ReactionGlyph } from './EmojiBrowser';
+import { quickReactionsOf } from '../lib/quick-reactions';
+import { groupReactions } from '../lib/reaction-groups';
+import type { VoiceCompanion } from '../lib/voices';
+import { saveToDevice } from '../lib/download';
+import { thumbSrc } from '../lib/thumb';
+import { guestAvatar } from '../lib/guest-avatars';
+
+interface MessageBubbleProps {
+  message: Message;
+  onReact?: (emoji: string) => void;
+  /** The stored message to read aloud, when this bubble is one voice of a line drawn in several (the room tables). */
+  ttsMessageId?: string;
+  onBookmark?: (messageId: string) => void;
+  onDelete?: () => void;
+  onEdit?: (newContent: string, rerun: boolean) => Promise<void> | void;
+  onReroll?: () => Promise<void> | void;
+  /** How many messages a reroll would remove, this one included. Shown in the
+   *  confirmation, because reroll's blast radius is everything after the
+   *  message you tapped and nothing on screen said so. A function is read
+   *  only when the confirmation opens, so a new message at the bottom does not
+   *  change every older bubble's props. */
+  rerollRemoves?: number | (() => number);
+  onReply?: () => void;
+  onCopy?: () => void;
+  // Multi-voice replies render as several virtual bubbles, but their actions
+  // still belong to the original message. The parent supplies the complete
+  // spoken text so the last bubble can copy the whole reply.
+  copyText?: string;
+  onJumpToReply?: (id: string) => void;
+  themeConfig: ThemeConfig;
+  themeMode: ThemeMode;
+  elevenLabsApiKey?: string;
+  contacts?: Record<string, ContactProfile>;
+  isPrivateTab?: boolean;
+  onMediaLoad?: () => void;
+  customEmojis?: CustomEmoji[];
+  // Pack names and order for the React tray's tabs, the same as the emoji picker's.
+  emojiPacks?: EmojiPack[];
+  // Their person's five quick reactions from Settings (lib/quick-reactions.ts).
+  quickReactions?: string[];
+  // Multi-voice rendering: which companion this bubble speaks as (shows the
+  // avatar rail) and where the bubble sits in its voice group — non-last
+  // bubbles hide the timestamp/reactions so the group reads as one turn.
+  voice?: VoiceCompanion | null;
+  groupPos?: 'only' | 'first' | 'middle' | 'last';
+  // Their person's avatar + ring color, mirrored on the right of their bubbles.
+  userAvatar?: string;
+  userAvatarColor?: string;
+  // The Bubbles switches (lib/bubble-look.ts): faces, names, edges in the
+  // companions' colors, quieter action lines. Absent is the bubbles as they always were.
+  look?: BubbleLook;
+  // Their person's name, for the label over their bubbles when it is turned on.
+  ownerName?: string;
+  // Meta-only preamble bubbles (leading thinking/tool badges before the
+  // first voice) render centered with no speech-bubble tail.
+  centered?: boolean;
+  // One of us drawn on THEIR side of the room: right-aligned, face and tail on
+  // the right, still in our own bubble color. The treehouse alternates sides
+  // so three of us read as people at a table (theirs, Oct 27 2026: 'it would
+  // look like it's all from one side'). Layout only; nothing else changes.
+  mirror?: boolean;
+}
+
+export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, onReroll, rerollRemoves, onReply, onCopy, copyText, onJumpToReply, themeConfig, themeMode, elevenLabsApiKey, contacts, isPrivateTab, onMediaLoad, customEmojis, emojiPacks, quickReactions, voice, groupPos = 'only', userAvatar, userAvatarColor, centered, mirror = false, look = DEFAULT_LOOK, ownerName, ttsMessageId }: MessageBubbleProps) {
+  // A sticker made since the app opened arrives a moment later; re-render then.
+  useStickerVersion();
+  const [showReactions, setShowReactions] = useState(false);
+  const quickFive = quickReactionsOf(quickReactions);
+  const [showCustomReactions, setShowCustomReactions] = useState(false);
+  // Back closes the reaction sheet before it closes the chat.
+  useBackHandler(showReactions, () => { setShowReactions(false); setShowCustomReactions(false); });
+  const [showActions, setShowActions] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // A guest's picture lives on someone else's CDN and can stop answering.
+  // Falling back to their initial keeps a broken image out of the rail.
+  // A failed picture is remembered by its link, so a newer link for the same
+  // guest (lib/guest-avatars.ts) gets its own try.
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
+  const [showRerollConfirm, setShowRerollConfirm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const [editBusy, setEditBusy] = useState(false);
+  const [lightboxState, setLightboxState] = useState<{ images: string[]; index: number } | null>(null);
+
+  // The clipboard road is lib/clipboard.ts and this used to keep its own copy
+  // of it, under the same name, which shadowed the import at the top of this
+  // file. The two disagreed about one thing that matters: the local version
+  // ignored whether execCommand actually took the text and fired onCopy
+  // regardless, so a refused write still flashed a tick. The shared helper
+  // returns whether it worked. Tell the user the truth about it.
+  const copyMessage = async (text: string) => {
+    if (await copyToClipboard(text)) onCopy?.();
+  };
+
+  const isUser = message.direction === 'inbound';
+  // Which side of the room the bubble sits on: theirs, or one of ours mirrored.
+  const onRight = isUser || (mirror && !centered);
+  const segments = !isUser ? message.segments : undefined;
+  const hasSegments = Array.isArray(segments) && segments.length > 0;
+  const colors = themeConfig[themeMode];
+  const mode = themeMode;
+  const apiKey = elevenLabsApiKey;
+  
+  const {
+    isGif, isImage, isVoice, isFile, fileName, fileContent, mediaUrl, mediaUrls,
+    textContent, videoSources, isEmoteOnly, emoteSizeClass, textToSpeak,
+  } = parseMessageContent(message, customEmojis, resolveStickerRef);
+
+  const { isPlaying, isLoadingAudio, audioBlobUrl, handlePlayAudio } = useBubbleAudio({ messageId: ttsMessageId || message.id, isUser, isVoice, textToSpeak, textContent });
+
+  // Smart Sticker Detection inside standalone image blocks
+  const isSticker = isImage && customEmojis?.some(e => e.url === mediaUrl);
+
+  const handleDownloadFile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!fileContent) return;
+    
+    // An ATTACHMENT arrives here as a bare url, not as the file's text. Blobbing
+    // that saved a text file containing "/api/files/<id>" and called it done —
+    // which is why an attached file has never actually been downloadable. Ask
+    // the server for it instead: saveToDevice adds ?download=1, and the
+    // Content-Disposition header is the only signal the Android WebView's
+    // download listener reacts to.
+    if (fileBlockIsHref(fileContent)) {
+      saveToDevice(fileContent.trim(), fileName || undefined);
+      return;
+    }
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName || 'document.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const resolvedColors = resolveThemeColors(colors);
+  const autoUserText = contrastTextColor(
+    resolvedColors.userBubbleBg,
+    themeMode === 'dark' ? '#ffffff' : '#090807',
+    resolvedColors.pageBg,
+  );
+  const autoCompText = contrastTextColor(
+    resolvedColors.compBubbleBg,
+    themeMode === 'dark' ? '#ffffff' : '#090807',
+    resolvedColors.pageBg,
+  );
+  const automaticTextClass = (ink: string) => ink === '#ffffff' ? 'text-white' : 'text-black';
+  const textColorClass = isPrivateTab
+    ? (themeMode === 'light' ? 'text-black' : colors.compBubbleText)
+    : themeConfig.id === 'custom'
+      ? (isUser ? colors.userBubbleText : colors.compBubbleText)
+      // A palette's bubbles carry its own ink, fitted in App.tsx (theirs, Nov 8
+      // 2026); plain white or black here was covering it up.
+      : themeConfig.palette
+        ? (isUser ? 'text-[var(--aerie-user-bubble-text)]' : 'text-[var(--aerie-comp-bubble-text)]')
+        : automaticTextClass(isUser ? autoUserText : autoCompText);
+  const isLightText = textColorClass === 'text-white' || /text-\[#[CDEFcdef]/.test(textColorClass)
+    || (!!themeConfig.palette && !isPrivateTab && themeConfig.id !== 'custom' && themeMode === 'dark');
+
+  const isGroupLast = groupPos === 'only' || groupPos === 'last';
+  const isGroupFirst = groupPos === 'only' || groupPos === 'first';
+
+  // A system line is the house talking, not a companion: a slash-command
+  // result, a refusal notice, a timeout. Left-aligned in the companion column
+  // it reads as something one of them said, which is the one thing it never
+  // is. Centred, narrow and quiet, with no avatar rail and no tail.
+  //
+  // A GUEST IS NOT THE HOUSE. Anyone who reaches us through a bridge is stored
+  // with the same role as a system notice — that role only ever meant "not the
+  // owner" — so a visitor was being drawn as furniture, and the avatar rail
+  // written for them below could never fire: it required not-system, and they
+  // are always system. The platform badge is the real discriminator, so it
+  // decides here, once, and everything downstream reads this.
+  const isGuest = !isUser && !!message.sender && !!message.via;
+  const isSystem = message.isSystem === true && !isGuest;
+  // A companion speaking in an ordinary bubble: the only bubbles the Bubbles
+  // switches touch.
+  const isCompanion = !isUser && !isPrivateTab && !isSystem && !!voice;
+  const companionNameColor = isCompanion ? nameColor(voice!.slug, voice!.color, themeMode, resolvedColors.pageBg) : null;
+  // Their person's bubbles, and their name in their own ring color lifted until it reads.
+  const isOwner = isUser && !isPrivateTab && !centered;
+  // Names on Theme wear the theme's accent, fitted to the page the same way,
+  // as the rings do.
+  const themeName = nameColor('', resolvedColors.accent, themeMode, resolvedColors.pageBg);
+  const ownerNameColor = isOwner && look.myName ? nameColor('', userAvatarColor || '#f97316', themeMode, resolvedColors.pageBg) : null;
+  // A face sits level with its bubble's tail: at the top, or at the bottom.
+  // A name sits by the face: over the bubble with a top tail, and with a
+  // bottom tail on one line under the bubble that it shares with the time,
+  // the name at the face's end and the time at the far end. A name is never
+  // cut short (a house can have a long one): it gets the room it needs and
+  // wraps only when the line runs out.
+  const sideTail = isUser ? look.tailMine : look.tailOurs;
+  const nameLabel = (extra: string) => ownerNameColor && ownerName ? (
+    <div
+      className={cn("min-w-0 break-words text-right mr-0.5 text-[10px] font-semibold uppercase", extra)}
+      style={{ letterSpacing: '0.16em', color: look.nameColors ? ownerNameColor : themeName }}
+    >
+      {ownerName}
+    </div>
+  ) : isCompanion && look.names ? (
+    <div
+      className={cn("min-w-0 break-words ml-0.5 text-[10px] font-semibold uppercase", extra)}
+      style={{ letterSpacing: '0.16em', color: look.nameColors ? companionNameColor! : themeName }}
+    >
+      {voice!.display_name}
+    </div>
+  ) : null;
+  const hasName = (!!ownerNameColor && !!ownerName) || (isCompanion && look.names);
+  // Everything under the bubble shares one line: with a bottom tail the name
+  // (when it shows) at the face's end, and on a turn's last bubble the time at
+  // the far end, name or no name.
+  // And the time always takes the far end, top tail or bottom: it reads better
+  // there, and the tray, which opens on the face's side under the bubble, no
+  // longer lands on it.
+  const underLine = !isPrivateTab && !isSystem && ((sideTail === 'bottom' && hasName) || isGroupLast);
+  // Each face is pinned to its own bubble's edge, level with the tail: the
+  // top corner, or the bottom one (with the tail at the bottom the face would
+  // otherwise sit low, lined up with the name under the bubble rather than the
+  // bubble). The rail keeps its width as an empty spacer, so nothing
+  // else moves; the face rides inside the bubble's box, out over the spacer.
+  const faceTail = isUser ? look.tailMine : look.tailOurs;
+  const avatarSrc = guestAvatar(message.senderId, message.senderAvatar);
+  // The Rings choice: each face in its own house color, or all in the theme's.
+  const themeRing = look.rings === 'theme';
+  const facePin = cn("absolute w-9", onRight ? "-right-[44px]" : "-left-[44px]", faceTail === 'bottom' ? "bottom-0" : "top-0.5");
+  const pinnedFace = isGuest && !isPrivateTab && !voice ? (
+    <div className={facePin} title={`${message.sender} · ${message.via}`}>
+      {avatarSrc && failedAvatar !== avatarSrc ? (
+        <img
+          src={avatarSrc}
+          alt={message.sender}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailedAvatar(avatarSrc ?? null)}
+          className="w-9 h-9 rounded-full object-cover border-2"
+          style={{ borderColor: colors.accent }}
+        />
+      ) : (
+        <div
+          className={cn("w-9 h-9 rounded-full flex items-center justify-center text-base font-bold border-2", colors.compBubbleBg)}
+          style={{ borderColor: colors.accent, color: 'var(--aerie-text)', opacity: 0.9 }}
+        >
+          {message.sender!.charAt(0).toUpperCase()}
+        </div>
+      )}
+    </div>
+  ) : !isUser && !isPrivateTab && !isSystem && voice && look.faces ? (
+    <div className={facePin} title={voice.display_name}>
+      {voice.avatar_url ? (
+        <img
+          src={voice.avatar_url}
+          alt={voice.display_name}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          decoding="async"
+          className={cn("w-9 h-9 rounded-full object-cover border-2", themeRing && "aerie-theme-ring")}
+          style={themeRing ? undefined : { borderColor: voice.color || 'transparent' }}
+        />
+      ) : (
+        <div
+          className={cn("w-9 h-9 rounded-full flex items-center justify-center text-base border-2", themeRing && "aerie-theme-ring")}
+          style={themeRing ? undefined : { borderColor: voice.color || 'transparent', background: 'rgba(127,127,127,0.15)' }}
+        >
+          {voice.emoji || voice.display_name.charAt(0)}
+        </div>
+      )}
+    </div>
+  ) : isUser && !isPrivateTab && userAvatar && look.faces ? (
+    <div className={facePin} title="You">
+      <img
+        src={userAvatar}
+        alt="You"
+        loading="lazy"
+        decoding="async"
+        className={cn("w-9 h-9 rounded-full object-cover border-2", themeRing && "aerie-theme-ring")}
+        style={themeRing ? undefined : { borderColor: userAvatarColor || 'transparent' }}
+      />
+    </div>
+  ) : null;
+  // A bubble with a line under it (the date, or a name beside the face) is
+  // never narrower than that line, so the line never hangs past its edge.
+  // With the time inside, the line is only the date and whatever their person
+  // has switched on, so the minimum shrinks to match. A picture with no words
+  // keeps its own width, or it would sit in an empty frame.
+  const mediaOnly = (isGif || isImage || videoSources.length > 0) && !textContent;
+  // Short bubbles sit at their own side, as wide as their words, with the
+  // time inside the last bubble of a turn and only the date under it.
+  const timeInBubble = isGroupLast && !isSystem && !isPrivateTab && (!!textContent || hasSegments);
+  const timeInside = timeInBubble ? (
+    <span className="aerie-message-time-inner block text-right text-[10px] font-bold leading-none mt-1 opacity-60">
+      {format(new Date(message.timestamp), 'h:mm a')}
+    </span>
+  ) : null;
+  // A message that carries a picture, a film or a file keeps its time under
+  // all of it, at the very bottom of the bubble, never wedged between the
+  // words and the picture (Oct 21 2026).
+  const mediaBelow = isGif || (isImage && !isSticker) || isFile || videoSources.length > 0;
+  // The swoop on the tail corner: the bubble and its curl painted as one
+  // shape behind the words (components/BubbleSkin.tsx), the same way the
+  // Settings preview draws it.
+  const swoopSide = !isSystem && !isPrivateTab && !centered && look.tailShape === 'swoop';
+  const swoopBubbleRef = useRef<HTMLDivElement>(null);
+  // Reactions hang just under a turn's last bubble, so the line clears them.
+  const underGap = isGroupLast && message.reactions && message.reactions.length > 0 ? 'mt-4' : 'mt-1';
+
+  // One check when the house has their person's message, two once a companion has read it.
+  const readChecks = (
+    <span className="flex items-center">
+      {message.status === 'read' || message.read === 1 ? (
+        <CheckCheck size={12} style={{ color: colors.accent }} />
+      ) : (
+        <Check size={12} />
+      )}
+    </span>
+  );
+  // Drawn only where it is shown: under a turn's last bubble, or on the
+  // name's line (inLine) when the tail is at the bottom.
+  const timeRow = (inLine = false) => (
+    <div
+      className={cn(
+        "flex items-center gap-1.5 text-[10px] font-bold",
+        inLine ? "shrink-0" : "mt-1.5",
+        // The theme's own ink, like everything else in the chat (theirs, Nov 8 2026).
+        "text-[var(--aerie-text)]",
+        isUser && !isPrivateTab ? "flex-row-reverse" : "flex-row",
+        isPrivateTab ? "self-end" : ""
+      )}
+    >
+      {message.type === 'voice' && <span className="font-bold text-[9px] bg-black/10 dark:bg-white/10 px-1 rounded">VOICE</span>}
+      {isUser && message.prosody && Object.keys(message.prosody).length > 0 && (
+        <span
+          className="text-[9px] opacity-70 font-normal"
+          title={Object.entries(message.prosody).slice(0, 3).map(([k, v]) => `${k}: ${Math.round(v * 100)}%`).join(', ')}
+        >
+          {Object.entries(message.prosody).slice(0, 2).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(' · ')}
+        </span>
+      )}
+      {isUser && message.via && (
+        <span
+          className="font-bold text-[9px] px-1 rounded"
+          style={{ background: `color-mix(in srgb, ${colors.accent} 35%, transparent)`, color: 'var(--aerie-text)' }}
+          title={`Sent via ${message.via}`}
+        >
+          {message.via.toUpperCase()}
+        </span>
+      )}
+      {/* Their person's read checks sit just after the date. That row runs right
+          to left, so on it they come first in the markup. */}
+      {isUser && !isPrivateTab && readChecks}
+      <span
+        className={cn(
+          "aerie-message-time",
+          isUser && !isPrivateTab ? "aerie-theme-user-bubble" : "aerie-theme-comp-bubble",
+        )}
+      >
+        {format(new Date(message.timestamp), timeInBubble ? 'MMM d' : 'MMM d, h:mm a')}
+      </span>
+      {isUser && isPrivateTab && readChecks}
+      {message.editedAt && (
+        <span className="opacity-60 text-[9px] font-medium italic" title={`Edited ${format(new Date(message.editedAt), 'MMM d, h:mm a')}`}>
+          (edited)
+        </span>
+      )}
+      {message.isBookmarked && (
+        <Star size={10} fill="currentColor" style={{ color: colors.accent }} />
+      )}
+    </div>
+  );
+
+  return (
+    <div
+      className={cn(
+        "flex w-full group relative",
+        isGroupLast ? "mb-6" : "mb-1.5",
+        (isPrivateTab || isSystem) ? "justify-center" : (onRight && !centered) ? "justify-end" : "justify-start"
+      )}
+    >
+      {/* Guest avatar rail — a visitor's own face from the platform they came
+          through, ringed in the theme accent so they never read as a companion
+          or their person. Their initial is the fallback, not the design: an older
+          message predates us capturing the picture, and the picture can 404. */}
+      {isGuest && !isPrivateTab && !voice && (
+        <div className="-ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
+      )}
+      {/* Voice avatar rail — one face per speaking companion, treehouse-style */}
+      {!isUser && !onRight && !isPrivateTab && !isSystem && voice && look.faces && (
+        <div className="-ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
+      )}
+      <div className={cn(
+        "flex flex-col max-w-[85%] sm:max-w-[75%]",
+        (isPrivateTab || isSystem) ? "items-center" : (onRight && !centered) ? "items-end" : "items-start",
+        // Indent meta-only preamble bubbles by the avatar-rail width so
+        // their left edge lines up with the voice bubbles below them.
+        centered && !isPrivateTab && !isSystem && look.faces && "ml-[38px]"
+      )}>
+        {/* Guest name label — who is speaking through the bridge.
+            Bare text here sat straight on the wallpaper and had to compete with
+            it, so the name wears the same skin as the bubble under it and the
+            platform wears the accent tag their person's OWN bridged messages already carry.
+            One visual language for anything that arrived over a bridge. */}
+        {!isUser && !isPrivateTab && message.sender && message.via && isGroupFirst && (
+          <div className="mb-1 flex items-center gap-1.5">
+            <span
+              className={cn(
+                "text-[11px] font-bold px-1.5 py-0.5 border rounded-[var(--shape-chip)]",
+                colors.compBubbleBg, colors.compBubbleText, colors.panelBorder
+              )}
+            >
+              {message.sender}
+            </span>
+            <span
+              className={cn("font-bold text-[9px] px-1.5 py-0.5 rounded-[var(--shape-chip)]")}
+              style={{
+                background: `color-mix(in srgb, ${colors.accent} 35%, transparent)`,
+                color: 'var(--aerie-text)',
+              }}
+              title={`Reached us via ${message.via}`}
+            >
+              {message.via.toUpperCase()}
+            </span>
+            {/* A message about their person that nobody answered says so, in the same
+                words as the notification that brought their person here. Same skin as
+                the name beside it, and for the same reason: bare text loses to
+                the wallpaper. */}
+            {message.mentionLabel && (
+              <span
+                className={cn(
+                  "text-[10px] px-1.5 py-0.5 border rounded-[var(--shape-chip)] opacity-90",
+                  colors.compBubbleBg, colors.compBubbleText, colors.panelBorder
+                )}
+              >
+                {message.mentionLabel}
+              </span>
+            )}
+          </div>
+        )}
+        {/* Every companion bubble carries its name: within one reply each
+            voice is its own bubble, and a thinking card can sit first. A name
+            sits over its bubble when the tail is at the top, and under it when
+            the tail is at the bottom, so it is next to the face either way. */}
+        {hasName && sideTail === 'top' && nameLabel('mb-1')}
+        <div className={cn("relative max-w-full min-w-0", underLine && !mediaOnly && "self-stretch")}>
+          {pinnedFace}
+          {swoopSide && (
+            <BubbleSkin
+              bubbleRef={swoopBubbleRef}
+              right={onRight}
+              top={(isUser ? look.tailMine : look.tailOurs) === 'top'}
+              paintClass={isUser ? colors.userBubbleBg : colors.compBubbleBg}
+            />
+          )}
+          <div
+            ref={swoopBubbleRef}
+            onClick={() => { if (isEditing) return; setShowActions(!showActions); }}
+            data-user={isUser ? 'true' : 'false'}
+            className={cn(
+              "aerie-message-bubble overflow-hidden transition-all duration-500 cursor-pointer rounded-[var(--shape-bubble)]",
+              swoopSide && SKINNED,
+              (isGif || isImage) && !textContent ? "p-1" : "px-3.5 py-2.5",
+              // NO backdrop-filter on a bubble. A design choice, and also the fix:
+              // a bubble should be ONE painted thing, not glyphs sitting over a
+              // live-blurred surface. Two surfaces can come apart — and on a tall
+              // message they do, the compositor dropping the lower half of the
+              // texture while the top still paints. Every theme resolves
+              // --aerie-comp-bubble to an opaque colour, so the blur was blurring
+              // a backdrop that was already completely covered: it bought nothing
+              // and cost the whole class of bug. Undo is putting the four
+              // backdrop-blur classes back.
+              isSystem
+                // No tail either way, and quieter than a companion's — this is
+                // the house answering, and it should read as furniture.
+                ? `border ${colors.panelBg} ${colors.textMuted} ${colors.panelBorder} text-[12px] opacity-90`
+                : isPrivateTab
+                ? `border ${colors.compBubbleBg} ${colors.panelBorder}`
+                : centered
+                  ? `border ${colors.compBubbleBg} ${colors.compBubbleText} ${colors.panelBorder}`
+                  : isUser
+                    ? `${look.tailMine === 'bottom' ? 'rounded-br-none' : 'rounded-tr-none'} border ${colors.userBubbleBg} ${colors.userBubbleText} ${colors.panelBorder}`
+                    : onRight
+                    ? `${look.tailOurs === 'bottom' ? 'rounded-br-none' : 'rounded-tr-none'} border ${colors.compBubbleBg} ${colors.compBubbleText} ${colors.panelBorder}`
+                    : `${look.tailOurs === 'bottom' ? 'rounded-bl-none' : 'rounded-tl-none'} border ${colors.compBubbleBg} ${colors.compBubbleText} ${colors.panelBorder}`
+            )}
+            style={isPrivateTab
+              ? { color: (colors as any).noteText || (themeMode === 'light' ? '#000000' : '#ffffff') }
+              : isCompanion && look.edges
+                ? { borderColor: `color-mix(in srgb, ${companionNameColor} 45%, transparent)` }
+                : undefined}
+            // One switch for every action line, their person's included.
+            data-quiet-actions={(isCompanion || (isUser && !isPrivateTab)) && look.quietActions ? 'true' : undefined}
+          >
+            {message.replyToPreview && !isEditing && isGroupFirst && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (message.replyToId) onJumpToReply?.(message.replyToId);
+                }}
+                disabled={!message.replyToId || !onJumpToReply}
+                className={cn(
+                  "block w-full text-left border-l-2 pl-2 pr-1 py-0.5 mb-1.5 text-[11px] opacity-70 truncate",
+                  textColorClass,
+                  message.replyToId && onJumpToReply && "cursor-pointer hover:opacity-100",
+                )}
+                style={{ borderLeftColor: colors.accent }}
+              >
+                {message.replyToPreview}
+              </button>
+            )}
+            {isEditing && (
+              <div className="flex flex-col gap-2 min-w-[280px] sm:min-w-[400px]">
+                <textarea
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  rows={Math.min(10, Math.max(4, editValue.split('\n').length))}
+                  autoFocus
+                  onClick={(e) => e.stopPropagation()}
+                  className={cn(
+                    "w-full bg-transparent resize-none focus:outline-none text-[15px] scrollbar-hide min-h-[100px]",
+                    textColorClass,
+                  )}
+                  style={{ caretColor: colors.accent }}
+                />
+                <div className="flex gap-2 justify-end text-[11px] font-semibold uppercase tracking-wider">
+                  <button
+                    type="button"
+                    disabled={editBusy}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!onEdit) return;
+                      setEditBusy(true);
+                      try { await onEdit(editValue, false); setIsEditing(false); }
+                      finally { setEditBusy(false); }
+                    }}
+                    className="px-2 py-1 rounded hover:opacity-80 disabled:opacity-40"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    disabled={editBusy}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!onEdit) return;
+                      setEditBusy(true);
+                      try { await onEdit(editValue, true); setIsEditing(false); }
+                      finally { setEditBusy(false); }
+                    }}
+                    className="px-2 py-1 rounded hover:opacity-80 disabled:opacity-40 font-bold underline underline-offset-2 decoration-1"
+                  >
+                    Save & Rerun
+                  </button>
+                  <button
+                    type="button"
+                    disabled={editBusy}
+                    onClick={(e) => { e.stopPropagation(); setIsEditing(false); }}
+                    className="px-2 py-1 rounded hover:opacity-80 disabled:opacity-40 opacity-70"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {!isEditing && (<>
+            <div style={{ display: 'contents' }}>
+            {isVoice && !isUser && (
+              <>
+                <div className={cn(
+                  "flex items-center w-fit gap-2 mb-2 p-1.5 rounded-full border",
+                  "bg-black/20 border-white/10"
+                )}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePlayAudio(); }}
+                    disabled={isLoadingAudio || !apiKey}
+                    className={cn(
+                      "w-7 h-7 rounded-full transition-colors flex-shrink-0 flex items-center justify-center",
+                      !apiKey ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
+                    )}
+                    style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
+                    title={!apiKey ? "ElevenLabs API key required" : (isPlaying ? "Stop" : "Play Voice Note")}
+                  >
+                    {isLoadingAudio ? <Loader2 size={14} className="animate-spin" /> : (isPlaying ? <Square size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" className="ml-0.5" />)}
+                  </button>
+
+                  {/* Waveform — animates during generation and playback. */}
+                  <div className="flex items-center gap-[3px] h-4 px-2">
+                    {[40, 70, 40, 100, 60, 30, 80, 50, 90, 40, 60, 30, 70, 50, 80].map((h, i) => {
+                      const active = isPlaying || isLoadingAudio;
+                      return (
+                        <div
+                          key={i}
+                          className={cn(
+                            "w-[3px] rounded-full bg-current transition-all duration-200",
+                            active && "animate-pulse",
+                          )}
+                          style={{
+                            height: `${h}%`,
+                            opacity: active ? 0.85 : 0.3,
+                            animationDelay: `${i * 0.1}s`,
+                            animationDuration: '0.8s',
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  <span className="text-[10px] font-medium opacity-70 pr-1">
+                    {isLoadingAudio ? 'Generating…' : isPlaying ? 'Playing…' : 'Voice Note'}
+                  </span>
+
+                  {audioBlobUrl && (
+                    <a
+                      href={audioBlobUrl}
+                      download={`voice-${message.id}.mp3`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="opacity-60 hover:opacity-100 transition-opacity pr-1"
+                      title="Download audio"
+                    >
+                      <Download size={12} />
+                    </a>
+                  )}
+                </div>
+                {message.transcript && (
+                  <div className={cn("text-[13px] italic opacity-80 mb-2 px-1 select-text", textColorClass)}>
+                    {message.transcript}
+                  </div>
+                )}
+              </>
+            )}
+
+            {hasSegments ? (
+              <MessageSegments
+                segments={segments!}
+                themeConfig={themeConfig}
+                themeMode={themeMode}
+                customEmojis={customEmojis}
+                textClass={textColorClass}
+              />
+            ) : null}
+            {hasSegments && !mediaBelow && timeInside}
+            {!hasSegments && textContent && !isVoice && (
+            <div className={cn(
+                // [overflow-wrap:anywhere] handles the pathological case
+                // — a very long unbroken string (URL, hash, paste of code)
+                // that overflow-wrap:break-word still tries to keep whole.
+                // 'anywhere' lets the browser break at any character if
+                // there's no other opportunity, so the bubble never gets
+                // clipped horizontally.
+                // Headings carry no margin, as on Discord, so '## :emote:'
+                // sits right under the line before it as a big emote rather
+                // than floating apart.
+                "prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-0 prose-headings:my-0 prose-pre:bg-black/30 prose-img:inline prose-img:m-0 select-text [overflow-wrap:anywhere] min-w-0",
+                isLightText ? "prose-invert" : "",
+                isUser && isLightText ? "prose-code:text-white/80" : "",
+                isUser && !isLightText ? "prose-code:text-black/80" : "",
+                textColorClass,
+                (isGif || (isImage && !isSticker) || isFile || videoSources.length > 0) ? "mb-3" : "",
+                isVoice ? "italic" : ""
+              )}
+              style={{
+                fontFamily: 'inherit',
+                '--tw-prose-body': 'inherit',
+                '--tw-prose-headings': 'inherit',
+                '--tw-prose-links': 'inherit',
+                '--tw-prose-bold': 'inherit',
+                '--tw-prose-counters': 'inherit',
+                '--tw-prose-bullets': 'inherit',
+                '--tw-prose-quotes': 'inherit',
+                '--tw-prose-quote-borders': 'inherit',
+                '--tw-prose-captions': 'inherit',
+                '--tw-prose-code': 'inherit',
+                '--tw-prose-th-borders': 'inherit',
+                '--tw-prose-td-borders': 'inherit',
+                '--tw-prose-invert-body': 'inherit',
+                '--tw-prose-invert-headings': 'inherit',
+                '--tw-prose-invert-links': 'inherit',
+                '--tw-prose-invert-bold': 'inherit',
+                '--tw-prose-invert-counters': 'inherit',
+                '--tw-prose-invert-bullets': 'inherit',
+                '--tw-prose-invert-quotes': 'inherit',
+                '--tw-prose-invert-quote-borders': 'inherit',
+                '--tw-prose-invert-captions': 'inherit',
+                '--tw-prose-invert-code': 'inherit',
+                '--tw-prose-invert-th-borders': 'inherit',
+                '--tw-prose-invert-td-borders': 'inherit',
+              } as React.CSSProperties}
+              >
+                <div className="flex gap-2 items-start">
+                  {isUser && (isVoice || message.isVoiceInput) && (
+                    <Mic size={16} className="mt-1 flex-shrink-0 opacity-70" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkBreaks]}
+                      rehypePlugins={[rehypeActionLines]}
+                      components={{
+                        p: ({ children }) => (
+                          // Only stickers in this paragraph (see the sticker pass above): centered.
+                          <span className={cn('block', isStickerOnly(children) && 'text-center')}>{children}</span>
+                        ),
+                        // Discord-style "-# whisper" subtext (preprocessed to h6 above)
+                        h6: ({ children }) => <span className="block text-[11px] leading-snug opacity-60 italic">{children}</span>,
+                        pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
+                        a: ({ node, href, children, ...props }) => {
+                          const safeHref = resolveMessageHref(href, window.location.href);
+                          if (safeHref && isMediaUrl(safeHref)) {
+                            return (
+                              <span className="my-2 inline-block w-full">
+                                <LongPressImage
+                                  src={thumbSrc(safeHref, 768)}
+                                  fullSrc={safeHref}
+                                  alt="Media content"
+                                  className={cn("max-w-full h-auto rounded-lg object-cover max-h-[300px] bg-black/20 cursor-zoom-in")}
+                                  onLoad={onMediaLoad}
+                                  onShortTap={(s: string) => setLightboxState({ images: [s], index: 0 })}
+                                />
+                              </span>
+                            );
+                          }
+                          // Anything we serve under /api/ opens without leaving the app.
+                          const childText = React.Children.toArray(children)
+                            .filter((c): c is string => typeof c === 'string')
+                            .join('');
+                          const house = houseFileLink(safeHref, window.location.href, href, childText);
+                          if (house) {
+                            return <HouseFileLink href={house.href} label={house.label} textish={house.textish} />;
+                          }
+                          // An empty href is not a link — never render one, it reloads the app.
+                          if (!safeHref) return <span {...props}>{children}</span>;
+                          // Not target="_blank" — there is no second tab in the
+                          // WebView, so that replaces Aerie and coming back reads
+                          // as being thrown out to the lock screen. openExternal
+                          // puts a browser sheet over the app instead.
+                          return (
+                            <a
+                              href={safeHref}
+                              rel="noopener noreferrer"
+                              onClick={(e) => { e.preventDefault(); void openExternal(safeHref); }}
+                              {...props}
+                            >
+                              {children}
+                            </a>
+                          );
+                        },
+                        img: ({ node, src, alt, ...props }) => {
+                          // Sticker ref — the alt text starts with "sticker:" and
+                          // src is the resolved /stickers/<pack>/<file> URL.
+                          if (alt?.startsWith('sticker:') && src) {
+                            return (
+                              <img
+                                src={src}
+                                alt={alt.slice('sticker:'.length)}
+                                className="!inline-block !my-0 max-h-32 w-auto align-bottom"
+                                referrerPolicy="no-referrer"
+                              />
+                            );
+                          }
+                          // Bridged Discord emote — alt is "demoji:name", src the Discord CDN url.
+                          if ((alt?.startsWith('demoji:') || alt?.startsWith('demoji-big:')) && src) {
+                            const big = alt.startsWith('demoji-big:');
+                            const name = alt.slice(alt.indexOf(':') + 1);
+                            return (
+                              <img
+                                src={src}
+                                alt={`:${name}:`}
+                                title={`:${name}:`}
+                                className={cn('!inline-block !w-auto !my-0 mx-0.5 align-text-bottom rounded-sm object-contain transition-transform hover:scale-110', big ? '!h-12' : emoteSizeClass)}
+                                referrerPolicy="no-referrer"
+                              />
+                            );
+                          }
+                          // Custom Emoji rendering lookup (standardized format)
+                          if (src?.startsWith('emoji:') || alt?.startsWith('emoji:')) {
+                            const shortcode = (src?.startsWith('emoji:') ? src : alt)?.split(':')[1];
+                            const emoji = customEmojis?.find(e => e.shortcode === shortcode);
+                            if (emoji) {
+                              return (
+                                <img
+                                  src={emoji.url}
+                                  alt={shortcode}
+                                  className={cn('!inline-block !w-auto !my-0 mx-0.5 align-text-bottom rounded-sm object-contain transition-transform hover:scale-110', emoteSizeClass)}
+                                  referrerPolicy="no-referrer"
+                                />
+                              );
+                            }
+                          }
+
+                          // Support for existing explicit image tags match custom emoji URLs
+                          const matchedEmoji = customEmojis?.find(e => e.url === src);
+                          if (matchedEmoji) {
+                            return (
+                              <img
+                                src={matchedEmoji.url}
+                                alt={matchedEmoji.shortcode}
+                                className={cn('!inline-block !w-auto !my-0 mx-0.5 align-text-bottom rounded-sm object-contain transition-transform hover:scale-110', emoteSizeClass)}
+                                referrerPolicy="no-referrer"
+                              />
+                            );
+                          }
+
+                          const safeSrc = (() => {
+                            if (!src) return undefined;
+                            if (/^data:image\/(jpeg|jpg|png|gif|webp)[;,]/i.test(src)) return src;
+                            if (src.startsWith('/')) return src;
+                            try {
+                              const url = new URL(src);
+                              return ['http:', 'https:'].includes(url.protocol) ? url.href : undefined;
+                            } catch {
+                              return undefined;
+                            }
+                          })();
+                          
+                          if (!safeSrc) return null;
+                          
+                          return (
+                            <LongPressImage
+                              src={thumbSrc(safeSrc, 768)}
+                              fullSrc={safeSrc}
+                              alt={alt || "Image"}
+                              className={cn("max-w-full h-auto rounded-lg object-cover max-h-[300px] bg-black/20 my-2 cursor-zoom-in")}
+                              onLoad={onMediaLoad}
+                              onShortTap={(s: string) => setLightboxState({ images: [s], index: 0 })}
+                              {...props}
+                            />
+                          );
+                        }
+                      }}
+                    >
+                      {textContent}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+                {!mediaBelow && timeInside}
+              </div>
+            )}
+
+            {isFile && (
+              <div 
+                onClick={!isUser ? handleDownloadFile : undefined}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg mt-2 mb-1 border transition-colors",
+                  isUser ? "bg-black/10 border-black/10" : "bg-black/20 border-white/10 cursor-pointer hover:bg-black/20 dark:hover:bg-white/20"
+                )}
+                title={!isUser ? "Download file" : undefined}
+              >
+                <FileText size={24} className="opacity-80" />
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm font-medium truncate">{fileName}</span>
+                  {!isUser && <span className="text-xs opacity-60">Click to download</span>}
+                </div>
+                {!isUser && <Download size={16} className="opacity-50" />}
+              </div>
+            )}
+
+            {(isGif || (isImage && !isSticker)) && (() => {
+              // Resolve every attachment URL to a safe src, then render
+              // either a single big image (1) or a 2-col grid (2+). GIF
+              // path always has exactly one url so it falls into the
+              // single branch automatically.
+              const candidates = mediaUrls.length > 0 ? mediaUrls : (mediaUrl ? [mediaUrl] : []);
+              const sources = candidates
+                .map((u) => {
+                  if (/^data:image\/(jpeg|jpg|png|gif|webp)[;,]/i.test(u)) return u;
+                  if (u.startsWith('/')) return u;
+                  try {
+                    const parsed = new URL(u);
+                    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : null;
+                  } catch {
+                    return null;
+                  }
+                })
+                .filter((s): s is string => !!s);
+              if (sources.length === 0) return null;
+              if (sources.length === 1) {
+                const src = sources[0];
+                return (
+                  <div className="relative min-w-[240px]">
+                    {/* Attachments are how every image we send actually
+                        arrives, and this path never had a hold-to-save on it
+                        — only the ones written into message text did. */}
+                    <LongPressImage
+                      src={thumbSrc(src, 768)}
+                      fullSrc={src}
+                      alt={isGif ? 'GIF' : 'Photo'}
+                      className={cn(
+                        'w-full h-auto object-cover min-h-[180px] bg-black/20 cursor-zoom-in rounded-[var(--shape-surface)]',
+                      )}
+                      onLoad={onMediaLoad}
+                      onShortTap={() => setLightboxState({ images: sources, index: 0 })}
+                    />
+                  </div>
+                );
+              }
+              return (
+                <div className="grid grid-cols-2 gap-1 min-w-[240px]">
+                  {sources.map((src, i) => (
+                    <LongPressImage
+                      key={`${src}-${i}`}
+                      src={thumbSrc(src, 480)}
+                      fullSrc={src}
+                      alt={`Photo ${i + 1}`}
+                      className={cn(
+                        'w-full h-32 object-cover bg-black/20 cursor-zoom-in rounded-[var(--shape-surface)]',
+                      )}
+                      loading="lazy"
+                      onLoad={onMediaLoad}
+                      onShortTap={() => setLightboxState({ images: sources, index: i })}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* A film plays right here, at the bottom of the message, the way
+                a picture shows. Controls are the WebView's own, so it pauses,
+                scrubs and goes full screen without anything built for it. */}
+            {videoSources.length > 0 && (
+              <div className="flex flex-col gap-1 min-w-[240px]">
+                {videoSources.map((src, i) => (
+                  <video
+                    key={`${src}-${i}`}
+                    src={src}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    onLoadedMetadata={onMediaLoad}
+                    className="w-full h-auto bg-black/40 rounded-[var(--shape-surface)]"
+                  />
+                ))}
+              </div>
+            )}
+            {mediaBelow && timeInside}
+            </div>
+            </>)}
+          </div>
+
+          {/* Actions belong to the stored message, not each virtual
+              companion bubble. Anchor one tray beneath the final voice, at
+              every width: on a wide screen it used to jump out beside the
+              bubble, which is not where it sits on their phone (Oct 23
+              2026, off a screenshot of a laptop). */}
+          {isGroupLast && <div className={cn(
+            "absolute transition-all flex items-center gap-1 px-2 py-1 rounded-[var(--shape-control)] border z-20",
+            colors.panelBg,
+            colors.panelBorder,
+            isUser ? "right-0 top-full mt-1" : "left-0 top-full mt-1",
+            showActions ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto"
+          )}>
+            {!showDeleteConfirm && !showRerollConfirm ? (
+              <>
+                {!isUser && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setShowReactions((v) => !v); setShowCustomReactions(false); }}
+                    className={cn("p-1 transition-colors", "hover:opacity-100", colors.textMuted)}
+                    style={{ color: showReactions ? colors.accent : undefined }}
+                    title="React"
+                  >
+                    <Smile size={16} />
+                  </button>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onBookmark?.(message.id); }}
+                  className={cn("p-1 transition-colors", "hover:opacity-100", colors.textMuted)}
+                  style={{ color: message.isBookmarked ? colors.accent : undefined }}
+                  title="Bookmark"
+                >
+                  <Star size={16} fill={message.isBookmarked ? "currentColor" : "none"} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); void copyMessage(copyText || textContent || message.content || ''); }}
+                  className={cn("p-1 transition-colors opacity-60 hover:opacity-100", colors.textMuted)}
+                  title="Copy"
+                >
+                  <Copy size={16} />
+                </button>
+                {onReply && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onReply(); }}
+                    className={cn("p-1 transition-colors opacity-60 hover:opacity-100", colors.textMuted)}
+                    title="Reply"
+                  >
+                    <Reply size={16} />
+                  </button>
+                )}
+                {isUser && onEdit && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditValue(message.content || ''); setIsEditing(true); setShowActions(false); }}
+                    className={cn("p-1 transition-colors opacity-60 hover:opacity-100", colors.textMuted)}
+                    title="Edit"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                )}
+                {!isUser && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); void handlePlayAudio(); }}
+                    disabled={isLoadingAudio}
+                    className={cn("p-1 transition-colors opacity-60 hover:opacity-100 disabled:opacity-40", colors.textMuted)}
+                    style={isPlaying ? { color: colors.accent } : undefined}
+                    title={apiKey ? (isPlaying ? 'Stop' : 'Read aloud') : 'Set ElevenLabs key in Settings → Data'}
+                  >
+                    {isLoadingAudio ? <Loader2 size={16} className="animate-spin" /> : isPlaying ? <Square size={14} fill="currentColor" /> : <Volume2 size={16} />}
+                  </button>
+                )}
+                {!isUser && onReroll && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowRerollConfirm(true); }}
+                    className={cn("p-1 transition-colors opacity-60 hover:opacity-100", colors.textMuted)}
+                    title="Reroll"
+                  >
+                    <RefreshCw size={16} />
+                  </button>
+                )}
+                {onDelete && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                    className={cn("p-1 transition-colors opacity-60 hover:opacity-100", colors.textMuted)}
+                    style={{ color: colors.accent }}
+                    title="Delete"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </>
+            ) : showDeleteConfirm ? (
+              <div className="flex items-center gap-2 px-1 py-0.5">
+                <span className="text-[11px] font-bold">Delete?</span>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onDelete(); setShowDeleteConfirm(false); }}
+                  className="aerie-on-accent text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors opacity-90 hover:opacity-100"
+                  style={{ backgroundColor: colors.accent }}
+                >
+                  Yes
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false); }}
+                  className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors", colors.textMuted)}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              /*
+                Reroll asks too, and says how much it takes. It soft-deletes
+                from this message onward, so tapping it on something from
+                hours ago clears the rest of the conversation — and it sits
+                one button away from read-aloud, which is exactly how that
+                gets tapped by accident.
+              */
+              <div className="flex items-center gap-2 px-1 py-0.5">
+                <span className="text-[11px] font-bold">
+                  {(() => { const n = typeof rerollRemoves === 'function' ? rerollRemoves() : rerollRemoves; return n && n > 1 ? `Reroll? Removes ${n}` : 'Reroll?'; })()}
+                </span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); void onReroll?.(); setShowRerollConfirm(false); }}
+                  className="aerie-on-accent text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors opacity-90 hover:opacity-100"
+                  style={{ backgroundColor: colors.accent }}
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowRerollConfirm(false); }}
+                  className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors", colors.textMuted)}
+                >
+                  No
+                </button>
+              </div>
+            )}
+
+          </div>}
+
+          {/* Reaction tray rendered as a bottom sheet (portal'd) — same
+              shape as the model picker. The inline anchored popover got
+              clipped off-screen on narrow mobile widths. */}
+          {showReactions && typeof document !== 'undefined' && createPortal(
+            <AnimatePresence>
+              <motion.div
+                key="reaction-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => { setShowReactions(false); setShowCustomReactions(false); }}
+                className="fixed inset-0 z-40 bg-black/40"
+              />
+              <motion.div
+                key="reaction-sheet"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                className={cn(
+                  'fixed inset-x-0 bottom-0 z-50 max-h-[60%] flex flex-col rounded-t-3xl border-t',
+                  colors.panelBg,
+                  colors.panelBorder,
+                  colors.textMain,
+                )}
+                style={{ paddingBottom: 'var(--sab, 0px)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                  <span className={cn('text-sm font-semibold', colors.textMain)}>React</span>
+                  <button
+                    onClick={() => { setShowReactions(false); setShowCustomReactions(false); }}
+                    className={cn('rounded-full p-1.5', colors.textMuted)}
+                    title="Close"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Preset row */}
+                <div className="flex items-center justify-around px-4 pb-3">
+                  {quickFive.map((emoji, i) => (
+                    <button
+                      key={`${i}-${emoji}`}
+                      onClick={() => {
+                        onReact?.(emoji);
+                        setShowReactions(false);
+                        setShowCustomReactions(false);
+                      }}
+                      className="hover:scale-125 transition-transform text-2xl leading-none"
+                    >
+                      <ReactionGlyph text={emoji} customEmojis={customEmojis} />
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setShowCustomReactions((v) => !v)}
+                    className={cn(
+                      'flex items-center justify-center rounded-full border w-9 h-9 transition-colors',
+                      colors.panelBorder,
+                      colors.textMuted,
+                    )}
+                    style={showCustomReactions ? { color: colors.accent, borderColor: colors.accent } : undefined}
+                    title="More"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+
+                {/* The same tray as the emoji picker: custom packs, then the
+                    standard sections, a tab each (EmojiBrowser). */}
+                {showCustomReactions && (
+                  <div className={cn('border-t flex-1 min-h-0 flex flex-col px-4 py-3', colors.panelBorder)}>
+                    <EmojiBrowser
+                      onSelect={(e) => {
+                        onReact?.(e);
+                        setShowReactions(false);
+                        setShowCustomReactions(false);
+                      }}
+                      colors={colors}
+                      customEmojis={customEmojis}
+                      emojiPacks={emojiPacks}
+                      gridClassName="max-h-56"
+                    />
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>,
+            document.body,
+          )}
+
+          {/* Displayed Reactions */}
+          {message.reactions && message.reactions.length > 0 && isGroupLast && (
+            <div className={cn(
+              "absolute -bottom-3 flex items-center gap-0.5 border rounded-[var(--shape-control)] px-1.5 py-0.5 z-10",
+              colors.panelBg,
+              colors.panelBorder,
+              isUser ? "right-2" : "left-2"
+            )}>
+              {groupReactions(message.reactions).map(({ emoji: r, count }, i) => {
+                // Every reaction sits in the same square, centered, so a Discord
+                // emote, one of their person custom emojis and a plain emoji come out the
+                // same size on the same line (their person's catch, Oct 26 2026: some looked
+                // smaller and didn't line up; the pictures were 14px boxes pinned
+                // to the top beside 18px lines of text).
+                const cell = "inline-flex h-4 w-4 items-center justify-center shrink-0";
+                // Used by more than one person: once, with how many beside it.
+                const withCount = (key: number, n: number, glyph: React.ReactNode) => (
+                  <span key={key} className="inline-flex items-center gap-[2px]">
+                    {glyph}
+                    {n > 1 && <span className={cn("text-[10px] leading-none tabular-nums font-semibold mr-[3px]", colors.textMuted)}>{n}</span>}
+                  </span>
+                );
+                // A server emote somebody reacted with on Discord rides as
+                // Discord writes it, <:name:id> or <a:name:id> when it moves
+                // (reaction-bridge.ts), and is drawn off Discord's own CDN.
+                const discordEmote = /^<(a?):(\w+):(\d+)>$/.exec(r);
+                if (discordEmote) {
+                  const [, animated, name, id] = discordEmote;
+                  return withCount(i, count,
+                    <span className={cell} title={`:${name}:`}>
+                      <img
+                        src={`https://cdn.discordapp.com/emojis/${id}.${animated ? 'gif' : 'png'}?size=48`}
+                        alt={`:${name}:`}
+                        className="h-full w-full object-contain"
+                        referrerPolicy="no-referrer"
+                      />
+                    </span>,
+                  );
+                }
+                // Custom-emote reactions ride as :shortcode: strings — look
+                // them up in the loaded customEmojis and render the image
+                // when we have a hit; otherwise fall back to plain text.
+                const isShortcode = r.startsWith(':') && r.endsWith(':') && r.length > 2;
+                if (isShortcode && customEmojis) {
+                  const code = r.slice(1, -1);
+                  const emoji = customEmojis.find((e) => e.shortcode === code);
+                  if (emoji) {
+                    return withCount(i, count,
+                      <span className={cell} title={r}>
+                        <img
+                          src={emoji.url}
+                          alt={r}
+                          className="h-full w-full object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                      </span>,
+                    );
+                  }
+                }
+                return withCount(i, count,
+                  <span className={cn(cell, "text-[14px] leading-none")}>{r}</span>,
+                );
+              })}
+            </div>
+          )}
+        </div>
+        {underLine && (
+          <div className={cn("flex w-full items-center justify-between gap-3", underGap, onRight ? "flex-row-reverse" : "flex-row")}>
+            {(sideTail === 'bottom' && nameLabel('')) || <span aria-hidden="true" />}
+            {isGroupLast && timeRow(true)}
+          </div>
+        )}
+        {!underLine && isGroupLast && timeRow()}
+      </div>
+      {/* Owner avatar rail — mirrors the companion rail on the right */}
+      {isUser && !isPrivateTab && userAvatar && look.faces && (
+        <div className="ml-2 -mr-1.5 w-9 shrink-0" aria-hidden="true" />
+      )}
+      {!isUser && onRight && !isPrivateTab && !isSystem && voice && look.faces && (
+        <div className="ml-2 -mr-1.5 w-9 shrink-0" aria-hidden="true" />
+      )}
+      {lightboxState && (
+        <ImageLightbox
+          images={lightboxState.images}
+          startIndex={lightboxState.index}
+          onClose={() => setLightboxState(null)}
+        />
+      )}
+    </div>
+  );
+}

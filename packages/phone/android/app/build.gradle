@@ -1,0 +1,134 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace "com.aerie.phone"
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.aerie.phone"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 33
+        versionName "1.32"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Release signing loads from outside the repo tree (no key material in
+    // repo files, gitignored or otherwise). Without the keystore file the
+    // release build is left unsigned (docs/ANDROID-APP.md has the format).
+    def keystorePropsFile = file("${System.properties['user.home']}/.aerie-android/keystore.properties")
+    signingConfigs {
+        if (keystorePropsFile.exists()) {
+            release {
+                def props = new Properties()
+                keystorePropsFile.withInputStream { props.load(it) }
+                storeFile file(props['storeFile'])
+                storePassword props['storePassword']
+                keyAlias props['keyAlias']
+                keyPassword props['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        // The Browser plugin pulls androidx.browser 1.9.0, which demands
+        // compileSdk 36 and Android Gradle plugin 8.9.1+. This project is on
+        // AGP 8.7.2 / compileSdk 35, and bumping the whole toolchain to land
+        // one plugin is a much larger change than the feature is worth. 1.8.0
+        // is the last release that builds here and carries the Custom Tabs API
+        // @capacitor/browser actually uses. Revisit when the toolchain moves.
+        force 'androidx.browser:browser:1.8.0'
+    }
+}
+
+// The toy bridge is compiled only when the house has put Lovense's SDK in
+// app/libs; its plugin source lives in src/lovense so a build without the
+// SDK never sees a class it cannot resolve.
+def lovenseSdk = fileTree(dir: 'libs', include: ['lovense-*.aar'])
+def hasLovenseSdk = !lovenseSdk.isEmpty()
+if (hasLovenseSdk) {
+    android.sourceSets.main.java.srcDirs += 'src/lovense/java'
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    // Spotify's App Remote kit (Apache-2.0, github.com/spotify/android-sdk v0.8.0),
+    // which wakes Spotify on the phone, and the gson it reads JSON with.
+    implementation files('libs/spotify-app-remote-release-0.8.0.aar')
+    implementation 'com.google.code.gson:gson:2.8.6'
+    // The app's own push listener (AerieMessagingService) extends the push
+    // plugin's and reads RemoteMessage, which the plugin keeps to itself; this
+    // is the plugin's own version, so nothing else moves.
+    implementation "com.google.firebase:firebase-messaging:25.0.1"
+    // Geofencing lives in Play Services, not the platform SDK. 21.3.0 is the
+    // last release that builds against compileSdk 35 / AGP 8.7.2 — the same
+    // toolchain ceiling that pins androidx.browser above.
+    implementation "com.google.android.gms:play-services-location:21.3.0"
+    // Lovense's Android SDK, for toys over Bluetooth with no Lovense Remote in
+    // between (LovenseToysPlugin). It is NOT shipped with the kit: it is
+    // Lovense's software, downloaded from their developer portal by each house
+    // (see packages/phone/android/LOVENSE.md). With a lovense-*.aar in
+    // app/libs the toy bridge is built in; without one the app builds without
+    // it and the Toys page says the app has no toy bridge.
+    if (hasLovenseSdk) {
+        implementation lovenseSdk
+        // The .aar names none of what it needs, so its README's list is
+        // written out here, minus XXPermissions (only its sample app uses it)
+        // plus kotlinx-coroutines (the library calls it). gson is above, for
+        // the Spotify kit, at the version this list asks for.
+        implementation 'org.greenrobot:eventbus:3.3.1'
+        implementation 'com.tencent:mmkv:1.3.7'
+        implementation 'androidx.room:room-runtime:2.5.0-alpha01'
+        implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+        implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+        implementation 'com.squareup.retrofit2:adapter-rxjava2:2.9.0'
+        implementation 'com.github.JessYanCoding:RetrofitUrlManager:v1.4.0'
+        implementation 'io.reactivex.rxjava2:rxjava:2.2.20'
+        implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
+        implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+        implementation "androidx.core:core-ktx:$androidxCoreVersion"
+    }
+    // The car media browser (AerieCarMediaService.java).
+    implementation "androidx.media:media:1.7.0"
+    // The dash tile for calls (AerieCarAppService.java).
+    implementation "androidx.car.app:app:1.4.0"
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

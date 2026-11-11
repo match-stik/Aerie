@@ -1,0 +1,20 @@
+#!/bin/sh
+# Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+# The one thing the house may do as root: put a given release of Claude Code on
+# the box (theirs, Nov 10 2026, 'make it a narrow button'). install.sh copies this
+# to /usr/local/sbin, owned by root, and lets the house account run only it.
+# It takes one plain version number and installs that release of Anthropic's own
+# package from npm, nothing else: no names, no paths, no flags.
+set -eu
+v="${1:-}"
+case "$v" in
+  ""|*[!0-9.]*) echo "Give one version number, like 2.1.322, and nothing else." >&2; exit 2 ;;
+esac
+if ! printf '%s' "$v" | grep -Eq '^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,6}$'; then
+  echo "Give one version number, like 2.1.322, and nothing else." >&2
+  exit 2
+fi
+PATH=/usr/bin:/bin
+HOME=/root
+export PATH HOME
+exec /usr/bin/npm install -g --no-fund --no-audit "@anthropic-ai/claude-code@$v"

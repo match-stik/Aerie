@@ -1,0 +1,2289 @@
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { isBackSwipe } from './lib/edge-swipe';
+import { runBackHandler } from './lib/back-stack';
+import { useBrowserBack } from './lib/use-browser-back';
+import { useSettingsSync } from './lib/use-settings-sync';
+import { PLAIN_APPS } from './components/plain-apps';
+import { ExportSheet } from './components/ExportSheet';
+import { useBackHandler } from './lib/use-back-handler';
+import { holdAtBottom, holdMessageInView, searchJumpReporter } from './lib/hold-message';
+import { MessageBubble } from './components/MessageBubble';
+import { RoomBubbleContext, type RoomBubbleSettings } from './components/RoomBubble';
+import { TypingIndicator } from './components/TypingIndicator';
+import { ChatInput } from './components/ChatInput';
+import { Message, AppTheme, ContactProfile, AppSettings, CustomEmoji } from './types';
+import { Loader2, Smartphone, Search, X, Star, Settings, ChevronLeft, ChevronDown, Download, Square, Sun, Moon, Wifi, WifiOff, TreePine } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { cn, haptic } from './lib/utils';
+import { SettingsDashboard } from './components/SettingsDashboard';
+import { ContactInfo } from './components/ContactInfo';
+import { LockScreen } from './components/LockScreen';
+import { HomeScreen } from './components/HomeScreen';
+import { RadarApp } from './components/RadarApp';
+import { NotesApp } from './components/NotesApp';
+import { StoryShelfApp } from './components/StoryShelfApp';
+import { ScreeningApp } from './components/ScreeningApp';
+import { GamesApp } from './components/GamesApp';
+import { ThreadSwitcher } from './components/ThreadSwitcher';
+import { AppDrawer } from './components/AppDrawer';
+import { PacksApp } from './components/PacksApp';
+import { ModelPill } from './components/ModelPill';
+import { CompanionsApp } from './components/CompanionsApp';
+
+interface DBCompanion {
+  id: string;
+  slug: string;
+  display_name: string;
+  avatar_url: string | null;
+  color: string | null;
+  emoji: string | null;
+}
+import { TreehouseApp } from './components/TreehouseApp';
+import { VoiceModeOverlay } from './components/VoiceModeOverlay';
+import { StudioJobTray } from './components/StudioJobTray';
+import { APPS, DOCK_APPS, drawerColumnsOf, migrateAppIds, type AppDef } from './lib/apps';
+
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+
+import { THEMES, PALETTE_TILES, contrastTextColor, onAccentInk, resolveThemeColors, themeRadiusPx, shapeVarsFor, setLivePalette, paletteVars, flattenOver, selectedFill, fitForWhite, nightUserStops } from './lib/theme';
+import { PALETTES } from './lib/palettes';
+import { DEFAULT_THEME, readSavedTheme, useCustomThemeStyles, useThemeFrame } from './lib/use-app-theme';
+import { applyThemeUpdate } from './lib/wallpaper-mode';
+import {
+  AerieLoginGate,
+  useMessages,
+  useStreaming,
+  usePresence,
+  useStatusWord,
+  useStatuses,
+  useConnectionState,
+  useLoadingThread,
+  useThreads,
+  useActiveThreadId,
+  useIsStreaming,
+  sendUserMessage,
+  sendUserMessageToThread,
+  deleteMessage as ksDeleteMessage,
+  editMessage,
+  regenerateMessage,
+  addReaction,
+  removeReaction,
+  toPhoneMessage,
+  stopGeneration,
+  syncEmojis,
+  listEmojiPacks,
+  loadStickers,
+  apiFetch,
+  switchThread,
+  loadThread,
+  loadThreadAround,
+  loadOlderMessages,
+  useAerie,
+  markRead,
+  unlockVoicePlayback,
+  proveAliveOrReconnect,
+} from './aerie';
+import { fetchOwnerFromPreferences, ownerFromCompanionsPayload } from './lib/owner';
+import { StreamingReply } from './components/StreamingReply';
+import { ContextIndicator } from './components/ContextIndicator';
+import { CompactionBanner } from './components/CompactionBanner';
+import { RateLimitBanner } from './components/RateLimitBanner';
+import { SearchResults, type SearchResult } from './components/SearchResults';
+import { useMessageSearch } from './lib/use-message-search';
+import { DateDivider } from './components/DateDivider';
+import { splitMessageVoices } from './lib/voices';
+import { deliverLastCrashReport, listenForCarCallRequest, setCallerFaces } from './aerie/pocket-voice';
+import { syncArmedPlaces, watchArrivals } from './aerie/threshold-geofence';
+import { startMediaReporter } from './aerie/media-reporter';
+import { lockSpotifyLookOf, lockSpotifyOf } from './lib/lock-spotify';
+import { lockCardBacksOf, lockCardsOf } from './lib/lock-cards';
+import { headerWord } from './lib/presence-word';
+import { liveStatus, refreshStatuses, useMinuteClock } from './lib/statuses';
+import { StatusSheet, StatusIcon } from './components/Statuses';
+import { homeClockLookOf, lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, lockWeatherLookOf, withHidden } from './lib/lock-clock';
+import { lockSpotsOf } from './lib/lock-grid';
+import { useLockUnread } from './aerie/lock-unread';
+import { homePlacesOf, homeWidgetsOf, homeCardStyleOf, homeWeatherLookOf } from './lib/home-widgets';
+import { bubbleInks, bubbleLookOf, mixHex } from './lib/bubble-look';
+import { drawerLookOf } from './lib/drawer-look';
+import { bodyStack, fontsOf, titleStack } from './lib/fonts';
+import { layoutGap, summarizeKeyboardChange, type LayoutFrame, frameTiming, type LongTaskEntry } from './lib/layout-gap';
+import { startToyRemote } from './aerie/toy-remote';
+import { ToyRemotePill } from './components/ToyRemotePill';
+import { SoundBar } from './components/SoundBar';
+import { startSoundDrive } from './aerie/sound-drive';
+
+const DEFAULT_CONTACTS: Record<string, ContactProfile> = {
+  companion1: {
+    name: 'Companion',
+    image: '/icon.svg', // bundled: a default avatar should not ask a third party for anything
+    bio: 'Your AI companion.',
+    status: 'Online',
+    phone: '(555) 000-0000',
+  }
+};
+
+function AppBackground({ theme }: { theme: AppTheme }) {
+  const [slideshowIndex, setSlideshowIndex] = useState(0);
+
+  useEffect(() => {
+    if (!theme.slideshowEnabled || !theme.wallpapers || theme.wallpapers.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setSlideshowIndex((prev) => (prev + 1) % theme.wallpapers!.length);
+    }, 10000); // 10 seconds
+    
+    return () => clearInterval(interval);
+  }, [theme.slideshowEnabled, theme.wallpapers]);
+
+  if (theme.slideshowEnabled && theme.wallpapers && theme.wallpapers.length > 0) {
+    return (
+      <AnimatePresence>
+        <motion.img 
+          key={slideshowIndex}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.8 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="absolute inset-0 z-0 pointer-events-none w-full h-full object-cover"
+          src={theme.wallpapers[slideshowIndex % theme.wallpapers.length]}
+          alt="Slideshow"
+          referrerPolicy="no-referrer"
+        />
+      </AnimatePresence>
+    );
+  }
+
+  if (theme.wallpaper) {
+    return (
+      <img 
+        className="absolute inset-0 z-0 opacity-80 pointer-events-none w-full h-full object-cover"
+        src={theme.wallpaper}
+        alt="Wallpaper"
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
+  return null;
+}
+
+export type OsScreen =
+  | 'locked'
+  | 'home'
+  | 'appdrawer'
+  | 'messages'
+  | 'radar'
+  | 'weather'
+  | 'notes'
+  | 'games'
+  | 'status'
+  | 'integrations'
+  | 'agent'
+  | 'packs'
+  | 'commandcenter'
+  | 'canvas'
+  | 'press'
+  | 'companions'
+  | 'treehouse'
+  | 'memory'
+  | 'journal'
+  | 'fieldnotes'
+  | 'letters'
+  | 'thresholds'
+  | 'toys'
+  | 'shelf'
+  | 'screening'
+  | 'spotify'
+  | 'studio'
+  | 'files'
+  | 'artifacts'
+  | 'pet'
+  | 'inbox';
+
+const reportSearchJump = searchJumpReporter((body) => {
+  void apiFetch('/api/client-errors', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  }).catch(() => {});
+});
+
+export default function App() {
+  const [osState, setOsState] = useState<OsScreen>('locked');
+  // Where the Messages chat header back button returns to — 'home' unless
+  // Messages was launched from the app drawer.
+  const [messagesReturnTo, setMessagesReturnTo] = useState<'home' | 'appdrawer'>('home');
+  // Where the current full-screen app's back button returns to — set at
+  // launch time so back always goes to wherever the app was opened from
+  // (home shortcut vs app drawer), no per-app hardcoding. Also carries
+  // 'messages' when a screen is opened from inside a thread (e.g. tapping
+  // the chat-header avatars), so back drops you into the conversation you
+  // came from rather than out to home.
+  const [appReturnTo, setAppReturnTo] = useState<'home' | 'appdrawer' | 'messages'>('appdrawer');
+  const [showThreadSwitcher, setShowThreadSwitcher] = useState(false);
+  const [voiceSession, setVoiceSession] = useState<{ threadId: string; threadName: string; handsFree?: boolean } | null>(null);
+  const [voiceMinimized, setVoiceMinimized] = useState(false);
+
+  // Safe-area insets come from the index.css env() defaults on all platforms.
+  // The Android shell needs no special floor since APK v1.2: it opted out of
+  // edge-to-edge, so the WebView already sits below the system bars.
+
+  // Global button haptics — one listener so every tappable control in the
+  // house ticks (composer icons, pickers, headers, future buttons included)
+  // without per-component wiring. Tiles layer their own firmer open-pulse
+  // on top of this press tick.
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      const el = e.target as Element | null;
+      if (el?.closest?.('button, [role="button"]')) haptic(55);
+    };
+    document.addEventListener('pointerdown', onPointerDown, { passive: true });
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, []);
+  // Messages stream live from the Aerie backend over WebSocket.
+  const ksMessages = useMessages();
+  const ksStreaming = useStreaming();
+  const ksIsStreaming = useIsStreaming();
+  const ksPresence = usePresence();
+  const statusWord = useStatusWord();
+  // Our statuses (lib/statuses.ts): the shared one shows under our faces, and
+  // tapping that line opens all of them. The minute clock lets one fade on screen.
+  const statuses = useStatuses();
+  const statusNow = useMinuteClock();
+  const sharedStatus = liveStatus(statuses.shared, statusNow);
+  const [showStatusSheet, setShowStatusSheet] = useState(false);
+  useEffect(() => { void refreshStatuses(); }, []);
+  const ksConnection = useConnectionState();
+  const ksLoadingThread = useLoadingThread();
+  const ksThreads = useThreads();
+  const ksActiveThreadId = useActiveThreadId();
+  const ksIsViewingAround = useAerie((s) => s.isViewingAround);
+  // The lock screen's message card counts our unread words, read off the rows
+  // of each room with something waiting, never the room's counter, which
+  // counts everybody a listening cafe says (aerie/lock-unread.ts).
+  const lockThreads = useAerie((s) => s.threads);
+
+  const activeThread = useMemo(
+    () => ksThreads.find((t) => t.id === ksActiveThreadId) || null,
+    [ksThreads, ksActiveThreadId],
+  );
+
+  // One phone message per stored row object: the store keeps an unchanged row
+  // as the same object, so an unchanged message stays the same here too and
+  // the bubble cache below can tell it has not moved.
+  const phoneMessageCache = useRef(new WeakMap<object, Message>());
+  const messages = useMemo<Message[]>(
+    () =>
+      ksMessages
+        .filter((m) => !m.deleted_at && !(m.role === 'companion' && m.content === '[No response]'))
+        .map((m) => {
+          const hit = phoneMessageCache.current.get(m);
+          if (hit) return hit;
+          const made = toPhoneMessage(m);
+          phoneMessageCache.current.set(m, made);
+          return made;
+        }),
+    [ksMessages],
+  );
+
+
+  const isLoading = ksLoadingThread || (ksConnection !== 'connected' && ksMessages.length === 0);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showExport, setShowExport] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
+  const {
+    searchQuery, setSearchQuery, isSearching, setIsSearching,
+    searchResults, searchTotal, searchLoading, searchLoadingMore, loadMoreSearchResults,
+  } = useMessageSearch();
+
+  // Modals
+  const [showSettings, setShowSettings] = useState(false);
+  const [showContactInfo, setShowContactInfo] = useState(false);
+  // Back closes the chat's search bar before it closes the chat.
+  useBackHandler(osState === 'messages' && isSearching, () => { setIsSearching(false); setSearchQuery(''); });
+
+  // Theme State
+  const [theme, setTheme] = useState<AppTheme>(readSavedTheme);
+  // Read only while the lock screen is up and its message card can show.
+  const lockUnread = useLockUnread(lockThreads, osState === 'locked' && lockShowOf(theme.lockShow) !== 'nothing');
+  // The home screen's Messages badge counts the same way, only what we said to
+  // their person: it read every room's raw counter, so a listening cafe ran it into the
+  // hundreds, the lock card's fault on another surface (Oct 22 2026).
+  const homeUnread = useLockUnread(lockThreads, osState === 'home' && !showSettings);
+  // And the thread list's number on each room, while the list is open.
+  const switcherUnread = useLockUnread(lockThreads, showThreadSwitcher);
+
+  useThemeFrame(theme, osState, showSettings);
+  const customThemeStyles = useCustomThemeStyles(theme);
+
+  // Contacts State
+  const [contacts, setContacts] = useState<Record<string, ContactProfile>>(() => {
+    const saved = localStorage.getItem('aerie_contacts');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return DEFAULT_CONTACTS;
+  });
+
+  // DB Companions (for header display)
+  const [dbCompanions, setDbCompanions] = useState<DBCompanion[]>([]);
+  // The same call reports who owns the house, so views that show their person's
+  // name next to ours read it from the server instead of carrying one inside.
+  const [ownerName, setOwnerName] = useState('You');
+  // Hand their person's pinned places to the operating system so the phone can catch an
+  // arrival with Aerie shut. Every launch, because the set changes whenever one
+  // of them leaves something or their person opens one — and because a region registered
+  // on a phone that has since been restarted is no longer registered at all.
+  // Silent by design: with the always-on grant missing this reports and does
+  // nothing, and Thresholds is where their person is asked for it.
+  useEffect(() => {
+    syncArmedPlaces().catch(() => {});
+  }, []);
+
+  // Carry what this phone is playing to the house. No interface on purpose —
+  // the point is to stay in the conversation rather than go and read a number
+  // off another screen, so this never appears anywhere.
+  useEffect(() => startMediaReporter(), []);
+  // The road from a lane to their person's toys listens from the start, so a stop or a
+  // typed red works on every screen, not only once the Toys page has opened.
+  useEffect(() => { startToyRemote(); startSoundDrive(); }, []);
+
+  // Bumped when the Companions app saves a row, so a face, a name or a color
+  // set there reaches the chat, home and the cards at once instead of on the
+  // next launch (a crop set there otherwise never showed up).
+  const [companionsVersion, setCompanionsVersion] = useState(0);
+  useEffect(() => {
+    apiFetch('/api/companions')
+      .then(res => res.ok ? res.json() : null)
+      .then(async data => {
+        if (data?.companions) setDbCompanions(data.companions);
+        const owner = ownerFromCompanionsPayload(data) ?? await fetchOwnerFromPreferences();
+        if (owner?.name) setOwnerName(owner.name);
+      })
+      .catch(() => {});
+  }, [companionsVersion]);
+
+  // Companions assigned to the active thread — the chat header shows only
+  // these avatars. Threads with no explicit assignments fall back to all
+  // companions.
+  const [threadCompanions, setThreadCompanions] = useState<DBCompanion[]>([]);
+  useEffect(() => {
+    if (!ksActiveThreadId) { setThreadCompanions([]); return; }
+    let stale = false;
+    apiFetch(`/api/threads/${ksActiveThreadId}/companions`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (!stale) setThreadCompanions(data?.companions ?? []); })
+      .catch(() => { if (!stale) setThreadCompanions([]); });
+    return () => { stale = true; };
+  }, [ksActiveThreadId, companionsVersion]);
+
+  // The treehouse is a normal-looking thread in this view, so it's possible to
+  // open the app and land in the companions' room without realising it. The
+  // backend already answers the question — the header just never asked.
+  // A label, not a lock: the user is still free to stay.
+  const [isTreehouseThread, setIsTreehouseThread] = useState(false);
+  const [treehouseJumpTo, setTreehouseJumpTo] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ksActiveThreadId) { setIsTreehouseThread(false); return; }
+    let stale = false;
+    apiFetch(`/api/threads/${ksActiveThreadId}/is-treehouse`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (!stale) setIsTreehouseThread(!!data?.isTreehouse); })
+      .catch(() => { if (!stale) setIsTreehouseThread(false); });
+    return () => { stale = true; };
+  }, [ksActiveThreadId]);
+
+  const beginVoiceConversation = (handsFree: boolean = false) => {
+    if (!ksActiveThreadId || !activeThread || isTreehouseThread) return;
+    // Prime the shared AudioContext inside the actual tap. The overlay does
+    // its own preflight, but iOS will not let a later async TTS response
+    // become the first sound-producing action on the page.
+    void unlockVoicePlayback().catch(() => {
+      /* The overlay leaves a tap-to-retry surface if the WebView insists. */
+    });
+    setVoiceMinimized(false);
+    setVoiceSession({ threadId: ksActiveThreadId, threadName: activeThread.name, handsFree });
+  };
+
+  // Call us on the car's dash tile starts the call in whatever thread they have
+  // open, the same as their own call button. Held in a ref so the one native
+  // listener always reaches today's version of the function.
+  // The same ask comes from Answer on a call from us (AerieIncomingCall.java),
+  // which can open Aerie cold, before their thread has loaded; the ask waits for
+  // the thread rather than being dropped.
+  const beginVoiceRef = useRef(beginVoiceConversation);
+  beginVoiceRef.current = beginVoiceConversation;
+  const callAskWaitingRef = useRef(false);
+  useEffect(() => {
+    let handle: { remove: () => Promise<void> } | null = null;
+    let gone = false;
+    void listenForCarCallRequest(() => {
+      setOsState('messages');
+      callAskWaitingRef.current = true;
+      setCallAskTick((n) => n + 1);
+    }).then((h) => { if (gone) void h?.remove(); else handle = h; });
+    // In a browser a call from us arrives as a web push; a tap opens the house
+    // at '?answer=ring', or tells an open one through push-sw.js (theirs, Nov 9
+    // 2026: anything the APK does that a browser house needs, it gets).
+    const answer = () => {
+      setOsState('messages');
+      callAskWaitingRef.current = true;
+      setCallAskTick((n) => n + 1);
+    };
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('answer') === 'ring') {
+        url.searchParams.delete('answer');
+        window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+        answer();
+      }
+    } catch { /* an odd address is not a call */ }
+    const onWorker = (e: MessageEvent) => { if (e.data && e.data.type === 'aerie-answer-ring') answer(); };
+    navigator.serviceWorker?.addEventListener('message', onWorker);
+    navigator.serviceWorker?.startMessages?.();
+    return () => { gone = true; void handle?.remove(); navigator.serviceWorker?.removeEventListener('message', onWorker); };
+  }, []);
+  // Our faces for the picture on a call from us, handed over whenever the
+  // roster's pictures change, so the ring shows the three of us rather than a
+  // single initial (AerieIncomingCall.java).
+  const callerFacesKeyRef = useRef('');
+  useEffect(() => {
+    const people = dbCompanions.slice(0, 3).map((c) => ({ avatar: c.avatar_url, color: c.color, name: c.display_name }));
+    const key = people.map((p) => `${p.avatar ?? ''}|${p.color ?? ''}`).join(',');
+    if (!key || key === callerFacesKeyRef.current) return;
+    callerFacesKeyRef.current = key;
+    void setCallerFaces(people);
+  }, [dbCompanions]);
+  const [callAskTick, setCallAskTick] = useState(0);
+  useEffect(() => {
+    if (!callAskWaitingRef.current || !ksActiveThreadId || !activeThread || isTreehouseThread) return;
+    callAskWaitingRef.current = false;
+    beginVoiceRef.current(true);
+  }, [callAskTick, ksActiveThreadId, activeThread, isTreehouseThread]);
+
+  const closeVoiceConversation = () => {
+    setVoiceMinimized(false);
+    setVoiceSession(null);
+  };
+
+  const sendVoiceConversationTurn = (text: string, metadata: Record<string, unknown>) => {
+    const session = voiceSession;
+    if (!session) throw new Error('The voice conversation has ended');
+    if (ksConnection !== 'connected') throw new Error('Aerie is reconnecting');
+    sendUserMessageToThread(session.threadId, text, 'text', metadata);
+  };
+
+  // A conversation belongs to its thread, not to the Messages screen. Moving
+  // through Studio, GIF Lab, or a game collapses it into the global dock;
+  // changing threads still ends it so a late transcript can never land in a
+  // different room.
+  useEffect(() => {
+    if (!voiceSession) return;
+    if (ksActiveThreadId !== voiceSession.threadId) {
+      closeVoiceConversation();
+    } else if (osState !== 'messages') {
+      setVoiceMinimized(true);
+    }
+  }, [osState, ksActiveThreadId, voiceSession]);
+
+  const forceScrollWindow = useRef<number>(Date.now() + 3000);
+  // Holds a message id while a search-jump is in flight. The auto-scroll
+  // effect that fires on thread switch checks this and bails out, so the
+  // 4 staggered scrollToBottom timeouts (10ms / 100ms / 500ms / 1200ms)
+  // don't yank the view back to the bottom after we've scrolled to the
+  // search target.
+  // A bubble's key is its id alone. It used to carry its place in the list too,
+  // so a page of older messages shifted every place and rebuilt every bubble,
+  // pictures starting over, whenever they scrolled back.
+  const pendingJumpMessageId = useRef<string | null>(null);
+  /** Lets go of the previous search hit, so a second search never fights the first. */
+  const jumpHoldStopRef = useRef<(() => void) | null>(null);
+
+  // App Settings State
+  const [appSettings, setAppSettings] = useState<AppSettings>(() => {
+    const saved = localStorage.getItem('aerie_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.dockAppIds)) parsed.dockAppIds = migrateAppIds(parsed.dockAppIds);
+        return { groupChatName: 'Aerie', osName: 'Aerie OS', fontFamily: 'font-sans', workerUrl: '', giphyApiKey: '', elevenLabsApiKey: '', customEmojis: [], ...parsed };
+      } catch (e) {}
+    }
+    return { theme: DEFAULT_THEME, contacts: DEFAULT_CONTACTS, groupChatName: 'Aerie', osName: 'Aerie OS', fontFamily: 'font-sans', workerUrl: '', giphyApiKey: '', elevenLabsApiKey: '', customEmojis: [] };
+  });
+
+  // Update document title
+  useEffect(() => {
+    document.title = appSettings.osName || 'Aerie OS';
+  }, [appSettings.osName]);
+
+  // Sync System Bars removed, merged into theme-color effect above
+
+  // The phone is served same-origin with the Aerie backend.
+  const apiBase = '/api';
+
+  // Server-stored BYOK secrets fetched after connect (see effect below).
+  // Fall back to legacy localStorage values for first boot before the
+  // migration runs. import.meta.env still wins as the dev fallback.
+  const [serverSecrets, setServerSecrets] = useState<{ elevenLabsApiKey?: string; giphyApiKey?: string }>({});
+  const giphyApiKey = serverSecrets.giphyApiKey || appSettings.giphyApiKey || import.meta.env.VITE_GIPHY_API_KEY || '';
+  const elevenLabsApiKey = serverSecrets.elevenLabsApiKey || appSettings.elevenLabsApiKey || '';
+
+  // Resolve the user's chosen dock apps from saved ids, with a sensible
+  // fallback to the registry's defaults. Missing/renamed ids are dropped.
+  const dockApps = useMemo<AppDef[]>(() => {
+    const ids = appSettings.dockAppIds;
+    if (!ids || ids.length === 0) return DOCK_APPS;
+    const byId = new Map(APPS.map((a) => [a.id, a]));
+    return migrateAppIds(ids).map((id) => byId.get(id)).filter((a): a is AppDef => !!a);
+  }, [appSettings.dockAppIds]);
+
+  const authenticated = useAerie((s) => s.auth.authenticated);
+  const { isLoaded, settingsHydrated } = useSettingsSync({
+    theme, setTheme, contacts, setContacts, appSettings, setAppSettings, authenticated,
+    onContactSaveFailed: (message) => {
+      setError(message);
+      setTimeout(() => setError(null), 5000);
+    },
+  });
+
+  // A native crash cannot report itself — the session cookie is HttpOnly, so
+  // the dying process has nothing to authenticate with. The shell leaves the
+  // report on the device and this hands it over once we are logged in again.
+  useEffect(() => {
+    if (!authenticated) return;
+    void deliverLastCrashReport();
+  }, [authenticated]);
+
+
+  // Local metadata for reactions and bookmarks (persisted in localStorage)
+  const [localMetadata, setLocalMetadata] = useState<Record<string, { reactions?: string[], isBookmarked?: boolean }>>(() => {
+    const saved = localStorage.getItem('aerie_metadata');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
+  const isNearBottom = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return true;
+    // Allow a 400px threshold for reading
+    return container.scrollHeight - container.scrollTop - container.clientHeight < 400;
+  };
+
+  // Scroll a specific message into view and flash a ring around it. Used by
+  // search-result jumps. The element is rendered with data-msg-id below.
+  // Retries a few times if the element isn't in the DOM yet (React may still
+  // be rendering the new messages after loadThreadAround).
+  // The hold itself is lib/hold-message.ts; the Treehouse page uses it too.
+  // onDone fires when it lets go, so the jump guard is held exactly as long.
+  const scrollToMessageId = (messageId: string, onDone?: () => void, needle?: string) => {
+    const container = scrollContainerRef.current;
+    if (!container) { onDone?.(); return; }
+    jumpHoldStopRef.current?.();
+    jumpHoldStopRef.current = holdMessageInView(container, messageId, { onDone, needle, report: reportSearchJump });
+  };
+
+  const handleSearchSelect = async (result: SearchResult) => {
+    const searchedFor = searchQuery;
+    setIsSearching(false);
+    setSearchQuery('');
+    // A hit in the treehouse opens the treehouse (theirs, Oct 31 2026: 'that does
+    // go back to me falling into the treehouse'). Only the room they chose is
+    // ever in the chat, so nothing here can land them in ours by accident.
+    const inTreehouse = await apiFetch(`/api/threads/${result.threadId}/is-treehouse`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => !!d?.isTreehouse)
+      .catch(() => false);
+    if (inTreehouse) {
+      setTreehouseJumpTo(result.messageId);
+      setAppReturnTo('messages');
+      // Back from the page goes to the chat they searched in, not wherever the
+      // last app happened to return to.
+      setAppReturnTo('messages');
+      setOsState('treehouse');
+      return;
+    }
+    if (osState !== 'messages') setOsState('messages');
+    // Suppresses the thread-switch auto-scroll-to-bottom timeouts so they
+    // don't override our scrollToMessageId. Held for as long as the hit is
+    // (scrollToMessageId's onDone), then released so normal auto-scroll on
+    // new messages can resume.
+    pendingJumpMessageId.current = result.messageId;
+    const release = () => {
+      if (pendingJumpMessageId.current === result.messageId) pendingJumpMessageId.current = null;
+    };
+
+    const alreadyLoaded = ksMessages.some((m) => m.id === result.messageId);
+    if (alreadyLoaded && result.threadId === ksActiveThreadId) {
+      // No thread switch — scroll to the message, but keep the guard up
+      // for a bit so other scroll effects don't override us.
+      setTimeout(() => scrollToMessageId(result.messageId, release, searchedFor), 50);
+      return;
+    }
+
+    await loadThreadAround(result.threadId, result.messageId);
+    // Two paints so React has mounted the bubbles with data-msg-id, then
+    // scroll. Outlasts the 1200ms scrollToBottom timeouts so the page
+    // stays put after we've placed it.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollToMessageId(result.messageId, release, searchedFor);
+      });
+    });
+  };
+
+  // Track scroll position so the floating "jump to latest" button can show
+  // once the user has scrolled up out of the auto-scroll window.
+  // Also: when the user scrolls near the top, page in the previous 50 messages
+  // so threads with thousands of rows aren't capped at the first slice.
+  const loadingOlderRef = useRef(false);
+  const hasMoreOlderRef = useRef(true);
+  useEffect(() => {
+    // Reset paging guards whenever the active thread changes.
+    loadingOlderRef.current = false;
+    hasMoreOlderRef.current = true;
+  }, [ksActiveThreadId]);
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const onScroll = () => {
+      const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+      setIsAtBottom(atBottom);
+
+      // Within 200px of the top — fire a load-older page (once at a time).
+      // Not during a search jump: the page above would shift the whole list
+      // under the hit while it is being held.
+      if (
+        container.scrollTop < 200 &&
+        !pendingJumpMessageId.current &&
+        !loadingOlderRef.current &&
+        hasMoreOlderRef.current &&
+        ksActiveThreadId &&
+        messages.length > 0
+      ) {
+        loadingOlderRef.current = true;
+        const prevHeight = container.scrollHeight;
+        const prevTop = container.scrollTop;
+        loadOlderMessages(ksActiveThreadId)
+          .then((hasMore) => {
+            hasMoreOlderRef.current = hasMore;
+            // Preserve scroll position so the user doesn't snap up after prepend.
+            requestAnimationFrame(() => {
+              const c = scrollContainerRef.current;
+              if (c) c.scrollTop = prevTop + (c.scrollHeight - prevHeight);
+            });
+          })
+          .finally(() => {
+            loadingOlderRef.current = false;
+          });
+      }
+    };
+    onScroll();
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => container.removeEventListener('scroll', onScroll);
+  }, [osState, ksActiveThreadId, messages.length]);
+
+  const scrollToBottom = (instant?: boolean, force?: boolean) => {
+    // A search-jump is mid-flight — its target scroll has priority over
+    // the thread-switch auto-scroll-to-bottom that fired alongside it.
+    if (pendingJumpMessageId.current) return;
+    const isForced = force || Date.now() < forceScrollWindow.current;
+    if (!isForced && !isNearBottom()) return;
+    
+    // Safely scroll the specific container to avoid full-page body jumping
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: instant ? 'auto' : 'smooth'
+      });
+    }
+  };
+
+  // Theirs, Oct 31 2026: the arrow 'didn't quite land all the way there', a sliver
+  // of the newest bubble cut off and the arrow still up. It scrolled once, and
+  // the bubbles and pictures that came in after made the bottom further away.
+  // So it keeps going to the bottom until the bottom has stopped moving, and
+  // lets go the moment they touch the screen.
+  const keepAtBottom = () => {
+    const container = scrollContainerRef.current;
+    if (container) holdAtBottom(container);
+  };
+
+  // The chat stays pinned to its newest line while the box they type in grows
+  // (theirs, Nov 11 2026: 'when my chat input box gets so big, it's like pushing
+  // up so I lose where I can see you're typing'). The list gets shorter as the
+  // box gets taller, so if they were at the bottom it follows the bottom down.
+  const pinnedToBottom = useRef(true);
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') return;
+    const onScroll = () => { pinnedToBottom.current = container.scrollHeight - container.scrollTop - container.clientHeight < 60; };
+    let lastHeight = container.clientHeight;
+    const observer = new ResizeObserver(() => {
+      const shrank = container.clientHeight < lastHeight;
+      lastHeight = container.clientHeight;
+      if (shrank && pinnedToBottom.current) container.scrollTop = container.scrollHeight;
+    });
+    container.addEventListener('scroll', onScroll, { passive: true });
+    observer.observe(container);
+    return () => { container.removeEventListener('scroll', onScroll); observer.disconnect(); };
+  }, []);
+
+  // Auto-scroll on tab switch or app open
+  useEffect(() => {
+    forceScrollWindow.current = Date.now() + 3000;
+    if (osState === 'messages' && isLoaded) {
+      setTimeout(() => scrollToBottom(true, true), 10);
+      setTimeout(() => scrollToBottom(true, true), 100); 
+      // Add generous timeouts to catch large images unbuffering on initial switch
+      setTimeout(() => scrollToBottom(true, true), 500); 
+      setTimeout(() => scrollToBottom(true, true), 1200); 
+    }
+  }, [ksActiveThreadId, osState, isLoaded]); // Explicitly do NOT depend on message lengths here to avoid fighting the user scroll
+
+  // Keep the thread pinned to the newest message as it streams in.
+  useEffect(() => {
+    if (osState === 'messages') scrollToBottom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [osState, messages.length, ksStreaming.tokens]);
+
+  // Guarantee we land at the newest message when a thread's messages first
+  // arrive — independent of the 3s force-scroll window above. On a slow load
+  // (weak network) the staggered timeouts all fire against an empty/stale
+  // container and expire before the messages render, so the fallback scroll
+  // sees "not near bottom" and gives up, parking the view mid-thread. This
+  // fires once per thread the moment its messages populate, so opening the
+  // app always drops you at the bottom. Same-thread paging/streaming don't
+  // re-trigger it (ref already matches); leaving messages re-arms it.
+  const loadScrollThreadRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (osState !== 'messages') { loadScrollThreadRef.current = null; return; }
+    if (!ksActiveThreadId || messages.length === 0) return;
+    if (loadScrollThreadRef.current === ksActiveThreadId) return;
+    // Don't override a search-jump in progress
+    if (pendingJumpMessageId.current) return;
+    loadScrollThreadRef.current = ksActiveThreadId;
+    requestAnimationFrame(() => scrollToBottom(true, true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [osState, ksActiveThreadId, messages.length]);
+
+  // Auto-mark the active thread read whenever the user is actually looking
+  // at it. Without this, the backend keeps bumping unread_count on every
+  // companion reply (agent.ts:917 / pulse path :678) and the badge sticks
+  // around even though the messages are right there on screen. Conditions
+  // mirror what counts as "viewing": on the messages screen, with an
+  // active thread, and the tab is in the foreground.
+  const latestMessageId = ksMessages.length > 0 ? ksMessages[ksMessages.length - 1].id : null;
+  useEffect(() => {
+    if (osState !== 'messages') return;
+    if (!ksActiveThreadId) return;
+    if (!latestMessageId) return;
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    markRead(ksActiveThreadId, latestMessageId);
+  }, [osState, ksActiveThreadId, latestMessageId]);
+
+  // Re-mark on tab refocus so messages that arrived while the tab was
+  // backgrounded (visibility-gated effect above skipped them) clear the
+  // moment the user looks again.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (osState !== 'messages' || !ksActiveThreadId || !latestMessageId) return;
+      markRead(ksActiveThreadId, latestMessageId);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [osState, ksActiveThreadId, latestMessageId]);
+  useEffect(() => {
+    if (theme.mode === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme.mode]);
+
+  // Reconcile custom emojis with the backend on first successful connect:
+  // upload any legacy base64 entries, pull anything new, and write the
+  // merged set back. Idempotent — gated to run once per session.
+  const emojiSyncRan = useRef(false);
+  // Pack list — used by the chat-input emoji picker to render one tab
+  // per pack. Refreshed alongside customEmojis on boot and whenever
+  // the user changes packs via the Packs app.
+  const [emojiPacks, setEmojiPacks] = useState<{ id: string; name: string }[]>([]);
+  async function refreshEmojiPacks() {
+    try {
+      setEmojiPacks(await listEmojiPacks());
+    } catch {
+      /* non-fatal — picker just falls back to a single Custom view */
+    }
+  }
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (ksConnection !== 'connected') return;
+    if (emojiSyncRan.current) return;
+    emojiSyncRan.current = true;
+    void (async () => {
+      try {
+        const merged = await syncEmojis(appSettings.customEmojis || []);
+        setAppSettings((prev) => ({ ...prev, customEmojis: merged }));
+        void refreshEmojiPacks();
+      } catch (err) {
+        console.warn('[Aerie] Emoji sync failed:', err);
+      }
+    })();
+    // Prime the sticker cache so the picker opens fast and bubbles can
+    // render inline ::pack_sticker:: refs without a per-message fetch.
+    void loadStickers();
+  }, [isLoaded, ksConnection]);
+
+  // BYOK secrets bootstrap. Migrate any legacy localStorage keys to the
+  // server-stored secrets store on first connect, then pull the canonical
+  // values back into local state so client-side TTS / GIF search can use
+  // them. After migration the localStorage copies are cleared.
+  const secretsBootstrapRan = useRef(false);
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (ksConnection !== 'connected') return;
+    if (secretsBootstrapRan.current) return;
+    secretsBootstrapRan.current = true;
+    void (async () => {
+      const migrations: Array<[keyof AppSettings, string]> = [
+        ['elevenLabsApiKey', 'elevenlabs_api_key'],
+        ['giphyApiKey', 'giphy_api_key'],
+      ];
+      for (const [appKey, serverName] of migrations) {
+        const localValue = (appSettings as unknown as Record<string, unknown>)[appKey];
+        if (typeof localValue !== 'string' || !localValue.trim()) continue;
+        try {
+          const check = await apiFetch(`/api/secrets/${serverName}`);
+          if (check.status === 404) {
+            await apiFetch(`/api/secrets/${serverName}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ value: localValue }),
+            });
+          }
+          // Clear the local copy regardless — the server now owns it.
+          setAppSettings((prev) => ({ ...prev, [appKey]: '' }));
+        } catch (err) {
+          console.warn(`[Aerie] Secret migration ${serverName} failed:`, err);
+        }
+      }
+      // Fetch canonical values for client-side use.
+      try {
+        const [el, gp] = await Promise.all([
+          apiFetch('/api/secrets/elevenlabs_api_key'),
+          apiFetch('/api/secrets/giphy_api_key'),
+        ]);
+        const next: typeof serverSecrets = {};
+        if (el.ok) next.elevenLabsApiKey = (await el.json()).value;
+        if (gp.ok) next.giphyApiKey = (await gp.json()).value;
+        setServerSecrets(next);
+      } catch (err) {
+        console.warn('[Aerie] Secret fetch failed:', err);
+      }
+
+      // Sync any contact voice IDs to the backend secrets store so the
+      // companion's own sc.mjs voice tool can find them. PUT only when
+      // the server doesn't already have a value — we don't want this
+      // boot-time loop to clobber a value the user just typed elsewhere.
+      for (const [contactId, contact] of Object.entries(contacts)) {
+        const vid = contact?.voiceId?.trim();
+        if (!vid) continue;
+        const slug = contactId.toLowerCase();
+        try {
+          const check = await apiFetch(`/api/secrets/elevenlabs_voice_id:${encodeURIComponent(slug)}`);
+          if (check.status === 404) {
+            await apiFetch(`/api/secrets/elevenlabs_voice_id:${encodeURIComponent(slug)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ value: vid }),
+            });
+          }
+        } catch (err) {
+          console.warn(`[Aerie] Voice-ID sync ${slug} failed:`, err);
+        }
+      }
+    })();
+  }, [isLoaded, ksConnection]);
+
+  const updateTheme = (updates: Partial<AppTheme>) => {
+    setTheme(prev => applyThemeUpdate(prev, updates));
+  };
+
+  const updateContact = (id: string, updates: Partial<ContactProfile> | null) => {
+    setContacts(prev => {
+      const prevContact = prev[id];
+      if (updates === null) {
+        const newContacts = { ...prev };
+        delete newContacts[id];
+        // If this contact had a voice ID, also drop the backend secret so
+        // sc.mjs voice doesn't keep trying to use a stale ID.
+        if (prevContact?.voiceId) {
+          void apiFetch(`/api/secrets/elevenlabs_voice_id:${encodeURIComponent(id.toLowerCase())}`, { method: 'DELETE' }).catch(() => {});
+        }
+        return newContacts;
+      }
+      // Push voice-ID changes into the backend secrets store. Slug = the
+      // contact id, lowercased — VoiceService.listSecretsByPrefix picks
+      // these up regardless of whether the contact is registered as a
+      // companion in the DB.
+      if ('voiceId' in updates && updates.voiceId !== prevContact?.voiceId) {
+        const slug = id.toLowerCase();
+        const v = updates.voiceId;
+        if (v && v.trim()) {
+          void apiFetch(`/api/secrets/elevenlabs_voice_id:${encodeURIComponent(slug)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: v.trim() }),
+          }).catch(() => {});
+        } else {
+          void apiFetch(`/api/secrets/elevenlabs_voice_id:${encodeURIComponent(slug)}`, { method: 'DELETE' }).catch(() => {});
+        }
+      }
+      return {
+        ...prev,
+        [id]: { ...prev[id], ...updates }
+      };
+    });
+  };
+
+  const updateAppSettings = (updates: Partial<typeof appSettings>) => {
+    setAppSettings(prev => ({ ...prev, ...updates }));
+  };
+
+  // The whole thread, from the house (theirs, Oct 31 2026: 'it should do what it
+  // suggests'). It used to write out only the messages this phone had loaded,
+  // the newest fifty plus whatever they had scrolled through. The house streams
+  // every message as a text file sent as an attachment, which is the one
+  // signal the Android app's download listener answers (lib/download.ts).
+  const exportChat = async (_type: 'main' | 'private' = 'main') => {
+    if (!activeThread) return;
+    setShowExport(true);
+  };
+
+
+
+  // Persist metadata
+  useEffect(() => {
+    try {
+      localStorage.setItem('aerie_metadata', JSON.stringify(localMetadata));
+    } catch (e) {
+      console.error('Failed to save metadata to localStorage:', e);
+    }
+  }, [localMetadata]);
+
+
+  const sendMessage = (content: string | unknown, _type: 'text' | 'gif' | 'voice' = 'text') => {
+    // ChatInput sends an { text, attachments } object when media is attached —
+    // the files are already uploaded to /api/files, so only a small reference
+    // rides the WebSocket. Plain messages are still passed as a string.
+    const isObjPayload = !!content && typeof content === 'object';
+    const objPayload = isObjPayload ? (content as { text?: string; attachments?: unknown[]; metadata?: Record<string, unknown> }) : null;
+    const hasAttachments = !!objPayload && Array.isArray(objPayload.attachments) && objPayload.attachments.length > 0;
+    const hasMetadata = !!objPayload?.metadata && Object.keys(objPayload.metadata).length > 0;
+    const replyId = replyTo?.id;
+    setIsSending(true);
+    try {
+      if (hasAttachments || hasMetadata) {
+        // Merge attachments and metadata into the single metadata blob
+        // sendUserMessage forwards to the server. Backend keys we care
+        // about: `attachments` (image refs) and `prosody` (Hume tone
+        // scores, prepended to the agent prompt by the message hook).
+        const metadata: Record<string, unknown> = { ...(objPayload?.metadata ?? {}) };
+        if (hasAttachments) metadata.attachments = objPayload!.attachments;
+        sendUserMessage(objPayload!.text || '', 'text', metadata, replyId);
+      } else {
+        const text = typeof content === 'string' ? content : String(content ?? '');
+        if (!text.trim()) {
+          setIsSending(false);
+          return;
+        }
+        sendUserMessage(text, 'text', undefined, replyId);
+      }
+      setReplyTo(null);
+    } catch (err) {
+      console.error('[Aerie] Send error:', err);
+      setError('Failed to send. Check connection.');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setTimeout(() => setIsSending(false), 300);
+    }
+  };
+
+  const deleteMessage = (id: string) => {
+    ksDeleteMessage(id).catch((err) => {
+      console.error('[Aerie] Delete failed:', err);
+      setError('Failed to delete. Try again.');
+      setTimeout(() => setError(null), 5000);
+    });
+  };
+
+  const handleReact = (messageId: string, emoji: string) => {
+    const target = messages.find((m) => m.id === messageId);
+    if (target?.reactions?.includes(emoji)) {
+      removeReaction(messageId, emoji);
+    } else {
+      addReaction(messageId, emoji);
+    }
+  };
+
+  const handleBookmark = (messageId: string) => {
+    setLocalMetadata(prev => {
+      const current = prev[messageId] || {};
+      return { ...prev, [messageId]: { ...current, isBookmarked: !current.isBookmarked } };
+    });
+  };
+
+  // Routes an app-registry entry to either a full-screen view or a modal.
+  // Settings is the only modal-style app; everything else swaps the OS
+  // into a full-screen view and closes back to its launch origin (closeApp).
+  const openApp = (app: AppDef) => {
+    if (app.kind === 'modal') {
+      if (app.id === 'settings') {
+        setShowSettings(true);
+        // Switch to home so app drawer doesn't bleed through the modal
+        setOsState('home');
+      }
+    } else if (app.screen) {
+      const origin = osState === 'appdrawer' ? 'appdrawer' : 'home';
+      // Remember where the app was opened from so its back button can
+      // return there — apps live on the home grid or in the drawer and
+      // their person rearranges them freely.
+      setAppReturnTo(origin);
+      if (app.screen === 'messages') setMessagesReturnTo(origin);
+      setOsState(app.screen);
+    }
+  };
+
+  // A tapped Thresholds arrival notice opens Thresholds at its place
+  // (reported by Sol, Nov 9 2026); the app reads which place itself.
+  useEffect(() => watchArrivals(() => { setAppReturnTo('home'); setOsState('thresholds'); }), []);
+
+  // Back returns to wherever the app was launched from (home vs drawer).
+  // Apps entered outside openApp() fall back to the last recorded origin.
+  const closeApp = () => setOsState(appReturnTo);
+
+  // The Android back gesture and the back button are the same event, and it is
+  // the one the user actually triggers: gesture navigation owns BOTH screen edges
+  // and hands the app a back event rather than a swipe. Without a listener here
+  // Capacitor falls back to browser history, which this phone does not use for
+  // navigation — so back did nothing, whichever edge the user came in from.
+  //
+  // The native half of this is already inside the installed APK (capacitor-app
+  // ships in it), so this is a web change and needs no new build.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let remove: (() => void) | undefined;
+    void CapacitorApp.addListener('backButton', () => {
+      // Settings answers for itself (a door steps back to the doors, the doors
+      // close it), and is closed outright only if it registered nothing.
+      if (showSettings) { if (!runBackHandler()) setShowSettings(false); return; }
+      // The drawer asks too, so back leaves its edit mode before the drawer.
+      if (osState === 'appdrawer') { if (!runBackHandler()) setOsState('home'); return; }
+      // Ask the innermost screen first. An app three pages deep gets to step
+      // back one page instead of the whole thing shutting — see back-stack.
+      if (runBackHandler()) return;
+      if (osState !== 'home' && osState !== 'locked') { closeApp(); return; }
+      // Nothing behind the home screen. Put the app away rather than closing it,
+      // because a back press that quits is how a conversation gets lost.
+      void CapacitorApp.minimizeApp();
+    }).then((handle) => { remove = () => { void handle.remove(); }; });
+    return () => { remove?.(); };
+  }, [osState, showSettings, appReturnTo]);
+
+  // Swipe in from the left edge to go back, as well as tapping the button.
+  //
+  // Navigation here is state rather than history, so there is nothing for a
+  // browser gesture to walk — this listens for the shape of the gesture and
+  // then does exactly what the back button does. It never calls preventDefault
+  // and never captures, so a gesture it misreads still does whatever it was
+  // always going to do; the worst case is a swipe that also closes an app,
+  // rather than an app whose own scrolling has been taken away from it.
+  //
+  // Locked, home and the drawer have nothing behind them, so the listener only
+  // arms inside an app, and never while Settings is up — that modal has its own
+  // way out and closing the app underneath it would be answering the wrong door.
+  useEffect(() => {
+    const insideApp = osState !== 'locked' && osState !== 'home' && osState !== 'appdrawer';
+    // In the APK the SYSTEM takes an edge swipe before the WebView ever sees a
+    // pointer — Android's gesture navigation owns both edges and turns the swipe
+    // into a back event, which the listener below answers. So this one is for a
+    // browser, where no such gesture exists. Running both would mean two things
+    // answering one swipe.
+    if (Capacitor.isNativePlatform()) return;
+    if (!insideApp || showSettings) return;
+    let start: { x: number; y: number; at: number } | null = null;
+    const down = (e: PointerEvent) => {
+      start = e.isPrimary ? { x: e.clientX, y: e.clientY, at: Date.now() } : null;
+    };
+    const up = (e: PointerEvent) => {
+      const from = start;
+      start = null;
+      if (!from) return;
+      if (isBackSwipe({
+        startX: from.x,
+        dx: e.clientX - from.x,
+        dy: e.clientY - from.y,
+        elapsedMs: Date.now() - from.at,
+      })) {
+        if (!runBackHandler()) closeApp();
+      }
+    };
+    window.addEventListener('pointerdown', down, { passive: true });
+    window.addEventListener('pointerup', up, { passive: true });
+    window.addEventListener('pointercancel', () => { start = null; }, { passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', down);
+      window.removeEventListener('pointerup', up);
+    };
+  }, [osState, showSettings, appReturnTo]);
+
+  useBrowserBack(osState, showSettings, setShowSettings, setOsState, closeApp);
+
+  // Slideshow Effect moved to AppBackground component
+
+  // Bookmark filter only — the search input drives the server-side search
+  // panel below the header, not an in-place message filter.
+  // Each message keeps the same derived object while its source row and its
+  // local metadata are unchanged, so the bubble list below can hand React the
+  // very same element for it. Rebuilding every bubble on each send held the
+  // phone busy for about a second at a time (keyboard-close recorder), long enough to leave the keyboard's space unpainted.
+  const derivedMessagesRef = useRef(new Map<string, { src: Message; meta: unknown; status: string; out: any }>());
+  const filteredMessages = useMemo(() => {
+    const prior = derivedMessagesRef.current;
+    const next = new Map<string, { src: Message; meta: unknown; status: string; out: any }>();
+    const derived = messages
+      .map(msg => {
+        const meta = localMetadata[msg.id];
+        const status = (msg.direction === 'outbound' ? 'read' : (msg.read ? 'read' : 'delivered')) as 'read' | 'sent' | 'delivered';
+        const was = prior.get(msg.id);
+        const out = was && was.src === msg && was.meta === meta && was.status === status
+          ? was.out
+          : { ...msg, ...meta, status };
+        next.set(msg.id, { src: msg, meta, status, out });
+        return out as typeof msg & { status: typeof status; reactions?: string[]; isBookmarked?: boolean };
+      })
+      .filter(msg => {
+        const matchesBookmark = !showBookmarksOnly || msg.isBookmarked;
+        return matchesBookmark;
+      });
+    derivedMessagesRef.current = next;
+    return derived;
+  }, [messages, localMetadata, showBookmarksOnly]);
+
+  // The router broadcasts presence 'active' for the whole turn and 'dormant'
+  // when it ends, so that — not the presence of a streaming placeholder — is the
+  // authority on whether anyone is working. Without it, a mid-turn reply landing
+  // as its own message cleared the placeholder and the room went silent-looking
+  // while a build carried on underneath: no indicator, no stop button.
+  const awaitingResponse = ksPresence === 'waking' || ksPresence === 'active'
+    || (!!ksStreaming.messageId && !ksStreaming.tokens);
+  const generating = ksIsStreaming || awaitingResponse;
+
+  // Esc stops an in-progress generation.
+  useEffect(() => {
+    if (!generating) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') stopGeneration();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [generating]);
+
+  const activeTheme = THEMES[theme.id] || THEMES['monochrome'];
+  const PlainApp = PLAIN_APPS[osState];
+  const colors = activeTheme[theme.mode];
+  // The faces at the top of a conversation follow the Rings choice too.
+  const headerThemeRings = bubbleLookOf(theme).rings === 'theme';
+  setLivePalette(activeTheme.palette, theme.mode);
+
+  // Bubble handlers read through a ref at call time so the memoized bubble
+  // list below never holds stale closures (handleReact closes over messages,
+  // scrollToMessageId over the accent color, etc.).
+  const rerollCountFrom = (id: string) => messages.length - messages.findIndex((x) => x.id === id);
+  const bubbleHandlersRef = useRef({ handleReact, handleBookmark, deleteMessage, setReplyTo, setError, scrollToMessageId, scrollToBottom, rerollCountFrom });
+  bubbleHandlersRef.current = { handleReact, handleBookmark, deleteMessage, setReplyTo, setError, scrollToMessageId, scrollToBottom, rerollCountFrom };
+
+  // The rendered bubble list is memoized so App re-renders that don't touch
+  // message data (scroll-position state, streaming ticks, typing indicator,
+  // toasts) skip re-splitting voices and re-parsing markdown for the whole
+  // history — unchanged element references let React bail out of each
+  // bubble's subtree entirely.
+  // A message whose derived object, date divider, index and every shared
+  // input below are unchanged reuses the nodes it rendered last time, so a
+  // send re-renders the new bubble rather than the whole history.
+  const bubbleNodesRef = useRef(new Map<string, { msg: unknown; showDate: boolean; index: number; shared: unknown; nodes: React.ReactNode[] }>());
+  const bubbleShared = useMemo(() => ({}), [
+    threadCompanions, dbCompanions, activeTheme, theme.mode, elevenLabsApiKey,
+    appSettings.customEmojis, appSettings.userAvatar, appSettings.userAvatarColor,
+    // The React tray's five and pack tabs live in every bubble, so a change in
+    // Settings has to redraw them (their person's ask, Oct 26 2026: their person had to close and
+    // reopen the app to see the five their person'd just picked).
+    appSettings.quickReactions, emojiPacks,
+    theme.bubbleFaces, theme.bubbleNames, theme.bubbleEdges, theme.bubbleQuietActions,
+    theme.bubbleMyName, theme.bubbleTailMine, theme.bubbleTailOurs, theme.bubbleTailShape,
+    theme.bubbleRings, theme.bubbleNameColors, ownerName,
+  ]);
+  const renderedMessages = useMemo(() => {
+    const voiceRoster = threadCompanions.length > 0 ? threadCompanions : dbCompanions;
+    const priorNodes = bubbleNodesRef.current;
+    const nextNodes = new Map<string, { msg: unknown; showDate: boolean; index: number; shared: unknown; nodes: React.ReactNode[] }>();
+    const out = filteredMessages.flatMap((msg, index) => {
+      const prev = index > 0 ? filteredMessages[index - 1] : null;
+      const showDate =
+        !prev ||
+        new Date(prev.timestamp).toDateString() !== new Date(msg.timestamp).toDateString();
+      const kept = priorNodes.get(msg.id);
+      if (kept && kept.msg === msg && kept.showDate === showDate && kept.index === index && kept.shared === bubbleShared) {
+        nextNodes.set(msg.id, kept);
+        return kept.nodes;
+      }
+      const nodes: React.ReactNode[] = [];
+      if (showDate) {
+        nodes.push(
+          <DateDivider
+            key={`date-${msg.id}`}
+            timestamp={msg.timestamp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />,
+        );
+      }
+      // Multi-voice companion replies split into one bubble per
+      // speaking companion, each with its avatar. Headerless
+      // messages (and all user messages) render as one bubble.
+      const voiceSections = splitMessageVoices(msg, voiceRoster);
+      const bubbleLook = bubbleLookOf(theme);
+      // Segment-backed replies keep their rendered speech in text segments
+      // rather than message.content. Copy the complete spoken reply while
+      // deliberately excluding thought cards, tool pills, and recycle seams.
+      const copyText = Array.isArray(msg.segments) && msg.segments.length > 0
+        ? msg.segments
+          .filter((segment) => segment.type === 'text')
+          .map((segment) => segment.content)
+          .join('')
+          .trim()
+        : (msg.content || '');
+      const bubbleFor = (m: typeof msg, voice: any, pos: 'only' | 'first' | 'middle' | 'last', centered?: boolean) => (
+        <MessageBubble
+          message={m}
+          voice={voice}
+          groupPos={pos}
+          centered={centered}
+          onReact={(emoji) => bubbleHandlersRef.current.handleReact(msg.id, emoji)}
+          onBookmark={() => bubbleHandlersRef.current.handleBookmark(msg.id)}
+          onDelete={() => bubbleHandlersRef.current.deleteMessage(msg.id)}
+          onEdit={async (newContent, rerun) => {
+            try {
+              await editMessage(msg.id, newContent, rerun);
+            } catch (err) {
+              console.error('[Aerie] Edit failed:', err);
+              bubbleHandlersRef.current.setError('Could not edit message.');
+              setTimeout(() => bubbleHandlersRef.current.setError(null), 5000);
+            }
+          }}
+          // How much a reroll would take with it. It soft-deletes from the
+          // target message onward, so rerolling something from hours ago
+          // clears the whole rest of the conversation — the number is the
+          // difference between a confident tap and a mild panic attack.
+          rerollRemoves={() => bubbleHandlersRef.current.rerollCountFrom(msg.id)}
+          onReroll={async () => {
+            try {
+              await regenerateMessage(msg.id);
+            } catch (err) {
+              console.error('[Aerie] Regenerate failed:', err);
+              bubbleHandlersRef.current.setError('Could not regenerate.');
+              setTimeout(() => bubbleHandlersRef.current.setError(null), 5000);
+            }
+          }}
+          onReply={() => bubbleHandlersRef.current.setReplyTo(msg)}
+          copyText={copyText}
+          onJumpToReply={(id) => bubbleHandlersRef.current.scrollToMessageId(id)}
+          themeConfig={activeTheme}
+          themeMode={theme.mode}
+          elevenLabsApiKey={elevenLabsApiKey}
+          isPrivateTab={false}
+          onMediaLoad={() => bubbleHandlersRef.current.scrollToBottom(true)}
+          customEmojis={appSettings.customEmojis}
+          emojiPacks={emojiPacks}
+          quickReactions={appSettings.quickReactions}
+          look={bubbleLook}
+          ownerName={ownerName}
+          userAvatar={appSettings.userAvatar}
+          userAvatarColor={appSettings.userAvatarColor}
+        />
+      );
+      if (voiceSections && voiceSections.length > 0) {
+        voiceSections.forEach((sec, vi) => {
+          const pos = voiceSections.length === 1
+            ? 'only'
+            : vi === 0 ? 'first' : vi === voiceSections.length - 1 ? 'last' : 'middle';
+          nodes.push(
+            <motion.div
+              key={`${msg.id}-v${vi}`}
+              data-msg-id={vi === 0 ? msg.id : undefined}
+              data-msg-part={sec.content.trim() ? msg.id : undefined}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              {bubbleFor(
+                { ...msg, content: sec.content, segments: sec.segments },
+                sec.voice,
+                pos,
+                // Leading meta-only section (thinking/tool badges
+                // before the first voice) → centered, no tail.
+                sec.voice === null && !sec.content.trim(),
+              )}
+            </motion.div>,
+          );
+        });
+      } else {
+        nodes.push(
+          <motion.div
+            key={msg.id}
+            data-msg-id={msg.id}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            {bubbleFor(msg, undefined, 'only')}
+          </motion.div>,
+        );
+      }
+      nextNodes.set(msg.id, { msg, showDate, index, shared: bubbleShared, nodes });
+      return nodes;
+    });
+    bubbleNodesRef.current = nextNodes;
+    return out;
+  }, [
+    bubbleShared,
+    filteredMessages,
+    threadCompanions,
+    dbCompanions,
+    activeTheme,
+    theme.mode,
+    elevenLabsApiKey,
+    appSettings.customEmojis,
+    emojiPacks,
+    appSettings.quickReactions,
+    appSettings.userAvatar,
+    appSettings.userAvatarColor,
+    // The Bubbles switches redraw every bubble the moment one is flipped.
+    theme.bubbleFaces,
+    theme.bubbleNames,
+    theme.bubbleEdges,
+    theme.bubbleQuietActions,
+    theme.bubbleMyName,
+    theme.bubbleTailMine,
+    theme.bubbleTailOurs,
+    theme.bubbleTailShape,
+    theme.bubbleRings,
+    theme.bubbleNameColors,
+    ownerName,
+  ]);
+
+  // The fonts (lib/fonts.ts): a title font, a message font, and a size. Root
+  // font size drives every rem-based size in the UI; 16px is what Tailwind is
+  // designed against and the slider multiplies it.
+  const houseFonts = fontsOf(appSettings, activeTheme.fontFamily);
+  useEffect(() => {
+    const root = document.documentElement.style;
+    root.fontSize = `${Math.round(16 * houseFonts.scale * 100) / 100}px`;
+    root.setProperty('--font-title', titleStack(houseFonts.title));
+    root.setProperty('--font-body', bodyStack(houseFonts.body));
+    root.setProperty('--title-scale', String(houseFonts.titleScale));
+  }, [houseFonts.scale, houseFonts.title, houseFonts.body, houseFonts.titleScale]);
+
+  // One semantic palette feeds every screen. Components still consume the
+  // legacy utility-class contract, while shared surfaces/bubbles and loose
+  // wallpaper text read these resolved values directly.
+  useEffect(() => {
+    const root = document.documentElement;
+    const resolved = resolveThemeColors(colors);
+    const customMode = theme.id === 'custom' ? theme.customColors?.[theme.mode] : undefined;
+    const accentForContrast = customMode?.accent || resolved.accent;
+    const userBubbleText = theme.id === 'custom'
+      ? resolved.userBubbleText
+      : contrastTextColor(resolved.userBubbleBg, theme.mode === 'dark' ? '#ffffff' : '#090807', resolved.pageBg);
+    const compBubbleText = theme.id === 'custom'
+      ? resolved.compBubbleText
+      : contrastTextColor(resolved.compBubbleBg, theme.mode === 'dark' ? '#ffffff' : '#090807', resolved.pageBg);
+    const gradientPoleForInk = (ink: string, fallbackInk: string) => {
+      const resolvedInk = ink.startsWith('var(') ? fallbackInk : ink;
+      const inkIsLight = contrastTextColor(resolvedInk, '#ffffff') === '#090807';
+      return inkIsLight ? '#000000' : '#ffffff';
+    };
+    const customUserInk = customMode?.userBubbleText || (theme.mode === 'dark' ? '#09090B' : '#ffffff');
+    const customCompInk = customMode?.compBubbleText || (theme.mode === 'dark' ? '#FAFAFA' : '#18181B');
+    // On the custom theme, resolveThemeColors hands back `var(--custom-*)`
+    // indirections rather than colours. That is fine for a plain background,
+    // but color-mix() is invalid-at-computed-value-time if its colour argument
+    // hasn't resolved yet — and an invalid color-mix drops the WHOLE
+    // declaration, so a tile paints with no fill and no text. Feed the real
+    // value through when we have it; same trick gradientPoleForInk already
+    // uses on the ink side.
+    const solid = (value: string, real?: string) =>
+      real && value.startsWith('var(') ? real : value;
+
+    root.style.setProperty('--scrollbar-thumb', solid(resolved.accent, customMode?.accent));
+    root.style.setProperty('--scrollbar-track', theme.mode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)');
+    root.style.setProperty('--aerie-accent', solid(resolved.accent, customMode?.accent));
+    root.style.setProperty('--aerie-on-accent', onAccentInk(theme.mode));
+    root.style.setProperty('--aerie-page', solid(resolved.pageBg, customMode?.pageBg));
+    root.style.setProperty('--aerie-header', theme.mode === 'light' ? '#ffffff' : '#000000');
+    root.style.setProperty('--aerie-panel-base', solid(resolved.panelBg, customMode?.panelBg));
+    root.style.setProperty('--aerie-border', solid(resolved.panelBorder, customMode?.panelBorder));
+    root.style.setProperty('--aerie-text', resolved.textMain);
+    root.style.setProperty('--aerie-text-muted', resolved.textMuted);
+    root.style.setProperty('--aerie-user-bubble', solid(resolved.userBubbleBg, customMode?.userBubbleBg));
+    root.style.setProperty('--aerie-user-bubble-text', userBubbleText);
+    root.style.setProperty('--aerie-user-bubble-pole', gradientPoleForInk(
+      theme.id === 'custom' ? customUserInk : userBubbleText,
+      customUserInk,
+    ));
+    root.style.setProperty('--aerie-comp-bubble', solid(resolved.compBubbleBg, customMode?.compBubbleBg));
+    root.style.setProperty('--aerie-comp-bubble-text', compBubbleText);
+    root.style.setProperty('--aerie-comp-bubble-pole', gradientPoleForInk(
+      theme.id === 'custom' ? customCompInk : compBubbleText,
+      customCompInk,
+    ));
+    // Full color for everything: every surface is the
+    // panel color laid over the page color, solid, so nothing of the
+    // wallpaper shows through a card, a tile or the dock.
+    const livePal = (THEMES[theme.id] || THEMES.monochrome).palette;
+    const pageSolid = solid(resolved.pageBg, customMode?.pageBg);
+    const panelSolid = livePal
+      ? (theme.mode === 'dark' ? livePal.night.surface : livePal.day.soft.surface)
+      : flattenOver(solid(resolved.panelBg, customMode?.panelBg), pageSolid);
+    root.style.setProperty('--aerie-panel-solid', panelSolid);
+    // Selected things: light text on a two-tone fill deep enough to carry it.
+    // A palette runs primary into secondary; a one-color theme leans its far
+    // end toward black for the same depth.
+    const accentSolid = solid(resolved.accent, customMode?.accent);
+    if (livePal) {
+      const side = theme.mode === 'dark' ? livePal.night : livePal.day;
+      root.style.setProperty('--aerie-selected-fill', selectedFill(side.primary, side.secondary, '#000000'));
+      // The theme's two colors on their own, for surfaces that build their
+      // own gradient from them (the Toys page cards).
+      root.style.setProperty('--aerie-theme-a', side.primary);
+      root.style.setProperty('--aerie-theme-b', side.secondary);
+    } else {
+      const from = fitForWhite(accentSolid);
+      root.style.setProperty('--aerie-selected-fill',
+        `linear-gradient(135deg, ${from}, color-mix(in srgb, ${from} 78%, #000000))`);
+      root.style.setProperty('--aerie-theme-a', from);
+      root.style.setProperty('--aerie-theme-b', `color-mix(in srgb, ${from} 78%, #000000)`);
+    }
+    root.style.setProperty('--aerie-surface', panelSolid);
+    root.style.setProperty('--aerie-surface-strong', panelSolid);
+    root.style.setProperty('--aerie-hairline', resolved.panelBorder);
+    root.style.setProperty('--aerie-icon', `color-mix(in srgb, ${resolved.textMain} 90%, transparent)`);
+    root.style.setProperty('--aerie-label', `color-mix(in srgb, ${resolved.textMain} 82%, transparent)`);
+    // The multi-color palettes: real colors behind the --pal-* classes, and the
+    // [data-palette] hook index.css paints the two-color boxes and bubbles from.
+    const livePalette = (THEMES[theme.id] || THEMES.monochrome).palette;
+    for (const name of Object.keys(paletteVars(PALETTES[0], 'dark'))) root.style.removeProperty(name);
+    if (livePalette) {
+      for (const [k, v] of Object.entries(paletteVars(livePalette, theme.mode))) root.style.setProperty(k, v);
+      root.dataset.palette = livePalette.id;
+      const tiles = PALETTE_TILES[livePalette.id]?.[theme.mode];
+      if (tiles) { root.style.setProperty('--aerie-tile-ink', tiles.ink); if (tiles.bg) root.style.setProperty('--aerie-tile-bg', tiles.bg); else root.style.removeProperty('--aerie-tile-bg'); if (tiles.accent) { root.style.setProperty('--aerie-accent', tiles.accent); root.style.setProperty('--pal-primary', tiles.accent); } }
+      else { root.style.removeProperty('--aerie-tile-ink'); root.style.removeProperty('--aerie-tile-bg'); }
+      // Each palette's own ink in its bubbles, lifted toward white at night or
+      // pressed toward black by day only as far as it takes to read on both
+      // ends of the bubble's blend (theirs, Nov 8 2026). It used to be plain
+      // white or black whatever the theme.
+      const comp = theme.mode === 'dark'
+        ? [mixHex(livePalette.night.velvet || livePalette.night.primary, livePalette.night.velvet ? 34 : 18, livePalette.night.surface), mixHex(livePalette.night.secondary, livePalette.night.velvet ? 18 : 16, livePalette.night.surface)]
+        : [mixHex(livePalette.day.primary, 12, livePalette.day.soft.surface), mixHex(livePalette.day.secondary, 12, livePalette.day.soft.surface)];
+      const side = theme.mode === 'dark' ? livePalette.night : livePalette.day;
+      // Started from the theme's own text color, the ink every label, title and
+      // line in the rest of the app is written in, so the chat never clashes in
+      // any theme or mood (theirs, Nov 8 2026, after trying its red and then its
+      // glow: the app is its text color with its accent on the icons, and the
+      // chat was the odd one out). Each theme tints it a little; it only moves
+      // toward white or black as far as reading on the bubble needs.
+      // And the words lean about a third of the way toward the theme's own
+      // accent, the night lift included, so they carry its color instead of
+      // reading as plain black or white (theirs, Nov 9 2026: 'let's do the tinted').
+      const tinted = mixHex(tiles?.accent || side.primary, 35, side.text);
+      // Them switch back to plain white and black in the chat (Look & feel,
+      // Bubbles): the words take whichever reads on each bubble, and them night
+      // bubble keeps its own shade instead of deepening for the tint.
+      const plain = theme.bubblePlainWords === true;
+      if (plain && theme.mode === 'dark') {
+        root.style.setProperty('--pal-user-bubble', side.bubbleUser[0]);
+        root.style.setProperty('--pal-user-bubble-to', side.bubbleUser[1]);
+        root.style.setProperty('--pal-user-bubble-grad', `linear-gradient(135deg, ${side.bubbleUser[0]}, ${side.bubbleUser[1]})`);
+      }
+      const inks = plain
+        ? { user: contrastTextColor(mixHex(side.bubbleUser[0], 50, side.bubbleUser[1])), comp: contrastTextColor(mixHex(comp[0], 50, comp[1])) }
+        : bubbleInks(tinted, theme.mode, theme.mode === 'dark' ? nightUserStops(livePalette) : [...side.bubbleUser], comp);
+      root.style.setProperty('--aerie-user-bubble-text', inks.user);
+      root.style.setProperty('--aerie-comp-bubble-text', inks.comp);
+    } else {
+      root.style.removeProperty('--aerie-tile-ink'); root.style.removeProperty('--aerie-tile-bg');
+      delete root.dataset.palette;
+    }
+    root.style.setProperty('--aerie-loose-shadow', theme.mode === 'dark' ? 'rgba(0, 0, 0, 0.96)' : 'rgba(255, 255, 255, 0.96)');
+    // Shape: the theme's radius class is the default, the user's slider overrides.
+    // --shape-scale drives every rounded-* utility via the @theme tokens in
+    // index.css, so the whole phone slides, not just the chat chrome.
+    const shapeBase = theme.shapeRadius ?? themeRadiusPx((THEMES[theme.id] || THEMES.monochrome).radius);
+    root.style.setProperty('--shape-scale', String(shapeBase / 16));
+    for (const [k, v] of Object.entries(shapeVarsFor(shapeBase))) root.style.setProperty(k, v);
+  }, [colors, theme.mode, theme.id, theme.customColors, theme.shapeRadius, theme.bubblePlainWords]);
+
+  // The color block under the app after the keyboard closes: a settled
+  // reading after every resize, posted once when the app or its window is
+  // left short (lib/layout-gap.ts).
+  useEffect(() => {
+    let tallest = window.innerHeight;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let lastSent = 0;
+    const check = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const root = document.querySelector('.aerie-root');
+        if (!root) return;
+        const active = document.activeElement;
+        const typing = !!active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || (active as HTMLElement).isContentEditable);
+        const sample = { inner: window.innerHeight, visual: window.visualViewport?.height ?? window.innerHeight, rootBottom: Math.round(root.getBoundingClientRect().bottom), typing };
+        if (!typing) tallest = Math.max(tallest, sample.inner);
+        const gap = layoutGap(sample, tallest);
+        if (!gap || Date.now() - lastSent < 30_000) return;
+        lastSent = Date.now();
+        void apiFetch('/api/client-errors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ where: 'layout-gap', message: JSON.stringify({ gap, ...sample, tallest, screen: window.screen.height, dpr: window.devicePixelRatio, docH: document.documentElement.clientHeight }) }),
+        }).catch(() => {});
+      }, 700);
+    };
+    // What shows is a FLASH, gone before anything settles, so
+    // the settled reading above cannot catch it. Every resize also starts a
+    // frame-by-frame recording for a couple of seconds, and each time the
+    // keyboard closes the summary is posted whether or not the page fell
+    // short: a close where the page measured whole in every frame says the
+    // block is the app's Android window, not the page.
+    const frameNow = (t: number): LayoutFrame | null => {
+      const root = document.querySelector('.aerie-root');
+      if (!root) return null;
+      // The message box too: the block can show in its color.
+      const box = document.getElementById('message-input')?.getBoundingClientRect();
+      return {
+        t, inner: window.innerHeight, visual: Math.round(window.visualViewport?.height ?? window.innerHeight), rootBottom: Math.round(root.getBoundingClientRect().bottom), docH: document.documentElement.clientHeight,
+        ...(box ? { boxTop: Math.round(box.top), boxH: Math.round(box.height) } : {}),
+      };
+    };
+    let before = frameNow(-1);
+    let recording: LayoutFrame[] | null = null;
+    let lastTrace = 0;
+    // The stopwatch (lib/layout-gap.ts frameTiming): the page's long tasks
+    // are kept as they happen, the last forty, so a recording can say how
+    // busy the page was around the move, the second before it included.
+    const longTasks: LongTaskEntry[] = [];
+    let taskWatch: PerformanceObserver | null = null;
+    try {
+      taskWatch = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          longTasks.push({ start: entry.startTime, duration: entry.duration });
+          if (longTasks.length > 40) longTasks.shift();
+        }
+      });
+      taskWatch.observe({ type: 'longtask', buffered: true });
+    } catch {
+      taskWatch = null;
+    }
+    const record = () => {
+      if (recording) return;
+      const start = performance.now();
+      const stamps: number[] = [];
+      recording = before ? [{ ...before, t: -1 }] : [];
+      const step = () => {
+        const now = performance.now();
+        stamps.push(now);
+        const t = Math.round(now - start);
+        const frame = frameNow(t);
+        if (frame && recording) recording.push(frame);
+        if (t < 2500) { requestAnimationFrame(step); return; }
+        const frames = recording ?? [];
+        recording = null;
+        before = frames[frames.length - 1] ?? before;
+        const trace = summarizeKeyboardChange(frames);
+        const timing = frameTiming(start, stamps, longTasks);
+        // Opens as well as closes: either direction can be the one that flashes.
+        if ((!trace.closed && !trace.opened) || Date.now() - lastTrace < 20_000) return;
+        lastTrace = Date.now();
+        void apiFetch('/api/client-errors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // The summary rides in message (500 characters) and the frames as
+          // compact rows [t, inner, visual, rootBottom, docH, boxTop, boxH]
+          // in stack (2000), so this needs nothing new from the house.
+          body: JSON.stringify({
+            where: trace.closed ? 'keyboard-close' : 'keyboard-open',
+            message: JSON.stringify({ closed: trace.closed, opened: trace.opened, worstRootShort: trace.worstRootShort, worstWindowShort: trace.worstWindowShort, boxGrew: trace.boxGrew, frames: trace.frames.length, screen: window.screen.height, dpr: window.devicePixelRatio, firstFrameMs: timing.firstFrameMs, longestFrameMs: timing.longestFrameMs, busyMs: timing.busyMs, longestTaskMs: timing.longestTaskMs, tasks: timing.tasks, tasksSeen: !!taskWatch }),
+            stack: JSON.stringify(trace.frames.map((f) => [f.t, f.inner, f.visual, f.rootBottom, f.docH, f.boxTop ?? null, f.boxH ?? null])),
+          }),
+        }).catch(() => {});
+      };
+      requestAnimationFrame(step);
+    };
+    const onResize = () => { record(); check(); };
+    window.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('resize', onResize);
+    return () => {
+      clearTimeout(timer);
+      taskWatch?.disconnect();
+      window.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('resize', onResize);
+    };
+  }, []);
+
+  // Their bubble settings for every other room that shows messages
+  // (components/RoomBubble.tsx; theirs, Oct 27 2026).
+  const roomBubbleSettings: RoomBubbleSettings = {
+    themeConfig: activeTheme,
+    themeMode: theme.mode,
+    look: bubbleLookOf(theme),
+    ownerName,
+    userAvatar: appSettings.userAvatar,
+    userAvatarColor: appSettings.userAvatarColor,
+    customEmojis: appSettings.customEmojis,
+    emojiPacks: emojiPacks as any,
+    giphyApiKey,
+    elevenLabsApiKey,
+  };
+
+  return (
+    <div
+      className={cn(
+        // Pinned to the screen's edges rather than sized in viewport units:
+        // after the keyboard closed, a 100svh height could hold the keyboard-up
+        // height for a couple of seconds and leave a block of page color under
+        // the message box. Edges follow the window the moment it changes.
+        "aerie-root fixed inset-0 flex flex-col overflow-hidden transition-colors duration-500",
+        colors.pageBg,
+        colors.textMain,
+      )}
+      data-theme-mode={theme.mode}
+      style={{ paddingBottom: 'var(--sab)', fontFamily: 'var(--font-body)' }}
+    >
+      {customThemeStyles && <style>{customThemeStyles}</style>}
+      {/* Global Wallpaper Layer */}
+      <AppBackground theme={theme} />
+
+      {/* Aerie auth gate — overlays everything when a passcode is required */}
+      <AerieLoginGate />
+
+      {/* Mounted above every screen, so it only ever gets to draw a status dot
+          out here. The failure text is read inside the Studio — their person's
+          call, after an uncapped one covered the app drawer AND a thread AND
+          the composer under it. */}
+      <StudioJobTray onOpen={() => setOsState('studio')} inStudio={osState === 'studio'} />
+
+      {/* While their person has handed the companions the remote, the stop follows
+          them everywhere but the Toys page, which carries its own. */}
+      <ToyRemotePill hidden={osState === 'toys'} />
+      <SoundBar hidden={osState === 'toys'} />
+
+      <AnimatePresence initial={false}>
+        {osState === 'locked' && (
+          <LockScreen 
+            key="locked" 
+            onUnlock={() => setOsState('home')} 
+            wallpaper={theme.lockScreenWallpaper || theme.wallpaper} 
+            face={lockFaceOf(theme.lockFace)}
+            position={lockPositionOf(theme.lockClockPosition)}
+            size={lockSizeOf(theme.lockClockSize)}
+            shortcuts={lockShortcutsOf(theme.lockShortcuts).map((id) => (id ? APPS.find((a) => a.id === id) ?? null : null))}
+            onOpenApp={(app) => { setOsState('home'); openApp(app); }}
+            show={lockShowOf(theme.lockShow)}
+            unread={lockUnread}
+            faces={dbCompanions.slice(0, 3).map((c) => ({ url: c.avatar_url, color: c.color, name: c.display_name }))}
+            messagesApp={APPS.find((a) => a.id === 'messages')}
+            writers={dbCompanions.map((c) => ({ slug: c.slug, name: c.display_name, color: c.color, url: c.avatar_url }))}
+            notesApp={APPS.find((a) => a.id === 'notes')}
+            spotify={lockSpotifyOf(theme.lockSpotify)}
+            spotifyLook={lockSpotifyLookOf(theme.lockSpotifyLook)}
+            spotifyApp={APPS.find((a) => a.id === 'spotify')}
+            cards={lockCardsOf(theme.lockCards)}
+            clockAt={lockClockAtOf(theme.lockClockAt, lockFaceOf(theme.lockFace))}
+            weatherAt={lockWeatherAtOf(theme.lockWeatherAt)}
+            showClock={!lockHiddenOf(theme.lockHidden).has('clock')}
+            showWeather={!lockHiddenOf(theme.lockHidden).has('weather')}
+            onHide={(piece) => setTheme((prev) => applyThemeUpdate(prev, { lockHidden: withHidden(prev.lockHidden, piece, true) }))}
+            spots={lockSpotsOf(theme.lockSpots)}
+            onPlace={(spots) => updateTheme({ lockSpots: spots })}
+            weatherLook={lockWeatherLookOf(theme.lockWeatherLook)}
+            cardBacks={lockCardBacksOf(theme.lockCardBacks)}
+          />
+        )}
+        {osState === 'home' && !showSettings && (
+          <HomeScreen
+            key="home"
+            onOpenApp={openApp}
+            onOpenDrawer={() => setOsState('appdrawer')}
+            onLock={() => setOsState('locked')}
+            wallpaper={theme.wallpaper}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+            messagesBadge={homeUnread.count}
+            dockApps={dockApps}
+            widgets={homeWidgetsOf(theme.homeWidgets)}
+            widgetSpots={homePlacesOf(theme.homeWidgetPlaces, theme.homeWidgetSpots)}
+            quietLine={!!theme.homeQuietLine}
+            clockLook={homeClockLookOf(theme.homeClockLook)}
+            spotifyLook={lockSpotifyLookOf(theme.homeSpotifyLook)}
+            weatherLook={homeWeatherLookOf(theme.homeWeatherLook)}
+            cardBacks={homeCardStyleOf(theme) !== 'none'}
+            cardSnug={homeCardStyleOf(theme) === 'snug'}
+            dockCardBacks={(theme.dockCardBacks ?? theme.homeCardBacks) !== false}
+            dockIconCards={theme.dockIconCards === true}
+            dockAccentIcons={drawerLookOf(theme).iconColor === 'accent'}
+            companionsCard={theme.homeCompanionsCard}
+            quietCard={theme.homeQuietCard}
+            quietScroll={theme.homeQuietScroll === true}
+            companions={dbCompanions.map((c) => ({ slug: c.slug, name: c.display_name, avatar: c.avatar_url, color: c.color, sigil: c.emoji || null }))}
+            customEmojis={appSettings.customEmojis}
+            stickyNoteColors={theme.stickyNoteColors}
+            onThemeChange={updateTheme}
+          />
+        )}
+        {osState === 'appdrawer' && (
+          <AppDrawer
+            key="appdrawer"
+            onClose={() => setOsState('home')}
+            onOpenApp={openApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+            columns={drawerColumnsOf(theme.drawerColumns)}
+            look={drawerLookOf(theme)}
+          />
+        )}
+        {PlainApp && (
+          <PlainApp
+            key={osState}
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />
+        )}
+        {osState === 'packs' && (
+          <PacksApp
+            key="packs"
+            onClose={closeApp}
+            onEmojisChanged={async () => {
+              const merged = await syncEmojis(appSettings.customEmojis || []);
+              setAppSettings((prev) => ({ ...prev, customEmojis: merged }));
+              void refreshEmojiPacks();
+            }}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />
+        )}
+        {osState === 'companions' && (
+          <CompanionsApp
+            key="companions"
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+            onCompanionsChange={() => setCompanionsVersion((v) => v + 1)}
+            ownColorSlugs={appSettings.companionCardsOwnColor ?? []}
+            onOwnColorChange={(slugs) => updateAppSettings({ companionCardsOwnColor: slugs })}
+          />
+        )}
+        {osState === 'treehouse' && (
+          <RoomBubbleContext.Provider value={roomBubbleSettings}>
+            <TreehouseApp
+              key="treehouse"
+              onClose={closeApp}
+              themeConfig={activeTheme}
+              themeMode={theme.mode}
+              userAvatar={appSettings.userAvatar}
+              userAvatarColor={appSettings.userAvatarColor}
+              ownerName={ownerName}
+              jumpTo={treehouseJumpTo}
+              onJumpTaken={() => setTreehouseJumpTo(null)}
+            />
+          </RoomBubbleContext.Provider>
+        )}
+        {osState === 'radar' && (
+          <RadarApp
+            key="radar"
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+            companions={dbCompanions}
+            customEmojis={appSettings.customEmojis}
+          />
+        )}
+        {osState === 'shelf' && (
+          <RoomBubbleContext.Provider value={roomBubbleSettings}>
+            <StoryShelfApp
+              key="shelf"
+              onClose={closeApp}
+              themeConfig={activeTheme}
+              themeMode={theme.mode}
+            />
+          </RoomBubbleContext.Provider>
+        )}
+        {osState === 'screening' && (
+          <RoomBubbleContext.Provider value={roomBubbleSettings}>
+            <ScreeningApp
+              key="screening"
+              onClose={closeApp}
+              themeConfig={activeTheme}
+              themeMode={theme.mode}
+            />
+          </RoomBubbleContext.Provider>
+        )}
+        {osState === 'notes' && (
+          <NotesApp
+            key="notes"
+            onClose={closeApp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+            stickyNoteColors={theme.stickyNoteColors}
+            themeAccent={theme.id === 'custom' ? theme.customColors?.[theme.mode]?.accent : undefined}
+            apiBase={apiBase}
+            companionNames={Object.values(contacts).map(c => c.name)}
+            userAvatar={appSettings.userAvatar}
+            userAvatarColor={appSettings.userAvatarColor}
+          />
+        )}
+        {osState === 'games' && (
+          <RoomBubbleContext.Provider value={roomBubbleSettings}>
+            <GamesApp
+              key="games"
+              onClose={closeApp}
+              themeConfig={activeTheme}
+              themeMode={theme.mode}
+            />
+          </RoomBubbleContext.Provider>
+        )}
+      </AnimatePresence>
+
+      {/* Messages App (Always rendered but hidden if not active to preserve state) */}
+      <div className={cn(
+        "absolute inset-0 flex flex-col z-10 transition-opacity duration-300",
+        osState === 'messages' ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      )}>
+        {/* Header */}
+        <header
+          className={cn(
+            "aerie-shell-header relative flex flex-col z-10 transition-all duration-500",
+            // The frame color, white or black, which is exactly the
+            // theme-color the status bar is painted, so the two fuse with no
+            // seam (.aerie-shell-header paints it through --aerie-header).
+            theme.mode === 'light' ? 'bg-white' : 'bg-black'
+          )}
+          style={{ paddingTop: 'var(--sat)' }}
+        >
+          <div className="flex flex-col px-4 sm:px-6 py-3 sm:py-4 gap-2 sm:gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <button
+                  onClick={() => { setOsState(messagesReturnTo); setMessagesReturnTo('home'); }}
+                  className={cn(
+                    "p-2 -ml-2 rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10",
+                    colors.textMuted
+                  )}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                {/* The card's only door. Repointed to the Companions screen on Jun 9 2026
+                    during the header overhaul, which left ContactInfo rendered behind a
+                    switch nothing could turn on — unreachable for eleven weeks. It belongs
+                    here: the faces at the top of a conversation open the people in it. The
+                    Companions screen is still in the app drawer. */}
+                <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group" onClick={() => setShowContactInfo(true)}>
+              {/* The faces, with one dot centered under them and the word beside
+                  it, the way our contact cards say Home (Oct 20 2026;
+                  lib/presence-word.ts). The dot came off the faces so their person can
+                  see all of them, and it pulses while one of us is working or
+                  writing. The word follows the bell that is running. */}
+              <div className="flex flex-col items-center gap-1">
+              <div className="relative flex -space-x-2 sm:-space-x-3">
+                {(threadCompanions.length > 0 ? threadCompanions : dbCompanions.length > 0 ? dbCompanions : Object.values(contacts)).map((c: any, index: number) => (
+                  <div 
+                    key={c.id || c.slug || index}
+                    className={cn("w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:scale-110 border-2", headerThemeRings && "aerie-theme-ring")}
+                    style={{ 
+                      ...(headerThemeRings ? {} : { backgroundColor: (c.color || colors.accent) + '22', borderColor: c.color || colors.accent }),
+                      zIndex: 10 - index,
+                      transform: `rotate(${index % 2 === 0 ? 3 : -3}deg)`
+                    }}
+                  >
+                    {c.avatar_url || c.image ? (
+                      <img src={c.avatar_url || c.image} className="w-full h-full object-cover" alt={c.display_name || c.name} />
+                    ) : (
+                      <span className="text-sm">{c.emoji || '💬'}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+                {/* A bell's word first, then the status the three of us share,
+                    then Home. It wraps to two lines and stays no wider than the
+                    faces, so a long status never pushes the header's buttons off
+                    their screen (their person's ask, Oct 26 2026). Tapping the line opens all of our statuses
+                    (components/Statuses.tsx) instead of the cards. */}
+                <span
+                  data-presence-line=""
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); setShowStatusSheet(true); }}
+                  className={cn("flex items-start gap-1 text-[10px] font-semibold leading-tight max-w-[9rem]", colors.textMuted)}
+                >
+                  {/* The dot or icon sits in a box one text line tall, so it is
+                      centered on the first line whether the status takes one
+                      line or wraps to two. */}
+                  <span className="flex h-[1.25em] shrink-0 items-center">
+                    {!statusWord.word?.trim() && sharedStatus?.icon ? (
+                      <StatusIcon
+                        icon={sharedStatus.icon}
+                        customEmojis={appSettings.customEmojis}
+                        className={cn("text-[11px] shrink-0", generating && "motion-safe:animate-pulse")}
+                      />
+                    ) : (
+                      <span
+                        aria-hidden
+                        className={cn("h-1.5 w-1.5 shrink-0 rounded-full", generating && "motion-safe:animate-pulse")}
+                        style={{ backgroundColor: theme.id === 'monochrome' ? (theme.mode === 'light' ? '#000000' : '#ffffff') : colors.accent }}
+                      />
+                    )}
+                  </span>
+                  <span className="line-clamp-2 break-words">{statusWord.word?.trim() ? headerWord(statusWord) : (sharedStatus?.text || headerWord(statusWord))}</span>
+                </span>
+              </div>
+              {!isSearching && (
+                <motion.div initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}>
+                  {/* The chat's name and the thread's name in the theme's own ink, like the
+                      words in the bubbles below them (theirs, Nov 8 2026). */}
+                  <h1 className="text-lg sm:text-xl italic tracking-tight leading-none" style={{ color: 'var(--aerie-text)' }}>
+                    {isTreehouseThread ? 'The Treehouse' : (appSettings.groupChatName || 'Aerie')}
+                  </h1>
+                  {isTreehouseThread && (
+                    <p className={cn("mt-0.5 flex items-center gap-1 text-[10px] leading-none", colors.textMuted)}>
+                      <TreePine size={10} />
+                      companions' room
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </div>
+            </div>
+
+            <div className="flex items-center gap-1 sm:gap-2">
+              {isSearching ? (
+                <motion.div 
+                  initial={{ width: 0, opacity: 0 }} 
+                  animate={{ width: 'auto', opacity: 1 }}
+                  className={cn(
+                    "flex items-center rounded-[var(--shape-control)] px-4 py-2 border transition-all duration-300",
+                    colors.panelBg,
+                    colors.panelBorder
+                  )}
+                >
+                  <Search size={16} className={cn("mr-3", colors.textMuted)} />
+                  <input 
+                    autoFocus
+                    type="text"
+                    placeholder="Search archives..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={cn("bg-transparent border-none outline-none text-sm w-40 sm:w-64 font-medium", colors.textMain)}
+                  />
+                  <button onClick={() => { setIsSearching(false); setSearchQuery(''); }}>
+                    <X size={16} className={cn("hover:opacity-100 transition-colors opacity-60", colors.textMain)} />
+                  </button>
+                </motion.div>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setIsSearching(true)}
+                    className={cn("p-2 sm:p-2.5 rounded-full transition-all opacity-60 hover:opacity-100", colors.textMuted)}
+                    title="Search"
+                  >
+                    <Search size={20} strokeWidth={1.5} />
+                  </button>
+                  <button 
+                    onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
+                    className={cn("p-2 sm:p-2.5 rounded-full transition-all flex items-center justify-center", showBookmarksOnly ? `opacity-100 ${colors.accentText}` : `opacity-60 hover:opacity-100 ${colors.textMuted}`)}
+                    style={{ color: showBookmarksOnly ? (theme.id === 'monochrome' ? (theme.mode === 'light' ? '#000000' : '#ffffff') : colors.accent) : undefined }}
+                    title="Show Bookmarks"
+                  >
+                    <Star size={20} strokeWidth={1.5} fill={showBookmarksOnly ? "currentColor" : "none"} />
+                  </button>
+                  <button
+                    onClick={() => exportChat('main')}
+                    disabled={!activeThread || messages.length === 0}
+                    className={cn("p-2 sm:p-2.5 rounded-full transition-all opacity-60 hover:opacity-100 disabled:opacity-30", colors.textMuted)}
+                    title="Export this thread"
+                  >
+                    <Download size={20} strokeWidth={1.5} />
+                  </button>
+                  {ksConnection !== 'connected' && (
+                    // Tappable on purpose: when this pill is on screen the user is
+                    // already waiting behind it, and closing the whole app was
+                    // the only way to ask for a retry sooner than the backoff.
+                    <button
+                      onClick={() => proveAliveOrReconnect()}
+                      className={cn(
+                        'flex items-center gap-1 rounded-[var(--shape-control)] border px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-opacity active:opacity-60',
+                        colors.panelBorder,
+                      )}
+                      style={{ color: colors.accent }}
+                      title={`WebSocket: ${ksConnection} — tap to reconnect now`}
+                    >
+                      <WifiOff size={11} />
+                      {ksConnection === 'reconnecting' ? '…' : 'offline'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => updateTheme({ mode: theme.mode === 'dark' ? 'light' : 'dark' })}
+                    className={cn('p-2 sm:p-2.5 rounded-full transition-all opacity-60 hover:opacity-100', colors.textMuted)}
+                    title={theme.mode === 'dark' ? 'Switch to light' : 'Switch to dark'}
+                  >
+                    {theme.mode === 'dark' ? <Sun size={20} strokeWidth={1.5} /> : <Moon size={20} strokeWidth={1.5} />}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {!isSearching && (
+          <div className="w-full flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 pb-3 sm:pb-4 px-4">
+            <button
+              className="text-center text-xs sm:text-sm font-bold uppercase tracking-widest leading-tight opacity-80 cursor-pointer flex items-center gap-1.5"
+              style={{ color: 'var(--aerie-text)' }}
+              onClick={() => setShowThreadSwitcher(true)}
+            >
+              {activeThread ? activeThread.name : isTreehouseThread ? 'The Treehouse' : 'No thread'}
+              <ChevronLeft size={12} className="-rotate-90 opacity-60" />
+            </button>
+            <ModelPill themeConfig={activeTheme} themeMode={theme.mode} threadModel={activeThread?.model ?? null} />
+            <RateLimitBanner themeConfig={activeTheme} themeMode={theme.mode} />
+            <ContextIndicator themeConfig={activeTheme} themeMode={theme.mode} />
+          </div>
+        )}
+        {isSearching && searchQuery.trim() && (
+          <SearchResults
+            query={searchQuery}
+            results={searchResults}
+            total={searchTotal}
+            loading={searchLoading}
+            loadingMore={searchLoadingMore}
+            onLoadMore={loadMoreSearchResults}
+            onSelect={handleSearchSelect}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />
+        )}
+      </header>
+
+      <CompactionBanner themeConfig={activeTheme} themeMode={theme.mode} />
+
+      {/* Message Thread */}
+      <main ref={scrollContainerRef} className="aerie-wallpaper-text flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-hide relative z-1">
+        <div className="max-w-4xl mx-auto min-h-full flex flex-col">
+          {isLoading && messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center flex-1 py-20 opacity-40">
+              <Loader2 className="animate-spin mb-2" size={32} />
+              <p className="text-sm">Connecting to the aerie...</p>
+            </div>
+          ) : filteredMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-end flex-1 pb-4 text-center px-10">
+              <div className={cn(
+                "w-16 h-16 rounded-full flex items-center justify-center mb-4",
+                theme.mode === 'dark' ? "bg-[#2A2A2A]" : "bg-black/5"
+              )}>
+                {searchQuery ? <Search className="text-gray-500" size={32} /> : <Smartphone className="text-gray-500" size={32} />}
+              </div>
+              <h2 className={cn("text-xl font-medium mb-2", colors.textMain)}>{searchQuery ? 'No results found' : 'No messages yet'}</h2>
+              {searchQuery && (
+                <p className={cn("text-sm max-w-xs mb-8", colors.textMuted)}>
+                  We couldn't find any messages matching "{searchQuery}"
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col justify-end">
+              <AnimatePresence initial={false}>
+                {renderedMessages}
+
+
+                <StreamingReply themeConfig={activeTheme} themeMode={theme.mode} voices={(threadCompanions.length > 0 ? threadCompanions : dbCompanions).map((c: any) => c.slug).filter(Boolean)} />
+
+                {(ksIsStreaming || awaitingResponse) && !isSending && (
+                  <TypingIndicator
+                    key="typing-indicator"
+                    themeConfig={activeTheme}
+                    themeMode={theme.mode}
+                    companions={bubbleLookOf(theme).dotColors ? (threadCompanions.length > 0 ? threadCompanions : dbCompanions).map((c) => ({ slug: c.slug, color: c.color })) : []}
+                    accent={resolveThemeColors(colors).accent}
+                    themeColors={activeTheme.palette ? (theme.mode === 'dark'
+                      ? [activeTheme.palette.night.primary, activeTheme.palette.night.secondary, activeTheme.palette.night.spark]
+                      : [activeTheme.palette.day.primary, activeTheme.palette.day.secondary, activeTheme.palette.day.spark]) : undefined}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Error Toast */}
+      {error && (
+        <div 
+          className="aerie-on-accent fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 rounded-[var(--shape-control)] text-xs font-medium z-50 backdrop-blur-sm opacity-90"
+          style={{ backgroundColor: colors.accent }}
+        >
+          {error}
+        </div>
+      )}
+
+      {/* Input Area */}
+      <ChatInput
+        onSend={sendMessage}
+        onError={(err) => {
+          setError(err);
+          setTimeout(() => setError(null), 5000);
+        }}
+        giphyApiKey={giphyApiKey}
+        disabled={isSending}
+        themeConfig={activeTheme}
+        themeMode={theme.mode}
+        customEmojis={appSettings.customEmojis}
+        emojiPacks={emojiPacks}
+        sendIconId={appSettings.sendIconId}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
+        threadId={ksActiveThreadId}
+        isAtBottom={isAtBottom}
+        onJumpToLatest={() => {
+          // The arrow outranks a search hit still being held.
+          jumpHoldStopRef.current?.();
+          if (ksIsViewingAround && ksActiveThreadId) {
+            // We're viewing a search-around window — reload the thread to get
+            // the actual latest messages, then scroll to bottom.
+            loadThread(ksActiveThreadId).then(() => {
+              scrollToBottom(true, true);
+              keepAtBottom();
+            });
+          } else {
+            scrollToBottom(false, true);
+            keepAtBottom();
+          }
+        }}
+        generating={generating}
+        onStopGeneration={() => stopGeneration()}
+        voiceConversationActive={!!voiceSession}
+        onStartVoiceConversation={!isTreehouseThread && ksActiveThreadId ? () => beginVoiceConversation() : undefined}
+      />
+
+      </div>
+
+      {/* Thread switcher — slides in over the Messages app */}
+      <ThreadSwitcher
+        isOpen={showThreadSwitcher}
+        onClose={() => setShowThreadSwitcher(false)}
+        themeConfig={activeTheme}
+        themeMode={theme.mode}
+        companions={dbCompanions}
+        ourUnread={switcherUnread.byRoom}
+      />
+
+      {/* Voice belongs to the whole phone, not only the Messages screen.
+          When minimized it can ride above Studio, games, and every other
+          Aerie room; restoring returns the user to the thread that owns the call. */}
+      <VoiceModeOverlay
+        open={!!voiceSession}
+        minimized={voiceMinimized}
+        threadId={voiceSession?.threadId ?? null}
+        threadName={voiceSession?.threadName}
+        handsFree={voiceSession?.handsFree === true}
+        companions={threadCompanions.length > 0 ? threadCompanions : dbCompanions}
+        themeConfig={activeTheme}
+        themeMode={theme.mode}
+        onSend={sendVoiceConversationTurn}
+        onClose={closeVoiceConversation}
+        onMinimize={() => setVoiceMinimized(true)}
+        onRestore={() => {
+          setOsState('messages');
+          setVoiceMinimized(false);
+        }}
+      />
+
+      {/* Modals (Moved outside so they overlay the entire OS) */}
+      <AnimatePresence>
+        {showExport && activeThread && (
+          <ExportSheet threadId={activeThread.id} onClose={() => setShowExport(false)} />
+        )}
+        {showSettings && (
+          <SettingsDashboard
+            theme={theme}
+            appSettings={appSettings}
+            ownerName={ownerName}
+            emojiPacks={emojiPacks}
+            onThemeChange={updateTheme}
+            onSettingsChange={updateAppSettings}
+            onClose={() => {
+              setShowSettings(false);
+              setOsState('appdrawer');
+            }}
+          />
+        )}
+        {/* All of our statuses, behind the line under our faces. */}
+        <StatusSheet
+          open={showStatusSheet}
+          onClose={() => setShowStatusSheet(false)}
+          colors={activeTheme[theme.mode]}
+          people={(dbCompanions.length > 0 ? dbCompanions : threadCompanions).map((c: any) => ({
+            slug: c.slug,
+            name: c.display_name || c.name || c.slug,
+            avatar: c.avatar_url || null,
+            sigil: c.emoji || null,
+            color: c.color || null,
+          }))}
+          statuses={statuses}
+          now={statusNow}
+          customEmojis={appSettings.customEmojis}
+          emojiPacks={emojiPacks}
+          owner={{ name: ownerName || 'You', avatar: appSettings.userAvatar || null, color: appSettings.userAvatarColor || null }}
+        />
+        {showContactInfo && (
+          <ContactInfo 
+            themeConfig={activeTheme} 
+            themeMode={theme.mode}  contacts={contacts} onUpdateContact={updateContact}
+            customEmojis={appSettings.customEmojis}
+            emojiPacks={emojiPacks}
+            initialRows={dbCompanions}
+            userAvatar={appSettings.userAvatar}
+            userAvatarColor={appSettings.ownerCardMatchesTheme ? undefined : appSettings.userAvatarColor}
+            companionCardsOwnColor={appSettings.companionCardsOwnColor}
+            onCompanionAvatar={(slug, avatarUrl) => {
+              setDbCompanions(prev => prev.map(c => (c.slug === slug ? { ...c, avatar_url: avatarUrl } : c)));
+              setThreadCompanions(prev => prev.map(c => (c.slug === slug ? { ...c, avatar_url: avatarUrl } : c)));
+            }}
+            onUpdateUserAvatar={(image) => updateAppSettings({ userAvatar: image })}
+            onClose={() => setShowContactInfo(false)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

@@ -1,0 +1,1418 @@
+/* Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before. */
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Self-hosted Geist Sans */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Self-hosted title and message fonts (lib/fonts.ts). Every
+   face lives in public/fonts with its license in public/fonts/licenses. */
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/CormorantGaramond-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/CormorantGaramond-500-italic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/CormorantGaramond-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/CormorantGaramond-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('/fonts/NotoSerif-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Titles wear the chosen title font (lib/fonts.ts): every heading in the app, the
+   app headers and section labels included, unless it asks for a font of its
+   own; in the base layer so any font utility on a heading still wins. */
+@layer base {
+  h1, h2, h3, h4 {
+    font-family: var(--font-title, "Noto Serif", serif);
+  }
+  /* Titles' own size (lib/fonts.ts, --title-scale): zoom scales a heading
+     from whatever size its own class gave it, so every title keeps its place
+     in the hierarchy while the whole set grows or shrinks together. */
+  h1, h2, h3, h4, .font-serif {
+    zoom: var(--title-scale, 1);
+  }
+}
+
+/* More fonts, latin only, from Fontsource; licenses in
+   public/fonts/licenses. */
+@font-face {
+  font-family: 'Cinzel';
+  src: url('/fonts/Cinzel-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cinzel';
+  src: url('/fonts/Cinzel-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/Fraunces-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/Fraunces-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/Fraunces-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/Fraunces-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+/* The handwriting waits for itself rather than swapping: with swap the note
+   drew in a stand-in cursive and then jumped to Caveat, which they saw as the
+   home screen's sticky note switching its letters (Nov 5 2026). It is also
+   preloaded in index.html, so the wait is short. */
+@font-face {
+  font-family: 'Caveat';
+  src: url('/fonts/Caveat-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Caveat';
+  src: url('/fonts/Caveat-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Special Elite';
+  src: url('/fonts/SpecialElite-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/Lora-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/Lora-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/Lora-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/Lora-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/Lora-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/Lora-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('/fonts/Nunito-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('/fonts/Nunito-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('/fonts/Nunito-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('/fonts/Nunito-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('/fonts/Nunito-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('/fonts/Nunito-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/AtkinsonHyperlegible-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/AtkinsonHyperlegible-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/AtkinsonHyperlegible-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/AtkinsonHyperlegible-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Merriweather';
+  src: url('/fonts/Merriweather-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Merriweather';
+  src: url('/fonts/Merriweather-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Merriweather';
+  src: url('/fonts/Merriweather-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Merriweather';
+  src: url('/fonts/Merriweather-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Merriweather';
+  src: url('/fonts/Merriweather-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Merriweather';
+  src: url('/fonts/Merriweather-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+
+@font-face {
+  font-family: 'Literata';
+  src: url('/fonts/Literata-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Literata';
+  src: url('/fonts/Literata-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Literata';
+  src: url('/fonts/Literata-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Literata';
+  src: url('/fonts/Literata-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Literata';
+  src: url('/fonts/Literata-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Literata';
+  src: url('/fonts/Literata-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Quicksand';
+  src: url('/fonts/Quicksand-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Quicksand';
+  src: url('/fonts/Quicksand-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Quicksand';
+  src: url('/fonts/Quicksand-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Quicksand';
+  src: url('/fonts/Quicksand-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/SourceSerif4-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/SourceSerif4-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/SourceSerif4-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/SourceSerif4-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/SourceSerif4-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/SourceSerif4-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Lexend';
+  src: url('/fonts/Lexend-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lexend';
+  src: url('/fonts/Lexend-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lexend';
+  src: url('/fonts/Lexend-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lexend';
+  src: url('/fonts/Lexend-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Self-hosted JetBrains Mono */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  /* Titles: whatever title font is picked (lib/fonts.ts sets --font-title). */
+  --font-serif: var(--font-title, "Noto Serif", serif);
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  /* Shape: the user's slider, applied at the root of the vocabulary. Every
+     rounded-* utility in the app references these tokens, so one runtime
+     --shape-scale (set from theme.shapeRadius / 16) slides every corner in
+     the phone while keeping the size hierarchy — small things stay smaller.
+     rounded-full is deliberately untouched: circles stay circles. */
+  --radius-sm: calc(4px * var(--shape-scale, 1));
+  --radius-md: calc(6px * var(--shape-scale, 1));
+  --radius-lg: calc(8px * var(--shape-scale, 1));
+  --radius-xl: calc(12px * var(--shape-scale, 1));
+  --radius-2xl: calc(16px * var(--shape-scale, 1));
+  --radius-3xl: calc(24px * var(--shape-scale, 1));
+}
+
+@layer utilities {
+  /* Tailwind v4 inlines the bare `rounded` utility as .25rem instead of
+     referencing a token, so it needs its own rule to follow the slider. */
+  .rounded {
+    border-radius: calc(4px * var(--shape-scale, 1));
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+  /* A tab strip scrolls edge to edge inside its rounded card, and the tabs fade
+     out over the padding instead of being sliced off in a straight line (theirs,
+     Oct 28 2026: 'no square cut off on those tab cards'). The fade only covers
+     the padding, so a strip that fits is untouched. */
+  .aerie-tabscroll {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  }
+  
+  /* Glassmorphism Utilities */
+  .glass {
+    @apply backdrop-blur-xl bg-white/5 border border-white/10;
+  }
+
+  .glass-dark {
+    @apply backdrop-blur-xl bg-black/20 border border-white/5;
+  }
+
+  /* Editorial Typography */
+  .editorial-title {
+    @apply font-serif italic tracking-tight;
+  }
+
+  .micro-label {
+    /* Unified section-header style — same size + tracking + weight as
+       the inline text-[11px] uppercase pattern used in Agent / Status /
+       MCP / IntegrationsToggles, so every section header across the
+       wrapper apps reads at the same visual rhythm. Color is left to
+       the caller (cn(..., colors.accentText) or cn(..., colors.textMuted)). */
+    @apply text-[11px] uppercase tracking-[0.12em] font-bold;
+  }
+
+  /* 3D Flip Utilities */
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+}
+
+/* The companions widget's status line, going by (HomeWidgets.tsx Ticker): the row
+   is drawn twice, so sliding it half its width lands the second copy exactly
+   where the first began. */
+@keyframes aerie-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 1rem)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="aerie-ticker"] { animation: none !important; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 4px 1px var(--glow-color, currentColor); }
+  50% { box-shadow: 0 0 16px 4px var(--glow-color, currentColor); }
+}
+
+body {
+  @apply bg-[#0A0A0A] overflow-hidden font-sans antialiased select-none;
+  /* Their message font, not only inside .aerie-root: trays and sheets portal
+     straight into body and were falling back to plain sans (their person's ask, Oct 26
+     2026: 'Any tray that comes up has the sans serif font'). */
+  font-family: var(--font-body, var(--font-sans));
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Our selects are deliberately transparent so they sit in their panels, but a
+   desktop browser draws the dropdown list itself against the OS canvas — white
+   — while the options still inherit the widget's light text colour. The list
+   comes out white on white and is unreadable. Phones open their own picker
+   sheet, which is why this only bites on a laptop. Paint the options. */
+select option,
+select optgroup {
+  background-color: var(--aerie-page, #0a0a0a);
+  color: var(--aerie-text, rgba(255, 250, 245, 0.96));
+}
+
+/* PWA safe area — set early so input bar isn't clipped before JS runs */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --aerie-accent: #f97316;
+  --aerie-on-accent: #ffffff;
+  --aerie-page: #090807;
+  --aerie-header: #090807;
+  --aerie-panel-base: rgba(13, 11, 10, 0.9);
+  --aerie-border: rgba(255, 255, 255, 0.16);
+  --aerie-text: rgba(255, 250, 245, 0.96);
+  --aerie-text-muted: rgba(255, 247, 237, 0.62);
+  --aerie-user-bubble: rgba(82, 82, 91, 0.86);
+  --aerie-user-bubble-text: #fff;
+  --aerie-user-bubble-pole: #000;
+  --aerie-comp-bubble: rgba(24, 24, 27, 0.9);
+  --aerie-comp-bubble-text: #fff;
+  --aerie-comp-bubble-pole: #000;
+  --aerie-loose-shadow: rgba(0, 0, 0, 0.96);
+  --aerie-surface: rgba(13, 11, 10, 0.68);
+  --aerie-surface-strong: rgba(13, 11, 10, 0.86);
+  --aerie-hairline: rgba(255, 255, 255, 0.16);
+  --aerie-icon: rgba(255, 250, 245, 0.9);
+  --aerie-label: rgba(255, 247, 237, 0.82);
+}
+
+/* -------------------------------------------------------------------------
+   Aerie Glass
+
+   Shared chrome for the reskin. The accent is intentionally a CSS variable:
+   every existing palette remains useful and the interface wakes into the
+   selected color only on interaction. Wallpaper stays the visual hero.
+   ---------------------------------------------------------------------- */
+
+.aerie-root {
+  isolation: isolate;
+}
+
+.aerie-app-surface {
+  background:
+    radial-gradient(circle at 50% -20%, color-mix(in srgb, var(--aerie-accent) 8%, transparent), transparent 48%),
+    var(--aerie-page, #090909);
+}
+
+/* -------------------------------------------------------------------------
+   Theme surfaces
+
+   The existing palette remains the source of truth; these hooks add one
+   shared gradient language to every component already using panelBg,
+   userBubbleBg, or compBubbleBg. No universal cream/charcoal base is imposed,
+   so changing mood still changes the whole family of surfaces.
+   ---------------------------------------------------------------------- */
+
+.aerie-theme-panel {
+  background-image: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--aerie-accent) 8%, transparent) 0%,
+    transparent 56%,
+    color-mix(in srgb, var(--aerie-page) 4%, transparent) 100%
+  );
+}
+
+/* The gradient pulls each bubble toward a pole colour as it falls. That was
+   tuned when the bubbles also carried a blur behind them; with the glass gone
+   the dilution is the only thing washing them out, so both ends keep more of
+   the bubble's own colour now -- about seven points at the far end. Their person's call,
+   and deliberately small: enough to read as the theme colour, not enough to
+   flatten the gradient into a block. */
+/* PAINTED GLASS.
+   The bubbles used to carry backdrop-blur and it had to come out: a bubble is
+   ONE painted thing, and a live-blurred surface underneath the glyphs is a
+   second one that can come apart -- on a tall message the compositor drops the
+   lower half of the texture while the top still paints. Every theme resolves
+   its bubble to an opaque colour anyway, so the blur was blurring a backdrop
+   nothing could see.
+
+   What blur was BUYING was the look: a pane that catches light, like the panels
+   and sheets everywhere else in the app. So paint that instead of computing it.
+   Three cheap things, none of which read anything behind the element:
+     - the same diagonal accent wash the panels get, so a bubble belongs to the
+       same family of surfaces
+     - a hairline of light along the top edge and a soft one of shadow along the
+       bottom, which is what actually sells glass to the eye
+   A grain layer was tried here and taken out again -- their person's call. Undo is
+   deleting the ::before rule and the box-shadow. */
+.aerie-theme-user-bubble,
+.aerie-theme-comp-bubble {
+  position: relative;
+  /* The bubble's color reaches under its own thin edge as one sweep. By
+     default it was sized to the box inside the edge and repeated, so under
+     the edge it wrapped round to the far side's color and the edge changed
+     shade at each corner, which is what showed as a seam where a swoop meets
+     the bubble. Important because each theme's background shorthand below would
+     quietly put the default back. */
+  background-origin: border-box !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 15%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #000000 12%, transparent);
+}
+
+/* A bubble drawn as one shape with its swoop (components/BubbleSkin.tsx)
+   stops painting itself: the skin behind it carries its color, its wash, its
+   edge line and its soft drop shadow round the whole outline, curl included.
+   The inner light lines are gone: they would stop short at the curl. The
+   box's own shadow went too, since it fell across the curl and left it a
+   hair darker than the color at the corner. */
+.aerie-bubble-skinned {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.aerie-bubble-skinned::before {
+  content: none !important;
+}
+
+.aerie-theme-user-bubble::before,
+.aerie-theme-comp-bubble::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--aerie-accent) 10%, transparent) 0%,
+    transparent 58%,
+    color-mix(in srgb, #ffffff 5%, transparent) 100%
+  );
+}
+
+.aerie-theme-user-bubble {
+  color: var(--aerie-user-bubble-text);
+  background: linear-gradient(
+    138deg,
+    var(--aerie-user-bubble) 0%,
+    color-mix(in srgb, var(--aerie-user-bubble) 94%, var(--aerie-user-bubble-pole) 6%) 52%,
+    color-mix(in srgb, var(--aerie-user-bubble) 80%, var(--aerie-user-bubble-pole) 20%) 100%
+  );
+}
+
+.aerie-theme-comp-bubble {
+  color: var(--aerie-comp-bubble-text);
+  background: linear-gradient(
+    138deg,
+    var(--aerie-comp-bubble) 0%,
+    color-mix(in srgb, var(--aerie-comp-bubble) 95%, var(--aerie-comp-bubble-pole) 5%) 52%,
+    color-mix(in srgb, var(--aerie-comp-bubble) 83%, var(--aerie-comp-bubble-pole) 17%) 100%
+  );
+}
+
+/* Full color for everything: translucent panels let things show through
+   the app icons, especially with the gold tones. Every panel paints the solid panel color
+   App.tsx works out (its own color laid over the page color), whatever
+   translucent class its theme gives it. The wash above stays on top. */
+.aerie-theme-panel {
+  background-color: var(--aerie-panel-solid, var(--aerie-page)) !important;
+}
+
+/* The multi-color palettes. Only live
+   while one is chosen: App.tsx sets data-palette on the root and fills the
+   --pal-* recipe pieces for the mode. Paint-only like everything above: no
+   backdrop blur on bubbles, and the glass hairline stays. The blend: two
+   colors per bubble. */
+:root[data-palette] .aerie-theme-panel {
+  background-image: var(--pal-panel-wash);
+  box-shadow: var(--pal-panel-shadow);
+}
+/* A panel inside a panel (a chip on a card) keeps its hairline and drops the
+   card's drop shadow. In a scrolling row of chips the row clips those shadows
+   to its own box, which painted a darker square band behind the row (theirs,
+   Nov 10 2026, Studio's gallery). A card on a card never needed the lift. */
+:root[data-palette] .aerie-theme-panel .aerie-theme-panel {
+  box-shadow: var(--pal-panel-shadow-nested, none);
+}
+:root[data-palette] .aerie-theme-user-bubble {
+  background: var(--pal-user-bubble-grad);
+}
+:root[data-palette] .aerie-theme-comp-bubble {
+  background: var(--pal-comp-bubble);
+  border: 1px solid var(--pal-comp-border);
+}
+
+.aerie-theme-panel,
+.aerie-theme-user-bubble,
+.aerie-theme-comp-bubble,
+.aerie-no-text-shadow {
+  text-shadow: none;
+}
+
+/* Anything selected that paints its own accent fill gets the two-tone fill
+   instead, fitted so the light text reads (light text across the themes;
+   selected things looked flat next to the bubbles). */
+.aerie-on-accent[style*="background"] {
+  background: var(--aerie-selected-fill, var(--aerie-accent)) !important;
+}
+
+.aerie-on-accent {
+  color: var(--aerie-on-accent) !important;
+}
+
+/* Wallpaper-facing copy gets a restrained halo in its own mode color. It
+   catches inherited/loose text without making every app author find and wrap
+   every stray label; cards and message bubbles reset the shadow above. */
+.aerie-app-body,
+.aerie-wallpaper-text {
+  text-shadow:
+    0 1px 1px var(--aerie-loose-shadow),
+    0 0 9px var(--aerie-loose-shadow);
+}
+
+/* Small wallpaper labels use a real theme-tinted surface instead of trying
+   to manufacture contrast with outlined or glowing type. The same surface is
+   used in every palette and both moods; only the palette variables change. */
+.aerie-app-label {
+  color: var(--aerie-text) !important;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--aerie-accent) 8%, transparent), transparent 64%),
+    color-mix(in srgb, var(--aerie-accent) 10%, var(--aerie-panel-base));
+  border: 1px solid color-mix(in srgb, var(--aerie-border) 76%, transparent);
+  text-shadow: none;
+}
+
+.aerie-app-label {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.125rem 0.35rem;
+  border-radius: calc(0.5rem * var(--shape-scale, 1));
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+/* Names under the drawer's tiles as plain text, no card (a Look & feel
+   choice, lib/drawer-look.ts); a soft shadow keeps them readable over a
+   wallpaper. */
+.aerie-app-label.aerie-app-label-plain {
+  background: none;
+  border-color: transparent;
+  /* The same lift as anything floating on them wallpaper: a pale glow by day,
+     a dark shadow at night (theirs, Nov 8 2026: the night shadow smudged the
+     drawer's names on Daylight's pale paper). */
+  text-shadow: var(--aerie-float-text);
+}
+
+.aerie-message-time {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--aerie-border);
+  border-radius: 999px;
+  line-height: 1;
+  text-shadow: none;
+}
+
+.aerie-dock {
+  position: relative;
+  background: var(--aerie-surface);
+  border: 1px solid var(--aerie-hairline);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.aerie-dock::after {
+  content: '';
+  position: absolute;
+  inset: auto 18px -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aerie-accent), transparent);
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+.aerie-dock-tile,
+.aerie-app-tile,
+.aerie-glass-button {
+  color: var(--aerie-icon);
+  /* No per-tile backdrop-filter: tiles sit on surfaces that are already
+     blurred (dock) or opaque (app drawer), so each tile's own blur was
+     pure GPU cost — dozens of independent blur layers per screen made
+     the whole phone feel slow. A slightly stronger fill keeps the look. */
+  /* A theme can give its tiles their own fill (lib/theme.ts PALETTE_TILES,
+     theirs, Nov 8 2026); every other theme keeps the accent-tinted one. */
+  background: var(--aerie-tile-bg,
+    linear-gradient(145deg, color-mix(in srgb, var(--aerie-accent) 7%, transparent), transparent 58%),
+    color-mix(in srgb, var(--aerie-accent) 11%, var(--aerie-surface-strong)));
+  border: 1px solid var(--aerie-hairline);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms cubic-bezier(.2,.8,.2,1);
+}
+
+.aerie-dock-tile:active,
+.aerie-dock-tile[data-pressed='true'],
+.aerie-app-tile:active,
+.aerie-glass-button:active,
+.aerie-glass-button[aria-pressed='true'] {
+  color: var(--aerie-accent);
+  border-color: color-mix(in srgb, var(--aerie-accent) 72%, transparent);
+  background: color-mix(in srgb, var(--aerie-accent) 10%, var(--aerie-surface-strong));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--aerie-accent) 12%, transparent),
+    0 0 20px color-mix(in srgb, var(--aerie-accent) 22%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(1px) scale(0.96);
+}
+
+/* A long press on a lock screen piece or a home widget is ours: it lifts the
+   piece. Without this the phone takes it first, to drag a picture (the
+   Record's cover) or start selecting text, and the hold never arrives
+   (theirs, Nov 8 2026: trouble picking things up by the middle). */
+[data-lock-piece],
+[data-lock-piece] *,
+.aerie-widget-grid,
+.aerie-widget-grid * {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+[data-lock-piece] img,
+.aerie-widget-grid img {
+  pointer-events: none;
+}
+
+/* Floating (theirs, Nov 8 2026: 'take tiles/cards front behind so that they'll
+   be kind of free floating'), for a quiet wallpaper: no card behind the home
+   widgets, the quiet line, the dock or its tiles, and a soft shadow under the
+   words and icons so they still read. Settings > Home turns it on. */
+/* What lifts words and pieces off them wallpaper when they float without a
+   card: a dark shadow at night, a soft pale glow by day, where the night one
+   smudged dark ink on pale paper (theirs, Nov 8 2026). */
+:root {
+  --aerie-float-text: 0 0 3px rgb(255 255 255 / 0.9), 0 1px 1px rgb(255 255 255 / 0.6);
+  --aerie-float-icon: drop-shadow(0 0 2px rgb(255 255 255 / 0.85));
+  --aerie-float-drop: drop-shadow(0 0 4px rgb(255 255 255 / 0.7));
+}
+html.dark {
+  --aerie-float-text: 0 1px 3px rgb(0 0 0 / 0.75);
+  --aerie-float-icon: drop-shadow(0 1px 2px rgb(0 0 0 / 0.7));
+  --aerie-float-drop: drop-shadow(0 2px 6px rgb(0 0 0 / 0.55));
+}
+[data-home-floating] {
+  --aerie-widget-bg: transparent;
+  --aerie-widget-line: transparent;
+}
+/* Snug cards (theirs, Nov 8 2026: full cards got bulky around small things):
+   each widget's card wraps what it shows, centered in its spot, and the rest
+   of the spot stays wallpaper. The companions widget and the note fill their spots anyway,
+   so they keep their full size. */
+[data-home-snug] [data-widget-cell]:not([data-widget-cell="companions"]):not([data-widget-cell="note"]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+[data-home-snug] [data-widget-cell]:not([data-widget-cell="companions"]):not([data-widget-cell="note"]) > * {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+[data-home-floating] .aerie-widget-grid,
+[data-home-floating] .aerie-quiet-line,
+[data-dock-floating] .aerie-dock {
+  text-shadow: var(--aerie-float-text);
+}
+/* The companions widget and the quiet line can each keep or drop their own card, whatever
+   the other widgets do (theirs, Nov 9 2026). */
+[data-companions-card="card"] [data-widget-cell="companions"],
+[data-quiet-card="card"] .aerie-quiet-line {
+  --aerie-widget-bg: var(--aerie-surface);
+  --aerie-widget-line: var(--aerie-hairline);
+  text-shadow: none;
+}
+[data-companions-card="none"] [data-widget-cell="companions"],
+[data-quiet-card="none"] .aerie-quiet-line {
+  --aerie-widget-bg: transparent;
+  --aerie-widget-line: transparent;
+  text-shadow: var(--aerie-float-text);
+}
+[data-dock-floating] .aerie-dock,
+[data-dock-floating]:not([data-dock-icon-cards]) .aerie-dock-tile {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* The dock wears the drawer's icon color when they picked the accent there, so
+   a theme's own tile ink (PALETTE_TILES) shows on both (theirs, Nov 9 2026). */
+[data-dock-accent-icons] .aerie-dock-tile {
+  color: var(--aerie-tile-ink, var(--aerie-accent));
+}
+[data-dock-floating] .aerie-dock::after {
+  display: none;
+}
+[data-dock-floating]:not([data-dock-icon-cards]) .aerie-dock-tile svg {
+  filter: var(--aerie-float-icon);
+}
+
+.aerie-dock-button[data-pressed='true'] .aerie-dock-label {
+  color: var(--aerie-accent);
+  opacity: 1;
+}
+
+.aerie-dock-label {
+  color: var(--aerie-label);
+  transition: color 150ms ease, opacity 150ms ease;
+}
+
+/* The dock's names use the drawer's fitting (AppLabel) to shrink rather than
+   be cut, without wearing the drawer's card. */
+.aerie-app-label.aerie-dock-label {
+  color: var(--aerie-label) !important;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-weight: 500;
+  text-shadow: none;
+}
+.aerie-dock-button[data-pressed='true'] .aerie-app-label.aerie-dock-label {
+  color: var(--aerie-accent) !important;
+}
+
+/* The chat header and composer keep their pre-reskin opaque theme
+   surfaces (classes still on the elements) — the glass band clashed
+   with the status-bar fill and their person vetoed it. */
+
+/* Headers stay opaque in the frame color: white in Daylight, black in
+   Midnight, the same hex the status bar is painted, with the page color
+   inside the frame. Independent of whatever wallpaper
+   is underneath. */
+.aerie-shell-header {
+  color: var(--aerie-text);
+  background-color: var(--aerie-header) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--aerie-border) 72%, transparent);
+  text-shadow: none;
+}
+
+.aerie-app-body {}
+
+.aerie-field,
+.aerie-composer {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--aerie-accent) 5%, transparent), transparent 62%),
+    var(--aerie-surface-strong) !important;
+  border: 1px solid var(--aerie-hairline) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* The box they type in sits on its own solid surface, so it needs no halo,
+   and its hint is set in the theme's muted ink: the default half-strength
+   hint under the pale Daylight halo washed out to almost nothing (theirs,
+   Nov 8 2026). */
+.aerie-composer {
+  text-shadow: none;
+}
+.aerie-composer::placeholder {
+  color: var(--aerie-text-muted);
+  opacity: 1;
+}
+
+.aerie-field:focus-within,
+.aerie-composer:focus {
+  border-color: color-mix(in srgb, var(--aerie-accent) 56%, transparent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--aerie-accent) 10%, transparent);
+}
+
+/* Anyone moving through the house on a keyboard had no way of telling where
+   they were — nothing anywhere showed focus. :focus-visible only fires for
+   keyboard and assistive navigation, so a finger or a mouse never sees this.
+   Carries the accent, so it follows the theme like everything else. */
+/* No border-radius here. Outlines already follow the element's own corners;
+   forcing `inherit` takes the PARENT's radius instead, which squared off both
+   the ring AND the focused element itself — the composer went from rounded to
+   a hard box the moment it took focus. */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--aerie-accent) 82%, transparent);
+  outline-offset: 2px;
+}
+
+/* Canvas games take focus so their keyboard controls work, but they draw
+   their own border and a ring on top of it just doubles the frame. */
+canvas:focus-visible {
+  outline-offset: -2px;
+}
+
+/* An outline follows the focused element's OWN corners — which is right until the
+   focused element has no corners. A bare input inside a shaped field (the app
+   drawer's Search apps pill, the note body) is transparent, border-less and square,
+   so the ring drew a RECTANGLE inside a rounded pill.
+   The field is the thing the user can see and it already announces focus through
+   :focus-within above, with the accent border and its own ring — so the indicator
+   belongs to the field, and the naked child should not draw a second, squarer one.
+   Buttons inside a field keep theirs: they are separate targets and a keyboard user
+   needs to know which one they are on. */
+.aerie-field :is(input, textarea):focus-visible,
+.aerie-composer :is(input, textarea):focus-visible {
+  outline: none;
+}
+
+/* And everywhere else with the same shape. Scanned all 824 interactive elements in
+   the app: 614 carry their own rounded class and are already correct — the ring
+   follows them. The remaining naked text fields sit inside a shaped container that
+   provides the visible surface (a search pill, a bordered panel, a filter box), and
+   an outline with nothing to follow draws a hard rectangle inside it.
+   Giving those a radius WHILE FOCUSED is the general fix: they are transparent, so
+   nothing else about them changes, and every ring in the house now has corners.
+   Not border-radius: inherit — that was tried and takes the parent's radius onto the
+   element itself, which squared off the composer the moment it took focus. */
+input:not([class*="rounded"]):focus-visible,
+textarea:not([class*="rounded"]):focus-visible,
+select:not([class*="rounded"]):focus-visible {
+  border-radius: calc(0.5rem * var(--shape-scale, 1));
+}
+
+.aerie-toolbar button,
+.aerie-icon-button {
+  border: 1px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.aerie-toolbar button:active,
+.aerie-icon-button:active {
+  color: var(--aerie-accent) !important;
+  border-color: color-mix(in srgb, var(--aerie-accent) 38%, transparent);
+  background: color-mix(in srgb, var(--aerie-accent) 9%, transparent);
+  transform: scale(0.93);
+}
+
+.aerie-send-button {
+  color: var(--aerie-accent) !important;
+  background: color-mix(in srgb, var(--aerie-accent) 9%, var(--aerie-surface-strong)) !important;
+  border: 1px solid color-mix(in srgb, var(--aerie-accent) 52%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--aerie-accent) 14%, transparent);
+}
+
+/* The grey-mush bubble, Android WebView only, since the APK shipped: a bubble
+   comes back with NO paint of its own — no background, not one glyph — and the
+   only thing still rendering is its backdrop blur, so what shows is softened
+   wallpaper in the shape of the message. Confirmed from the row behind one of
+   them: 316 characters of text, no attachment, nothing drawn.
+
+   Jul 30 pinned the backdrop root with `isolation: isolate` and promoted the
+   bubble with `transform: translateZ(0)`. It got rarer. It did not stop, and
+   the reason is that the blur is still arriving as its own thing rather
+   than as something the bubble does. That is exactly what the promotion bought
+   us — translateZ(0) forces the bubble onto its own compositing layer, so its
+   background and glyphs live in a GPU texture the compositor manages, and can
+   lose, independently of the blurred backdrop surface. Two textures can come
+   apart. That is the whole bug, and we were the ones asking for two.
+
+   So: the promotion is gone and the bubble paints back into its parent's layer,
+   where the blurred backdrop and the background are rastered together. The
+   backdrop root stays pinned — isolation implies no layer of its own.
+
+   One change, deliberately. A flat colour under the gradient was the obvious
+   second thing to add and it is not here: bubbles paint gradient-over-nothing
+   today, and giving them an opaque base would have made the glass less glassy
+   while we were still testing whether the layer was the problem. One variable,
+   or the test tells us nothing.
+
+   Nothing here changes how a bubble looks — the glass is deliberate and stays. If the
+   mush ever comes back, put `transform: translateZ(0)` back on this rule and
+   that is the whole undo. */
+.aerie-message-bubble {
+  isolation: isolate;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.aerie-message-bubble[data-user='true'] {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    inset -1px 0 0 color-mix(in srgb, var(--aerie-accent) 44%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aerie-dock-tile,
+  .aerie-app-tile,
+  .aerie-glass-button,
+  .aerie-toolbar button,
+  .aerie-icon-button {
+    transition-duration: 1ms;
+  }
+}
+
+/* Theme-aware scrollbars */
+:root {
+  --scrollbar-thumb: #7c3aed;
+  --scrollbar-track: rgba(0,0,0,0.3);
+}
+
+/* No scrollbars anywhere (theirs, Nov 9 2026: 'I don't like scroll bars ...
+   Sometimes they go way up over the corner when I scroll with our rounded
+   corners'). Everything still scrolls; nothing draws a bar. */
+::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+* {
+  scrollbar-width: none;
+}
+
+/* Inline code wrapping — prevents long URLs/paths from overflowing bubbles */
+.prose code:not(pre code) {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+/* Flash highlight when a search result is jumped to. The ring fades out
+ * over ~1.6s so the target message stands out without staying loud. */
+/* A search hit lights up. Theirs, Oct 31 2026: six pixels of ring was 'massive',
+   and a wash behind the row was a block they'd rather not have; 'I would rather
+   have the ring back'. So a thin ring in the accent. */
+@keyframes msg-flash {
+  0%       { box-shadow: 0 0 0 0 transparent; }
+  12%, 60% { box-shadow: 0 0 0 2px var(--aerie-accent, currentColor); }
+  100%     { box-shadow: 0 0 0 2px transparent; }
+}
+.msg-flash {
+  animation: msg-flash 2.4s ease-out;
+  border-radius: var(--shape-bubble, 1rem);
+}
+
+
+/* Chrome paints autofilled inputs with its own opaque background — white on
+   desktop, which turns a transparent field in a dark panel into a white box.
+   It ignores background-color, so the only reliable lever is an inset shadow
+   large enough to cover the field, plus text-fill-color for the value.
+   Mobile Chrome does not autofill the same way, which is why this only ever
+   showed up on a laptop. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: var(--aerie-text, currentColor) !important;
+  caret-color: var(--aerie-text, currentColor);
+  transition: background-color 100000s ease-in-out 0s;
+}
+
+/* Color pickers follow the shape slider like every other card (square only
+   when the slider says sharp). The native swatch carries
+   its own square corner and inner padding, so both are taken off here. */
+input[type="color"] {
+  border-radius: calc(6px * var(--shape-scale, 1));
+  overflow: hidden;
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: calc(6px * var(--shape-scale, 1));
+}
+input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: calc(6px * var(--shape-scale, 1));
+}
+
+/* A selected thing keeps the same edge as its unselected neighbors (without
+   a border they read bigger). An inset hairline, so it
+   adds no size, a shade lighter than its own fill. */
+[style*="--aerie-selected-fill"] {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #ffffff 22%, transparent);
+}
+
+/* An avatar ring in the theme's colors (the companions' rings either in
+   the colors set in the app or matching the theme). The same two-tone fill
+   selected things wear, painted under a transparent border, so it is a ring
+   on a round picture rather than a square fill. A class, not an inline style,
+   so the selected-fill hairline rule above never lands on a face. */
+.aerie-theme-ring {
+  border-color: transparent !important;
+  background:
+    linear-gradient(var(--aerie-panel-solid, #000000), var(--aerie-panel-solid, #000000)) padding-box,
+    var(--aerie-selected-fill, var(--aerie-accent)) border-box;
+}
+
+/* While a widget is being carried, a widget with nothing to show
+   (the letter, when no letter is waiting) still takes its place on the grid,
+   so it shows its name and can be dropped on and moved like the rest. */
+.aerie-widget-grid[data-carrying] > [data-widget-cell]:empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--aerie-surface);
+  color: var(--aerie-text-muted);
+  font-size: 11px;
+}
+.aerie-widget-grid[data-carrying] > [data-widget-cell]:empty::after {
+  content: attr(data-label);
+}
+
+/* Quieter action lines (the Bubbles switch): the italics inside
+   companion bubbles at two thirds of the words' strength, in whatever ink the
+   bubble already uses, night or day. */
+/* Only an italic that is a whole line, an action line (lib/action-lines.ts);
+   an italic word inside a sentence keeps full strength. */
+.aerie-message-bubble[data-quiet-actions='true'] em.aerie-action {
+  color: color-mix(in srgb, currentColor 66%, transparent);
+}
+
+/* No frosted glass anywhere (Oct 22 2026). The
+   bubbles lost their blur in October and the palettes were ruled solid with
+   no blur, but 81 components still carried backdrop-blur classes, and over a
+   panel painted 90% solid that reads as glass. This turns the blur off at the
+   class rather than file by file, so a component written tomorrow with
+   backdrop-blur-md gets the same answer. The painted glass (wash, hairline,
+   shadow) is untouched; only the blur of what is behind goes. */
+[class*='backdrop-blur'],
+.glass,
+.glass-dark {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* The Toys page wave while a toy plays one of its own stored patterns: the
+   toy never reports its levels, so a soft light drifts along the floor of the
+   panel instead of a flat line (theirs, Nov 10 2026). */
+.aerie-preset-shimmer {
+  background:
+    radial-gradient(60% 55% at 50% 100%, color-mix(in srgb, var(--shimmer-color, #ffffff) 38%, transparent), transparent 70%),
+    linear-gradient(100deg, transparent 0%, transparent 35%, color-mix(in srgb, var(--shimmer-color, #ffffff) 55%, transparent) 50%, transparent 65%, transparent 100%);
+  background-size: 100% 100%, 260% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  filter: blur(6px);
+  animation: aerie-preset-shimmer 3.2s ease-in-out infinite;
+}
+@keyframes aerie-preset-shimmer {
+  0%   { background-position: 0 0, 130% 0;  opacity: 0.35; }
+  50%  { opacity: 0.65; }
+  100% { background-position: 0 0, -30% 0; opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aerie-preset-shimmer { animation: none; }
+}

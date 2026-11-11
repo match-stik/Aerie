@@ -1,0 +1,136 @@
+// Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+// Aerie client store — a framework-agnostic singleton mirroring the Svelte
+// websocket.svelte.ts store, exposed to React via useSyncExternalStore.
+//
+// Selectors passed to useAerie() must return a stable reference when the
+// slice is unchanged (select one slice per call; compose in hooks).
+
+import { useSyncExternalStore } from 'react';
+import type { Message, ThreadSummary, PresenceStatus, CommandRegistryEntry, SystemStatus } from './protocol';
+
+export type ConnectionState = 'connected' | 'disconnecting' | 'disconnected' | 'reconnecting';
+
+export type ToolEvent = {
+  toolId: string;
+  toolName: string;
+  input?: string;
+  output?: string;
+  isError?: boolean;
+  isComplete: boolean;
+  timestamp: string;
+  elapsed?: number;
+};
+
+export type ThinkingEvent = { content: string; summary: string; textOffset: number };
+
+export interface ContextUsage {
+  percentage: number;
+  tokensUsed: number;
+  contextWindow: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  estimatedCost?: number;
+  model?: string;
+}
+
+export interface AuthState {
+  checking: boolean;
+  authenticated: boolean;
+  required: boolean;
+}
+
+export interface AerieState {
+  auth: AuthState;
+  connectionState: ConnectionState;
+  messages: Message[];
+  threads: ThreadSummary[];
+  activeThreadId: string | null;
+  presence: PresenceStatus;
+  /** The word under the faces while a bell that has one runs (lib/presence-word.ts); a null word is Home. */
+  statusWord: { word: string | null; companions: string[] };
+  /** Every status as the house last said it (services/statuses.ts); lib/statuses.ts drops the faded ones. */
+  statuses: { shared: import('./protocol').StatusLine | null; companions: Record<string, import('./protocol').StatusLine>; owner: import('./protocol').StatusLine | null };
+  unreadCounts: Record<string, number>;
+  loadingThread: boolean;
+  streamingMessageId: string | null;
+  streamingTokens: string;
+  toolEvents: Record<string, ToolEvent[]>;
+  toolOffsets: Record<string, Array<{ toolId: string; textOffset: number }>>;
+  thinkingEvents: Record<string, ThinkingEvent[]>;
+  contextUsage: ContextUsage | null;
+  compactionNotice: { preTokens: number; message: string; isComplete: boolean } | null;
+  rateLimitInfo: { status: string; resetsAt?: number; rateLimitType?: string } | null;
+  lastError: { code: string; message: string } | null;
+  commandRegistry: CommandRegistryEntry[];
+  systemStatus: SystemStatus | null;
+  // Voice recording / transcription state — drives the mic button in
+  // ChatInput. `prosody` is the Hume tone reading from the backend; held
+  // here so the next outbound message can attach it as metadata for the
+  // companion's context as bounded expression signals. Cleared once
+  // consumed or when a new recording starts.
+  transcription: {
+    status: 'idle' | 'recording' | 'processing' | 'complete' | 'error';
+    text?: string;
+    prosody?: Record<string, number>;
+    prosodyStatus?: 'complete' | 'unavailable';
+    error?: string;
+    recordingId?: string;
+  };
+  // True when viewing a search-jump window (loadThreadAround) rather than
+  // the latest messages. The "jump to latest" button should reload the
+  // thread to get back to the actual newest messages.
+  isViewingAround: boolean;
+}
+
+const initialState: AerieState = {
+  auth: { checking: true, authenticated: false, required: true },
+  connectionState: 'disconnected',
+  messages: [],
+  threads: [],
+  activeThreadId: null,
+  presence: 'offline',
+  statusWord: { word: null, companions: [] },
+  statuses: { shared: null, companions: {}, owner: null },
+  unreadCounts: {},
+  loadingThread: false,
+  streamingMessageId: null,
+  streamingTokens: '',
+  toolEvents: {},
+  toolOffsets: {},
+  thinkingEvents: {},
+  contextUsage: null,
+  compactionNotice: null,
+  rateLimitInfo: null,
+  lastError: null,
+  commandRegistry: [],
+  systemStatus: null,
+  transcription: { status: 'idle' },
+  isViewingAround: false,
+};
+
+let state: AerieState = initialState;
+const listeners = new Set<() => void>();
+
+export function getState(): AerieState {
+  return state;
+}
+
+export function setState(
+  partial: Partial<AerieState> | ((s: AerieState) => Partial<AerieState>),
+): void {
+  const next = typeof partial === 'function' ? partial(state) : partial;
+  state = { ...state, ...next };
+  for (const l of listeners) l();
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function useAerie<T>(selector: (s: AerieState) => T): T {
+  const snapshot = () => selector(state);
+  return useSyncExternalStore(subscribe, snapshot, snapshot);
+}

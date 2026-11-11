@@ -1,0 +1,24 @@
+# Cortex Brain — Cloudflare Worker + D1.
+#
+# Only needed if you deploy with the wrangler CLI. Deploying by hand through
+# the Cloudflare dashboard works too and needs none of this file — see
+# README.md, which covers the dashboard route first.
+#
+# Deploy:
+#   1. wrangler d1 create cortex-db
+#   2. paste the returned database_id below
+#   3. wrangler secret put CORTEX_AUTH_TOKEN     # required — it refuses to serve without one
+#   4. wrangler deploy
+#
+# The worker creates its own tables on first request, so there is no migration
+# step. Point Aerie at it in Settings -> Keys: cortex_mcp_url and
+# cortex_auth_token.
+
+name = "cortex-brain"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cortex-db"
+database_id = ""   # <- from `wrangler d1 create cortex-db`
