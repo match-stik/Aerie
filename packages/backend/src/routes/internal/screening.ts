@@ -6,6 +6,7 @@ import { getConfig, setConfig } from '../../services/db/config.js';
 import { fetchAndLoad } from '../../services/screening-fetch.js';
 import { loadScreening, currentScreening, getScreening, presentScreening, startClock, pauseClock, seekClock, resyncClock, sceneAt, DEFAULT_LOOKBACK_MS } from '../../services/db/screening.js';
 import { existsSync, readFileSync } from 'fs';
+import { isPathAllowed } from './local.js';
 import { basename, join } from 'path';
 
 const router = Router();
@@ -29,6 +30,11 @@ router.post('/internal/screening/load', (req, res) => {
   let text: string | null = typeof subtitles === 'string' && subtitles.trim() ? subtitles : null;
   let origin: string | null = typeof source === 'string' ? source : null;
   if (!text && typeof file_path === 'string' && file_path) {
+    // The same fence every other loopback door that reads a file keeps.
+    if (!isPathAllowed(file_path)) {
+      res.status(403).json({ error: 'Path not allowed' });
+      return;
+    }
     if (!existsSync(file_path)) {
       res.status(404).json({ error: `No file at ${file_path}` });
       return;

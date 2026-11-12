@@ -205,6 +205,11 @@ router.post('/internal/telegram-send', async (req, res) => {
   }
 
   const { type, text, path: filePath, url, caption, filename, query, target, emoji } = req.body;
+  // A path, when one is given, is fenced like every other loopback door that reads a file.
+  if (filePath !== undefined && filePath !== null && filePath !== '' && (typeof filePath !== 'string' || !isPathAllowed(filePath))) {
+    res.status(403).json({ error: 'Path not allowed' });
+    return;
+  }
 
   try {
     switch (type) {

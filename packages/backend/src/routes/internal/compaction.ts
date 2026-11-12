@@ -82,7 +82,7 @@ router.get('/internal/compaction-refresh', (req, res) => {
  */
 function staleBlockText(lane: string): string {
   try {
-    if (!lane || lane === 'this lane' || !/^[A-Za-z0-9._-]+$/.test(lane)) return '';
+    if (!lane || lane === 'this lane' || !/^[A-Za-z0-9._-]+$/.test(lane) || /^\.+$/.test(lane)) return '';
     // NOT the lane's CLAUDE.md — the backend regenerates that, so it follows
     // the live blocks and can never disagree with them. The baseline is the
     // hash file the supervisor writes at launch.
