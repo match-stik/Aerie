@@ -737,7 +737,7 @@ router.post('/internal/embed-backfill', async (req, res) => {
         res.json({ alreadyRunning: true, processed: backfillProcessed, indexed: embedded, totalMessages: total });
         return;
       }
-      const interval = Math.max((req.body?.intervalMs as number) || 5000, 1000);
+      const interval = Math.min(Math.max(Number(req.body?.intervalMs) || 5000, 1000), 60_000);
       runBackfillLoop(batchSize, interval);
       const { embedded, total } = getEmbeddingCount();
       res.json({ started: true, batchSize, intervalMs: interval, indexed: embedded, totalMessages: total });
