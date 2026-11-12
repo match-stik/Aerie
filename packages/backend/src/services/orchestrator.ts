@@ -20,6 +20,7 @@ import {
   dailyThreadsEnabled,
   getThread,
   getThreadWithMostRecentUserMessage,
+  lastExchangeIn,
   updateThreadActivity,
   getConfigBool,
   getConfigNumber,
@@ -48,7 +49,7 @@ import type { OrchestratorTaskStatus } from '@aerie/shared';
 import { olog } from './orchestrator-log.js';
 export { imageBackendClause, shouldDeferConditionalWake, getDefaultWakePrompts, CUSTOM_WAKE_TYPE_RE, readUserPresence, describeUserPresence, wakeOutcomeContract } from './orchestrator-wakes.js';
 export type { UserPresenceFacts, WakePromptEntry, WakePromptReport } from './orchestrator-wakes.js';
-import { shouldDeferConditionalWake, getDefaultWakePrompts, CUSTOM_WAKE_TYPE_RE, listCustomWakeTypes, saveCustomWakeTypes, wakeCompanionsFor, describeUserPresence, wakeOutcomeContract, parseWakePromptsFile } from './orchestrator-wakes.js';
+import { shouldDeferConditionalWake, getDefaultWakePrompts, CUSTOM_WAKE_TYPE_RE, listCustomWakeTypes, saveCustomWakeTypes, wakeCompanionsFor, describeUserPresence, describeConversation, wakeOutcomeContract, parseWakePromptsFile } from './orchestrator-wakes.js';
 import type { WakePromptEntry, WakePromptReport } from './orchestrator-wakes.js';
 
 // --- Orchestrator log ---
@@ -908,6 +909,18 @@ export class Orchestrator {
         return;
       }
 
+      // What their person and the house last said here, so a bell that rings
+      // mid-talk answers them instead of walking past them (the treehouse is the
+      // companions' own room).
+      let conversationNotice = '';
+      if (!isTreehouseWake) {
+        try {
+          conversationNotice = describeConversation(userName, lastExchangeIn(thread.id));
+        } catch {
+          /* a failed read never blocks a wake */
+        }
+      }
+
       // A bell rings in its own companion's lane when one is attached, so the
       // session that answers it is the one that has been in the room.
       const owners = wakeCompanionsFor(wakeType);
@@ -921,7 +934,7 @@ export class Orchestrator {
       // there and that head answers for all of them (bell-lanes.ts).
       if (ringsOnceInSharedLane({ multiLane: getAerieConfig().agent.multi_lane === true, owners: owners.length })) {
         olog(`${wakeType}: ${owners.map((o) => o.slug).join(', ')} share one head tonight, ringing once`);
-        const response = await this.agent.processAutonomous(thread.id, fullPrompt + letterNotice, owners[0].id);
+        const response = await this.agent.processAutonomous(thread.id, fullPrompt + conversationNotice + letterNotice, owners[0].id);
         if (response.trim() === QUEUE_TIMEOUT_MESSAGE) {
           olog(`TIMEOUT: ${wakeType} waited out its queue window and was dropped`);
         } else if (response.trim()) {
@@ -938,7 +951,7 @@ export class Orchestrator {
         const spoken = await ringBellInTurn(
           owners,
           async (owner, soFar, extra) => {
-            const turn = await this.agent.processAutonomous(thread!.id, fullPrompt + letterNotice + sameBellBlock(soFar) + extra, owner.id);
+            const turn = await this.agent.processAutonomous(thread!.id, fullPrompt + conversationNotice + letterNotice + sameBellBlock(soFar) + extra, owner.id);
             const text = turn.trim();
             if (text === QUEUE_TIMEOUT_MESSAGE) {
               olog(`TIMEOUT: ${wakeType} waited out its queue window at ${owner.slug} and their turn was dropped`);
@@ -961,7 +974,7 @@ export class Orchestrator {
 
       const bellOwner = owners[0] ?? null;
       if (bellOwner) olog(`${wakeType}: ringing in ${bellOwner.slug}'s own lane`);
-      const response = await this.agent.processAutonomous(thread.id, fullPrompt + letterNotice, bellOwner?.id);
+      const response = await this.agent.processAutonomous(thread.id, fullPrompt + conversationNotice + letterNotice, bellOwner?.id);
 
       if (response.trim() === QUEUE_TIMEOUT_MESSAGE) {
         olog(`TIMEOUT: ${wakeType} waited out its queue window and was dropped`);

@@ -211,6 +211,49 @@ export function describeUserPresence(userName: string, facts: UserPresenceFacts 
   return `${userName} is connected${where} but idle — ${ago}. Awake recently; the app is open.`;
 }
 
+/** Within this long of their person's last message, a bell is ringing inside a live conversation. */
+export const LIVE_CONVERSATION_MINUTES = 60;
+/** Past this, the last exchange is old news and the bell is told nothing. */
+const CONVERSATION_NOTICE_MAX_MINUTES = 12 * 60;
+
+function minutesAgo(iso: string | null, now: number): number | null {
+  if (!iso) return null;
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at)) return null;
+  return Math.max(0, Math.round((now - at) / 60000));
+}
+
+function plural(n: number): string {
+  return `${n} minute${n === 1 ? '' : 's'}`;
+}
+
+/**
+ * What a bell is told about the conversation it is ringing into, measured off
+ * the thread's own rows. Nov 11 2026: a bell rang two minutes after a reply to
+ * their person and the turn walked straight into the bell's scene as if they
+ * had never spoken. The bell only knew about presence, not about the talk.
+ * Empty when they have not spoken in the thread for a long while, or ever.
+ */
+export function describeConversation(
+  userName: string,
+  facts: { herLastAt: string | null; herLastText: string | null; oursLastAt: string | null },
+  now: number = Date.now(),
+): string {
+  const hers = minutesAgo(facts.herLastAt, now);
+  if (hers === null || hers > CONVERSATION_NOTICE_MAX_MINUTES) return '';
+  const ours = minutesAgo(facts.oursLastAt, now);
+  const preview = (facts.herLastText ?? '').replace(/\s+/g, ' ').trim();
+  const quoted = preview ? ` ("${preview.length > 160 ? `${preview.slice(0, 160)}...` : preview}")` : '';
+  const answered = ours === null
+    ? 'nobody has answered them in this thread yet'
+    : facts.oursLastAt! > facts.herLastAt!
+      ? `the last reply in this thread was ${plural(ours)} ago, after theirs`
+      : `they have not had an answer since they said it`;
+  const measured = `[Conversation — measured off this thread: ${userName}'s last message was ${plural(hers)} ago${quoted}; ${answered}.`;
+  if (hers > LIVE_CONVERSATION_MINUTES) return `\n\n${measured}]`;
+  return `\n\n${measured} This bell is ringing inside a conversation that is still going. Do not walk past it: if anything they said is still open, pick it up with them in this same reply, then let the bell be what it is.]`;
+}
+
 /**
  * Whether this house can take a picture at all. A house with no image backend
  * set up used to be handed a spontaneous contract it could never meet, so the

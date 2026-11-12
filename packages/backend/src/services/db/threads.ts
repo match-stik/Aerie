@@ -252,6 +252,36 @@ export function getThreadWithMostRecentUserMessage(withinMinutes: number = 120):
   return row ? (row as unknown as Thread) : null;
 }
 
+/**
+ * The last thing their person said in a thread and the last thing the house
+ * said back, so a bell can tell whether it is ringing into a conversation that
+ * is still going (Nov 11 2026: a bell walked straight past what had just been said).
+ */
+export interface LastExchange {
+  herLastAt: string | null;
+  herLastText: string | null;
+  oursLastAt: string | null;
+}
+
+export function lastExchangeIn(threadId: string): LastExchange {
+  const db = getDb();
+  const hers = db.prepare(
+    `SELECT created_at, content FROM messages
+     WHERE thread_id = ? AND role = 'user' AND deleted_at IS NULL
+     ORDER BY sequence DESC LIMIT 1`,
+  ).get(threadId) as { created_at: string; content: string } | undefined;
+  const ours = db.prepare(
+    `SELECT created_at FROM messages
+     WHERE thread_id = ? AND role != 'user' AND deleted_at IS NULL
+     ORDER BY sequence DESC LIMIT 1`,
+  ).get(threadId) as { created_at: string } | undefined;
+  return {
+    herLastAt: hers?.created_at ?? null,
+    herLastText: hers?.content ?? null,
+    oursLastAt: ours?.created_at ?? null,
+  };
+}
+
 export interface CrossThreadActivity {
   threadId: string;
   threadName: string;

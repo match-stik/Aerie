@@ -27,6 +27,7 @@ import { getAllBlocks } from '../memory-blocks.js';
 import { baselineFrom, BASELINE_FILE } from './block-drift.js';
 import { outageNotices, type OutageKind } from './outage-notices.js';
 import { atomicWrite } from './atomic-write.js';
+import { ROOM_BORN_FILE, ROOM_NUDGE_ASKED_FILE } from './room-age.js';
 import { laneDirName } from './lane-dir.js';
 import { laneSwitchEnv } from './lane-switches.js';
 import { lastInjectedClaudeMd, planHold } from './held-instructions.js';
@@ -1419,6 +1420,10 @@ export class HeartbeatSession {
       writeSessionId(this.ioPath(SESSION_ID_FILE), this.sessionId);
       this.roomId = this.sessionId;
       writeSessionId(this.ioPath(ROOM_ID_FILE), this.roomId);
+      // A new room is born now: its age is what decides when their person is offered
+      // the next one (room-age.ts), and the last room's asking goes with it.
+      try { atomicWrite(this.ioPath(ROOM_BORN_FILE), new Date().toISOString()); } catch { /* the age only ever asks */ }
+      try { unlinkSync(this.ioPath(ROOM_NUDGE_ASKED_FILE)); } catch { /* none yet */ }
     } else {
       // Same room whatever the trim below renames it to.
       if (!this.roomId) this.roomId = this.sessionId;

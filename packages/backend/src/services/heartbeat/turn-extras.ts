@@ -11,6 +11,7 @@ import { ambientRecall, unfiledNoticings } from './whisper.js';
 import { readShelf, stickerShelfBlock } from './sticker-shelf.js';
 import { ownerReactionsBlock } from './owner-reactions.js';
 import { ownerStatusBlock } from './owner-status.js';
+import { roomAgeBlock } from './room-age.js';
 import type { RoomVoices } from './room-voices.js';
 
 export interface TurnExtrasInput {
@@ -26,6 +27,8 @@ export interface TurnExtrasInput {
   archive: boolean;
   roomVoices?: RoomVoices | null;
   threadId?: string;
+  /** The lane's io/ folder, for the room's age (room-age.ts); undefined skips it. The Codex lane has no room birth to read yet. */
+  ioDir?: string;
   /** Their reactions are read from here; undefined skips the block. */
   reactionsSince?: string;
   now?: string;
@@ -37,11 +40,12 @@ export interface TurnExtras {
   stickers: string;
   reactions: string;
   ownerStatus: string;
+  roomAge: string;
 }
 
 /** Each block fails alone and silently: nothing here may delay or stop a turn. */
 export async function buildTurnExtras(input: TurnExtrasInput): Promise<TurnExtras> {
-  const out: TurnExtras = { whisper: '', unfiled: '', stickers: '', reactions: '', ownerStatus: '' };
+  const out: TurnExtras = { whisper: '', unfiled: '', stickers: '', reactions: '', ownerStatus: '', roomAge: '' };
   if (input.guest) return out;
   try { out.whisper = await ambientRecall(input.prompt, input.laneKey, input.fresh, { archive: input.archive }); } catch { /* never delay a turn */ }
   try { out.unfiled = unfiledNoticings(); } catch { /* never delay a turn */ }
@@ -50,10 +54,13 @@ export async function buildTurnExtras(input: TurnExtrasInput): Promise<TurnExtra
     try { out.reactions = ownerReactionsBlock(input.threadId, input.reactionsSince, input.now ?? new Date().toISOString()); } catch { /* never delay a turn */ }
   }
   try { out.ownerStatus = ownerStatusBlock(getAerieConfig().identity.timezone); } catch { /* never delay a turn */ }
+  if (input.ioDir) {
+    try { out.roomAge = roomAgeBlock(input.ioDir); } catch { /* never delay a turn */ }
+  }
   return out;
 }
 
 /** In the order the Claude lane has always handed them. */
 export function joinTurnExtras(x: TurnExtras): string {
-  return x.whisper + x.unfiled + x.stickers + x.reactions + x.ownerStatus;
+  return x.whisper + x.unfiled + x.stickers + x.reactions + x.ownerStatus + x.roomAge;
 }

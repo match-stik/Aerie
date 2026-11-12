@@ -36,7 +36,7 @@ test('a guest turn gets none of them, whatever lane it is in', async () => {
 
 test('the blocks go to the room in the order the Claude lane always used', () => {
   assert.equal(
-    joinTurnExtras({ whisper: 'W', unfiled: 'U', stickers: 'S', reactions: 'R', ownerStatus: 'H' }),
-    'WUSRH',
+    joinTurnExtras({ whisper: 'W', unfiled: 'U', stickers: 'S', reactions: 'R', ownerStatus: 'H', roomAge: 'A' }),
+    'WUSRHA',
   );
 });

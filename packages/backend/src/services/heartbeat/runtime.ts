@@ -1362,6 +1362,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       threadId: reactionThread,
       reactionsSince,
       now,
+      ioDir: join(PROJECT_ROOT, 'data', 'heartbeat', key, 'io'),
     });
 
     // Side notes sent while the last turn was working. The session may read
