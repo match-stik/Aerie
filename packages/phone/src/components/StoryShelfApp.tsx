@@ -74,6 +74,7 @@ import {
   type BookStage,
   type KeepsakeEntry,
 } from '../lib/story-shelf';
+import { whispersToHeadings } from '../lib/whisper-lines';
 
 interface StoryShelfAppProps {
   onClose: () => void;
@@ -505,7 +506,7 @@ function Words({ text, colors, className }: { text: string; colors: ThemeColors;
           img: ({ src, alt }) => (isStickerImage(alt) ? <StickerImage src={typeof src === 'string' ? src : undefined} alt={alt} /> : <img src={typeof src === 'string' ? src : undefined} alt={alt ?? ''} className="max-w-full rounded-lg" />),
         }}
       >
-        {stickersToMarkdown(text.replace(/(^|\n)-# +(.*)/g, (_line, start: string, whisper: string) => `${start}###### ${whisper}`))}
+        {stickersToMarkdown(whispersToHeadings(text))}
       </ReactMarkdown>
     </div>
   );

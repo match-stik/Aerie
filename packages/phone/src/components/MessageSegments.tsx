@@ -15,6 +15,7 @@ import { isStickerOnly, stickerLinesAsParagraphs } from '../lib/sticker-lines';
 import { coalesceThinkingSegments, plainThinkingText, thinkingTitle } from '../lib/thinking';
 import { CodeBlock } from './CodeBlock';
 import { ToolList } from './ToolList';
+import { whispersToHeadings } from '../lib/whisper-lines';
 
 interface MessageSegmentsProps {
   segments: MessageSegment[];
@@ -55,7 +56,7 @@ function withStickers(text: string): string {
 // Discord "-# whisper" subtext → h6 rendered small/muted — mirrors MessageBubble.
 function withWhispers(text: string): string {
   if (!/(^|\n)-# /.test(text)) return text;
-  return text.replace(/(^|\n)-# +(.*)/g, (_m, brk: string, t: string) => `${brk}###### ${t}`);
+  return whispersToHeadings(text);
 }
 
 // Substitute :shortcode: with a markdown image our renderer turns into the

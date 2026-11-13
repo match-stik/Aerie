@@ -10,6 +10,7 @@ import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { Paginator, usePaged } from './Paginator';
 import { apiFetch } from '../aerie';
+import { whispersToHeadings } from '../lib/whisper-lines';
 
 interface JournalAppProps {
   onClose: () => void;
@@ -183,7 +184,7 @@ export function JournalApp({ onClose, themeConfig, themeMode, embedded }: Journa
               h6: ({ children }) => <span className="block text-[11px] leading-snug opacity-60 italic">{children}</span>,
             }}
           >
-            {entry.content.replace(/(^|\n)-# +(.*)/g, (_m, brk: string, text: string) => `${brk}###### ${text}`)}
+            {whispersToHeadings(entry.content)}
           </ReactMarkdown>
         </div>
         {entry.emerged_question && (

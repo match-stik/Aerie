@@ -5,20 +5,27 @@
  * turns a line that starts with "-# " into small muted text (MessageBubble and
  * MessageSegments rewrite it to an h6); the Treehouse page printed the marker
  * as it was. One marker is consumed, the same as chat, so "-# -# x" keeps one.
+ * A marker just inside an opening * or _ ("*-# whispering*") whispers too and
+ * keeps its italics (the phone used to print the marker instead).
  */
 export interface TextRun {
   whisper: boolean;
   text: string;
 }
 
-const WHISPER = /^-# +(.*)$/;
+const WHISPER = /^([*_]{1,3})?-# +(.*)$/;
+
+/** Every place that draws markdown rewrites whisper lines to an h6 through this. */
+export function whispersToHeadings(text: string): string {
+  return (text ?? '').replace(/(^|\n)([*_]{1,3})?-# +(.*)/g, (_m, brk: string, em: string | undefined, t: string) => `${brk}###### ${em ?? ''}${t}`);
+}
 
 export function splitWhispers(text: string): TextRun[] {
   const runs: TextRun[] = [];
   for (const line of (text ?? '').split('\n')) {
     const m = line.match(WHISPER);
     if (m) {
-      runs.push({ whisper: true, text: m[1] });
+      runs.push({ whisper: true, text: (m[1] ?? '') + m[2] });
       continue;
     }
     const last = runs[runs.length - 1];

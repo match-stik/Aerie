@@ -6,6 +6,7 @@
 import { discordEmotesToMarkdown } from './discord-emotes';
 import { stickerLinesAsParagraphs } from './sticker-lines';
 import { extractVideoUrls, safeVideoSrc } from './video-attachments';
+import { whispersToHeadings } from './whisper-lines';
 
 export interface MessageContent {
   isGif: boolean;
@@ -73,9 +74,7 @@ export function parseMessageContent(
   // muted. Rewritten to h6 (which chat prose never uses organically) so the
   // h6 component below can style it — works for bridged, typed, and
   // companion messages alike.
-  if (/(^|\n)-# /.test(textContent)) {
-    textContent = textContent.replace(/(^|\n)-# +(.*)/g, (_m, brk: string, text: string) => `${brk}###### ${text}`);
-  }
+  textContent = whispersToHeadings(textContent);
 
   // Sticker refs: replace ::pack_sticker:: with an inline image markdown ref
   // that resolves to the cached URL from aerie/stickers.ts. Stickers must
