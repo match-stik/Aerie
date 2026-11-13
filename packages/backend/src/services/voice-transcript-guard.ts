@@ -111,3 +111,13 @@ export function trimHallucinatedTail(transcript: string): string {
   // Keep their own closing punctuation when the cut left a sentence open.
   return /[.!?…]$/.test(text) ? text : `${text}.`;
 }
+
+/**
+ * True when a transcript holds no words at all: nothing but punctuation and
+ * space. Whisper answers silence with a lone "." (a voice turn
+ * cut off before anyone spoke: the local transcriber found nothing, the hosted
+ * one returned ".", and a dot went into the thread as if it had been sent).
+ */
+export function hasNoWords(transcript: string): boolean {
+  return !/[\p{L}\p{N}]/u.test(transcript);
+}

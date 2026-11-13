@@ -84,3 +84,9 @@ test('a tail trim never empties a transcript, so the whole-utterance guards stil
   assert.equal(trimHallucinatedTail('Names may include Ada, Rook.'), 'Names may include Ada, Rook.');
   assert.equal(trimHallucinatedTail('I was watching it, thank you.'), 'I was watching it, thank you.');
 });
+
+test('a transcript of only punctuation has no words; a real word does', async () => {
+  const { hasNoWords } = await import('./voice-transcript-guard.js');
+  for (const t of ['.', ' . ', '...', ',', '?!', '']) assert.equal(hasNoWords(t), true, JSON.stringify(t));
+  for (const t of ['ok.', 'Okay', '2', 'Mmm', 'é']) assert.equal(hasNoWords(t), false, t);
+});

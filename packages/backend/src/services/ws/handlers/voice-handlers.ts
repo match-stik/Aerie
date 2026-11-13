@@ -3,7 +3,7 @@ import { WebSocket } from 'ws';
 import type { ClientMessage, ServerMessage } from '@aerie/shared';
 import type { VoiceService } from '../../voice.js';
 import { buildTranscriptionHint } from '../../voice.js';
-import { detectWhisperHallucination, detectTranscriptionHintEcho, trimHallucinatedTail } from '../../voice-transcript-guard.js';
+import { detectWhisperHallucination, detectTranscriptionHintEcho, trimHallucinatedTail, hasNoWords } from '../../voice-transcript-guard.js';
 import type { ExtendedWebSocket } from '../connection-registry.js';
 
 let voiceServiceInstance: VoiceService | null = null;
@@ -226,7 +226,9 @@ export async function handleVoiceStop(
     ws.transcriptionAbort = null;
     if (ws.prosodyAbort === prosodyAbort) ws.prosodyAbort = null;
 
-    if (!transcript.trim()) {
+    // A lone dot or comma is Whisper's answer to silence, not speech.
+    if (hasNoWords(transcript)) {
+      if (transcript.trim()) console.warn(`[Voice] Transcript had no words ("${transcript.trim()}"), treated as no speech`);
       const emptyMsg: ServerMessage = {
         type: 'transcription_status',
         status: 'error',
