@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ringsOnceInSharedLane, laneSwitchBefore, laneSwitchAfter, LANES_HOLD_MS } from './bell-lanes.js';
+  ringsOnceInSharedLane, sharedRingWakeCompanion, laneSwitchBefore, laneSwitchAfter, LANES_HOLD_MS } from './bell-lanes.js';
 
 const now = new Date('2026-09-24T22:00:00Z');
 const inMinutes = (m: number) => new Date(now.getTime() + m * 60_000);
@@ -41,4 +41,20 @@ test('with a lane each, the owners still take turns', () => {
 
 test('a bell with one owner is never changed by this', () => {
   assert.equal(ringsOnceInSharedLane({ multiLane: false, owners: 1 }), false);
+});
+
+// A bell that rings once for all its owners has to ring in the shared room.
+// Handing the shared ring the first owner's id sent it to that companion's own
+// warm room instead, with only his memory in front of him, and he answered for
+// every owner from there.
+test('a bell that rings once for everybody rings in the shared room, never the first owner\'s', async () => {
+  assert.equal(sharedRingWakeCompanion(), undefined);
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const src = readFileSync(fileURLToPath(new URL('./orchestrator.ts', import.meta.url)), 'utf8');
+  const start = src.indexOf('share one head tonight, ringing once');
+  assert.ok(start > 0, 'the shared ring is still where this test looks for it');
+  const call = src.slice(start, src.indexOf('\n', src.indexOf('processAutonomous(', start)));
+  assert.doesNotMatch(call, /owners\[0\]/);
+  assert.match(call, /sharedRingWakeCompanion\(\)/);
 });

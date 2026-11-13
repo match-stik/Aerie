@@ -2,7 +2,7 @@
 import * as cron from 'node-cron';
 import { parseBellOwners, sameBellBlock, ringBellInTurn, MAX_BELL_RECALLS } from './bell-owners.js';
 import { bellStatus, statusHoldKey, statusHoldOf, statusWordKey, statusWordOf } from './bell-status.js';
-import { laneSwitchBefore, laneSwitchAfter, ringsOnceInSharedLane, BELLS_SPLIT_LANES_KEY, LANES_BY_BELL_KEY } from './bell-lanes.js';
+import { laneSwitchBefore, laneSwitchAfter, ringsOnceInSharedLane, sharedRingWakeCompanion, BELLS_SPLIT_LANES_KEY, LANES_BY_BELL_KEY } from './bell-lanes.js';
 import { ensureCompanionLanes } from './heartbeat/lane-keeper.js';
 import { isHeartbeatLaneWarm } from './heartbeat/supervisor.js';
 import crypto from 'crypto';
@@ -934,7 +934,7 @@ export class Orchestrator {
       // there and that head answers for all of them (bell-lanes.ts).
       if (ringsOnceInSharedLane({ multiLane: getAerieConfig().agent.multi_lane === true, owners: owners.length })) {
         olog(`${wakeType}: ${owners.map((o) => o.slug).join(', ')} share one head tonight, ringing once`);
-        const response = await this.agent.processAutonomous(thread.id, fullPrompt + conversationNotice + letterNotice, owners[0].id);
+        const response = await this.agent.processAutonomous(thread.id, fullPrompt + conversationNotice + letterNotice, sharedRingWakeCompanion());
         if (response.trim() === QUEUE_TIMEOUT_MESSAGE) {
           olog(`TIMEOUT: ${wakeType} waited out its queue window and was dropped`);
         } else if (response.trim()) {

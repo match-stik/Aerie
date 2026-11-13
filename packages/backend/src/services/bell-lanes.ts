@@ -50,3 +50,15 @@ export function laneSwitchAfter(input: {
 export function ringsOnceInSharedLane(input: { multiLane: boolean; owners: number }): boolean {
   return input.owners > 1 && !input.multiLane;
 }
+
+/**
+ * Who a ring-once bell is addressed to: nobody. Passing the first owner's id
+ * made the dispatcher treat it as his own bell and ring it in his own room
+ * whenever that room was warm, which the single-owner bells keep it, so one
+ * companion answered for every owner from a room holding only his memory. With
+ * no owner the bell rings in the thread's own room, the shared
+ * head the log has always said it used; the prompt still names everyone on it.
+ */
+export function sharedRingWakeCompanion(): undefined {
+  return undefined;
+}
