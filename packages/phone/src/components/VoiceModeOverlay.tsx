@@ -1,5 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { setHandsFreeCall } from '../aerie/mic-hold';
+import { keepHoldingForMore } from '../lib/voice-hold';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -115,10 +116,13 @@ interface PendingReply {
   spokenSequence?: number;
 }
 
-// How long the call will hold between spoken chunks before deciding the reply
-// is over. Only a backstop: the normal release is generation ending. Without
-// it a lane that never drops out of 'active' would leave the call listening to
-// nothing, which is worse than releasing a moment early.
+// How often the call re-checks, between spoken chunks, whether the reply is
+// still coming. It keeps holding while the house says a turn is running, and
+// releases only when the turn is done, so a chunk that lands after a few
+// minutes of work is still spoken; a single 20 s wait used to hand the call
+// back to listening before it arrived. The cap is the backstop for a lane that
+// never drops out of 'active', matching the house's own 20-minute limit on a
+// held turn.
 const CONTINUATION_IDLE_MS = 20_000;
 
 // Whether this call answers one of our rings, and if so which reply it opens
@@ -629,14 +633,21 @@ export function VoiceModeOverlay({
         setPhase('thinking');
         // Self-guarding: by the time this fires the call may have been closed,
         // interrupted, or already moved on, so it re-checks the whole state
-        // rather than trusting that it is still wanted.
-        continuationTimerRef.current = setTimeout(() => {
+        // rather than trusting that it is still wanted. While the house still
+        // says the turn is running it waits again, up to the cap.
+        const waitStarted = Date.now();
+        const check = () => {
           continuationTimerRef.current = null;
           if (!activeRef.current || phaseRef.current !== 'thinking') return;
           if (pendingReplyRef.current?.spokenSequence === undefined) return;
+          if (keepHoldingForMore(getState(), Date.now() - waitStarted)) {
+            continuationTimerRef.current = setTimeout(check, CONTINUATION_IDLE_MS);
+            return;
+          }
           pendingReplyRef.current = null;
           void beginListening();
-        }, CONTINUATION_IDLE_MS);
+        };
+        continuationTimerRef.current = setTimeout(check, CONTINUATION_IDLE_MS);
         return;
       }
       pendingReplyRef.current = null;
