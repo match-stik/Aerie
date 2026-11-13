@@ -121,3 +121,26 @@ export function writeThreadExport(
   }
   return count;
 }
+
+/**
+ * The instants an export runs between. The phone sends the days she picked as
+ * dates and, beside them, the exact instants those days start and end on her
+ * own clock (fromAt / toAt), because a bare date read as midnight UTC is the
+ * evening before anywhere west of Greenwich: 'This month' was dropping the
+ * last evening of its final day and taking in the last evening of the month
+ * before. An instant wins when it is a
+ * real one; a bare date keeps the old UTC reading for any caller that sends
+ * only dates.
+ */
+export function exportBounds(q: { from?: unknown; to?: unknown; fromAt?: unknown; toAt?: unknown }): { from?: string; to?: string } {
+  const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const instant = (v: unknown): string | undefined => {
+    if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(v)) return undefined;
+    const t = Date.parse(v);
+    return Number.isFinite(t) ? new Date(t).toISOString() : undefined;
+  };
+  const from = instant(q.fromAt) ?? (isDay(q.from) ? `${q.from}T00:00:00.000Z` : undefined);
+  const to = instant(q.toAt)
+    ?? (isDay(q.to) ? new Date(Date.parse(`${q.to}T00:00:00.000Z`) + 86_400_000).toISOString() : undefined);
+  return { from, to };
+}

@@ -8,7 +8,7 @@ process.env.NODE_ENV = 'test';
 const { initDb } = await import('./db/init.js');
 const { createThread } = await import('./db/threads.js');
 const { createMessage } = await import('./db/messages.js');
-const { writeThreadExport } = await import('./thread-export.js');
+const { writeThreadExport, exportBounds } = await import('./thread-export.js');
 initDb(':memory:');
 
 test('every message comes out, oldest first, far past one page, with attachments named', () => {
@@ -77,4 +77,17 @@ test('two photos both called image.jpg get their own names in a zip, and one fil
   assert.equal(new Set(files.map((f) => f.name)).size, 2, 'every name in the zip is its own');
   assert.match(files[1].name, /^pictures\/\d+-image-2\.jpg$/);
   assert.ok(out.includes(`[Picture: ${files[0].name}]`) && out.includes(`[Picture: ${files[1].name}]`));
+});
+
+test('an export runs between the instants the phone sends, so "this month" keeps the whole last evening', () => {
+  // Nov 1 to Nov 13 on a Central clock: Nov 1 starts at 05:00Z (CDT ends that
+  // morning) and the 13th ends at 06:00Z on the 14th.
+  const b = exportBounds({ from: '2026-11-01', to: '2026-11-13', fromAt: '2026-11-01T05:00:00.000Z', toAt: '2026-11-14T06:00:00.000Z' });
+  assert.equal(b.from, '2026-11-01T05:00:00.000Z');
+  assert.equal(b.to, '2026-11-14T06:00:00.000Z');
+  // A message at 9 PM Central on the 13th (03:00Z on the 14th) is inside it.
+  assert.ok('2026-11-14T03:00:00.000Z' < b.to!);
+  // Dates alone keep the old reading, and junk instants fall back to the dates.
+  assert.deepEqual(exportBounds({ from: '2026-11-01', to: '2026-11-13' }), { from: '2026-11-01T00:00:00.000Z', to: '2026-11-14T00:00:00.000Z' });
+  assert.deepEqual(exportBounds({ from: '2026-11-01', fromAt: 'nope' }), { from: '2026-11-01T00:00:00.000Z', to: undefined });
 });

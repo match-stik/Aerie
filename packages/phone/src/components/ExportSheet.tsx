@@ -17,11 +17,26 @@ function today(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** Midnight at the start of a YYYY-MM-DD day on this phone's own clock. */
+export function localDayStart(day: string): Date {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function exportUrl(threadId: string, zip: boolean, from?: string, to?: string): string {
   const q = new URLSearchParams();
   if (zip) q.set('format', 'zip');
   if (from) q.set('from', from);
   if (to) q.set('to', to);
+  // The days are the reader's, so the house is also handed when they start
+  // and end on this phone's clock; a bare date reads as midnight UTC, the
+  // evening before anywhere west of Greenwich (thread-export.ts, exportBounds).
+  if (from) q.set('fromAt', localDayStart(from).toISOString());
+  if (to) {
+    const end = localDayStart(to);
+    end.setDate(end.getDate() + 1);
+    q.set('toAt', end.toISOString());
+  }
   const qs = q.toString();
   return `/api/threads/${encodeURIComponent(threadId)}/export${qs ? `?${qs}` : ''}`;
 }

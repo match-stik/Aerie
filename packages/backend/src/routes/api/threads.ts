@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { Router } from 'express';
 import crypto from 'crypto';
-import { writeThreadExport, type ExportedFile } from '../../services/thread-export.js';
+import { writeThreadExport, exportBounds, type ExportedFile } from '../../services/thread-export.js';
 import yazl from 'yazl';
 import { join } from 'path';
 import { listThreads, getThread, createThread, getMessages, archiveThread, unarchiveThread, deleteThread, getDb, pinThread, unpinThread, getMessageContext, messagePreviewText } from '../../services/db.js';
@@ -107,11 +107,7 @@ router.get('/threads/:id/export', (req, res) => {
   try {
     const thread = getThread(req.params.id);
     if (!thread) { res.status(404).json({ error: 'Thread not found' }); return; }
-    const isDay = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
-    const from = isDay(req.query.from) ? `${req.query.from}T00:00:00.000Z` : undefined;
-    const to = isDay(req.query.to)
-      ? new Date(Date.parse(`${req.query.to}T00:00:00.000Z`) + 86_400_000).toISOString()
-      : undefined;
+    const { from, to } = exportBounds(req.query);
     const zip = req.query.format === 'zip';
     const config = getAerieConfig();
     const day = new Date().toISOString().slice(0, 10);
