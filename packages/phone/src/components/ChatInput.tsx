@@ -202,22 +202,14 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Mic flow now goes through the backend (Groq Whisper + optional Hume
-  // prosody) instead of browser SpeechRecognition. State comes from the
+  // Mic flow now goes through the backend (Groq Whisper) instead of browser
+  // SpeechRecognition. State comes from the
   // Aerie store — transcription_status frames update it.
   const transcription = useAerie((s) => s.transcription);
   const activeThreadId = useAerie((s) => s.activeThreadId);
   const failedSends = useFailedSends(sendWatch).filter((f) => f.threadId === activeThreadId);
   const isRecording = transcription.status === 'recording';
   const isTranscribing = transcription.status === 'processing';
-  // Cached at consume-time so a quick edit before send doesn't lose the
-  // tone reading. Cleared after a successful send or new recording.
-  const [pendingProsody, setPendingProsody] = useState<Record<string, number> | undefined>();
-  // Track the text we filled from a transcription. If the user keeps it
-  // (or appends to it), prosody travels with the send. If they wipe it
-  // and type something unrelated, drop the prosody — would be wrong to
-  // attribute someone else's tone to fresh text.
-  const lastTranscriptText = useRef<string | null>(null);
 
   useEffect(() => {
     if (content.trim() === '') {
@@ -510,18 +502,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
     }
 
     if (finalContent && !disabled) {
-      // Prosody from Hume rides along as metadata — the backend's
-      // message hook prepends a `[Voice tone — emotion: score, ...]`
-      // line to the agent prompt so the companion sees how it was said.
-      // No audio file is stored; this is text-with-flavor, not a real
-      // voice-note bubble.
-      if (pendingProsody) {
-        onSend({ text: finalContent, metadata: { prosody: pendingProsody } }, 'text');
-        setPendingProsody(undefined);
-        lastTranscriptText.current = null;
-      } else {
-        onSend(finalContent, type);
-      }
+      onSend(finalContent, type);
       setContent('');
       setIsVoiceNote(false);
       setAttachment(null);
@@ -530,37 +511,21 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
   };
 
   // React to transcription completion — fill the textarea with the
-  // transcript and remember the prosody so the next send carries it.
+  // transcript.
   useEffect(() => {
     if (voiceConversationActive) return;
     // A room's table asked for this one; its text goes in that box, not here.
     if (micOwner() === 'table') return;
     if (transcription.status === 'complete' && transcription.text) {
       const transcript = transcription.text.trim();
-      setContent((prev) => {
-        const next = prev ? `${prev} ${transcript}` : transcript;
-        lastTranscriptText.current = next;
-        return next;
-      });
-      setPendingProsody(transcription.prosody);
+      setContent((prev) => (prev ? `${prev} ${transcript}` : transcript));
       setIsVoiceNote(true);
       clearTranscription();
     } else if (transcription.status === 'error' && transcription.error) {
       onError?.(transcription.error);
       clearTranscription();
     }
-  }, [transcription.status, transcription.text, transcription.prosody, transcription.error, onError, voiceConversationActive]);
-
-  // If the user edits the composer to something that no longer contains
-  // the transcribed text, drop the prosody — wouldn't be honest to
-  // attribute the original tone reading to fresh typing.
-  useEffect(() => {
-    if (!pendingProsody) return;
-    if (lastTranscriptText.current && !content.includes(lastTranscriptText.current)) {
-      setPendingProsody(undefined);
-      lastTranscriptText.current = null;
-    }
-  }, [content, pendingProsody]);
+  }, [transcription.status, transcription.text, transcription.error, onError, voiceConversationActive]);
 
   // Cancel any in-flight recording on unmount so the mic actually
   // releases and we don't leave a hot MediaRecorder feeding chunks

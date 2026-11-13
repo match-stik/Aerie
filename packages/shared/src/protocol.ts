@@ -21,7 +21,7 @@ export type ClientMessage =
   | { type: 'read'; threadId: string; beforeId: string }
   | { type: 'switch_thread'; threadId: string }
   | { type: 'create_thread'; name: string; threadType: 'named'; companionIds?: string[] }
-  | { type: 'voice_start'; mimeType?: string; mode?: 'dictation' | 'conversation'; recordingId?: string; analyzeTone?: boolean }
+  | { type: 'voice_start'; mimeType?: string; mode?: 'dictation' | 'conversation'; recordingId?: string }
   | { type: 'voice_audio'; data: string; recordingId?: string }
   | { type: 'voice_stop'; recordingId?: string }
   | { type: 'voice_cancel'; recordingId?: string }
@@ -66,7 +66,7 @@ export type ServerMessage =
   | { type: 'voice_audio'; data: string }
   | { type: 'voice_transcript'; text: string }
   | { type: 'voice_mode_ack'; enabled: boolean }
-  | { type: 'transcription_status'; status: 'processing' | 'complete' | 'error'; text?: string; error?: string; prosody?: Record<string, number>; prosodyStatus?: 'complete' | 'unavailable'; recordingId?: string }
+  | { type: 'transcription_status'; status: 'processing' | 'complete' | 'error'; text?: string; error?: string; recordingId?: string }
   | { type: 'tts_start'; messageId: string }
   | { type: 'tts_audio'; messageId: string; data: string; final: boolean }
   | { type: 'tts_end'; messageId: string }

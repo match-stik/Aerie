@@ -98,14 +98,6 @@ With Discord integration enabled, the companion sees context about other convers
 
 This prevents the companion from interrupting when the user is busy elsewhere.
 
-### Voice Prosody Analysis
-We integrated Hume AI's prosody analysis with voice messages. When the user sends a voice note, the system analyzes emotional tone (joy, sadness, anger, etc.) and includes it as context:
-```
-[Voice tone — joy: 0.42, interest: 0.38, contentment: 0.28]
-```
-
-The companion can then respond to HOW something was said, not just what was said.
-
 ## Building Custom Hooks
 
 The lane's hooks are Claude Code hooks, written into

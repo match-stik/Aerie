@@ -112,7 +112,7 @@ async function reinitFor(req: Request, name: string): Promise<void> {
         await svc.stop();
         await svc.start();
       }
-    } else if (name.startsWith('elevenlabs_') || name === 'hume_api_key' || name === 'groq_api_key') {
+    } else if (name.startsWith('elevenlabs_') || name === 'groq_api_key') {
       const svc = app.locals.voiceService as { refresh?: () => void } | undefined;
       svc?.refresh?.();
     } else if (name.startsWith('vapid_')) {

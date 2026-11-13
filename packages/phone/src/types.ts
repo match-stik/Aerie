@@ -61,8 +61,9 @@ export interface Message {
   // voice note recording). Lets the bubble show a mic icon so the companions
   // can see their person's speaking cadence.
   isVoiceInput?: boolean;
-  // Hume prosody scores from the voice input, when available. Top 3 perceived
-  // vocal expressions (e.g. { Amusement: 0.8, Interest: 0.6 }).
+  // A tone reading Hume gave an older voice message, kept so those bubbles
+  // still show it. Nothing new carries one: Hume discontinued the API
+  // (Nov 13 2026) and the house stopped asking.
   prosody?: Record<string, number>;
 }
 

@@ -153,7 +153,6 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     extWs.isRecording = false;
     extWs.audioMimeType = 'audio/webm';
     extWs.voiceCaptureMode = 'dictation';
-    extWs.voiceAnalyzeToneRequested = false;
     extWs.activeRecordingId = null;
     extWs.transcriptionAbort = null;
     extWs.userAgent = request.headers['user-agent'] || '';
@@ -161,8 +160,6 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     extWs.tabVisible = true;
     extWs.messageCount = 0;
     extWs.messageWindowStart = Date.now();
-    extWs.prosodyAbort = null;
-    extWs.realtimeProsody = null;
     (extWs as any)._clientIp = clientIp; // Store for cleanup
 
     registry.add(extWs.userId, extWs, clientIp);
@@ -399,12 +396,6 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
         extWs.transcriptionAbort.abort();
         extWs.transcriptionAbort = null;
       }
-      if (extWs.prosodyAbort) {
-        extWs.prosodyAbort.abort();
-        extWs.prosodyAbort = null;
-      }
-      extWs.realtimeProsody?.abort();
-      extWs.realtimeProsody = null;
       const ip = (extWs as any)._clientIp;
       registry.remove(extWs.userId, extWs, ip);
     });
@@ -412,9 +403,6 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     extWs.on('error', (error) => {
       console.error('WebSocket error:', error);
       extWs.transcriptionAbort?.abort();
-      extWs.prosodyAbort?.abort();
-      extWs.realtimeProsody?.abort();
-      extWs.realtimeProsody = null;
       // Security: clean up on error to prevent connection leak
       const ip = (extWs as any)._clientIp;
       registry.remove(extWs.userId, extWs, ip);
@@ -690,30 +678,6 @@ async function handleMessageSend(
     }
     if (dropped > 0) {
       console.log(`[Images] Capped ${dropped} image(s) due to size limits`);
-    }
-  }
-
-  // Prepend bounded expression context if present. These are Hume's
-  // confidence-weighted perceptions of vocal qualities, not ground truth
-  // about the user's internal emotional state.
-  if (msg.metadata && typeof msg.metadata === 'object') {
-    const prosody = (msg.metadata as Record<string, unknown>).prosody as Record<string, number> | undefined;
-    if (prosody && Object.keys(prosody).length > 0) {
-      const toneEntries = Object.entries(prosody)
-        .filter((entry): entry is [string, number] => (
-          typeof entry[1] === 'number' && Number.isFinite(entry[1])
-        ))
-        .slice(0, 3)
-        .map(([emotion, score]) => {
-          const safeLabel = emotion.replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 40);
-          const confidence = Math.round(Math.max(0, Math.min(1, score)) * 100);
-          return safeLabel ? `${safeLabel}: ${confidence}%` : '';
-        })
-        .filter(Boolean)
-        .join(', ');
-      if (toneEntries) {
-        agentPrompt = `[Voice expression signals from Hume — perceived vocal qualities, not certain inner state; use subtly and do not repeat the labels unless relevant: ${toneEntries}]\n${agentPrompt}`;
-      }
     }
   }
 

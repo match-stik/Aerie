@@ -271,7 +271,6 @@ Voice:
 - `services/voice.ts` exports `VoiceService` for transcription and TTS.
 - `services/ws/handlers/voice-handlers.ts` owns the WebSocket recording and streamed-audio protocol.
 - `services/tts-text.ts`, `voice-speaker-split.ts`, and `voice-transcript-guard.ts` normalize text, split speakers, and reject suspect transcripts.
-- `services/hume-realtime-prosody.ts` handles real-time prosody signals.
 - `services/elevenlabs-usage.ts` tracks voice-provider usage.
 
 Image generation:

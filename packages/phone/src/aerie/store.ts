@@ -64,15 +64,10 @@ export interface AerieState {
   commandRegistry: CommandRegistryEntry[];
   systemStatus: SystemStatus | null;
   // Voice recording / transcription state — drives the mic button in
-  // ChatInput. `prosody` is the Hume tone reading from the backend; held
-  // here so the next outbound message can attach it as metadata for the
-  // companion's context as bounded expression signals. Cleared once
-  // consumed or when a new recording starts.
+  // ChatInput.
   transcription: {
     status: 'idle' | 'recording' | 'processing' | 'complete' | 'error';
     text?: string;
-    prosody?: Record<string, number>;
-    prosodyStatus?: 'complete' | 'unavailable';
     error?: string;
     recordingId?: string;
   };

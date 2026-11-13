@@ -237,7 +237,7 @@ The phone UI has a built-in theme picker with light/dark modes, a wallpaper slid
 
 ### Voice
 - Voice recording with transcription: a local speech-to-text server if you run one (`voice.local_stt_url`), then Groq Whisper, then ElevenLabs
-- Text-to-speech responses (ElevenLabs) that start playing in a couple of seconds and, in the Android app, keep playing when you leave it; optional prosody analysis (Hume AI)
+- Text-to-speech responses (ElevenLabs) that start playing in a couple of seconds and, in the Android app, keep playing when you leave it
 - Pet names: a few common endearments (darling, sweetheart, love) count as somebody being spoken to, so a line using one is read aloud rather than skipped as a stage direction. Add your own house's pet names, comma-separated, to the `voice.direct_address` setting so yours are read aloud too; until you do, it listens for your name.
 
 ### Agent Tools

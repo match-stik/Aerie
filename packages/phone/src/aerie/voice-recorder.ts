@@ -13,8 +13,6 @@ export type VoiceRecordingMode = 'dictation' | 'conversation';
 
 export interface VoiceRecordingOptions {
   mode?: VoiceRecordingMode;
-  /** Opt in to the server-side Hume EVI tone sidecar for this utterance. */
-  analyzeTone?: boolean;
   autoStopOnSilence?: boolean;
   silenceMs?: number;
   minSpeechMs?: number;
@@ -506,7 +504,6 @@ export async function startVoiceRecording(options: VoiceRecordingOptions = {}): 
   const pendingChunkSends = new Set<Promise<void>>();
   let chunkSendChain: Promise<void> = Promise.resolve();
   let hardCaptureTimer: number | null = null;
-  const analyzeTone = options.analyzeTone === true && isRealtimeToneRecordingSupported();
   const actualMimeType = captureRecorder.mimeType || mimeType || 'audio/webm';
 
   captureRecorder.addEventListener('dataavailable', (event) => {
@@ -553,11 +550,8 @@ export async function startVoiceRecording(options: VoiceRecordingOptions = {}): 
     setState({ transcription: { status: 'error', error: 'Microphone recording failed' } });
   });
 
-  // Hume recommends 100ms web chunks for real-time expression measurement.
-  // Keep the quieter 1s cadence everywhere else so ordinary dictation and
-  // tone-disabled calls do not create unnecessary WebSocket traffic.
   try {
-    captureRecorder.start(options.mode === 'conversation' && analyzeTone ? 100 : 1000);
+    captureRecorder.start(1000);
   } catch (err) {
     releaseCapture(recordingId, captureStream, captureRecorder);
     setState({ transcription: { status: 'error', error: 'Could not start microphone recording' } });
@@ -565,13 +559,12 @@ export async function startVoiceRecording(options: VoiceRecordingOptions = {}): 
   }
   // Start the backend turn only after MediaRecorder has accepted the stream.
   // dataavailable cannot fire until a later task, so the header still follows
-  // this control frame while a failed recorder never opens a paid EVI socket.
+  // this control frame.
   send({
     type: 'voice_start',
     mimeType: actualMimeType,
     mode: options.mode || 'dictation',
     recordingId,
-    analyzeTone,
   });
   if (options.maxCaptureMs !== undefined) {
     hardCaptureTimer = window.setTimeout(() => {
@@ -579,19 +572,12 @@ export async function startVoiceRecording(options: VoiceRecordingOptions = {}): 
       options.onSpeechTimeout?.();
     }, options.maxCaptureMs);
   }
-  const vadStarted = beginVoiceActivityDetection(captureStream, captureRecorder, recordingId, {
+  beginVoiceActivityDetection(captureStream, captureRecorder, recordingId, {
     ...options,
     onSpeechStart: () => {
       options.onSpeechStart?.();
     },
   });
-  // If an apparently available AudioContext still fails to initialize, close
-  // the just-opened optional tone turn immediately rather than leaving a paid
-  // paused EVI socket behind an unbounded recorder.
-  if (analyzeTone && !vadStarted) {
-    cancelSpecificRecording(captureRecorder, recordingId);
-    options.onSpeechTimeout?.();
-  }
   return recordingId;
 }
 
@@ -640,10 +626,6 @@ export function isRecordingSupported(): boolean {
     && typeof navigator.mediaDevices.getUserMedia === 'function'
     && typeof MediaRecorder !== 'undefined'
   );
-}
-
-export function isRealtimeToneRecordingSupported(): boolean {
-  return isRecordingSupported() && !!getAudioContextConstructor();
 }
 
 export function isVoiceRecording(): boolean {

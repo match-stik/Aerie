@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Portions derive from Thornvale (Sidney) — multi-voice TTS — see NOTICE.
-// Voice services — Groq Whisper / ElevenLabs Scribe STT + ElevenLabs TTS + Hume Prosody
+// Voice services — Groq Whisper / ElevenLabs Scribe STT + ElevenLabs TTS
 // Multi-voice support for aerie companions
 
 import crypto from 'crypto';
@@ -25,11 +25,6 @@ import {
 } from './voice-speaker-split.js';
 import { tagRenderPieces, voiceNoteTagsFor, withLeadingTags } from './voice-note-tags.js';
 import { parseElevenLabsSubscription, type ElevenLabsUsage } from './elevenlabs-usage.js';
-import {
-  createHumeRealtimeProsodySession,
-  type RealtimeProsodySession,
-  type RealtimeProsodySessionFactory,
-} from './hume-realtime-prosody.js';
 
 const GROQ_WHISPER_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1/text-to-speech';
@@ -45,7 +40,6 @@ function localSttUrl(): string | null {
 }
 const ELEVENLABS_SUBSCRIPTION_URL = 'https://api.elevenlabs.io/v1/user/subscription';
 const ELEVENLABS_USAGE_CACHE_MS = 60_000;
-const HUME_BATCH_URL = 'https://api.hume.ai/v0/batch/jobs';
 /**
  * House-wide ceiling on simultaneous ElevenLabs render requests. Was 2, chosen
  * to be safe on any plan without knowing which one this house is on; the
@@ -126,10 +120,6 @@ class GroqWhisperError extends Error {
   }
 }
 
-export interface VoiceServiceOptions {
-  realtimeProsodyFactory?: RealtimeProsodySessionFactory;
-}
-
 export class VoiceService {
   private groqCredentials: GroqCredential[] = [];
   private rejectedGroqKeys = new Set<string>();
@@ -137,14 +127,11 @@ export class VoiceService {
   private elevenLabsVoiceId: string | undefined;
   private voiceIds: Record<string, string> = {};
   private voiceSettings: Record<string, Record<string, unknown>> = {};
-  private humeApiKey: string | undefined;
-  private readonly realtimeProsodyFactory: RealtimeProsodySessionFactory;
   private activeTtsRequests = 0;
   private ttsSlotWaiters: Array<() => void> = [];
   private elevenLabsUsageCache: { at: number; data: ElevenLabsUsage } | null = null;
 
-  constructor(options: VoiceServiceOptions = {}) {
-    this.realtimeProsodyFactory = options.realtimeProsodyFactory ?? createHumeRealtimeProsodySession;
+  constructor() {
     this.refresh();
   }
 
@@ -181,7 +168,6 @@ export class VoiceService {
     this.rejectedGroqKeys.clear();
     this.elevenLabsKey = getSecret('elevenlabs_api_key') || undefined;
     this.elevenLabsVoiceId = getSecret('elevenlabs_voice_id') || undefined;
-    this.humeApiKey = getSecret('hume_api_key') || undefined;
 
     // Per-companion voice IDs + voice-settings JSON. Slugs come from the
     // companions table; getSecret falls back to ELEVENLABS_VOICE_ID_<SLUG>
@@ -259,9 +245,6 @@ export class VoiceService {
         console.warn('[Voice] ffmpeg not found — multi-voice messages will fall back to a single voice (apt install ffmpeg)');
       }
     }
-    if (!this.humeApiKey) {
-      console.warn('[Voice] hume_api_key not set — prosody analysis not configured');
-    }
   }
 
   /**
@@ -306,7 +289,6 @@ export class VoiceService {
   describe(): {
     canTTS: boolean;
     canTranscribe: boolean;
-    canAnalyzeProsody: boolean;
     transcriptionProviders: { local: boolean; groq: boolean; elevenlabs: boolean };
     hasElevenLabsKey: boolean;
     defaultVoiceId: string | undefined;
@@ -317,7 +299,6 @@ export class VoiceService {
     return {
       canTTS: this.canTTS,
       canTranscribe: this.canTranscribe,
-      canAnalyzeProsody: this.canAnalyzeRealtimeProsody,
       transcriptionProviders: {
         local: !!localSttUrl(),
         groq: this.groqCredentials.some(({ key }) => !this.rejectedGroqKeys.has(key)),
@@ -375,20 +356,6 @@ export class VoiceService {
     } catch {
       return false;
     }
-  }
-
-  get canAnalyzeProsody(): boolean {
-    return !!this.humeApiKey;
-  }
-
-  get canAnalyzeRealtimeProsody(): boolean {
-    return !!this.humeApiKey;
-  }
-
-  /** Open one server-side EVI sidecar for an explicitly opted-in turn. */
-  createRealtimeProsodySession(): RealtimeProsodySession | null {
-    if (!this.humeApiKey) return null;
-    return this.realtimeProsodyFactory(this.humeApiKey);
   }
 
   /**
@@ -602,140 +569,6 @@ export class VoiceService {
 
     const result = await response.json() as { text?: string };
     return result.text || '';
-  }
-
-  /**
-   * Analyze prosody (emotional tone) from audio using Hume AI batch API.
-   */
-  async analyzeProsody(audioBuffer: Buffer, mimeType: string, signal?: AbortSignal): Promise<Record<string, number> | null> {
-    if (!this.humeApiKey) return null;
-
-    const baseMime = mimeType.split(';')[0].trim();
-    const extMap: Record<string, string> = {
-      'audio/webm': 'webm', 'audio/mp4': 'm4a', 'audio/mpeg': 'mp3',
-      'audio/ogg': 'ogg', 'audio/wav': 'wav',
-    };
-    const ext = extMap[baseMime] || 'webm';
-    const boundary = `----HumeBoundary${crypto.randomUUID().replace(/-/g, '')}`;
-
-    const filePart = [
-      `--${boundary}`,
-      `Content-Disposition: form-data; name="file"; filename="recording.${ext}"`,
-      `Content-Type: ${baseMime}`,
-      '', '',
-    ].join('\r\n');
-
-    const jsonConfig = JSON.stringify({ models: { prosody: {} } });
-    const jsonPart = [
-      `--${boundary}`,
-      'Content-Disposition: form-data; name="json"',
-      'Content-Type: application/json',
-      '', jsonConfig,
-      `--${boundary}--`, '',
-    ].join('\r\n');
-
-    const body = Buffer.concat([
-      Buffer.from(filePart), audioBuffer, Buffer.from('\r\n' + jsonPart),
-    ]);
-
-    if (signal?.aborted) return null;
-    const submitRes = await fetch(HUME_BATCH_URL, {
-      method: 'POST',
-      headers: {
-        'X-Hume-Api-Key': this.humeApiKey,
-        'Content-Type': `multipart/form-data; boundary=${boundary}`,
-      },
-      body,
-      signal,
-    });
-
-    if (!submitRes.ok) {
-      const errText = await submitRes.text();
-      console.error(`[Hume] Job submit failed ${submitRes.status}: ${errText}`);
-      return null;
-    }
-
-    const { job_id } = await submitRes.json() as { job_id: string };
-    console.log(`[Hume] Job submitted: ${job_id}`);
-
-    const maxPolls = 30;
-    for (let i = 0; i < maxPolls; i++) {
-      if (signal?.aborted) return null;
-      await new Promise(r => setTimeout(r, 1000));
-      if (signal?.aborted) return null;
-
-      const statusRes = await fetch(`${HUME_BATCH_URL}/${job_id}`, {
-        headers: { 'X-Hume-Api-Key': this.humeApiKey },
-        signal,
-      });
-
-      if (!statusRes.ok) continue;
-
-      const statusBody = await statusRes.json() as any;
-      const jobStatus = statusBody.state?.status;
-      console.log(`[Hume] Poll ${i + 1}/${maxPolls}: status=${jobStatus}`);
-
-      if (jobStatus === 'COMPLETED') {
-        const predRes = await fetch(`${HUME_BATCH_URL}/${job_id}/predictions`, {
-          headers: { 'X-Hume-Api-Key': this.humeApiKey },
-          signal,
-        });
-
-        if (!predRes.ok) {
-          const errBody = await predRes.text();
-          console.error(`[Hume] Predictions fetch failed: ${predRes.status} — ${errBody}`);
-          return null;
-        }
-
-        const predictions = await predRes.json() as any[];
-        return this.extractProsodyScores(predictions);
-      }
-
-      if (jobStatus === 'FAILED') {
-        console.error(`[Hume] Job failed. Full status: ${JSON.stringify(statusBody)}`);
-        return null;
-      }
-    }
-
-    console.warn('[Hume] Job timed out after 30s polling');
-    return null;
-  }
-
-  private extractProsodyScores(predictions: any[]): Record<string, number> | null {
-    try {
-      const file = predictions?.[0];
-      const results = file?.results?.predictions;
-      if (!results?.length) return null;
-
-      const prosody = results[0]?.models?.prosody;
-      const grouped = prosody?.grouped_predictions;
-      if (!grouped?.length) return null;
-
-      const emotionTotals: Record<string, number[]> = {};
-      for (const group of grouped) {
-        for (const pred of group.predictions || []) {
-          for (const emotion of pred.emotions || []) {
-            const name = emotion.name as string;
-            const score = emotion.score as number;
-            if (!emotionTotals[name]) emotionTotals[name] = [];
-            emotionTotals[name].push(score);
-          }
-        }
-      }
-
-      const averaged: [string, number][] = [];
-      for (const [name, scores] of Object.entries(emotionTotals)) {
-        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-        averaged.push([name, Math.round(avg * 100) / 100]);
-      }
-
-      const sorted = averaged.sort((a, b) => b[1] - a[1]).slice(0, 5);
-      if (sorted.length === 0) return null;
-      return Object.fromEntries(sorted);
-    } catch (error) {
-      console.error('[Hume] Failed to extract prosody scores:', error);
-      return null;
-    }
   }
 
   /**

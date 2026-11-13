@@ -24,7 +24,6 @@ import { getState, useAerie } from '../aerie/store';
 import {
   cancelVoiceRecording,
   clearTranscription,
-  isRealtimeToneRecordingSupported,
   isRecordingSupported,
   openCallLine,
   setMicrophoneRetention,
@@ -94,7 +93,7 @@ export interface VoiceModeOverlayProps {
    * Started from the car's dash (theirs, Nov 6 2026: 'it didn't give me a
    * chance to start talking though?'). Nobody can tap a phone while driving,
    * so a quiet stretch or a bump of road noise listens again instead of
-   * pausing, and the paid tone analysis stays off for the whole call.
+   * pausing.
    */
   handsFree?: boolean;
 }
@@ -102,7 +101,6 @@ export interface VoiceModeOverlayProps {
 interface VoiceDiagnostics {
   canTTS?: boolean;
   canTranscribe?: boolean;
-  canAnalyzeProsody?: boolean;
 }
 
 interface PendingReply {
@@ -141,7 +139,6 @@ async function fetchRingGreeting(threadId: string): Promise<{ messageId: string;
 }
 
 const ABORT_ERROR = 'AbortError';
-const VOICE_TONE_PREFERENCE_KEY = 'aerie.voice.tone-enabled';
 const VOICE_DOCK_POSITION_KEY = 'aerie.voice-dock-position';
 // Measured off the floating dock, which is the reference object: 34dp faces
 // overlapping by 11, a 9dp gap, three bars, and its own padding.
@@ -177,15 +174,6 @@ function savedDockPosition(): DockPosition | null {
     const parsed = JSON.parse(raw) as Partial<DockPosition>;
     if (typeof parsed.x !== 'number' || typeof parsed.y !== 'number') return null;
     return clampDockPosition({ x: parsed.x, y: parsed.y });
-  } catch {
-    return null;
-  }
-}
-
-function savedTonePreference(): boolean | null {
-  try {
-    const saved = localStorage.getItem(VOICE_TONE_PREFERENCE_KEY);
-    return saved === null ? null : saved === 'true';
   } catch {
     return null;
   }
@@ -389,12 +377,7 @@ export function VoiceModeOverlay({
   const [phase, setPhaseState] = useState<VoiceModePhase>('starting');
   const [level, setLevel] = useState(0);
   const [lastTranscript, setLastTranscript] = useState('');
-  const [lastTone, setLastTone] = useState<Record<string, number> | null>(null);
-  const [lastToneStatus, setLastToneStatus] = useState<'complete' | 'unavailable' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [initialTonePreference] = useState(savedTonePreference);
-  const [toneEnabled, setToneEnabled] = useState(initialTonePreference === true);
-  const [toneAvailable, setToneAvailable] = useState(false);
   const [nativePocketActive, setNativePocketActive] = useState(false);
   const [dockPosition, setDockPosition] = useState<DockPosition | null>(savedDockPosition);
   const [overlayAccess, setOverlayAccess] = useState<{ supported: boolean; granted: boolean } | null>(null);
@@ -412,9 +395,6 @@ export function VoiceModeOverlay({
   const continuationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
   const closeNotifiedRef = useRef(false);
-  const toneEnabledRef = useRef(toneEnabled);
-  const toneAvailableRef = useRef(false);
-  const tonePreferenceChosenRef = useRef(initialTonePreference !== null);
   const onSendRef = useRef(onSend);
   const onCloseRef = useRef(onClose);
   const onPhaseChangeRef = useRef(onPhaseChange);
@@ -499,7 +479,6 @@ export function VoiceModeOverlay({
     try {
       const recordingId = await startVoiceRecording({
         mode: 'conversation',
-        analyzeTone: !handsFreeRef.current && toneEnabledRef.current && toneAvailableRef.current,
         autoStopOnSilence: true,
         // At 1050ms an ordinary pause to find a word ends the turn halfway
         // through a sentence, and being cut off mid-thought costs far more than
@@ -564,17 +543,6 @@ export function VoiceModeOverlay({
       const current = getState();
       if (current.presence === 'active' || current.presence === 'waking' || current.streamingMessageId) {
         throw new Error('Let the current reply finish before starting another voice turn');
-      }
-      // Reaching for the mic with the visible toggle off is an explicit
-      // choice too. Remember it so only the very first tone-capable call
-      // pauses in the ready state for disclosure and selection.
-      if (toneAvailableRef.current && !tonePreferenceChosenRef.current) {
-        tonePreferenceChosenRef.current = true;
-        try {
-          localStorage.setItem(VOICE_TONE_PREFERENCE_KEY, String(toneEnabledRef.current));
-        } catch {
-          // In-memory choice still applies for this call.
-        }
       }
       await unlockVoicePlayback();
       await beginListening();
@@ -701,21 +669,6 @@ export function VoiceModeOverlay({
     }
   }, [setPhase, startFromGesture]);
 
-  const toggleTone = useCallback(() => {
-    if (!toneAvailableRef.current) return;
-    if (phaseRef.current === 'listening' || phaseRef.current === 'hearing' || phaseRef.current === 'transcribing') return;
-    const next = !toneEnabledRef.current;
-    toneEnabledRef.current = next;
-    tonePreferenceChosenRef.current = true;
-    setToneEnabled(next);
-    try {
-      localStorage.setItem(VOICE_TONE_PREFERENCE_KEY, String(next));
-    } catch {
-      // The call still honors the in-memory choice if storage is unavailable.
-    }
-    haptic(14);
-  }, []);
-
   const handleEnd = useCallback(() => {
     haptic(22);
     stopSession(true);
@@ -792,8 +745,6 @@ export function VoiceModeOverlay({
     awaitingTranscriptRef.current = false;
     pendingReplyRef.current = null;
     setLastTranscript('');
-    setLastTone(null);
-    setLastToneStatus(null);
     setError(null);
     setLevel(0);
     setPhase('starting');
@@ -848,20 +799,6 @@ export function VoiceModeOverlay({
         const diagnostics = await response.json() as VoiceDiagnostics;
         if (!diagnostics.canTranscribe) throw new Error('Voice transcription is not configured');
         if (!diagnostics.canTTS) throw new Error('Companion voices are not configured');
-        const canAnalyzeTone = (
-          diagnostics.canAnalyzeProsody === true
-          && isRealtimeToneRecordingSupported()
-        );
-        toneAvailableRef.current = canAnalyzeTone;
-        setToneAvailable(canAnalyzeTone);
-
-        // On the first tone-capable call, let the user see and choose the
-        // provider toggle before any microphone audio starts moving.
-        if (canAnalyzeTone && !tonePreferenceChosenRef.current) {
-          setPhase('ready');
-          return;
-        }
-
         try {
           await unlockVoicePlayback();
         } catch {
@@ -980,8 +917,6 @@ export function VoiceModeOverlay({
 
     awaitingTranscriptRef.current = false;
     const text = transcription.text?.trim() || '';
-    const prosody = transcription.prosody;
-    const prosodyStatus = transcription.prosodyStatus;
     clearTranscription();
     if (!text) {
       setError('I did not catch any words. Tap the center and try again.');
@@ -999,8 +934,6 @@ export function VoiceModeOverlay({
       utteranceId,
     };
     setLastTranscript(text);
-    setLastTone(prosody || null);
-    setLastToneStatus(prosodyStatus || null);
     setPhase('thinking');
 
     const metadata: Record<string, unknown> = {
@@ -1008,7 +941,6 @@ export function VoiceModeOverlay({
       voiceSessionId,
       utteranceId,
     };
-    if (prosody) metadata.prosody = prosody;
 
     const submissionEpoch = epochRef.current;
     void Promise.resolve()
@@ -1174,7 +1106,6 @@ export function VoiceModeOverlay({
       ? 'Finish voice turn'
       : 'Start listening';
   const accentInk = 'var(--aerie-on-accent)';
-  const toneActive = toneAvailable && toneEnabled;
   const resolvedDockPosition = dockPosition || defaultDockPosition();
   const pocketCanResume = phase === 'ready' || phase === 'error';
 
@@ -1355,18 +1286,6 @@ export function VoiceModeOverlay({
                   >
                     <p className={cn('micro-label mb-1', colors.textMuted)}>You said</p>
                     <p className="line-clamp-3 text-sm leading-relaxed">{lastTranscript}</p>
-                    {lastTone && Object.keys(lastTone).length > 0 && (
-                      <p className={cn('mt-2 line-clamp-2 text-[10px] leading-relaxed', colors.textMuted)}>
-                        Perceived tone · {Object.entries(lastTone).slice(0, 3).map(([name, score]) => (
-                          `${name} ${Math.round(score * 100)}%`
-                        )).join(' · ')}
-                      </p>
-                    )}
-                    {lastToneStatus === 'unavailable' && (
-                      <p className={cn('mt-2 text-[10px] leading-relaxed', colors.textMuted)}>
-                        Hume did not return a tone reading · your words still went through normally
-                      </p>
-                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1404,11 +1323,6 @@ export function VoiceModeOverlay({
                   </p>
                 )
               )}
-              {toneActive && (
-                <p className={cn('mb-1.5 text-center text-[10px] leading-relaxed', colors.textMuted)}>
-                  Tone on · microphone audio is also sent to Hume for expression analysis
-                </p>
-              )}
               <div
                 className={cn(
                   'flex items-center justify-between rounded-2xl border px-4 py-3 backdrop-blur-xl',
@@ -1428,28 +1342,14 @@ export function VoiceModeOverlay({
               >
                 {microphoneLive ? <Mic size={20} /> : <MicOff size={20} />}
               </button>
-              <button
-                type="button"
-                onClick={toggleTone}
-                disabled={!toneAvailable || busy || microphoneLive}
-                aria-pressed={toneActive}
-                aria-label={toneActive ? 'Disable Hume tone analysis' : 'Enable Hume tone analysis'}
-                title="Tone analysis sends this call's microphone audio to Hume"
-                className={cn(
-                  'flex items-center gap-2 rounded-xl px-2.5 py-1.5 transition-colors disabled:opacity-35',
-                  toneActive ? 'bg-black/10 dark:bg-white/10' : colors.textMuted,
-                )}
-                style={toneActive ? { color: colors.accent } : undefined}
-              >
+              <div className={cn('flex items-center gap-2 rounded-xl px-2.5 py-1.5', colors.textMuted)}>
                 <VoiceBars active={microphoneLive || speaking} level={speaking ? 0.72 : level} />
                 <span className="text-[11px] font-medium">
                   {connectionState !== 'connected'
                     ? 'Reconnecting'
-                    : !toneAvailable
-                      ? 'Tone unavailable'
-                      : toneActive ? 'Hume tone on' : 'Hume tone off'}
+                    : microphoneLive ? 'Listening' : speaking ? 'Speaking' : 'On call'}
                 </span>
-              </button>
+              </div>
               <button
                 type="button"
                 onClick={handleEnd}

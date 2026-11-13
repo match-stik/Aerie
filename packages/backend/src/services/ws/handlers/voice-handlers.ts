@@ -20,7 +20,6 @@ const MAX_AUDIO_BUFFER_SIZE = 25 * 1024 * 1024; // 25MB security cap
 // At the opted-in 100ms cadence this allows five minutes of one uninterrupted
 // utterance while still bounding frames that bypass the general WS rate cap.
 export const MAX_AUDIO_CHUNKS_PER_RECORDING = 3_000;
-const REALTIME_PROSODY_WAIT_MS = 1_800;
 
 function safeAudioMimeType(value?: string): string {
   const candidate = value?.trim().toLowerCase();
@@ -58,10 +57,7 @@ function discardActiveCapture(ws: ExtendedWebSocket): void {
   ws.audioChunks = [];
   ws.audioBytes = 0;
   ws.voiceAudioChunkCount = 0;
-  ws.voiceAnalyzeToneRequested = false;
   ws.activeRecordingId = null;
-  ws.realtimeProsody?.abort();
-  ws.realtimeProsody = null;
 }
 
 // --- Voice handlers ---
@@ -75,33 +71,13 @@ export function handleVoiceStart(
   // retry must never let an older result arrive after the newer turn.
   ws.transcriptionAbort?.abort();
   ws.transcriptionAbort = null;
-  ws.prosodyAbort?.abort();
-  ws.prosodyAbort = null;
-  ws.realtimeProsody?.abort();
-  ws.realtimeProsody = null;
   ws.audioChunks = [];
   ws.audioBytes = 0;
   ws.voiceAudioChunkCount = 0;
   ws.isRecording = true;
   ws.audioMimeType = safeAudioMimeType(msg.mimeType);
   ws.voiceCaptureMode = msg.mode || 'dictation';
-  ws.voiceAnalyzeToneRequested = (
-    ws.voiceCaptureMode === 'conversation'
-    && msg.analyzeTone === true
-    && voiceServiceInstance?.canAnalyzeRealtimeProsody === true
-  );
   ws.activeRecordingId = typeof msg.recordingId === 'string' ? msg.recordingId : null;
-
-  if (ws.voiceAnalyzeToneRequested) {
-    try {
-      // Open before the first MediaRecorder blob so EVI receives a continuous
-      // live WebM stream. The phone cancels silent starts after ten seconds.
-      ws.realtimeProsody = voiceServiceInstance?.createRealtimeProsodySession() ?? null;
-    } catch {
-      // Tone is optional; microphone capture and Groq transcription continue.
-      ws.realtimeProsody = null;
-    }
-  }
 }
 
 export function handleVoiceAudio(
@@ -131,13 +107,6 @@ export function handleVoiceAudio(
 
   ws.audioChunks.push(chunk);
   ws.audioBytes += chunk.length;
-  try {
-    ws.realtimeProsody?.pushAudio(chunk);
-  } catch {
-    // A failed optional sidecar must not damage the buffered Groq recording.
-    ws.realtimeProsody?.abort();
-    ws.realtimeProsody = null;
-  }
 }
 
 export async function handleVoiceStop(
@@ -147,11 +116,7 @@ export async function handleVoiceStop(
   if (!matchesActiveRecording(ws, (msg as { recordingId?: unknown } | undefined)?.recordingId)) return;
   ws.isRecording = false;
   const recordingId = msg?.recordingId || ws.activeRecordingId || undefined;
-  const captureMode = ws.voiceCaptureMode;
-  const toneRequested = ws.voiceAnalyzeToneRequested;
-  const realtimeProsody = ws.realtimeProsody;
   ws.voiceAudioChunkCount = 0;
-  ws.voiceAnalyzeToneRequested = false;
 
   if (ws.audioChunks.length === 0) {
     const statusMsg: ServerMessage = {
@@ -162,8 +127,6 @@ export async function handleVoiceStop(
     };
     ws.send(JSON.stringify(statusMsg));
     ws.activeRecordingId = null;
-    realtimeProsody?.abort();
-    if (ws.realtimeProsody === realtimeProsody) ws.realtimeProsody = null;
     return;
   }
 
@@ -187,8 +150,6 @@ export async function handleVoiceStop(
     };
     ws.send(JSON.stringify(errorMsg));
     ws.activeRecordingId = null;
-    realtimeProsody?.abort();
-    if (ws.realtimeProsody === realtimeProsody) ws.realtimeProsody = null;
     return;
   }
 
@@ -196,35 +157,14 @@ export async function handleVoiceStop(
     const transcriptionAbort = new AbortController();
     ws.transcriptionAbort = transcriptionAbort;
 
-    // Dictation retains the batch Hume path. An opted-in conversation has
-    // already streamed to EVI beside Groq; it gets one short bounded window
-    // to return the final sentence scores and can never hold the call open.
-    const prosodyAbort = captureMode === 'dictation' && voiceServiceInstance.canAnalyzeProsody
-      ? new AbortController()
-      : null;
-    ws.prosodyAbort = prosodyAbort;
-
-    const transcriptPromise = voiceServiceInstance.transcribe(
+    let transcript = await voiceServiceInstance.transcribe(
       audioBuffer,
       ws.audioMimeType,
       transcriptionAbort.signal,
     );
-    const prosodyPromise = realtimeProsody && captureMode === 'conversation'
-      ? realtimeProsody.finish(REALTIME_PROSODY_WAIT_MS).catch(() => null)
-      : prosodyAbort
-        ? voiceServiceInstance.analyzeProsody(audioBuffer, ws.audioMimeType, prosodyAbort.signal).catch(err => {
-          if (err?.name === 'AbortError') return null;
-          console.warn('[Voice] Prosody analysis failed (continuing):', err);
-          return null;
-        })
-        : Promise.resolve(null);
-
-    const [rawTranscript, prosody] = await Promise.all([transcriptPromise, prosodyPromise]);
-    let transcript = rawTranscript;
 
     if (ws.transcriptionAbort !== transcriptionAbort) return;
     ws.transcriptionAbort = null;
-    if (ws.prosodyAbort === prosodyAbort) ws.prosodyAbort = null;
 
     // A lone dot or comma is Whisper's answer to silence, not speech.
     if (hasNoWords(transcript)) {
@@ -280,8 +220,6 @@ export async function handleVoiceStop(
       type: 'transcription_status',
       status: 'complete',
       text: transcript,
-      ...(prosody && { prosody }),
-      ...(toneRequested && { prosodyStatus: prosody ? 'complete' : 'unavailable' }),
       ...(recordingId && { recordingId }),
     };
     ws.send(JSON.stringify(completeMsg));
@@ -296,8 +234,6 @@ export async function handleVoiceStop(
     };
     ws.send(JSON.stringify(errorMsg));
   } finally {
-    realtimeProsody?.abort();
-    if (ws.realtimeProsody === realtimeProsody) ws.realtimeProsody = null;
     if (ws.activeRecordingId === recordingId || (!ws.activeRecordingId && !recordingId)) {
       ws.activeRecordingId = null;
     }
@@ -313,14 +249,9 @@ export function handleVoiceCancel(
   ws.audioChunks = [];
   ws.audioBytes = 0;
   ws.voiceAudioChunkCount = 0;
-  ws.voiceAnalyzeToneRequested = false;
   ws.activeRecordingId = null;
   ws.transcriptionAbort?.abort();
   ws.transcriptionAbort = null;
-  ws.prosodyAbort?.abort();
-  ws.prosodyAbort = null;
-  ws.realtimeProsody?.abort();
-  ws.realtimeProsody = null;
 }
 
 export function handleVoiceMode(

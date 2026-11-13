@@ -727,15 +727,13 @@ function handleMessage(event: MessageEvent): void {
 
     case 'transcription_status':
       // Mic flow: client streams audio frames → backend transcribes via
-      // Groq Whisper, optionally analyses tone via Hume → emits this.
+      // Groq Whisper → emits this.
       // ChatInput selects from state.transcription to drive the mic
       // button + drop the text into the composer when complete.
       setState({
         transcription: {
           status: msg.status,
           text: msg.text,
-          prosody: msg.prosody,
-          prosodyStatus: msg.prosodyStatus,
           error: msg.error,
           recordingId: msg.recordingId,
         },

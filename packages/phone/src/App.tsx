@@ -998,8 +998,7 @@ export default function App() {
       if (hasAttachments || hasMetadata) {
         // Merge attachments and metadata into the single metadata blob
         // sendUserMessage forwards to the server. Backend keys we care
-        // about: `attachments` (image refs) and `prosody` (Hume tone
-        // scores, prepended to the agent prompt by the message hook).
+        // about: `attachments` (image refs).
         const metadata: Record<string, unknown> = { ...(objPayload?.metadata ?? {}) };
         if (hasAttachments) metadata.attachments = objPayload!.attachments;
         sendUserMessage(objPayload!.text || '', 'text', metadata, replyId);

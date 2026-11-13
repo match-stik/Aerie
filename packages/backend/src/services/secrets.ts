@@ -77,13 +77,6 @@ export const SECRETS: SecretDef[] = [
     placeholder: 'gsk_…',
     hint: 'console.groq.com — used by the mic button to transcribe voice notes via Whisper',
   },
-  {
-    name: 'hume_api_key',
-    label: 'Hume API key (voice prosody)',
-    category: 'voice',
-    envVar: 'HUME_API_KEY',
-    hint: 'hume.ai — optional, adds a tone reading the companion can see alongside the transcript',
-  },
 
   // Platforms
   {
