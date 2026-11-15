@@ -7,6 +7,8 @@ Aerie's interface is a small phone. It has a lock screen, a home screen, and a
 drawer full of apps — and this page says what each one is *for*, so you can
 ignore the ones you don't need and find the one you do.
 
+For what's inside each one, tab by tab, see [ROOM-BY-ROOM.md](ROOM-BY-ROOM.md).
+
 Nothing here is required. You can talk to your companion in Messages and never
 open anything else. Everything below is a room you're allowed to walk into.
 
