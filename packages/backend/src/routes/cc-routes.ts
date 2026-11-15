@@ -271,6 +271,11 @@ router.post('/expenses', (req, res) => {
   res.json({ ok: true, expense });
 });
 
+router.delete('/expenses/:id', (req, res) => {
+  const deleted = cc.deleteExpense(req.params.id);
+  res.json({ ok: true, deleted });
+});
+
 router.get('/expenses/stats', (req, res) => {
   try {
     const { period } = req.query as { period?: string };

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { ThemeConfig } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import { apiFetch } from '../../aerie';
+import { HouseSelect } from '../HouseSelect';
 
 const CC_API = '/api/cc';
 
@@ -156,7 +157,7 @@ export function CcCalendar({ themeConfig, themeMode }: CcSubPageProps) {
       <div className={cn('rounded-2xl border p-3', colors.panelBg, colors.panelBorder)}>
         <div className="flex items-center justify-between mb-2">
           <span className={cn('text-sm font-semibold', colors.textMain)}>{shortDate(selectedDate)}</span>
-          <button onClick={() => setShowAdd(!showAdd)} className="rounded-full p-1.5 aerie-on-accent" style={{ background: colors.accent }}>
+          <button aria-label="Add event" onClick={() => setShowAdd(!showAdd)} className="rounded-full p-1.5 aerie-on-accent" style={{ background: colors.accent }}>
             <Plus size={14} />
           </button>
         </div>
@@ -166,13 +167,13 @@ export function CcCalendar({ themeConfig, themeMode }: CcSubPageProps) {
             <input className={input} placeholder="Event title" value={title} onChange={(e) => setTitle(e.target.value)} />
             <div className="flex gap-2">
               <input className={cn(input, 'flex-1')} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-              <select className={input} value={category} onChange={(e) => setCategory(e.target.value)}>
+              <HouseSelect className={input} value={category} onChange={(e) => setCategory(e.target.value)}>
                 <option value="default">General</option>
                 <option value="work">Work</option>
                 <option value="personal">Personal</option>
                 <option value="health">Health</option>
                 <option value="home">Home</option>
-              </select>
+              </HouseSelect>
               <button onClick={addEvent} className="rounded-lg px-3 text-sm font-semibold aerie-on-accent" style={{ background: colors.accent }}>
                 Add
               </button>

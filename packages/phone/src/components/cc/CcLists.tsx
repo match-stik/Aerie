@@ -125,7 +125,7 @@ export function CcLists({ themeConfig, themeMode }: CcSubPageProps) {
               onKeyDown={(e) => e.key === 'Enter' && addItem()}
               className={cn(input, 'flex-1')}
             />
-            <button onClick={addItem} className="rounded-lg px-3 aerie-on-accent" style={{ background: colors.accent }}>
+            <button aria-label="Add item" onClick={addItem} className="rounded-lg px-3 aerie-on-accent" style={{ background: colors.accent }}>
               <Plus size={16} />
             </button>
           </div>
@@ -167,7 +167,7 @@ export function CcLists({ themeConfig, themeMode }: CcSubPageProps) {
     <div className={cn('rounded-2xl border p-3 backdrop-blur-md', colors.panelBg, colors.panelBorder)}>
       <div className="flex items-center justify-between mb-2">
         <span className={cn('text-[11px] font-bold uppercase tracking-[0.12em]', colors.textMuted)}>Your lists</span>
-        <button onClick={() => setShowAddList(!showAddList)} className="rounded-full p-1.5 aerie-on-accent" style={{ background: colors.accent }}>
+        <button aria-label="New list" onClick={() => setShowAddList(!showAddList)} className="rounded-full p-1.5 aerie-on-accent" style={{ background: colors.accent }}>
           <Plus size={14} />
         </button>
       </div>

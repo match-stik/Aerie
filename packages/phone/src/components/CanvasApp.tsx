@@ -6,6 +6,7 @@ import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
 import { useBackHandler } from '../lib/use-back-handler';
+import { HouseSelect } from './HouseSelect';
 
 interface CanvasAppProps {
   onClose: () => void;
@@ -202,11 +203,11 @@ export function CanvasApp({ onClose, themeConfig, themeMode }: CanvasAppProps) {
           <div className="flex flex-col gap-2 mb-3">
             <input className={input} placeholder="Document title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
             <div className="flex gap-2">
-              <select className={cn(input, 'flex-1')} value={newType} onChange={(e) => setNewType(e.target.value as Canvas['content_type'])}>
+              <HouseSelect className={cn(input, 'flex-1')} value={newType} onChange={(e) => setNewType(e.target.value as Canvas['content_type'])}>
                 {TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
-              </select>
+              </HouseSelect>
               <button onClick={createCanvas} className="rounded-lg px-4 text-sm font-semibold aerie-on-accent" style={{ background: colors.accent }}>
                 Create
               </button>

@@ -6,6 +6,7 @@ import { Sparkles, Loader2, Plus, X, User, Palette, Wand2, Compass } from 'lucid
 import { cn } from '../../lib/utils';
 import type { Backend, GenerationControlsProps } from './types';
 import { ACCENT_TEXT_COLOR_BY_THEME, CODEX_MODELS, ANTIGRAVITY_MODELS, OPENART_MODELS, PROMPT_STYLES, PROMPT_DIRECTIVES, SIZE_PRESETS, MIN_DIMENSION, MAX_DIMENSION, clampDimension } from './constants';
+import { HouseSelect } from '../HouseSelect';
 
 const BACKEND_BUTTONS: ReadonlyArray<{ key: Backend; label: string }> = [
   { key: 'codex', label: 'Codex' },
@@ -118,7 +119,7 @@ export function GenerationControls({
       {backend === 'codex' && (
         <div>
           <label className={cn("block text-xs font-medium mb-1.5 uppercase tracking-wide", colors.textMuted)}>GPT Model</label>
-          <select
+          <HouseSelect
             value={codexModel}
             onChange={(e) => setCodexModel(e.target.value)}
             className={cn("w-full px-3 py-2 rounded-lg border text-sm", colors.panelBg, colors.panelBorder, colors.textMain, "focus:outline-none focus:ring-2")}
@@ -127,7 +128,7 @@ export function GenerationControls({
             {CODEX_MODELS.map(m => (
               <option key={m.id} value={m.id}>{m.name} — {m.desc}</option>
             ))}
-          </select>
+          </HouseSelect>
         </div>
       )}
 
@@ -135,7 +136,7 @@ export function GenerationControls({
       {backend === 'antigravity' && (
         <div>
           <label className={cn("block text-xs font-medium mb-1.5 uppercase tracking-wide", colors.textMuted)}>Gemini Model</label>
-          <select
+          <HouseSelect
             value={agyModel}
             onChange={(e) => setAgyModel(e.target.value)}
             className={cn("w-full px-3 py-2 rounded-lg border text-sm", colors.panelBg, colors.panelBorder, colors.textMain, "focus:outline-none focus:ring-2")}
@@ -144,7 +145,7 @@ export function GenerationControls({
             {ANTIGRAVITY_MODELS.map(m => (
               <option key={m.id} value={m.id}>{m.name} — {m.desc}</option>
             ))}
-          </select>
+          </HouseSelect>
         </div>
       )}
 
@@ -152,7 +153,7 @@ export function GenerationControls({
       {backend === 'openart' && (
         <div>
           <label className={cn("block text-xs font-medium mb-1.5 uppercase tracking-wide", colors.textMuted)}>OpenArt Model</label>
-          <select
+          <HouseSelect
             value={openartModel}
             onChange={(e) => setOpenartModel(e.target.value)}
             className={cn("w-full px-3 py-2 rounded-lg border text-sm", colors.panelBg, colors.panelBorder, colors.textMain, "focus:outline-none focus:ring-2")}
@@ -168,7 +169,7 @@ export function GenerationControls({
                 <option key={m.key} value={m.key}>{m.name} — {m.desc}</option>
               ))}
             </optgroup>
-          </select>
+          </HouseSelect>
         </div>
       )}
 

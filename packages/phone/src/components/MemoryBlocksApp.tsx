@@ -7,6 +7,7 @@ import { ThemeConfig } from '../lib/theme';
 import { Paginator, usePaged } from './Paginator';
 import { cn } from '../lib/utils';
 import { useBackHandler } from '../lib/use-back-handler';
+import { HouseSelect } from './HouseSelect';
 
 interface MemoryBlocksAppProps {
   onClose: () => void;
@@ -406,7 +407,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
         <div className={cn('rounded-2xl border p-4 backdrop-blur-md space-y-4', colors.panelBg, colors.panelBorder)}>
           <div>
             <label className={cn('text-xs mb-1 block', colors.textMuted)}>Scope</label>
-            <select
+            <HouseSelect
               value={newScope}
               onChange={(e) => setNewScope(e.target.value)}
               className={cn('w-full px-3 py-2 rounded-lg border bg-transparent text-sm', colors.panelBorder)}
@@ -414,7 +415,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
               {scopes.map((s) => (
                 <option key={s} value={s}>{s === SHARED_SCOPE ? 'shared (all companions)' : s}</option>
               ))}
-            </select>
+            </HouseSelect>
           </div>
           <div>
             <label className={cn('text-xs mb-1 block', colors.textMuted)}>Label (unique within scope)</label>
@@ -460,7 +461,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
         <div className="space-y-4">
           <div className={cn('rounded-2xl border p-3 backdrop-blur-md', colors.panelBg, colors.panelBorder)}>
             <label className={cn('text-xs mb-1 block', colors.textMuted)}>Target Block</label>
-            <select
+            <HouseSelect
               value={opIndex}
               onChange={(e) => setOpIndex(e.target.value)}
               className={cn('w-full px-3 py-2 rounded-lg border bg-transparent text-sm', colors.panelBorder)}
@@ -469,7 +470,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
               {blocks.map((b, i) => (
                 <option key={blockKey(b)} value={String(i)}>{blockKey(b)}</option>
               ))}
-            </select>
+            </HouseSelect>
           </div>
 
           {opResult && (

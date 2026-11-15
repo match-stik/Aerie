@@ -26,6 +26,8 @@ export function CcStats({ themeConfig, themeMode }: CcSubPageProps) {
   const [cycle, setCycle] = useState<any>({});
   const [expense, setExpense] = useState<any>({});
   const [person, setPerson] = useState('default');
+  // The same symbol Finances shows (cc config currency_symbol), not a fixed pound sign.
+  const [currency, setCurrency] = useState('$');
 
   async function load(p = person) {
     setLoading(true);
@@ -53,6 +55,7 @@ export function CcStats({ themeConfig, themeMode }: CcSubPageProps) {
         if (res.ok) {
           const cfg = await res.json();
           const p = cfg.default_person || 'default';
+          setCurrency(cfg.currency_symbol || '$');
           setPerson(p);
           await load(p);
           return;
@@ -190,8 +193,8 @@ export function CcStats({ themeConfig, themeMode }: CcSubPageProps) {
       <div className={card}>
         <div className={title}>Expenses (this month)</div>
         <div className="grid grid-cols-3 gap-2">
-          {miniStat(`£${(expense.total || 0).toFixed(0)}`, 'total')}
-          {miniStat(`£${(expense.dailyAverage || 0).toFixed(0)}`, 'daily avg')}
+          {miniStat(`${currency}${(expense.total || 0).toFixed(0)}`, 'total')}
+          {miniStat(`${currency}${(expense.dailyAverage || 0).toFixed(0)}`, 'daily avg')}
           {miniStat(expense.count || 0, 'entries')}
         </div>
         {expense.byCategory?.length > 0 && (
@@ -205,7 +208,7 @@ export function CcStats({ themeConfig, themeMode }: CcSubPageProps) {
                     style={{ width: `${(cat.total / (expense.total || 1)) * 100}%`, background: colors.accent }}
                   />
                 </div>
-                <span className={cn('text-[10px] w-12 text-right', colors.textMuted)}>£{cat.total.toFixed(0)}</span>
+                <span className={cn('text-[10px] w-12 text-right', colors.textMuted)}>{currency}{cat.total.toFixed(0)}</span>
               </div>
             ))}
           </div>

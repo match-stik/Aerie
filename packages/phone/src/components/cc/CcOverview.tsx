@@ -138,7 +138,7 @@ export function CcOverview({ themeConfig, themeMode }: CcSubPageProps) {
             onChange={(e) => setNote(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addNote()}
           />
-          <button onClick={addNote} className="rounded-lg px-3 aerie-on-accent" style={{ background: colors.accent }}>
+          <button aria-label="Add note" onClick={addNote} className="rounded-lg px-3 aerie-on-accent" style={{ background: colors.accent }}>
             <Plus size={16} />
           </button>
         </div>
@@ -199,7 +199,7 @@ export function CcOverview({ themeConfig, themeMode }: CcSubPageProps) {
       <div className={card}>
         <div className="flex items-center justify-between mb-2">
           <span className={title} style={{ marginBottom: 0 }}>Countdowns</span>
-          <button onClick={() => setShowCd(!showCd)} className="rounded-full p-1 aerie-on-accent" style={{ background: colors.accent }}>
+          <button aria-label="Add countdown" onClick={() => setShowCd(!showCd)} className="rounded-full p-1 aerie-on-accent" style={{ background: colors.accent }}>
             <Plus size={13} />
           </button>
         </div>

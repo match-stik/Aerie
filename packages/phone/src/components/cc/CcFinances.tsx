@@ -1,9 +1,10 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { ThemeConfig } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import { apiFetch } from '../../aerie';
+import { HouseSelect } from '../HouseSelect';
 
 const CC_API = '/api/cc';
 const CATEGORIES = ['groceries', 'bills', 'dining', 'transport', 'entertainment', 'health', 'home', 'other'];
@@ -54,6 +55,15 @@ export function CcFinances({ themeConfig, themeMode }: CcSubPageProps) {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A wrong entry can be taken back (Nov 15 2026; there was no way before).
+  // The X asks once, so a stray tap never loses an expense.
+  const [confirming, setConfirming] = useState<string | null>(null);
+  async function deleteExpense(id: string) {
+    setConfirming(null);
+    await apiFetch(`${CC_API}/expenses/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await load();
+  }
 
   async function addExpense() {
     const amt = parseFloat(amount);
@@ -121,6 +131,7 @@ export function CcFinances({ themeConfig, themeMode }: CcSubPageProps) {
         <div className="flex items-center justify-between mb-2">
           <span className={cn('text-[11px] font-bold uppercase tracking-[0.12em]', colors.textMuted)}>Recent expenses</span>
           <button
+            aria-label="Add expense"
             onClick={() => setShowAdd(!showAdd)}
             className="rounded-full p-1.5 aerie-on-accent"
             style={{ background: colors.accent }}
@@ -140,11 +151,11 @@ export function CcFinances({ themeConfig, themeMode }: CcSubPageProps) {
                 onChange={(e) => setAmount(e.target.value)}
                 className={cn(input, 'flex-1')}
               />
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
+              <HouseSelect value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
-              </select>
+              </HouseSelect>
             </div>
             <input type="text" placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} className={input} />
             <div className="flex gap-2">
@@ -168,9 +179,28 @@ export function CcFinances({ themeConfig, themeMode }: CcSubPageProps) {
                     {exp.date} · {exp.category}{exp.paid_by ? ` · ${exp.paid_by}` : ''}
                   </div>
                 </div>
-                <span className={cn('text-sm font-semibold shrink-0', colors.textMain)}>
-                  {currency}{exp.amount.toFixed(2)}
-                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className={cn('text-sm font-semibold', colors.textMain)}>
+                    {currency}{exp.amount.toFixed(2)}
+                  </span>
+                  {confirming === exp.id ? (
+                    <button
+                      onClick={() => void deleteExpense(exp.id)}
+                      className="ml-1 rounded-lg px-2 py-1 text-xs font-semibold aerie-on-accent"
+                      style={{ background: colors.accent }}
+                    >
+                      Delete
+                    </button>
+                  ) : (
+                    <button
+                      aria-label="Delete this expense"
+                      onClick={() => setConfirming(exp.id)}
+                      className={cn('p-1', colors.textMuted)}
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -6,6 +6,7 @@ import { Paginator, usePaged } from './Paginator';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
 import { Toggle } from './Toggle';
+import { HouseSelect } from './HouseSelect';
 
 interface DiscordRulesProps {
   themeConfig: ThemeConfig;
@@ -176,11 +177,11 @@ export function DiscordRules({ themeConfig, themeMode }: DiscordRulesProps) {
         {tab === 'user' && (
           <>
             <div className={cn(fieldLabel, 'mt-2')}>Trust level</div>
-            <select className={input} value={d.trustLevel || 'standard'} onChange={(e) => setField(id, 'trustLevel', e.target.value)}>
+            <HouseSelect className={input} value={d.trustLevel || 'standard'} onChange={(e) => setField(id, 'trustLevel', e.target.value)}>
               <option value="full">Full</option>
               <option value="standard">Standard</option>
               <option value="limited">Limited</option>
-            </select>
+            </HouseSelect>
             <div className={cn(fieldLabel, 'mt-2')}>Relationship</div>
             <input className={input} value={d.relationship || ''} onChange={(e) => setField(id, 'relationship', e.target.value)} />
           </>

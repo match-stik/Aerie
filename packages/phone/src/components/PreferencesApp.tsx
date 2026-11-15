@@ -5,6 +5,7 @@ import { AppShell } from './AppShell';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
+import { HouseSelect } from './HouseSelect';
 
 interface PreferencesAppProps {
   onClose: () => void;
@@ -246,7 +247,7 @@ export function PreferencesApp({ onClose, themeConfig, themeMode, embedded }: Pr
     return (
       <label className="flex flex-col gap-1">
         <span className={cn('text-[11px]', colors.textMuted)}>{label}</span>
-        <select
+        <HouseSelect
           value={value}
           onChange={(e) => {
             const next = e.target.value;
@@ -263,7 +264,7 @@ export function PreferencesApp({ onClose, themeConfig, themeMode, embedded }: Pr
           <optgroup label="Codex">
             {codex.map((m) => <option key={`codex-cli:${m.id}`} value={m.id}>{m.label}</option>)}
           </optgroup>
-        </select>
+        </HouseSelect>
         <span className={cn('text-[10px]', colors.textMuted)}>{hint}</span>
       </label>
     );
@@ -310,12 +311,12 @@ export function PreferencesApp({ onClose, themeConfig, themeMode, embedded }: Pr
           </label>
           <label className="flex flex-col gap-1">
             <span className={label}>Timezone</span>
-            <select className={input} value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+            <HouseSelect className={input} value={timezone} onChange={(e) => setTimezone(e.target.value)}>
               {!TIMEZONES.includes(timezone) && <option value={timezone}>{timezone}</option>}
               {TIMEZONES.map((tz) => (
                 <option key={tz} value={tz}>{tz}</option>
               ))}
-            </select>
+            </HouseSelect>
           </label>
         </div>
       </div>

@@ -14,6 +14,7 @@ import { SecretInput } from './SecretInput';
 import { cn } from '../lib/utils';
 import { Toggle } from './Toggle';
 import { useBackHandler } from '../lib/use-back-handler';
+import { HouseSelect } from './HouseSelect';
 
 interface CompanionsAppProps {
   onClose: () => void;
@@ -522,7 +523,7 @@ export function CompanionsApp({
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>Chat model</label>
-                        <select
+                        <HouseSelect
                           value={c.model || ''}
                           onChange={(e) => updateCompanion(c.id, { model: e.target.value || null })}
                           className={cn('w-full bg-transparent border rounded-lg px-2 py-2 text-xs mt-1', colors.panelBorder, colors.textMain)}
@@ -531,11 +532,11 @@ export function CompanionsApp({
                           {models.map((m) => (
                             <option key={m.id} value={m.id}>{m.name || m.id}</option>
                           ))}
-                        </select>
+                        </HouseSelect>
                       </div>
                       <div>
                         <label className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>Wake model</label>
-                        <select
+                        <HouseSelect
                           value={c.model_autonomous || ''}
                           onChange={(e) => updateCompanion(c.id, { model_autonomous: e.target.value || null })}
                           className={cn('w-full bg-transparent border rounded-lg px-2 py-2 text-xs mt-1', colors.panelBorder, colors.textMain)}
@@ -544,7 +545,7 @@ export function CompanionsApp({
                           {models.map((m) => (
                             <option key={m.id} value={m.id}>{m.name || m.id}</option>
                           ))}
-                        </select>
+                        </HouseSelect>
                       </div>
                     </div>
                     {/* How hard they think before they speak. This used to be one
@@ -553,7 +554,7 @@ export function CompanionsApp({
                         that road later, silently. */}
                     <div>
                       <label className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>Thinking effort</label>
-                      <select
+                      <HouseSelect
                         value={c.effort || ''}
                         onChange={(e) => updateCompanion(c.id, { effort: e.target.value || null })}
                         className={cn('w-full bg-transparent border rounded-lg px-2 py-2 text-xs mt-1', colors.panelBorder, colors.textMain)}
@@ -565,7 +566,7 @@ export function CompanionsApp({
                         <option value="high">High</option>
                         <option value="xhigh">Extra high</option>
                         <option value="max">Max</option>
-                      </select>
+                      </HouseSelect>
                       <p className={cn('text-[10px] mt-1', colors.textMuted)}>
                         Not a cost control — it is how far down {c.display_name} goes before they speak. Cheaper and shallower are the same notch.
                       </p>

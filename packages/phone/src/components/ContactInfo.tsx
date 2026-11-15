@@ -14,6 +14,7 @@ import { cardStatus } from '../lib/presence-word';
 import { useBackHandler } from '../lib/use-back-handler';
 import getCroppedImg, { createImage } from '../lib/cropImage';
 import { CARD_HEADER_REM, CARD_MAX_WIDTH_REM, CARD_SIDE_GAP_REM, FRAME_LEGEND, faceGuideStyle, liveContactCardAspect } from '../lib/contact-card-frame';
+import { HouseSelect } from './HouseSelect';
 
 interface ContactInfoProps {
   themeConfig: ThemeConfig;
@@ -679,25 +680,25 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>Chat model</label>
-                    <select
+                    <HouseSelect
                       value={row.model || ''}
                       onChange={(e) => patchRow({ model: e.target.value || null })}
                       className={cn('w-full bg-transparent border rounded-lg px-2 py-2 text-xs mt-1', colors.panelBorder, colors.textMain)}
                     >
                       <option value="">House default</option>
                       {models.map(m => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
-                    </select>
+                    </HouseSelect>
                   </div>
                   <div>
                     <label className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>Wake model</label>
-                    <select
+                    <HouseSelect
                       value={row.model_autonomous || ''}
                       onChange={(e) => patchRow({ model_autonomous: e.target.value || null })}
                       className={cn('w-full bg-transparent border rounded-lg px-2 py-2 text-xs mt-1', colors.panelBorder, colors.textMain)}
                     >
                       <option value="">House default</option>
                       {models.map(m => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
-                    </select>
+                    </HouseSelect>
                   </div>
                 </div>
                 {row.model && row.model_autonomous && row.model !== row.model_autonomous && (
@@ -707,7 +708,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                 )}
                 <div>
                   <label className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>Thinking effort</label>
-                  <select
+                  <HouseSelect
                     value={row.effort || ''}
                     onChange={(e) => patchRow({ effort: e.target.value || null })}
                     className={cn('w-full bg-transparent border rounded-lg px-2 py-2 text-xs mt-1', colors.panelBorder, colors.textMain)}
@@ -719,7 +720,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
                     <option value="high">High</option>
                     <option value="xhigh">Extra high</option>
                     <option value="max">Max</option>
-                  </select>
+                  </HouseSelect>
                   <p className={cn('text-[10px] mt-1', colors.textMuted)}>
                     Not a cost control — how far down they go before they speak.
                   </p>

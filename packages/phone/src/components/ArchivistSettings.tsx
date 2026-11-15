@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
+import { HouseSelect } from './HouseSelect';
 
 // Who writes the memory blocks. Everything here except Codex rides the BYOK
 // router and needs its own key in the Providers tab; Codex reuses the sign-in
@@ -150,7 +151,7 @@ export function ArchivistSettings({ themeConfig, themeMode }: ArchivistSettingsP
           <div className="flex flex-col gap-2.5">
             <label className="flex flex-col gap-1">
               <span className={label}>Provider</span>
-              <select className={input} value={provider} onChange={(e) => setProvider(e.target.value)}>
+              <HouseSelect className={input} value={provider} onChange={(e) => setProvider(e.target.value)}>
                 {!provider && <option value="">Pick a provider you have access to</option>}
                 {!PROVIDERS.some((p) => p.id === provider) && provider && (
                   <option value={provider}>{provider}</option>
@@ -158,7 +159,7 @@ export function ArchivistSettings({ themeConfig, themeMode }: ArchivistSettingsP
                 {PROVIDERS.map((p) => (
                   <option key={p.id} value={p.id}>{p.label}</option>
                 ))}
-              </select>
+              </HouseSelect>
             </label>
             <label className="flex flex-col gap-1">
               <span className={label}>Model</span>

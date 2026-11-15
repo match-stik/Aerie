@@ -7,6 +7,7 @@ import { Toggle } from './Toggle';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
+import { HouseSelect } from './HouseSelect';
 
 interface OrchestratorAppProps {
   onClose: () => void;
@@ -702,7 +703,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                       onChange={(e) => setNewBellTime(e.target.value)}
                       className={cn('rounded-md border px-1.5 py-0.5 text-xs bg-transparent', colors.panelBorder, colors.textMain)}
                     />
-                    <select
+                    <HouseSelect
                       value={newBellCompanion}
                       onChange={(e) => setNewBellCompanion(e.target.value)}
                       className={cn('rounded-md border px-1.5 py-1 text-xs bg-transparent', colors.panelBorder, colors.textMain)}
@@ -711,7 +712,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                       {companions.map((c) => (
                         <option key={c.slug} value={c.slug}>{c.name}</option>
                       ))}
-                    </select>
+                    </HouseSelect>
                   </div>
                   <textarea
                     value={newBellPrompt}
@@ -790,7 +791,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                       return (
                         <label key={which} className="flex flex-col gap-1">
                           <span className={cn('text-[10px] uppercase tracking-wide', colors.textMuted)}>{which === 'from' ? 'From' : 'Until'}</span>
-                          <select
+                          <HouseSelect
                             value={clock[which]}
                             onChange={(e) => {
                               const hour = Number(e.target.value);
@@ -802,7 +803,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                             className={cn('rounded-md border px-1.5 py-1 text-xs bg-transparent w-full', colors.panelBorder, colors.textMain)}
                           >
                             {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
-                          </select>
+                          </HouseSelect>
                         </label>
                       );
                     })}
@@ -820,7 +821,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
               endpoints for this shipped long before any way to reach them. */}
           <div className={cn('rounded-2xl border p-3 mt-3 backdrop-blur-md', colors.panelBg, colors.panelBorder)}>
             <div className={cn('text-[11px] font-bold uppercase tracking-[0.12em] mb-2', colors.textMuted)}>Home thread</div>
-            <select
+            <HouseSelect
               value={wakeThreadId ?? ''}
               onChange={(e) => saveWakeThread(e.target.value || null)}
               className={cn('w-full rounded-lg border px-2.5 py-2 text-sm bg-transparent', colors.panelBorder, colors.textMain)}
@@ -829,7 +830,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
               {threadChoices.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
-            </select>
+            </HouseSelect>
             <p className={cn('text-[10px] mt-2', colors.textMuted)}>
               A wake speaks in the conversation that is currently active. When none is, it uses this one. Left unset, it falls back to today's daily thread.
             </p>

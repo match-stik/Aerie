@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, X, Pencil, Che
 import { ThemeConfig } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import { apiFetch } from '../../aerie';
+import { HouseSelect } from '../HouseSelect';
 
 const CC_API = '/api/cc';
 
@@ -108,6 +109,12 @@ export function CcPlanner({ themeConfig, themeMode }: CcSubPageProps) {
       }
       groups.get(key)!.tasks.push(t);
     }
+    // A project shows even before it has a task, or a new one vanished the
+    // moment it was made and had nowhere to add its first task; and with
+    // nothing at all there is still an Ungrouped box to add a loose task to
+    // (found walking the room for the first time, Nov 15 2026).
+    for (const p of projects) if (!groups.has(p.name)) groups.set(p.name, { project: p, tasks: [] });
+    if (groups.size === 0) groups.set('__ungrouped__', { project: null, tasks: [] });
     for (const g of groups.values()) g.tasks.sort((a, b) => a.sort_order - b.sort_order);
     return [...groups.entries()].sort((a, b) => {
       if (a[0] === '__ungrouped__') return 1;
@@ -418,7 +425,7 @@ export function CcPlanner({ themeConfig, themeMode }: CcSubPageProps) {
                           onChange={(e) => setNewTaskText(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && addTask(key)}
                         />
-                        <select
+                        <HouseSelect
                           className={input}
                           value={newTaskPriority}
                           onChange={(e) => setNewTaskPriority(parseInt(e.target.value, 10))}
@@ -426,7 +433,7 @@ export function CcPlanner({ themeConfig, themeMode }: CcSubPageProps) {
                           <option value={0}>Normal</option>
                           <option value={1}>High</option>
                           <option value={2}>Urgent</option>
-                        </select>
+                        </HouseSelect>
                         <button onClick={() => addTask(key)} className="rounded-lg px-3 text-xs font-semibold aerie-on-accent" style={{ background: colors.accent }}>
                           Add
                         </button>

@@ -18,6 +18,12 @@ export function addExpense(params: {
   return db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
 }
 
+/** Takes back an expense logged by mistake. Before Nov 15 2026 there was no
+ *  way to, in the app or the API, so a wrong entry stayed in every total. */
+export function deleteExpense(id: string): boolean {
+  return getDb().prepare('DELETE FROM expenses WHERE id = ?').run(id).changes > 0;
+}
+
 export function listExpenses(params: {
   start_date?: string;
   end_date?: string;

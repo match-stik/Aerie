@@ -20,6 +20,7 @@ import type {
   GalleryCastGroup, GalleryGroups, GeneratedImage, RefDrawer, StudioFolder, ThemeMode,
 } from './types';
 import { ZoomableImage } from '../ZoomableImage';
+import { HouseSelect } from '../HouseSelect';
 
 type Collection =
   | { kind: 'recent' }
@@ -549,14 +550,14 @@ export function StudioGalleryView({
           <div className="flex items-center gap-2">
             <div className={cn('relative min-w-0 flex-1 rounded-xl border', colors.panelBg, colors.panelBorder)}>
               <Folder className={cn('pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2', colors.textMuted)} />
-              <select
+              <HouseSelect
                 value={folderId}
                 onChange={(event) => setFolderId(event.target.value)}
                 className={cn('w-full appearance-none bg-transparent py-2 pl-9 pr-8 text-xs outline-none', colors.textMain)}
               >
                 <option value="">Every project folder</option>
                 {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
-              </select>
+              </HouseSelect>
               <ChevronDown className={cn('pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2', colors.textMuted)} />
             </div>
             <button type="button" onClick={() => setShowFolderCreator((value) => !value)} className={cn('rounded-xl border p-2', colors.panelBg, colors.panelBorder, colors.textMuted)} title="New folder">
@@ -775,10 +776,10 @@ export function StudioGalleryView({
             </div>
             <div className="flex items-center gap-2">
               <Folder className="h-4 w-4 text-white/50" />
-              <select value={viewing.folderId ?? ''} onChange={(event) => void moveToFolder(viewing, event.target.value)} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/10 px-2 py-2 text-xs text-white">
+              <HouseSelect value={viewing.folderId ?? ''} onChange={(event) => void moveToFolder(viewing, event.target.value)} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/10 px-2 py-2 text-xs text-white">
                 <option value="">No project folder</option>
                 {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
-              </select>
+              </HouseSelect>
               <MoreHorizontal className="h-4 w-4 text-white/30" />
             </div>
             <p className="text-[10px] uppercase tracking-wide text-white/45">
