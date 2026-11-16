@@ -6,7 +6,7 @@ import { resolveThemeColors, themeRadiusPx } from "../../lib/theme";
 import { APPS, drawerColumnsOf } from "../../lib/apps";
 import { cn } from "../../lib/utils";
 import { SEND_ICONS, DEFAULT_SEND_ICON_ID } from "../../lib/sendIcons";
-import { bubbleCorners, bubbleLookOf, nameColor } from "../../lib/bubble-look";
+import { actionColor, bubbleCorners, bubbleLookOf, nameColor } from "../../lib/bubble-look";
 import { BubbleSkin, SKINNED } from "../BubbleSkin";
 import { drawerIconPx, drawerLookOf, drawerTileStyle } from "../../lib/drawer-look";
 import { BODY_FONTS, FONT_SCALE_MAX, FONT_SCALE_MIN, TITLE_FONTS, TITLE_SCALE_MAX, TITLE_SCALE_MIN, bodyStack, fontsOf, titleStack } from "../../lib/fonts";
@@ -33,7 +33,6 @@ export function LookPane({ s }: { s: SettingsState }) {
         { key: "bubbleNames", on: look.names, label: "Names", hint: `Each companion named ${look.tailOurs === "bottom" ? "under" : "over"} their bubbles, in their color` },
         { key: "bubbleMyName", on: look.myName, label: "Your name", hint: `Your name ${look.tailMine === "bottom" ? "under" : "over"} your bubbles, in your ring color` },
         { key: "bubbleEdges", on: look.edges, label: "Edges in companion colors", hint: "A companion bubble's thin border in that companion's color" },
-        { key: "bubbleQuietActions", on: look.quietActions, label: "Quieter action lines", hint: "Every action line a little softer than the words, yours too" },
         { key: "bubblePlainWords", on: theme.bubblePlainWords === true, label: "Plain white and black words", hint: "The chat's words without the theme's color in them" },
       ];
       const page = resolveThemeColors(colors).pageBg;
@@ -133,6 +132,16 @@ export function LookPane({ s }: { s: SettingsState }) {
                 </button>
               ))}
             </div>
+            {/* The action lines' color, one switch for the phone and the laptop (Nov 16 2026):
+                the words' own ink, Faded (the old quieter switch), the theme's Accent, or Ours. */}
+            <div className="flex items-center gap-2">
+              <span className={cn("w-20 shrink-0 text-[11px] font-bold", colors.textMain)}>Actions</span>
+              {(["plain", "faded", "accent", "ours"] as const).map((pick) => (
+                <button key={pick} onClick={() => onThemeChange({ bubbleActionInk: pick, bubbleQuietActions: pick === "faded" })} className={cn("flex-1 !px-1", tailChip(look.actionInk === pick))} style={tailStyle(look.actionInk === pick)}>
+                  {pick === "plain" ? "Plain" : pick === "faded" ? "Faded" : pick === "accent" ? "Accent" : "Ours"}
+                </button>
+              ))}
+            </div>
             {/* The rings round the faces: as set in the house, or the theme's. */}
             <div className="flex items-center gap-2">
               <span className={cn("w-20 shrink-0 text-[11px] font-bold", colors.textMain)}>Rings</span>
@@ -182,8 +191,12 @@ export function LookPane({ s }: { s: SettingsState }) {
                   className={cn("aerie-message-bubble block px-3.5 py-2.5 border text-[13px]", colors.compBubbleBg, colors.compBubbleText, colors.panelBorder, look.tailShape === "swoop" && SKINNED)}
                   style={{ ...bubbleCorners("ours", look.tailOurs), ...(look.edges ? { borderColor: `color-mix(in srgb, ${sampleColor} 45%, transparent)` } : {}) }}
                   data-quiet-actions={look.quietActions ? "true" : undefined}
+                  data-action-ink={look.actionInk === "accent" || look.actionInk === "ours" ? "color" : undefined}
                 >
-                  <em>waves</em>
+                  <em
+                    className="aerie-action"
+                    style={{ ["--aerie-action-ink" as string]: actionColor(look.actionInk, { slug: "", color: sampleColor }, resolveThemeColors(colors).accent, theme.mode, [resolveThemeColors(colors).compBubbleBg, page]) ?? undefined }}
+                  >waves</em>
                   <br />
                   This is how a reply will look.
                   {timeInside}

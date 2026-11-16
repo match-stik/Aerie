@@ -175,11 +175,13 @@ export function deepWorld(cast: () => DeepCast, rand: () => number = Math.random
         const ty = y + spread + Math.sin(frames / 38 + i * 1.7) * 6;
         l.x += (tx - l.x) * 0.06;
         l.y += (ty - l.y) * 0.05;
-        if (frames % 3 === 0) {
-          l.wake.unshift([l.x, l.y]);
-          l.wake.length = Math.min(l.wake.length, 8);
+        // A few bubbles that rise off each light, not a trail behind it: a
+        // dot with a tail behind it read as something else entirely (Nov 16 2026).
+        if ((frames + i * 3) % 9 === 0) {
+          l.wake.unshift([l.x + (rand() - 0.5) * 6, l.y - 3]);
+          l.wake.length = Math.min(l.wake.length, 5);
         }
-        for (const w of l.wake) w[0] -= speed * 0.6;
+        for (const w of l.wake) { w[0] -= speed * 0.15 + Math.sin(frames / 12 + w[1]) * 0.15; w[1] -= 0.45; }
       });
     },
 
@@ -428,11 +430,13 @@ export function deepWorld(cast: () => DeepCast, rand: () => number = Math.random
           const l = lights[i];
           ctx.globalAlpha = lightAlpha * 0.5;
           ctx.fillStyle = color;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 0.8;
           l.wake.forEach(([wx, wy], k) => {
-            ctx.globalAlpha = lightAlpha * 0.35 * (1 - k / l.wake.length);
+            ctx.globalAlpha = lightAlpha * 0.55 * (1 - k / (l.wake.length + 1));
             ctx.beginPath();
-            ctx.arc(wx, wy, 1.6 * (1 - k / 10), 0, Math.PI * 2);
-            ctx.fill();
+            ctx.arc(wx, wy, 1.4 + k * 0.35, 0, Math.PI * 2);
+            ctx.stroke();
           });
           const halo = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, 20);
           halo.addColorStop(0, color);

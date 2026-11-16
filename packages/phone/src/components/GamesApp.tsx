@@ -299,7 +299,10 @@ function ReactionGame({ colors, rawColors, themeMode, themeConfig, onExit }: { c
 
 // --- MAIN APP COMPONENT ---
 export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
-  const colors = themeConfig[themeMode];
+  // Every card in the games is solid (theirs, Nov 16 2026: 'can you check all
+  // the cards are solid and not transparent?'): the theme's panel is a little
+  // see-through on purpose elsewhere, so the games take the solid one.
+  const colors = { ...themeConfig[themeMode], panelBg: 'bg-[var(--aerie-panel-solid)]' };
   const [activeGame, setActiveGame] = useState<'menu' | 'battleship' | 'cards' | 'bingo' | 'memory' | 'reaction' | 'sweeper' | 'passcode' | 'ping' | 'glide' | 'landing' | 'core' | 'breach'>('menu');
 
   const extractColor = (twClass: string) => {
@@ -414,7 +417,7 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
   const gameAccent = mixHex(fleetAccent, toPastel(fleetAccent), 0.5);
   const rawColors = {
     pageBg: extractColor(colors.pageBg),
-    panelBg: extractColor(colors.panelBg),
+    panelBg: 'var(--aerie-panel-solid)',
     panelBorder: extractColor(colors.panelBorder),
     textMain: extractColor(colors.textMain),
     textMuted: extractColor(colors.textMuted),
@@ -482,7 +485,7 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
       themeMode={themeMode}
       // Bingo scrolls inside itself so its cage can stay pinned to the top
       // (theirs, Nov 4 2026); a flex body gives its h-full a real height.
-      bodyClassName={activeGame === 'bingo' ? 'flex flex-col' : undefined}
+      bodyClassName={activeGame === 'bingo' ? 'flex flex-col' : activeGame === 'battleship' ? 'aerie-wide-room' : undefined}
     >
       {/* Content */}
       <div className="flex-1 overflow-hidden relative -mx-4 -my-4">

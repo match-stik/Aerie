@@ -472,7 +472,7 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
               <button type="button" onClick={() => setViewingImage(null)} className="rounded-full bg-white/10 p-2"><X className="h-5 w-5" /></button>
               <button type="button" onClick={() => handleDownload(viewingImage)} className="rounded-full bg-white/10 p-2"><Download className="h-4 w-4" /></button>
             </div>
-            <div className="flex min-h-0 flex-1 items-center justify-center p-4">
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
               {viewingImage.mediaType === 'video'
                 ? <video src={viewingImage.src} className="max-h-full max-w-full" controls loop playsInline autoPlay />
                 : <ZoomableImage src={viewingImage.src} alt={viewingImage.prompt} className="rounded-xl" />}

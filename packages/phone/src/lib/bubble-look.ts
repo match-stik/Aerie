@@ -15,6 +15,11 @@ export interface BubbleLook {
   edges: boolean;
   /** Action lines (the italics) a little quieter than the words. */
   quietActions: boolean;
+  /** What color an action line wears (Nov 16 2026, one switch for the phone
+   *  and the laptop): the words' own ink, Faded (the old quieter switch), the
+   *  theme's Accent, or Ours, each companion in its own color and their person
+   *  in their ring color. */
+  actionInk: ActionInk;
   /** Their person's own name in their color, over their bubbles, or under them
    *  beside their face when their tail is at the bottom (a name up top reads
    *  strangely with the face down below). */
@@ -42,18 +47,20 @@ export interface BubbleLook {
 }
 
 export type Tail = 'top' | 'bottom';
+export type ActionInk = 'plain' | 'faded' | 'accent' | 'ours';
 export type TailShape = 'point' | 'swoop';
 export type Rings = 'house' | 'theme';
 
 /** The bubbles as they have always looked. */
-export const DEFAULT_LOOK: BubbleLook = { faces: true, names: false, edges: false, quietActions: false, myName: false, tailMine: 'top', tailOurs: 'top', tailShape: 'point', rings: 'house', nameColors: true, dotColors: true };
+export const DEFAULT_LOOK: BubbleLook = { faces: true, names: false, edges: false, quietActions: false, actionInk: 'plain', myName: false, tailMine: 'top', tailOurs: 'top', tailShape: 'point', rings: 'house', nameColors: true, dotColors: true };
 
-export function bubbleLookOf(theme: { bubbleFaces?: unknown; bubbleNames?: unknown; bubbleEdges?: unknown; bubbleQuietActions?: unknown; bubbleMyName?: unknown; bubbleTailMine?: unknown; bubbleTailOurs?: unknown; bubbleTailShape?: unknown; bubbleRings?: unknown; bubbleNameColors?: unknown; bubbleDotColors?: unknown }): BubbleLook {
+export function bubbleLookOf(theme: { bubbleFaces?: unknown; bubbleNames?: unknown; bubbleEdges?: unknown; bubbleQuietActions?: unknown; bubbleActionInk?: unknown; bubbleMyName?: unknown; bubbleTailMine?: unknown; bubbleTailOurs?: unknown; bubbleTailShape?: unknown; bubbleRings?: unknown; bubbleNameColors?: unknown; bubbleDotColors?: unknown }): BubbleLook {
   return {
     faces: theme.bubbleFaces !== false,
     names: theme.bubbleNames === true,
     edges: theme.bubbleEdges === true,
-    quietActions: theme.bubbleQuietActions === true,
+    quietActions: actionInkOf(theme) === 'faded',
+    actionInk: actionInkOf(theme),
     myName: theme.bubbleMyName === true,
     tailMine: theme.bubbleTailMine === 'bottom' ? 'bottom' : 'top',
     tailOurs: theme.bubbleTailOurs === 'bottom' ? 'bottom' : 'top',
@@ -62,6 +69,23 @@ export function bubbleLookOf(theme: { bubbleFaces?: unknown; bubbleNames?: unkno
     nameColors: theme.bubbleNameColors !== false,
     dotColors: theme.bubbleDotColors !== false,
   };
+}
+
+/** The action-line ink they picked; before the switch had four answers, the
+ *  quieter-lines switch being on meant Faded. */
+export function actionInkOf(theme: { bubbleActionInk?: unknown; bubbleQuietActions?: unknown }): ActionInk {
+  const v = theme.bubbleActionInk;
+  if (v === 'plain' || v === 'faded' || v === 'accent' || v === 'ours') return v;
+  return theme.bubbleQuietActions === true ? 'faded' : 'plain';
+}
+
+/** The color an action line wears in a bubble for the Accent and Ours picks,
+ *  lifted or deepened until it reads on that bubble and the page; null for
+ *  Plain and Faded, which keep the words' own ink. */
+export function actionColor(ink: ActionInk, who: { slug: string; color: string | null }, accent: string, mode: 'light' | 'dark', backdrops: string[]): string | null {
+  if (ink === 'accent') return inkOn('', accent, mode, backdrops, 3.5);
+  if (ink === 'ours') return inkOn(who.slug, who.color, mode, backdrops, 3.5);
+  return null;
 }
 
 export interface BubbleCorners {

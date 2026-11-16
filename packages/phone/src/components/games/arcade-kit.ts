@@ -98,11 +98,17 @@ export function writeValue(key: string, value: string | number) {
   }
 }
 
-/** Size a canvas for the screen's real pixel density and draw in field units. */
+/**
+ * Size a canvas for the screen's real pixel density and draw in field units.
+ * The field can be shown bigger than its own units (the laptop grows the game
+ * to the room's height), so the drawing buffer follows the size it is shown at
+ * as well, or a bigger game is a blurrier one.
+ */
 export function fitCanvas(canvas: HTMLCanvasElement, w: number, h: number): CanvasRenderingContext2D | null {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const shown = canvas.clientWidth > 0 ? canvas.clientWidth / w : 1;
+  const dpr = Math.min((window.devicePixelRatio || 1) * Math.max(1, shown), 4);
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

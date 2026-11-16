@@ -761,7 +761,7 @@ export function StudioGalleryView({
               <button type="button" onClick={() => void deleteImage(viewing)} className="rounded-full bg-red-500/20 p-2 text-red-300" title="Delete"><Trash2 className="h-4 w-4" /></button>
             </div>
           </div>
-          <div className="flex min-h-0 flex-1 items-center justify-center p-4">
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
             {viewing.mediaType === 'video'
               ? <video src={viewing.src} className="max-h-full max-w-full" controls loop playsInline autoPlay />
               : <ZoomableImage src={viewing.src} alt={viewing.prompt} className="rounded-xl" />}

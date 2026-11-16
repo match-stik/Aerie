@@ -5,15 +5,26 @@
 // house-wide). So on the laptop such a row follows the wheel, and a mouse can
 // drag it, the click at the end of a drag landing nowhere.
 
-/** The nearest ancestor that can scroll sideways and not up and down. */
+/** A row short enough to be a row of tabs or chips, not a whole area. */
+const ROW_MAX_HEIGHT = 160;
+
+/**
+ * The nearest ancestor that scrolls sideways and not up and down, and is a
+ * row rather than an area. The walk stops at the first thing that scrolls up
+ * and down, because the wheel belongs to that: walking on past it handed the
+ * wheel to whatever sideways box sat further out, and the room stopped
+ * scrolling wherever the mouse happened to be (theirs, Nov 16 2026: 'I randomly
+ * lose the ability to scroll').
+ */
 export function sidewaysRow(start: EventTarget | null): HTMLElement | null {
   let el = start instanceof Element ? start as HTMLElement : null;
   while (el && el !== document.body) {
-    if (el.scrollWidth > el.clientWidth + 1) {
-      const style = getComputedStyle(el);
-      const x = style.overflowX;
-      const verticalRoom = el.scrollHeight > el.clientHeight + 1 && (style.overflowY === 'auto' || style.overflowY === 'scroll');
-      if ((x === 'auto' || x === 'scroll') && !verticalRoom) return el;
+    const style = getComputedStyle(el);
+    const y = style.overflowY;
+    if ((y === 'auto' || y === 'scroll') && el.scrollHeight > el.clientHeight + 1) return null;
+    const x = style.overflowX;
+    if ((x === 'auto' || x === 'scroll') && el.scrollWidth > el.clientWidth + 1) {
+      return el.clientHeight <= ROW_MAX_HEIGHT ? el : null;
     }
     el = el.parentElement;
   }

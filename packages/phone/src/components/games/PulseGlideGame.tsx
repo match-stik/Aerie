@@ -419,7 +419,7 @@ export function PulseGlideGame({ colors, rawColors, onExit: _onExit }: { colors:
 
   return (
     <div className="flex flex-col h-full items-center justify-center p-4 gap-3">
-      <div className="w-full max-w-[340px] flex items-center justify-between gap-2">
+      <div className="w-full aerie-game-col flex items-center justify-between gap-2">
         <SegmentedControl<Mode>
           options={[{ value: 'endless', label: 'Endless' }, { value: 'daily', label: 'Daily run' }]}
           value={mode}
@@ -438,7 +438,7 @@ export function PulseGlideGame({ colors, rawColors, onExit: _onExit }: { colors:
         {mode === 'daily' && <div className="text-[10px] uppercase tracking-widest opacity-60">{today}</div>}
       </div>
 
-      <div className="w-full max-w-[340px] flex justify-between items-end rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="w-full aerie-game-col flex justify-between items-end rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         <div className="flex-1">
           <div className="text-[10px] uppercase tracking-widest opacity-60">Score</div>
           <div className="text-xl font-light leading-none mt-1 tabular-nums">{score}</div>
@@ -457,7 +457,7 @@ export function PulseGlideGame({ colors, rawColors, onExit: _onExit }: { colors:
       </div>
 
       <div
-        className="relative w-full max-w-[340px] aspect-[340/453] rounded-[var(--shape-control)] overflow-hidden border cursor-pointer select-none"
+        className="relative w-full aerie-game-col aspect-[340/453] rounded-[var(--shape-control)] overflow-hidden border cursor-pointer select-none"
         style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}
         onPointerDown={boost}
       >
@@ -528,7 +528,12 @@ export function PulseGlideGame({ colors, rawColors, onExit: _onExit }: { colors:
         </AnimatePresence>
       </div>
 
-      <div className={cn('w-full max-w-[340px] transition-opacity flex flex-col gap-3', phase === 'playing' && 'opacity-40 pointer-events-none')}>
+      {/* World and Trail in one card, like the score above, instead of loose
+          chips over the wallpaper (theirs, Nov 16 2026). */}
+      <div
+        className={cn('w-full aerie-game-col transition-opacity flex flex-col gap-3 rounded-[var(--shape-control)] border px-4 py-3', phase === 'playing' && 'opacity-40 pointer-events-none')}
+        style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}
+      >
         <div>
           <div className="text-[10px] uppercase tracking-widest opacity-60 mb-1.5">World</div>
           <div className="flex gap-1.5 flex-wrap">

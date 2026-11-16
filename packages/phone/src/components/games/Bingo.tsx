@@ -421,7 +421,7 @@ export function BingoGame({ colors }: BingoProps) {
                         aim && !on && 'outline-dashed outline-1')}
                       style={{
                         ...(glow.has(key) && !on ? { boxShadow: `0 0 0 2px ${shownInk}, 0 0 12px ${shownInk}` } : {}),
-                        ...(claimedCells.has(key) ? { background: `color-mix(in srgb, ${shownInk} 22%, transparent)` } : {}),
+                        ...(claimedCells.has(key) ? { background: `color-mix(in srgb, ${shownInk} 22%, var(--aerie-panel-solid))` } : {}),
                       }}>
                 <span className={cn(on && 'opacity-40')}>{n}</span>
                 {on && (
@@ -525,12 +525,15 @@ export function BingoGame({ colors }: BingoProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div ref={tableScroll} className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+      <div ref={tableScroll} className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
         {setup && setupPanel}
 
         {/* The cage, pinned to the top so a scroll through four cards never
-            loses the ball (theirs, Nov 4 2026), with the cards right under it. */}
-        <div className={cn(panel, 'sticky -top-4 z-10 px-4 py-3')} style={{ backgroundColor: 'var(--custom-panelBg, var(--aerie-surface-strong))' }}>
+            loses the ball (theirs, Nov 4 2026), with the cards right under it.
+            It starts where it stays, right under the header, rather than a
+            padding's height lower and then jumping up on the first scroll
+            (Nov 16 2026). */}
+        <div className={cn(panel, 'sticky top-0 z-10 px-4 py-3')} style={{ backgroundColor: 'var(--custom-panelBg, var(--aerie-surface-strong))' }}>
           <div className="flex items-center gap-3">
             <div className="relative h-[72px] w-[72px] shrink-0">
               {/* No enter or exit travel: the new ball simply takes the old one's
@@ -648,7 +651,7 @@ export function BingoGame({ colors }: BingoProps) {
                 return (
                   <button key={s} type="button" aria-label={s} onClick={() => void post('/seat', { shape: s })}
                           className={cn('flex h-7 w-7 items-center justify-center rounded-full border', colors.panelBorder)}
-                          style={mine.shape === s ? { borderColor: shownInk, background: `color-mix(in srgb, ${shownInk} 22%, transparent)` } : undefined}>
+                          style={mine.shape === s ? { borderColor: shownInk, background: `color-mix(in srgb, ${shownInk} 22%, var(--aerie-panel-solid))` } : undefined}>
                     <Icon size={13} fill={mine.shape === s ? shownInk : 'none'} color={shownInk} />
                   </button>
                 );
@@ -689,7 +692,7 @@ export function BingoGame({ colors }: BingoProps) {
             return (
               <button key={s.who} type="button" onClick={() => { setSeat(s.who); setAim(false); }}
                       className={cn('flex-1 rounded-[var(--shape-control)] border px-1 py-1.5 text-center', colors.panelBg, colors.panelBorder)}
-                      style={on ? { borderColor: inkFor(s.who), background: `color-mix(in srgb, ${inkFor(s.who)} 22%, transparent)` } : undefined}>
+                      style={on ? { borderColor: inkFor(s.who), background: `color-mix(in srgb, ${inkFor(s.who)} 22%, var(--aerie-panel-solid))` } : undefined}>
                 <div className="flex items-center justify-center gap-1 truncate text-[11px] font-semibold" style={{ color: inkFor(s.who) }}>
                   <Icon size={11} fill={inkFor(s.who)} />{nameOf(s.who)}
                 </div>

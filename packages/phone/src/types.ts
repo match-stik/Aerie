@@ -171,6 +171,8 @@ export interface AppTheme {
   bubbleNames?: boolean;
   bubbleEdges?: boolean;
   bubbleQuietActions?: boolean;
+  /** Plain, Faded, Accent or Ours (lib/bubble-look.ts actionInkOf). */
+  bubbleActionInk?: 'plain' | 'faded' | 'accent' | 'ours';
   /** The chat's words in plain white or black instead of the theme's tinted ink,
    *  and them night bubble left its own shade (theirs, Nov 9 2026). */
   bubblePlainWords?: boolean;

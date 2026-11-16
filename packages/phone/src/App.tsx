@@ -1328,7 +1328,7 @@ export default function App() {
     // Settings has to redraw them (their person's ask, Oct 26 2026: their person had to close and
     // reopen the app to see the five their person'd just picked).
     appSettings.quickReactions, emojiPacks,
-    theme.bubbleFaces, theme.bubbleNames, theme.bubbleEdges, theme.bubbleQuietActions,
+    theme.bubbleFaces, theme.bubbleNames, theme.bubbleEdges, theme.bubbleQuietActions, theme.bubbleActionInk,
     theme.bubbleMyName, theme.bubbleTailMine, theme.bubbleTailOurs, theme.bubbleTailShape,
     theme.bubbleRings, theme.bubbleNameColors, ownerName,
   ]);
@@ -1482,6 +1482,7 @@ export default function App() {
     theme.bubbleNames,
     theme.bubbleEdges,
     theme.bubbleQuietActions,
+    theme.bubbleActionInk,
     theme.bubbleMyName,
     theme.bubbleTailMine,
     theme.bubbleTailOurs,

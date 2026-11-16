@@ -1383,6 +1383,11 @@ input[type="color"]::-moz-color-swatch {
 .aerie-message-bubble[data-quiet-actions='true'] em.aerie-action {
   color: color-mix(in srgb, currentColor 66%, transparent);
 }
+/* Action lines in a color of their own (theirs, Nov 16 2026): the theme's
+   accent, or each speaker's own, fitted per bubble in lib/bubble-look.ts. */
+.aerie-message-bubble[data-action-ink='color'] em.aerie-action {
+  color: var(--aerie-action-ink);
+}
 
 /* No frosted glass anywhere (Oct 22 2026). The
    bubbles lost their blur in October and the palettes were ruled solid with
@@ -1748,12 +1753,14 @@ html[data-desk] {
 }
 
 /* A room's content keeps a readable width on a wide stage instead of running
-   edge to edge (theirs, Nov 15 2026: the Settings cards stretched so wide). */
+   edge to edge (theirs, Nov 15 2026: the Settings cards stretched so wide). The
+   scroller itself stays the stage's full width and pads its content in, so the
+   wheel scrolls the room wherever the mouse is: a 44rem scroller left the side
+   margins with nothing to scroll (Nov 16 2026). */
 .aerie-root[data-desk] .aerie-stage :not([data-app-drawer]) > .aerie-app-body {
   width: 100%;
-  max-width: 44rem;
-  margin-left: auto;
-  margin-right: auto;
+  padding-left: max(1rem, calc((100% - 42rem) / 2));
+  padding-right: max(1rem, calc((100% - 42rem) / 2));
 }
 
 /* On the laptop the widgets stand on a wall of DESK_COLS columns across the
@@ -1902,4 +1909,67 @@ html[data-desk][data-desk-chat='tucked'] .aerie-picker-sheet {
    2026: the familiar app is not as wide as everything else). */
 .aerie-root[data-desk] .aerie-room-column {
   max-width: none;
+}
+
+/* The arcade games' column: a phone's width on the phone, and on the laptop as
+   big as the room's height allows, so a game is not a phone-sized window in the
+   middle of a big screen (theirs, Nov 16 2026: 'The game screen is pretty small').
+   0.75 is the field's own shape, 340 by 453. */
+.aerie-game-col {
+  max-width: 340px;
+}
+.aerie-root[data-desk] .aerie-game-col {
+  max-width: max(340px, min(100%, calc((100dvh - 250px) * 0.75)));
+}
+
+/* The Fleet Room on the laptop: a wider room, and its two boards side by side
+   above everything else (theirs, Nov 16 2026). */
+.aerie-root[data-desk] .aerie-stage :not([data-app-drawer]) > .aerie-app-body.aerie-wide-room {
+  padding-left: max(1rem, calc((100% - 72rem) / 2));
+  padding-right: max(1rem, calc((100% - 72rem) / 2));
+}
+.aerie-root[data-desk] .aerie-fleet-boards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+.aerie-root[data-desk] .aerie-fleet-boards > * {
+  grid-column: 1 / -1;
+  margin: 0 !important;
+}
+.aerie-root[data-desk] .aerie-fleet-boards > [data-board='hunt'] {
+  grid-column: 1;
+  grid-row: 1;
+}
+.aerie-root[data-desk] .aerie-fleet-boards > [data-board='waters'] {
+  grid-column: 2;
+  grid-row: 1;
+}
+.aerie-root[data-desk] .aerie-fleet-boards > [data-board='ships'] {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+}
+.aerie-root[data-desk] .aerie-fleet-boards > [data-board='lounge'] {
+  grid-column: 1;
+  grid-row: 3;
+  align-self: start;
+}
+/* Under the boards: the fleet and the lounge on the left, the ledger on the
+   right, rather than each stretched across the whole room (theirs, Nov 16 2026:
+   'all this got stretched out'). */
+.aerie-root[data-desk] .aerie-fleet-boards > [data-board='ledger'] {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  align-self: stretch;
+}
+/* Both columns end on one line (theirs, Nov 16 2026: 'make the bottom edge
+   even here'): the ledger fills to the lounge's bottom, and the lounge to the
+   ledger's when the ledger runs longer. */
+.aerie-root[data-desk] .aerie-fleet-boards > [data-board='lounge'] {
+  align-self: stretch;
+}
+.aerie-root[data-desk] .aerie-fleet-boards > [data-board='lounge'] > div {
+  height: 100% !important;
+  min-height: 6rem;
 }

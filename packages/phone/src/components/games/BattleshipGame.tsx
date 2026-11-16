@@ -751,7 +751,10 @@ export function BattleshipGame({
         </div>
       </header>
 
-      <div className="space-y-3">
+      {/* On the laptop the two boards stand side by side (theirs, Nov 16 2026:
+          'Fleet Rooms massive cards, they could probably fit side by side'). */}
+      <div className="space-y-3 aerie-fleet-boards">
+        <div data-board="hunt">
         <OceanBoard
           title="Hunt the companions"
           subtitle={game.status === 'complete' ? 'Final firing solution' : game.turn === 'owner' ? 'Tap an uncalled coordinate' : 'Board sealed while they answer'}
@@ -761,8 +764,9 @@ export function BattleshipGame({
           disabled={working || game.companionPending}
           onCell={fire}
         />
+        </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2" data-board="ships">
           {game.enemyFleet.map((ship) => (
             <div
               key={ship.name}
@@ -792,8 +796,9 @@ export function BattleshipGame({
           ))}
         </div>
 
-        <SeafloorLounge sunk={sunkCount} total={game.enemyFleet.length} />
+        <div data-board="lounge"><SeafloorLounge sunk={sunkCount} total={game.enemyFleet.length} /></div>
 
+        <div data-board="waters">
         <OceanBoard
           title="Your Waters"
           subtitle="The sealed fleet"
@@ -801,8 +806,10 @@ export function BattleshipGame({
           shots={game.companionShots}
           ships={game.playerFleet}
         />
+        </div>
 
         <section
+          data-board="ledger"
           className="rounded-[calc(24px*var(--shape-scale,1))] border p-3 backdrop-blur-md"
           style={{
             backgroundColor: PANEL_SURFACE_STRONG,

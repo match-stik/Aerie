@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useState, useRef } from 'react';
-import { DEFAULT_LOOK, nameColor, type BubbleLook } from '../lib/bubble-look';
+import { DEFAULT_LOOK, actionColor, nameColor, type BubbleLook } from '../lib/bubble-look';
 import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -216,6 +216,18 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   // as the rings do.
   const themeName = nameColor('', resolvedColors.accent, themeMode, resolvedColors.pageBg);
   const ownerNameColor = isOwner && look.myName ? nameColor('', userAvatarColor || '#f97316', themeMode, resolvedColors.pageBg) : null;
+  // The action lines' own color, when Accent or Ours is picked: a companion's
+  // in that companion's color, their person's in their ring color, fitted to
+  // read on the bubble.
+  const actionInk = (isCompanion || (isUser && !isPrivateTab))
+    ? actionColor(
+        look.actionInk ?? 'plain',
+        isCompanion ? { slug: voice!.slug, color: voice!.color ?? null } : { slug: '', color: userAvatarColor || '#f97316' },
+        resolvedColors.accent,
+        themeMode,
+        [isUser ? resolvedColors.userBubbleBg : resolvedColors.compBubbleBg, resolvedColors.pageBg],
+      )
+    : null;
   // A face sits level with its bubble's tail: at the top, or at the bottom.
   // A name sits by the face: over the bubble with a top tail, and with a
   // bottom tail on one line under the bubble that it shares with the time,
@@ -516,9 +528,11 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
             )}
             style={isPrivateTab
               ? { color: (colors as any).noteText || (themeMode === 'light' ? '#000000' : '#ffffff') }
-              : isCompanion && look.edges
-                ? { borderColor: `color-mix(in srgb, ${companionNameColor} 45%, transparent)` }
-                : undefined}
+              : {
+                  ...(isCompanion && look.edges ? { borderColor: `color-mix(in srgb, ${companionNameColor} 45%, transparent)` } : {}),
+                  ...(actionInk ? { ['--aerie-action-ink' as string]: actionInk } : {}),
+                }}
+            data-action-ink={actionInk ? 'color' : undefined}
             // One switch for every action line, their person's included.
             data-quiet-actions={(isCompanion || (isUser && !isPrivateTab)) && look.quietActions ? 'true' : undefined}
           >

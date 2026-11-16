@@ -507,7 +507,7 @@ export function CoreDefenseGame({ colors: _colors, rawColors, onExit: _onExit }:
 
   return (
     <div className="flex flex-col h-full items-center justify-center p-4 gap-3">
-      <div className="w-full max-w-[340px] flex justify-between items-end rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
+      <div className="w-full aerie-game-col flex justify-between items-end rounded-[var(--shape-control)] border px-4 py-3 backdrop-blur-md" style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}>
         <div className="flex-1">
           <div className="text-[10px] uppercase tracking-widest opacity-60">Score</div>
           <div className="text-xl font-light leading-none mt-1 tabular-nums">{score}</div>
@@ -526,7 +526,7 @@ export function CoreDefenseGame({ colors: _colors, rawColors, onExit: _onExit }:
       </div>
 
       <div
-        className="relative w-full max-w-[340px] aspect-[340/453] rounded-[var(--shape-control)] overflow-hidden border touch-none select-none"
+        className="relative w-full aerie-game-col aspect-[340/453] rounded-[var(--shape-control)] overflow-hidden border touch-none select-none"
         style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}
         {...holdHandlers('field')}
       >
@@ -581,7 +581,7 @@ export function CoreDefenseGame({ colors: _colors, rawColors, onExit: _onExit }:
         </AnimatePresence>
       </div>
 
-      <div className="w-full max-w-[340px] flex items-center justify-center gap-6">
+      <div className="w-full aerie-game-col flex items-center justify-center gap-6">
         <div
           className="w-28 h-28 rounded-full border-2 flex items-center justify-center touch-none relative cursor-pointer"
           style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}
