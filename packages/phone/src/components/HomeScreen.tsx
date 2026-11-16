@@ -40,6 +40,8 @@ interface HomeScreenProps {
   widgets: HomeWidget[];
   // Where each one sits, once any has been moved (lib/home-widgets.ts).
   widgetSpots: Layout;
+  /** On the laptop the widgets stand on a wall of DESK_COLS columns, saved apart (Nov 15 2026). */
+  deskWall?: boolean;
   quietLine: boolean;
   companions: WidgetCompanion[];
   /** Their person's custom emojis, for a status icon on the companions widget. */
@@ -77,6 +79,7 @@ export function HomeScreen({
   dockApps,
   widgets,
   widgetSpots,
+  deskWall = false,
   quietLine,
   companions,
   customEmojis,
@@ -128,7 +131,11 @@ export function HomeScreen({
   const holdTimer = useRef<number | null>(null);
   // The dock and the quiet line's real height, so the widgets sit just above them.
   const dockRef = useRef<HTMLDivElement>(null);
-  const [dockH, setDockH] = useState(0);
+  // Null until it has been measured. On a wide screen the rail is the dock
+  // (components/DeskRail.tsx) and this row can truly measure nothing, which is
+  // not the same as not knowing yet: the widgets then sit at the bottom of the
+  // stage instead of holding room for a dock that is not there (Nov 15 2026).
+  const [dockH, setDockH] = useState<number | null>(null);
   useEffect(() => {
     const el = dockRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
@@ -215,6 +222,7 @@ export function HomeScreen({
       >
         <button
           onClick={onLock}
+          data-home-lock=""
           className={cn('aerie-glass-button p-2 rounded-full opacity-80 hover:opacity-100', colors.textMain)}
           title="Lock Screen"
         >
@@ -232,7 +240,7 @@ export function HomeScreen({
         // Measured off the dock and the quiet line as they are actually drawn
         // on their phone (theirs, Nov 8 2026: moving widgets down overlapped the
         // quiet line, because a fixed 168 was a guess at their height).
-        style={{ paddingBottom: typingInWidget ? 12 : dockH ? dockH + 16 + 12 : quietLine ? 168 : 124 }}
+        style={{ paddingBottom: typingInWidget ? 12 : dockH !== null ? dockH + 16 + 12 : quietLine ? 168 : 124 }}
         onFocusCapture={(e) => { if (isTextField(e.target)) setTypingInWidget(true); }}
         onBlurCapture={(e) => { if (isTextField(e.target)) setTypingInWidget(false); }}
         {...holdHandlers}
@@ -249,7 +257,8 @@ export function HomeScreen({
           spotifyLook={spotifyLook}
           weatherLook={weatherLook}
           onOpenAppId={openById}
-          onPlace={(layout) => onThemeChange({ homeWidgetPlaces: layout })}
+          cols={deskWall ? 'auto' : undefined}
+          onPlace={(layout) => onThemeChange(deskWall ? { homeWidgetPlacesDesk: layout } : { homeWidgetPlaces: layout })}
         />
       </div>
 

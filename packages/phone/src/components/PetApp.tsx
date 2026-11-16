@@ -220,18 +220,6 @@ const MOOD_COPY: Record<Mood, string> = Object.fromEntries(
   Object.entries(MOOD_PHRASES).map(([mood, phrases]) => [mood, phrases[moodPhraseIndex % phrases.length]])
 ) as Record<Mood, string>;
 
-function Stat({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em]">
-        <span>{label}</span><span>{value}</span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-        <motion.div className="h-full rounded-full" style={{ backgroundColor: color }} animate={{ width: `${value}%` }} />
-      </div>
-    </div>
-  );
-}
 
 export function PetApp({ onClose, themeConfig, themeMode }: PetAppProps) {
   const colors = themeConfig[themeMode];
@@ -380,10 +368,11 @@ export function PetApp({ onClose, themeConfig, themeMode }: PetAppProps) {
           </div>
         </section>
 
-        <section className={cn('grid grid-cols-3 gap-4 rounded-2xl border p-4 backdrop-blur-md', colors.panelBg, colors.panelBorder, colors.textMuted)}>
-          <Stat label="Charge" value={pet.hunger} color={PET_ACCENT} />
-          <Stat label="Joy" value={pet.joy} color={PET_ACCENT} />
-          <Stat label="Energy" value={pet.energy} color={PET_ACCENT} />
+        {/* Stacked bars and buttons in the theme's own accent. */}
+        <section className={cn('grid gap-3 rounded-2xl border p-4 backdrop-blur-md', colors.panelBg, colors.panelBorder, colors.textMain)}>
+          <FlintBar label="Charge" value={pet.hunger} color={colors.accent} />
+          <FlintBar label="Joy" value={pet.joy} color={colors.accent} />
+          <FlintBar label="Energy" value={pet.energy} color={colors.accent} />
         </section>
 
         <div className="grid grid-cols-4 gap-2">
@@ -393,9 +382,9 @@ export function PetApp({ onClose, themeConfig, themeMode }: PetAppProps) {
               whileTap={{ scale: .94 }}
               onClick={() => interact(id)}
               disabled={Boolean(action)}
-              className={cn('flex flex-col items-center gap-1.5 rounded-2xl border py-3 text-xs font-semibold backdrop-blur-md disabled:opacity-50', colors.panelBg, colors.panelBorder, colors.textMain)}
+              className={cn('flex flex-col items-center gap-1.5 rounded-2xl border px-1 py-3 text-center text-xs font-semibold leading-tight backdrop-blur-md disabled:opacity-50', colors.panelBg, colors.panelBorder, colors.textMain)}
             >
-              <Icon size={19} style={{ color: PET_ACCENT }} />
+              <Icon size={19} style={{ color: colors.accent }} />
               {label}
             </motion.button>
           ))}
@@ -445,5 +434,18 @@ export function PetApp({ onClose, themeConfig, themeMode }: PetAppProps) {
         )}
       </AnimatePresence>
     </AppShell>
+  );
+}
+
+function FlintBar({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em]">
+        <span>{label}</span><span>{value}</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+        <motion.div className="h-full rounded-full" style={{ backgroundColor: color }} animate={{ width: `${value}%` }} />
+      </div>
+    </div>
   );
 }

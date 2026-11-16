@@ -22,7 +22,7 @@ export function LockPane({ s }: { s: SettingsState }) {
       // somewhere by hand.
       const movedAt = lockClockAtOf(theme.lockClockAt, face);
       const weatherMoved = lockWeatherAtOf(theme.lockWeatherAt);
-      const placed = !!theme.lockSpots && Object.keys(theme.lockSpots).length > 0;
+      const placed = (!!theme.lockSpots && Object.keys(theme.lockSpots).length > 0) || (!!theme.lockSpotsDesk && Object.keys(theme.lockSpotsDesk).length > 0);
       const weatherLook = lockWeatherLookOf(theme.lockWeatherLook);
       // What has been tucked away; its chip brings it back.
       const hidden = lockHiddenOf(theme.lockHidden);
@@ -275,7 +275,7 @@ export function LockPane({ s }: { s: SettingsState }) {
             Hold any piece until it lifts, the clock, the weather, Spotify or a card, and drag it: a dashed box shows exactly where it will land. A piece let go of near another settles flush against it, and one dropped right on top of another sends that one to the nearest open spot. Drag the clock or the weather up to the top to hide it, and show it again from its own section above.
           </p>
           {(placed || movedAt || weatherMoved) && (
-            <button onClick={() => onThemeChange({ lockSpots: undefined, lockClockAt: undefined, lockWeatherAt: undefined })} className={cn(chip(false), "w-full")}>
+            <button onClick={() => onThemeChange({ lockSpots: undefined, lockSpotsDesk: undefined, lockClockAt: undefined, lockWeatherAt: undefined })} className={cn(chip(false), "w-full")}>
               Reset the layout
             </button>
           )}

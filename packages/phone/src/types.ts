@@ -111,6 +111,8 @@ export interface AppTheme {
   // Where each lock screen piece sits on its grid (lib/lock-grid.ts, Nov 8
   // 2026). Unset is the old places, turned into cells on first draw.
   lockSpots?: Partial<Record<'clock' | 'weather' | 'messages' | 'note' | 'spotify', { col: number; row: number }>>;
+  /** The laptop lock screen's own places (Nov 15 2026), so arranging it never moves the phone's. */
+  lockSpotsDesk?: Partial<Record<'clock' | 'weather' | 'messages' | 'note' | 'spotify', { col: number; row: number }>>;
   // How the weather looks on the lock screen (lockWeatherLookOf). Unset is the pill.
   lockWeatherLook?: 'pill' | 'line' | 'big' | 'card';
   // The lock screen cards' tint, on unless false (lockCardBacksOf, Nov 8 2026).
@@ -160,6 +162,8 @@ export interface AppTheme {
   homeWidgetSpots?: Partial<Record<'companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music', { col: number; row: number }>>;
   /** Where each widget sits, rows counted in thirds (lib/home-widgets.ts ROW_PARTS, Nov 8 2026). homeWidgetSpots is the older whole-row copy, read once and moved over. */
   homeWidgetPlaces?: Partial<Record<'companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music', { col: number; row: number }>>;
+  /** The laptop wall's places (Nov 15 2026), on DESK_COLS columns, kept apart from the phone's. */
+  homeWidgetPlacesDesk?: Partial<Record<'companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music', { col: number; row: number }>>;
   homeQuietLine?: boolean;
   // The Bubbles switches (lib/bubble-look.ts). Unset is the bubbles as they
   // always looked: faces on, the other three off.
@@ -190,6 +194,24 @@ export interface AppTheme {
   drawerLabels?: 'card' | 'plain' | 'hidden';
   drawerIconColor?: 'theme' | 'accent';
   drawerTiles?: boolean;
+  // The house on a wide screen (lib/desk.ts; theirs, Nov 14 2026: the phone
+  // 'doesn't really read well on the laptop'). Only read at laptop width, so
+  // the phone never sees them. Unset is the Study: the dock as a rail down the
+  // left, one room on the stage, the conversation beside it on the right.
+  // 'phone' is the house as it was before, stretched.
+  deskLayout?: 'study' | 'phone';
+  deskDock?: 'left' | 'bottom' | 'top';
+  /** The laptop dock's own apps (Nov 15 2026); unset uses the phone's dock. */
+  deskDockAppIds?: string[];
+  deskChat?: 'right' | 'left' | 'tucked';
+  // The laptop's own pictures (theirs, Nov 15 2026), set from Settings > Laptop.
+  // Unset, the laptop shows the phone's.
+  deskWallpaper?: string;
+  deskLockWallpaper?: string;
+  // How the slideshow moves (lib/slideshow.ts). Unset is the ten seconds, in
+  // the order the pictures were added, that it always was.
+  slideshowSeconds?: 10 | 60 | 600 | 3600;
+  slideshowShuffle?: boolean;
 }
 
 export interface ContactProfile {

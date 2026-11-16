@@ -46,7 +46,18 @@ const GUEST_SIGIL = '🐾';
  * One reader, asked by every surface that draws them. Each rail having its own
  * copy is how the send icon ended up stopping at the edge of one app.
  */
+// Their face as the running app has it. The localStorage copy below is written
+// best-effort and can stop updating once their settings outgrow the browser's
+// quota (a picture is a long string), so on the laptop the Radar kept showing
+// a face they had since changed (theirs, Nov 15 2026). App hands the live one in.
+let liveOwnerAvatar: { url?: string; color?: string } | null = null;
+
+export function setOwnerAvatarLive(avatar: { url?: string; color?: string } | null): void {
+  liveOwnerAvatar = avatar;
+}
+
 export function getOwnerAvatar(): { url?: string; color?: string } {
+  if (liveOwnerAvatar) return liveOwnerAvatar;
   try {
     const saved = localStorage.getItem('aerie_settings');
     if (!saved) return {};

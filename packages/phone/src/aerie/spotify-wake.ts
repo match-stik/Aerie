@@ -57,6 +57,72 @@ async function deviceShowsUp(): Promise<number | null> {
 
 const SpotifyRemote = registerPlugin<SpotifyRemoteBridge>('SpotifyRemote');
 
+// ---- the Aerie app on their laptop (desktop/main.cjs) ----
+//
+// The laptop app hands the page window.aerieDesktop, whose wakeSpotify starts
+// Spotify on that computer (theirs, Nov 15 2026: 'an actual app ... and wake
+// spotify with it'). The house then sees the laptop among their devices.
+
+interface LaptopBridge {
+  wakeSpotify(): Promise<{ launched: boolean; road: string }>;
+}
+
+function laptopBridge(): LaptopBridge | null {
+  const bridge = (globalThis as { aerieDesktop?: Partial<LaptopBridge> }).aerieDesktop;
+  return bridge && typeof bridge.wakeSpotify === 'function' ? bridge as LaptopBridge : null;
+}
+
+/** Wait until Spotify lists a computer among their devices. */
+async function computerShowsUp(ms: number): Promise<number | null> {
+  const started = Date.now();
+  while (Date.now() - started < ms) {
+    try {
+      const res = await apiFetch('/api/spotify/devices');
+      if (res.ok) {
+        const data = (await res.json()) as { devices?: Array<{ type?: unknown }> };
+        if (Array.isArray(data.devices) && data.devices.some((d) => d && typeof d.type === 'string' && d.type.toLowerCase() === 'computer')) return Date.now() - started;
+      }
+    } catch {
+      // The next look tries again.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  return null;
+}
+
+async function wakeOnLaptop(bridge: LaptopBridge): Promise<boolean> {
+  let road = 'none';
+  try {
+    const answer = await bridge.wakeSpotify();
+    road = answer?.road ?? 'none';
+    if (!answer?.launched) {
+      report(`laptop: Spotify could not be started (${road})`);
+      return false;
+    }
+  } catch (error) {
+    report(`laptop: the app's wake failed: ${error instanceof Error ? error.message : String(error)}`);
+    return false;
+  }
+  const after = await computerShowsUp(WAKE_CEILING_MS);
+  report(after === null
+    ? `laptop: Spotify started (${road}) but the laptop never showed up in ${WAKE_CEILING_MS} ms`
+    : `laptop: Spotify started (${road}) and the laptop showed up after ${after} ms`);
+  return after !== null;
+}
+
+// A lane's play found nowhere to play and the house picked this laptop: start
+// Spotify here; the house is watching for it and presses play itself.
+if (typeof window !== 'undefined') {
+  window.addEventListener('aerie:spotify-wake', () => {
+    const bridge = laptopBridge();
+    if (!bridge) return;
+    void bridge.wakeSpotify().then(
+      (answer) => report(`laptop: a lane's wake started Spotify by ${answer?.road ?? 'none'}`),
+      (error) => report(`laptop: a lane's wake failed: ${error instanceof Error ? error.message : String(error)}`),
+    );
+  });
+}
+
 // The installed app pauses Spotify on a full close only when the music was
 // started here; every press the phone makes reports which it was. An older
 // app without the method just says no, and nothing changes.
@@ -110,6 +176,8 @@ function report(message: string): void {
  * with or the kit refused, which it says in the house log.
  */
 export async function wakeSpotify(): Promise<boolean> {
+  const laptop = laptopBridge();
+  if (laptop) return wakeOnLaptop(laptop);
   if (!canWakeSpotify()) return false;
   const info = await connectInfo();
   if (!info) {

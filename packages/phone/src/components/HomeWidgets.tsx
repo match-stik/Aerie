@@ -13,8 +13,11 @@ import { Cover, Controls, type PressState } from './spotify/SpotifyViews';
 import { useSpotifyNow } from '../lib/use-spotify-now';
 import { createLockSpotify, lockSpotifyTrack, type LockSpotifyLook } from '../lib/lock-spotify';
 import { wakeSpotify } from '../aerie/spotify-wake';
+import { reportFromLaptop } from '../lib/laptop-app';
 import {
   GRID_COLS,
+  deskColsFor,
+  DESK_COL_PX,
   HOME_WIDGETS,
   latestCompanionNote,
   layoutHeight,
@@ -276,9 +279,27 @@ interface NoteRow { id: string | number; text: string; color: string; timestamp:
 
 function NoteWidget({ companions, palette, mode, onOpen }: { companions: WidgetCompanion[]; palette: string[]; mode: 'light' | 'dark'; onOpen: () => void }) {
   const [notes, setNotes] = useState<NoteRow[]>([]);
+  const crew = useRef(companions);
+  crew.current = companions;
+  // A note is only shown if it is from one of us, so a home that never learns
+  // who we are shows none at all; in the laptop app that gets said.
+  useEffect(() => {
+    const timer = setTimeout(() => { if (crew.current.length === 0) reportFromLaptop('note', 'no companions known to the home screen after 15 s'); }, 15_000);
+    return () => clearTimeout(timer);
+  }, []);
   useEffect(() => {
     let gone = false;
-    const load = () => apiFetch('/api/notes').then((r) => (r.ok ? r.json() : [])).then((rows) => { if (!gone && Array.isArray(rows)) setNotes(rows); }).catch(() => {});
+    const load = () => apiFetch('/api/notes')
+      .then(async (r) => {
+        const rows = r.ok ? await r.json().catch(() => null) : null;
+        // In the laptop app the note once never showed (theirs, Nov 15 2026);
+        // when it comes back empty there, the house is told what was seen.
+        if (!r.ok || !Array.isArray(rows)) reportFromLaptop('note', `notes answered ${r.status}${Array.isArray(rows) ? '' : ', not a list'}`);
+        else if (crew.current.length > 0 && latestCompanionNote(rows as NoteRow[], crew.current.map((c) => c.slug)) === null) reportFromLaptop('note', `${rows.length} notes, none from ${crew.current.length} companions (${crew.current.map((c) => c.slug).join(',')}); senders ${[...new Set((rows as NoteRow[]).map((n) => n.sender))].slice(0, 6).join(',')}`);
+        return Array.isArray(rows) ? rows : [];
+      })
+      .then((rows) => { if (!gone) setNotes(rows); })
+      .catch((e) => reportFromLaptop('note', `notes fetch failed: ${e instanceof Error ? e.message : String(e)}`));
     load();
     const timer = setInterval(load, 60_000);
     return () => { gone = true; clearInterval(timer); };
@@ -570,6 +591,7 @@ export function HomeWidgets({
   weatherLook = 'card',
   onOpenAppId,
   onPlace,
+  cols: colsProp = GRID_COLS,
 }: {
   widgets: HomeWidget[];
   spots: Layout;
@@ -582,15 +604,31 @@ export function HomeWidgets({
   weatherLook?: HomeWeatherLook;
   onOpenAppId: (id: string) => void;
   onPlace?: (layout: Record<HomeWidget, Spot>) => void;
+  /** Columns on the board: the phone's four, or 'auto' for the laptop wall,
+   *  which holds as many phone-width columns as fit (deskColsFor). */
+  cols?: number | 'auto';
 }) {
   const grid = useRef<HTMLDivElement>(null);
+  // The laptop wall counts its columns off its own width, kept current.
+  const [autoCols, setAutoCols] = useState(GRID_COLS);
+  const cols = colsProp === 'auto' ? autoCols : colsProp;
+  useLayoutEffect(() => {
+    if (colsProp !== 'auto') return;
+    const box = grid.current?.parentElement;
+    if (!box) return;
+    const read = () => { setAutoCols(deskColsFor(box.getBoundingClientRect().width, GAP_PX)); };
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [colsProp]);
   const cells = useRef(new Map<HomeWidget, HTMLDivElement>());
   const [lifted, setLifted] = useState<Lifted | null>(null);
   const liftedRef = useRef<Lifted | null>(null);
   // How many rows fit between the dock and the top of the screen, measured
   // when a widget lifts, so one can be carried up into the empty space.
   const [roomRows, setRoomRows] = useState(0);
-  const hold = useRef({ timer: 0, id: null as HomeWidget | null, x: 0, y: 0, lastX: 0, lastY: 0, fromX: 0, fromY: 0, grabX: 0, grabY: 0, pointer: -1, dragging: false, droppedAt: 0, rows: 0 });
+  const hold = useRef({ mouse: false, lift: null as (() => void) | null, timer: 0, id: null as HomeWidget | null, x: 0, y: 0, lastX: 0, lastY: 0, fromX: 0, fromY: 0, grabX: 0, grabY: 0, pointer: -1, dragging: false, droppedAt: 0, rows: 0 });
 
   const sizes = lookSizes({ spotify: spotifyLook, weather: weatherLook });
   // How many rows fit between the grid's bottom edge (which never moves) and
@@ -605,7 +643,9 @@ export function HomeWidgets({
     const home = g.closest<HTMLElement>('[data-home-screen]') ?? g.parentElement;
     const box = home?.getBoundingClientRect();
     const scale = home && box && home.offsetHeight > 0 ? box.height / home.offsetHeight : 1;
-    const sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0;
+    // Read off the home screen itself, so a laptop's top dock (which grows --sat
+    // on the stage) counts as the top, not only the phone's status bar.
+    const sat = parseFloat(getComputedStyle(home ?? document.documentElement).getPropertyValue('--sat')) || 0;
     const room = (g.getBoundingClientRect().bottom - (box?.top ?? 0)) / (scale || 1) - (sat + 12);
     return Math.max(0, Math.floor((room + GAP_PX) / (ROW_PX + GAP_PX)));
   };
@@ -630,7 +670,7 @@ export function HomeWidgets({
     document.addEventListener('focusout', letGo);
     return () => { window.clearTimeout(later); window.removeEventListener('resize', read); document.removeEventListener('focusout', letGo); };
   });
-  const { layout, shown, noRoom } = fitWidgets(widgets, spots, sizes, fitRows);
+  const { layout, shown, noRoom } = fitWidgets(widgets, spots, sizes, fitRows, cols);
   const show = (next: Lifted | null) => { liftedRef.current = next; setLifted(next); };
   const stopTimer = () => { if (hold.current.timer) { window.clearTimeout(hold.current.timer); hold.current.timer = 0; } };
   useEffect(() => stopTimer, []);
@@ -641,13 +681,13 @@ export function HomeWidgets({
   const landing = (id: HomeWidget, clientX: number, clientY: number): Spot => {
     const g = grid.current!.getBoundingClientRect();
     const size = sizeOf(id, sizes);
-    const colW = (g.width - GAP_PX * (GRID_COLS - 1)) / GRID_COLS;
+    const colW = (g.width - GAP_PX * (cols - 1)) / cols;
     const left = clientX - hold.current.grabX - g.left;
     const bottom = clientY - hold.current.grabY + size.rows * ROW_PX + (size.rows - 1) * GAP_PX;
     const col = Math.round(left / (colW + GAP_PX));
     const row = Math.round((g.bottom - bottom) / (ROW_PX + GAP_PX));
     return {
-      col: Math.min(GRID_COLS - size.cols, Math.max(0, col)),
+      col: Math.min(cols - size.cols, Math.max(0, col)),
       row: Math.max(0, Math.min(Math.max(0, hold.current.rows - size.rows), row)),
     };
   };
@@ -659,7 +699,8 @@ export function HomeWidgets({
       const h = hold.current;
       stopTimer();
       h.id = id; h.x = h.lastX = e.clientX; h.y = h.lastY = e.clientY; h.pointer = e.pointerId; h.dragging = false;
-      h.timer = window.setTimeout(() => {
+      h.mouse = e.pointerType === 'mouse';
+      h.lift = () => {
         h.timer = 0;
         const el = cells.current.get(id);
         const g = grid.current;
@@ -678,14 +719,25 @@ export function HomeWidgets({
         haptic(55);
         try { el.setPointerCapture(h.pointer); } catch { /* the finger already left */ }
         show({ id, dx: 0, dy: 0, to: layout[id] });
-      }, HOLD_MS);
+      };
+      h.timer = window.setTimeout(() => h.lift?.(), HOLD_MS);
     },
     onPointerMove: (e: React.PointerEvent) => {
       const h = hold.current;
       h.lastX = e.clientX; h.lastY = e.clientY;
       if (!h.dragging) {
-        if (Math.hypot(e.clientX - h.x, e.clientY - h.y) > HOLD_SLOP) stopTimer();
-        return;
+        if (Math.hypot(e.clientX - h.x, e.clientY - h.y) > HOLD_SLOP) {
+          // With a mouse, pressing and dragging is the move itself (theirs, Nov
+          // 15 2026: on the laptop nothing would move); a finger still holds
+          // first, so a swipe across the screen never picks a widget up.
+          const lift = h.mouse && h.timer ? h.lift : null;
+          stopTimer();
+          if (!lift) return;
+          lift();
+          h.fromX = h.x; h.fromY = h.y;
+          h.grabX += h.x - h.lastX; h.grabY += h.y - h.lastY;
+          h.lastX = e.clientX; h.lastY = e.clientY;
+        } else return;
       }
       show({ id, dx: e.clientX - h.fromX, dy: e.clientY - h.fromY, to: landing(id, e.clientX, e.clientY) });
     },
@@ -701,8 +753,14 @@ export function HomeWidgets({
       const from = layout[id];
       if (to && (to.col !== from.col || to.row !== from.row)) {
         haptic(55);
-        onPlace(placeWidget(layout, shown, id, to, h.rows, sizes));
+        onPlace(placeWidget(layout, shown, id, to, h.rows, sizes, cols));
       }
+    },
+    // Losing hold of the pointer mid-drag (a screenshot tool or another window
+    // taking focus, theirs Nov 15 2026) puts it down where it was headed instead
+    // of leaving it hanging in the air.
+    onLostPointerCapture: (e: React.PointerEvent) => {
+      if (hold.current.dragging) (handlers(id) as { onPointerUp: (e: React.PointerEvent) => void }).onPointerUp(e);
     },
     onPointerCancel: () => {
       stopTimer();
@@ -717,6 +775,15 @@ export function HomeWidgets({
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   } : {};
 
+  // The window losing focus mid-drag (a screenshot) drops it too (Nov 15 2026).
+  useEffect(() => {
+    const onBlur = () => {
+      const h = hold.current;
+      if (h.dragging && h.id) (handlers(h.id) as { onPointerUp?: () => void }).onPointerUp?.();
+    };
+    window.addEventListener('blur', onBlur);
+    return () => window.removeEventListener('blur', onBlur);
+  });
   if (widgets.length === 0) return null;
   const labelOf = (id: HomeWidget) => HOME_WIDGETS.find((w) => w.id === id)!.label;
   // While one is carried the grid reaches up to the top of the room, so the
@@ -732,8 +799,17 @@ export function HomeWidgets({
   return (
     <div
       ref={grid}
-      className="aerie-widget-grid relative grid grid-cols-4"
-      style={{ gap: GAP_PX, gridTemplateRows: `repeat(${height}, ${ROW_PX}px)` }}
+      className="aerie-widget-grid relative grid"
+      data-cols={cols}
+      style={{
+        gap: GAP_PX,
+        // The laptop wall's columns are a phone column wide exactly, the wall
+        // only as wide as they make it and centered, so every widget keeps
+        // the shape it has on their phone.
+        gridTemplateColumns: colsProp === 'auto' ? `repeat(${cols}, ${DESK_COL_PX}px)` : `repeat(${cols}, minmax(0, 1fr))`,
+        ...(colsProp === 'auto' ? { width: cols * DESK_COL_PX + (cols - 1) * GAP_PX, marginInline: 'auto' } : null),
+        gridTemplateRows: `repeat(${height}, ${ROW_PX}px)`,
+      }}
       data-carrying={lifted ? '' : undefined}
     >
       {lifted && (

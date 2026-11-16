@@ -1296,6 +1296,10 @@ select:not([class*="rounded"]):focus-visible {
 .msg-flash {
   animation: msg-flash 2.4s ease-out;
   border-radius: var(--shape-bubble, 1rem);
+  /* Drawn over its neighbors, so the next row's name never covers the ring
+     (theirs, Nov 13 2026: 'the highlight box is going under other bubbles'). */
+  position: relative;
+  z-index: 2;
 }
 
 
@@ -1415,4 +1419,487 @@ input[type="color"]::-moz-color-swatch {
 }
 @media (prefers-reduced-motion: reduce) {
   .aerie-preset-shimmer { animation: none; }
+}
+
+/* -------------------------------------------------------------------------
+   Aerie Desk
+
+   The house on a wide screen (theirs, Nov 14 2026: the phone 'doesn't really
+   read well on the laptop'). lib/desk.ts decides the layout and App.tsx says
+   so on the root: data-desk, data-desk-dock, data-desk-chat, data-desk-full.
+
+   The Study, the first layout: the dock is a rail down the left
+   (components/DeskRail.tsx), one room has the stage, and the conversation
+   stays open beside it.
+
+   On the phone none of those attributes is set, and the two wrappers below
+   are not boxes at all, so every screen is laid out against the phone itself
+   exactly as before. Everything else here is behind [data-desk].
+   ---------------------------------------------------------------------- */
+
+.aerie-stage,
+.aerie-side {
+  display: contents;
+}
+
+/* A wallpaper's blurred twin: only the wide screen draws it (below). */
+.aerie-wall-blur,
+.aerie-lock-wall-blur {
+  display: none;
+}
+
+.aerie-root[data-desk] {
+  --desk-rail: 0px;
+}
+
+/* The conversation's width: a little wider than the slimmest, not quite the
+   old one (theirs, Nov 15 2026, after trying Narrow and Medium). Set on the page
+   itself, so the pickers that open outside the house's root read it too. */
+html[data-desk] {
+  --desk-side: clamp(320px, 25vw, 415px);
+}
+
+.aerie-root[data-desk][data-desk-dock='left'] {
+  --desk-rail: 80px;
+}
+
+/* The dock left at the bottom stands along the foot of every room, the way the
+   rail stands beside it (theirs, Nov 15 2026: the dock would not show up at the
+   bottom once they left home). */
+.aerie-root[data-desk][data-desk-dock='bottom'] {
+  --desk-bar: 80px;
+}
+
+/* Along the top (theirs, Nov 15 2026: side or top as options) the dock floats
+   across the header's empty middle, over the room, pushing nothing down
+   (theirs, the same evening: 'it would fit in real nice across the header if
+   we floated it'). It is slimmer than the rail so it sits within a header. */
+/* The header grows a little so the dock sits inside it with room around it
+   instead of pressed against the title and the buttons (theirs, the same
+   evening): every header's top inset (--sat, which a laptop never otherwise
+   sets) takes a few pixels, and the bar is the header's new height. Home has
+   no header, so its widgets start under the whole bar. */
+.aerie-root[data-desk][data-desk-dock='top'] {
+  --desk-bar: 72px;
+}
+
+.aerie-root[data-desk][data-desk-dock='top']:not([data-desk-full]) .aerie-stage,
+.aerie-root[data-desk][data-desk-dock='top'][data-desk-chat='tucked'] .aerie-side {
+  --sat: 12px;
+}
+
+.aerie-root[data-desk][data-desk-dock='top']:not([data-desk-full]) .aerie-stage [data-home-screen] {
+  --sat: var(--desk-bar);
+}
+
+/* Tucked away, the conversation shares the stage and opens like any room. */
+.aerie-root[data-desk] .aerie-stage,
+.aerie-root[data-desk] .aerie-side {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--desk-rail);
+  right: 0;
+}
+
+/* A room built for the phone fills the screen with position: fixed (the
+   Treehouse, the card table). On the desk the screen is the stage, so the
+   stage is what fixed means inside it (a transform makes it the containing
+   block), and no room spreads over the rail or the conversation (theirs, Nov 14
+   2026: the Treehouse lay across the whole window, see-through, over us). */
+.aerie-root[data-desk] .aerie-stage {
+  transform: translateZ(0);
+}
+
+.aerie-root[data-desk][data-desk-dock='bottom'] .aerie-stage {
+  bottom: var(--desk-bar);
+}
+
+/* The lock screen and the stage it sits on are above the conversation's box,
+   so its border is never drawn across the lock screen (theirs, Nov 15 2026: the
+   line through their lock picture). */
+.aerie-root[data-desk][data-desk-full] .aerie-stage {
+  z-index: 40;
+}
+
+/* With the dock along the bottom, a room's cards run down behind the floating
+   dock the way they pass under it on the phone, instead of being cut by a line
+   just above it (theirs, Nov 15 2026: the edge cutting off cards in a weird spot;
+   a fade was not it either). The room's own scroll keeps a dock's height of
+   room at the end, so the last card still comes up clear. Rooms without that
+   scroll (the tables, the treehouse) keep stopping above the dock. */
+.aerie-root[data-desk][data-desk-dock='bottom']:not([data-desk-full]) .aerie-stage:has(.aerie-app-body) {
+  bottom: 0;
+}
+.aerie-root[data-desk][data-desk-dock='bottom'] .aerie-stage .aerie-app-body {
+  padding-bottom: calc(var(--desk-bar) + 16px);
+}
+
+/* Tucked, the conversation opens on the stage, so with the dock along the
+   bottom its typing box sits above the dock (theirs, Nov 15 2026: the dock
+   covered the input). The box's dark footer runs on down behind the dock
+   instead of stopping short of it, so there is no plain strip between them
+   (theirs, the same evening). */
+.aerie-root[data-desk][data-desk-dock='bottom'][data-desk-chat='tucked'] .aerie-composer-wrap {
+  padding-bottom: calc(var(--desk-bar) + 4px) !important;
+}
+
+/* Settings has a stage of its own over the room's (App.tsx). Empty, it is
+   still a box, and with the transform it sits over the room and takes every
+   click meant for it; a stage with nothing on it is not there at all. */
+.aerie-root[data-desk] .aerie-stage:empty {
+  display: none;
+}
+
+/* Tucked, the conversation's box lies over the whole stage even while the
+   chat is hidden, and an empty box still takes every click (theirs, Nov 15
+   2026: after Tucked they could not click anything). The box lets clicks
+   through; the chat inside takes them back while it is the room showing
+   (its own pointer-events-auto in App.tsx). */
+.aerie-root[data-desk][data-desk-chat='tucked'] .aerie-side {
+  pointer-events: none;
+}
+
+.aerie-root[data-desk][data-desk-chat='right'] .aerie-stage {
+  right: var(--desk-side);
+}
+
+.aerie-root[data-desk][data-desk-chat='right'] .aerie-side {
+  left: auto;
+  width: var(--desk-side);
+  border-left: 1px solid var(--aerie-hairline);
+}
+
+.aerie-root[data-desk][data-desk-chat='left'] .aerie-stage {
+  left: calc(var(--desk-rail) + var(--desk-side));
+}
+
+.aerie-root[data-desk][data-desk-chat='left'] .aerie-side {
+  right: auto;
+  width: var(--desk-side);
+  border-right: 1px solid var(--aerie-hairline);
+}
+
+/* The lock screen has the whole window; the rail is not drawn behind it, and
+   with the dock along the bottom it still reaches the bottom edge (it stopped
+   a bar short, Nov 15 2026). */
+.aerie-root[data-desk][data-desk-full] .aerie-stage {
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.aerie-desk-rail {
+  position: absolute;
+  z-index: 30;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--desk-rail);
+  padding: calc(var(--sat) + 12px) 6px calc(var(--sab) + 12px);
+}
+
+/* The room on the stage, lit the way a pressed tile is, without the press. */
+.aerie-dock-tile[data-current] {
+  color: var(--aerie-accent);
+  border-color: color-mix(in srgb, var(--aerie-accent) 72%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--aerie-accent) 12%, transparent),
+    0 0 20px color-mix(in srgb, var(--aerie-accent) 22%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* The rail or the bar is the dock here, beside or under every room, so home
+   lets its own row of tiles and its lock button go (theirs, Nov 15 2026: two
+   lock buttons). */
+.aerie-root[data-desk] [data-home-screen] .aerie-dock,
+.aerie-root[data-desk] [data-home-lock] {
+  display: none;
+}
+
+.aerie-desk-rail[data-orient='top'] {
+  top: 0;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  width: auto;
+  height: var(--desk-bar);
+  padding: 8px 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Over the rooms and the conversation, under anything that opens over the
+     whole window (a contact card is z-50; theirs, Nov 15 2026: the cards came
+     up under the dock). */
+  z-index: 45;
+  pointer-events: none;
+}
+
+.aerie-desk-rail[data-orient='top'] .aerie-dock {
+  pointer-events: auto;
+}
+
+.aerie-desk-rail[data-orient='top'] .aerie-dock {
+  width: auto;
+  max-width: 100%;
+  /* As tall as its tallest tile (a two-line name), not the bar, so nothing
+     is clipped; the bar centers it. */
+  height: auto;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.aerie-root[data-desk][data-desk-dock='top'][data-desk-chat='right'] .aerie-desk-rail {
+  right: var(--desk-side);
+}
+
+.aerie-root[data-desk][data-desk-dock='top'][data-desk-chat='left'] .aerie-desk-rail {
+  left: var(--desk-side);
+}
+
+.aerie-desk-rail[data-orient='bottom'] {
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: auto;
+  height: var(--desk-bar);
+  padding: 6px 12px calc(var(--sab) + 6px);
+  display: flex;
+  justify-content: center;
+}
+
+.aerie-desk-rail[data-orient='bottom'] .aerie-dock {
+  width: auto;
+  max-width: 100%;
+}
+
+.aerie-root[data-desk][data-desk-dock='bottom'][data-desk-chat='right'] .aerie-desk-rail {
+  right: var(--desk-side);
+}
+
+.aerie-root[data-desk][data-desk-dock='bottom'][data-desk-chat='left'] .aerie-desk-rail {
+  left: var(--desk-side);
+}
+
+/* The wallpaper belongs to the rooms, not the whole window: it sits behind
+   the stage only, shown whole over a blurred copy of itself instead of
+   zoomed until it fills a wide screen (theirs, Nov 15 2026: stretched, and
+   running under the chat with the line between). The conversation keeps the
+   page color beside it. */
+/* The wallpaper runs under the rail too, so the dock floats over the picture
+   down the left the way it does along the bottom (theirs, Nov 15 2026: the
+   color under the side rail). With the conversation on the left the rail sits
+   beside it and the picture starts after both. */
+.aerie-root[data-desk] .aerie-wallpaper-layer {
+  left: 0;
+}
+
+.aerie-root[data-desk][data-desk-chat='right'] .aerie-wallpaper-layer {
+  right: var(--desk-side);
+}
+
+.aerie-root[data-desk][data-desk-chat='left'] .aerie-wallpaper-layer {
+  left: calc(var(--desk-rail) + var(--desk-side));
+}
+
+/* With the dock along the bottom the wallpaper still runs under it, so the
+   dock floats over the picture the way it does on the phone instead of
+   sitting on a strip of solid color (theirs, Nov 15 2026). The rooms still
+   stop above it. */
+
+.aerie-root[data-desk] .aerie-wall {
+  /* Fills the room the way a desktop background does, trimming whatever
+     overhangs rather than stretching or leaving a blurred band (theirs, Nov 15
+     2026: 'adjust to fit well without stretching'). */
+  object-fit: cover;
+  /* Anchored to the bottom, so a picture that is not the window's shape
+     leaves its spare band at the top and the dock always floats over the
+     picture itself (theirs, Nov 15 2026: color under the dock). */
+  object-position: center center;
+}
+
+.aerie-root[data-desk] .aerie-wall-blur {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(28px) brightness(0.45);
+  transform: scale(1.12);
+  pointer-events: none;
+}
+
+.aerie-root[data-desk] .aerie-lock-wall {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.85;
+}
+
+.aerie-root[data-desk] .aerie-lock-wall-blur {
+  display: block;
+  background-size: cover;
+  background-position: center;
+  filter: blur(28px) brightness(0.45);
+  transform: scale(1.12);
+}
+
+/* A room's content keeps a readable width on a wide stage instead of running
+   edge to edge (theirs, Nov 15 2026: the Settings cards stretched so wide). */
+.aerie-root[data-desk] .aerie-stage :not([data-app-drawer]) > .aerie-app-body {
+  width: 100%;
+  max-width: 44rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* On the laptop the widgets stand on a wall of DESK_COLS columns across the
+   whole stage (theirs, Nov 15 2026: move them anywhere), placed apart from the
+   phone's board. A column stays about a phone column wide. */
+.aerie-root[data-desk] [data-home-screen] .aerie-widget-grid {
+  width: 100%;
+  max-width: none;
+}
+
+/* The drawer's grid stays a grid, not four columns a hand apart. */
+.aerie-root[data-desk] [data-app-drawer] .aerie-app-body {
+  width: 100%;
+  max-width: 46rem;
+  align-self: center;
+}
+
+/* The strip the rail stands in is the frame's own black (white by day), the
+   same as the headers, and the dock on it keeps their theme's color (theirs, Nov
+   15 2026: 'the block under the side dock black, dock still the theme
+   color'). The wallpaper starts after the strip. */
+.aerie-desk-rail:not([data-orient]) {
+  background: var(--aerie-header);
+  border-right: 1px solid var(--aerie-hairline);
+}
+
+.aerie-root[data-desk][data-desk-dock='left'][data-desk-chat='right'] .aerie-wallpaper-layer,
+.aerie-root[data-desk][data-desk-dock='left'][data-desk-chat='tucked'] .aerie-wallpaper-layer {
+  left: var(--desk-rail);
+}
+
+/* The conversation beside a room is phone-width, so its header's buttons keep
+   the phone's spacing; the wider one pushed the last of them off the edge
+   and under the room's header (theirs, Nov 15 2026: squished in with the names
+   and icons). */
+.aerie-root[data-desk] [data-chat-actions] {
+  gap: 0;
+}
+.aerie-root[data-desk] [data-chat-actions] > button {
+  padding: 0.4rem;
+}
+
+/* The Studio dot sits at the stage's own top right, under the room's header,
+   instead of over the conversation's buttons. */
+.aerie-root[data-desk] .aerie-studio-tray {
+  top: 76px !important;
+}
+.aerie-root[data-desk][data-desk-dock='top'] .aerie-studio-tray {
+  top: 88px !important;
+}
+.aerie-root[data-desk][data-desk-chat='right'] .aerie-studio-tray {
+  right: calc(var(--desk-side) + 12px);
+}
+
+/* In the conversation beside a room, the faces are a size up and the bubbles
+   run a little wider (theirs, Nov 15 2026: 'a little more room to breathe').
+   The window is wide enough for the sm: sizes, but the conversation is a
+   phone's width, so it keeps the phone's 85% and then some. */
+.aerie-root[data-desk] .aerie-bubble-col {
+  max-width: 90% !important;
+}
+.aerie-root[data-desk] .aerie-face-rail {
+  width: 46px !important;
+}
+.aerie-root[data-desk] .aerie-face {
+  width: 46px !important;
+}
+.aerie-root[data-desk] .aerie-face.-left-\[44px\] {
+  left: -54px !important;
+}
+.aerie-root[data-desk] .aerie-face.-right-\[44px\] {
+  right: -54px !important;
+}
+.aerie-root[data-desk] .aerie-face > img,
+.aerie-root[data-desk] .aerie-face > div {
+  width: 46px !important;
+  height: 46px !important;
+}
+
+/* The typing box's words a size down on the laptop (theirs, Nov 15 2026). */
+.aerie-root[data-desk] .aerie-composer {
+  font-size: 13px !important;
+}
+
+/* Spotify keeps the same reading width as every other room on the laptop
+   instead of a phone's narrower column inside it (theirs, Nov 15 2026). */
+.aerie-root[data-desk] .aerie-spotify-col {
+  max-width: none;
+}
+
+/* Opening a room no longer flashes the top (theirs, Nov 15 2026: 'the headers
+   have to load every time'). The room fades in, header and all, so for a
+   moment the top was the wallpaper; the stage now holds the header's own
+   color there from the first frame, and the room comes in without the small
+   zoom that showed the picture round its edges. */
+.aerie-root[data-desk] .aerie-stage:has(.aerie-shell-header)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--sat) + 3.25rem);
+  background: var(--aerie-header);
+  pointer-events: none;
+}
+.aerie-root[data-desk] .aerie-room {
+  transform: none !important;
+}
+
+/* The GIF, sticker and emoji pickers open over the conversation, its width,
+   instead of across the whole laptop (theirs, Nov 15 2026). */
+html[data-desk][data-desk-chat='right'] .aerie-picker-sheet {
+  left: auto !important;
+  right: 0 !important;
+  width: var(--desk-side);
+}
+html[data-desk][data-desk-chat='left'] .aerie-picker-sheet {
+  left: 0 !important;
+  right: auto !important;
+  width: var(--desk-side);
+}
+html[data-desk][data-desk-dock='left'][data-desk-chat='left'] .aerie-picker-sheet {
+  left: 80px !important;
+}
+html[data-desk][data-desk-chat='tucked'] .aerie-picker-sheet {
+  left: max(0px, calc(50% - 22rem)) !important;
+  right: max(0px, calc(50% - 22rem)) !important;
+}
+
+/* The search box fits the conversation's header instead of a fixed width
+   that ran past its edge (theirs, Nov 15 2026); the results sit right under it. */
+.aerie-root[data-desk] .aerie-chat-search {
+  min-width: 0;
+  max-width: calc(var(--desk-side) - 128px);
+}
+.aerie-root[data-desk] .aerie-chat-search input {
+  width: 100%;
+  min-width: 0;
+}
+.aerie-root[data-desk] .aerie-search-results {
+  margin-top: 0;
+}
+
+/* A room drawn as a phone-width column (the Familiar's pages, Spotify) takes
+   the same reading width as every other room on the laptop (theirs, Nov 15
+   2026: the familiar app is not as wide as everything else). */
+.aerie-root[data-desk] .aerie-room-column {
+  max-width: none;
 }

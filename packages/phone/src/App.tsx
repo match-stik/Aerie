@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { isBackSwipe } from './lib/edge-swipe';
 import { runBackHandler } from './lib/back-stack';
 import { useBrowserBack } from './lib/use-browser-back';
@@ -20,6 +20,7 @@ import { SettingsDashboard } from './components/SettingsDashboard';
 import { ContactInfo } from './components/ContactInfo';
 import { LockScreen } from './components/LockScreen';
 import { HomeScreen } from './components/HomeScreen';
+import { DeskRail } from './components/DeskRail';
 import { RadarApp } from './components/RadarApp';
 import { NotesApp } from './components/NotesApp';
 import { StoryShelfApp } from './components/StoryShelfApp';
@@ -51,6 +52,11 @@ import { THEMES, PALETTE_TILES, contrastTextColor, onAccentInk, resolveThemeColo
 import { PALETTES } from './lib/palettes';
 import { DEFAULT_THEME, readSavedTheme, useCustomThemeStyles, useThemeFrame } from './lib/use-app-theme';
 import { applyThemeUpdate } from './lib/wallpaper-mode';
+import { DESK_DOCK_MAX, DESK_TEXT_SCALE, chatShown, deskDockIdsOf, deskDockOf, stageAfterMessages } from './lib/desk';
+import { setOwnerAvatarLive } from './lib/house';
+import { installDeskScroll } from './lib/desk-scroll';
+import { useDesk } from './lib/use-desk';
+import { nextSlide, slideshowSecondsOf } from './lib/slideshow';
 import {
   AerieLoginGate,
   useMessages,
@@ -105,7 +111,7 @@ import { StatusSheet, StatusIcon } from './components/Statuses';
 import { homeClockLookOf, lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, lockWeatherLookOf, withHidden } from './lib/lock-clock';
 import { lockSpotsOf } from './lib/lock-grid';
 import { useLockUnread } from './aerie/lock-unread';
-import { homePlacesOf, homeWidgetsOf, homeCardStyleOf, homeWeatherLookOf } from './lib/home-widgets';
+import { homePlacesOf, homeSpotsOf, DESK_COLS, homeWidgetsOf, homeCardStyleOf, homeWeatherLookOf } from './lib/home-widgets';
 import { bubbleInks, bubbleLookOf, mixHex } from './lib/bubble-look';
 import { drawerLookOf } from './lib/drawer-look';
 import { bodyStack, fontsOf, titleStack } from './lib/fonts';
@@ -125,29 +131,38 @@ const DEFAULT_CONTACTS: Record<string, ContactProfile> = {
   }
 };
 
+/** Bubbles and date lines drawn on the first frame into the chat. */
+const ENTRY_NODES = 40;
+
 function AppBackground({ theme }: { theme: AppTheme }) {
   const [slideshowIndex, setSlideshowIndex] = useState(0);
 
+  // Their pace and their shuffle (lib/slideshow.ts; theirs, Nov 14 2026). Unset is
+  // the ten seconds, in the order they added them, that it always was.
+  const pace = slideshowSecondsOf(theme.slideshowSeconds);
+  const shuffle = theme.slideshowShuffle === true;
   useEffect(() => {
     if (!theme.slideshowEnabled || !theme.wallpapers || theme.wallpapers.length <= 1) return;
-    
+    const count = theme.wallpapers.length;
+
     const interval = setInterval(() => {
-      setSlideshowIndex((prev) => (prev + 1) % theme.wallpapers!.length);
-    }, 10000); // 10 seconds
-    
+      setSlideshowIndex((prev) => nextSlide(prev, count, shuffle));
+    }, pace * 1000);
+
     return () => clearInterval(interval);
-  }, [theme.slideshowEnabled, theme.wallpapers]);
+  }, [theme.slideshowEnabled, theme.wallpapers, pace, shuffle]);
 
   if (theme.slideshowEnabled && theme.wallpapers && theme.wallpapers.length > 0) {
     return (
       <AnimatePresence>
+        <img key={`blur-${slideshowIndex}`} aria-hidden="true" className="aerie-wall-blur" src={theme.wallpapers[slideshowIndex % theme.wallpapers.length]} alt="" referrerPolicy="no-referrer" />
         <motion.img 
           key={slideshowIndex}
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.8 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          className="absolute inset-0 z-0 pointer-events-none w-full h-full object-cover"
+          className="aerie-wall absolute inset-0 z-0 pointer-events-none w-full h-full object-cover"
           src={theme.wallpapers[slideshowIndex % theme.wallpapers.length]}
           alt="Slideshow"
           referrerPolicy="no-referrer"
@@ -158,12 +173,15 @@ function AppBackground({ theme }: { theme: AppTheme }) {
 
   if (theme.wallpaper) {
     return (
-      <img 
-        className="absolute inset-0 z-0 opacity-80 pointer-events-none w-full h-full object-cover"
-        src={theme.wallpaper}
-        alt="Wallpaper"
-        referrerPolicy="no-referrer"
-      />
+      <>
+        <img aria-hidden="true" className="aerie-wall-blur" src={theme.wallpaper} alt="" referrerPolicy="no-referrer" />
+        <img 
+          className="aerie-wall absolute inset-0 z-0 opacity-80 pointer-events-none w-full h-full object-cover"
+          src={theme.wallpaper}
+          alt="Wallpaper"
+          referrerPolicy="no-referrer"
+        />
+      </>
     );
   }
 
@@ -309,12 +327,40 @@ export default function App() {
 
   // Theme State
   const [theme, setTheme] = useState<AppTheme>(readSavedTheme);
+  // The house on a wide screen (lib/desk.ts; theirs, Nov 14 2026). On the phone
+  // desk.on is false and chatOn is just 'the Messages screen is up', so every
+  // line below that reads them does what it did before.
+  const desk = useDesk(theme);
+  const chatOn = chatShown(desk, osState);
+  // With the conversation beside them, a tap that asks for the Messages screen
+  // (a notification, a search hit, the dock) has nowhere new to go: the chat is
+  // already there. Put the stage back on the room they were in.
+  const lastRoomRef = useRef<OsScreen | null>(null);
+  useEffect(() => {
+    const back = stageAfterMessages(desk, osState, lastRoomRef.current);
+    if (back) setOsState(back as OsScreen);
+    else if (osState !== 'messages') lastRoomRef.current = osState;
+  }, [desk, osState]);
+  // Swiping up is a phone's way in. On a wide screen Enter or Space opens the
+  // house too; the swipe still works with a mouse.
+  useEffect(() => {
+    if (!desk.on || osState !== 'locked') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName))) return;
+      e.preventDefault();
+      setOsState('home');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [desk.on, osState]);
   // Read only while the lock screen is up and its message card can show.
   const lockUnread = useLockUnread(lockThreads, osState === 'locked' && lockShowOf(theme.lockShow) !== 'nothing');
   // The home screen's Messages badge counts the same way, only what we said to
   // their person: it read every room's raw counter, so a listening cafe ran it into the
   // hundreds, the lock card's fault on another surface (Oct 22 2026).
-  const homeUnread = useLockUnread(lockThreads, osState === 'home' && !showSettings);
+  const homeUnread = useLockUnread(lockThreads, (osState === 'home' && !showSettings) || (desk.rail && !chatOn && osState !== 'locked'));
   // And the thread list's number on each room, while the list is open.
   const switcherUnread = useLockUnread(lockThreads, showThreadSwitcher);
 
@@ -488,10 +534,10 @@ export default function App() {
     if (!voiceSession) return;
     if (ksActiveThreadId !== voiceSession.threadId) {
       closeVoiceConversation();
-    } else if (osState !== 'messages') {
+    } else if (!chatOn) {
       setVoiceMinimized(true);
     }
-  }, [osState, ksActiveThreadId, voiceSession]);
+  }, [chatOn, ksActiveThreadId, voiceSession]);
 
   const forceScrollWindow = useRef<number>(Date.now() + 3000);
   // Holds a message id while a search-jump is in flight. The auto-scroll
@@ -544,6 +590,14 @@ export default function App() {
     const byId = new Map(APPS.map((a) => [a.id, a]));
     return migrateAppIds(ids).map((id) => byId.get(id)).filter((a): a is AppDef => !!a);
   }, [appSettings.dockAppIds]);
+  // The laptop's dock: its own list when they have made one, else the phone's,
+  // up to as many as its side holds (lib/desk.ts).
+  const deskDockApps = useMemo<AppDef[]>(() => {
+    const ids = deskDockIdsOf(theme.deskDockAppIds);
+    const byId = new Map(APPS.map((a) => [a.id, a]));
+    const list = ids ? migrateAppIds(ids).map((id) => byId.get(id)).filter((a): a is AppDef => !!a) : dockApps;
+    return list.slice(0, DESK_DOCK_MAX[deskDockOf(theme.deskDock)]);
+  }, [theme.deskDockAppIds, theme.deskDock, dockApps]);
 
   const authenticated = useAerie((s) => s.auth.authenticated);
   const { isLoaded, settingsHydrated } = useSettingsSync({
@@ -571,9 +625,18 @@ export default function App() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  // FIRST PAINT, NEWEST FIRST (theirs, Nov 14 2026: the wallpaper is there, it's
+  // the rest of the chat screen that takes a second to load over it). Walking
+  // in, the chat draws only its newest stretch, so the screen is up at once;
+  // the rest of the loaded page joins two frames later, below the fold and
+  // above their place, with the view held at the newest line.
+  const [chatFull, setChatFull] = useState(false);
+  const chatFullRef = useRef(false);
+  chatFullRef.current = chatFull;
+  const chatScroller = () => scrollContainerRef.current;
 
   const isNearBottom = () => {
-    const container = scrollContainerRef.current;
+    const container = chatScroller();
     if (!container) return true;
     // Allow a 400px threshold for reading
     return container.scrollHeight - container.scrollTop - container.clientHeight < 400;
@@ -586,7 +649,7 @@ export default function App() {
   // The hold itself is lib/hold-message.ts; the Treehouse page uses it too.
   // onDone fires when it lets go, so the jump guard is held exactly as long.
   const scrollToMessageId = (messageId: string, onDone?: () => void, needle?: string) => {
-    const container = scrollContainerRef.current;
+    const container = chatScroller();
     if (!container) { onDone?.(); return; }
     jumpHoldStopRef.current?.();
     jumpHoldStopRef.current = holdMessageInView(container, messageId, { onDone, needle, report: reportSearchJump });
@@ -612,7 +675,7 @@ export default function App() {
       setOsState('treehouse');
       return;
     }
-    if (osState !== 'messages') setOsState('messages');
+    if (!chatOn) setOsState('messages');
     // Suppresses the thread-switch auto-scroll-to-bottom timeouts so they
     // don't override our scrollToMessageId. Held for as long as the hit is
     // (scrollToMessageId's onDone), then released so normal auto-scroll on
@@ -665,6 +728,7 @@ export default function App() {
       if (
         container.scrollTop < 200 &&
         !pendingJumpMessageId.current &&
+        chatFullRef.current &&
         !loadingOlderRef.current &&
         hasMoreOlderRef.current &&
         ksActiveThreadId &&
@@ -678,7 +742,7 @@ export default function App() {
             hasMoreOlderRef.current = hasMore;
             // Preserve scroll position so the user doesn't snap up after prepend.
             requestAnimationFrame(() => {
-              const c = scrollContainerRef.current;
+              const c = chatScroller();
               if (c) c.scrollTop = prevTop + (c.scrollHeight - prevHeight);
             });
           })
@@ -700,7 +764,7 @@ export default function App() {
     if (!isForced && !isNearBottom()) return;
     
     // Safely scroll the specific container to avoid full-page body jumping
-    const container = scrollContainerRef.current;
+    const container = chatScroller();
     if (container) {
       container.scrollTo({
         top: container.scrollHeight,
@@ -715,9 +779,24 @@ export default function App() {
   // So it keeps going to the bottom until the bottom has stopped moving, and
   // lets go the moment they touch the screen.
   const keepAtBottom = () => {
-    const container = scrollContainerRef.current;
+    const container = chatScroller();
     if (container) holdAtBottom(container);
   };
+
+  useEffect(() => {
+    if (osState !== 'messages') { setChatFull(false); return; }
+    if (chatFull) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => { second = requestAnimationFrame(() => setChatFull(true)); });
+    return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
+  }, [osState, chatFull]);
+  // The rest arrives above their place: hold the view at the newest line.
+  useLayoutEffect(() => {
+    if (!chatFull || pendingJumpMessageId.current) return;
+    const c = chatScroller();
+    if (c && (pinnedToBottom.current || Date.now() < forceScrollWindow.current)) c.scrollTop = c.scrollHeight;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatFull]);
 
   // The chat stays pinned to its newest line while the box they type in grows
   // (theirs, Nov 11 2026: 'when my chat input box gets so big, it's like pushing
@@ -727,35 +806,54 @@ export default function App() {
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container || typeof ResizeObserver === 'undefined') return;
-    const onScroll = () => { pinnedToBottom.current = container.scrollHeight - container.scrollTop - container.clientHeight < 60; };
+    const onScroll = () => {
+      pinnedToBottom.current = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+    };
     let lastHeight = container.clientHeight;
     const observer = new ResizeObserver(() => {
-      const shrank = container.clientHeight < lastHeight;
-      lastHeight = container.clientHeight;
+      const now = container.clientHeight;
+      const shrank = now < lastHeight;
+      lastHeight = now;
       if (shrank && pinnedToBottom.current) container.scrollTop = container.scrollHeight;
     });
     container.addEventListener('scroll', onScroll, { passive: true });
     observer.observe(container);
-    return () => { container.removeEventListener('scroll', onScroll); observer.disconnect(); };
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      observer.disconnect();
+    };
   }, []);
 
   // Auto-scroll on tab switch or app open
   useEffect(() => {
     forceScrollWindow.current = Date.now() + 3000;
-    if (osState === 'messages' && isLoaded) {
+    if (chatOn && isLoaded) {
       setTimeout(() => scrollToBottom(true, true), 10);
       setTimeout(() => scrollToBottom(true, true), 100); 
       // Add generous timeouts to catch large images unbuffering on initial switch
       setTimeout(() => scrollToBottom(true, true), 500); 
       setTimeout(() => scrollToBottom(true, true), 1200); 
     }
-  }, [ksActiveThreadId, osState, isLoaded]); // Explicitly do NOT depend on message lengths here to avoid fighting the user scroll
+  }, [ksActiveThreadId, chatOn, isLoaded]); // Explicitly do NOT depend on message lengths here to avoid fighting the user scroll
 
   // Keep the thread pinned to the newest message as it streams in.
   useEffect(() => {
-    if (osState === 'messages') scrollToBottom();
+    if (chatOn) scrollToBottom();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [osState, messages.length, ksStreaming.tokens]);
+  }, [chatOn, ksStreaming.tokens]);
+
+  // A new message lands all the way at the bottom (theirs, Nov 15 2026: ours
+  // stopping a little short). One smooth scroll aims at the bottom as it is
+  // the moment the message arrives; its card, faces, pictures and tray grow
+  // the list after that, so it keeps following the bottom until the list has
+  // stopped moving, and lets go the moment they touch it.
+  useEffect(() => {
+    if (!chatOn || pendingJumpMessageId.current) return;
+    if (!(pinnedToBottom.current || isNearBottom() || Date.now() < forceScrollWindow.current)) return;
+    scrollToBottom(false, true);
+    keepAtBottom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatOn, messages.length]);
 
   // Guarantee we land at the newest message when a thread's messages first
   // arrive — independent of the 3s force-scroll window above. On a slow load
@@ -767,7 +865,7 @@ export default function App() {
   // re-trigger it (ref already matches); leaving messages re-arms it.
   const loadScrollThreadRef = useRef<string | null>(null);
   useEffect(() => {
-    if (osState !== 'messages') { loadScrollThreadRef.current = null; return; }
+    if (!chatOn) { loadScrollThreadRef.current = null; return; }
     if (!ksActiveThreadId || messages.length === 0) return;
     if (loadScrollThreadRef.current === ksActiveThreadId) return;
     // Don't override a search-jump in progress
@@ -775,7 +873,7 @@ export default function App() {
     loadScrollThreadRef.current = ksActiveThreadId;
     requestAnimationFrame(() => scrollToBottom(true, true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [osState, ksActiveThreadId, messages.length]);
+  }, [chatOn, ksActiveThreadId, messages.length]);
 
   // Auto-mark the active thread read whenever the user is actually looking
   // at it. Without this, the backend keeps bumping unread_count on every
@@ -785,12 +883,12 @@ export default function App() {
   // active thread, and the tab is in the foreground.
   const latestMessageId = ksMessages.length > 0 ? ksMessages[ksMessages.length - 1].id : null;
   useEffect(() => {
-    if (osState !== 'messages') return;
+    if (!chatOn) return;
     if (!ksActiveThreadId) return;
     if (!latestMessageId) return;
     if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     markRead(ksActiveThreadId, latestMessageId);
-  }, [osState, ksActiveThreadId, latestMessageId]);
+  }, [chatOn, ksActiveThreadId, latestMessageId]);
 
   // Re-mark on tab refocus so messages that arrived while the tab was
   // backgrounded (visibility-gated effect above skipped them) clear the
@@ -798,12 +896,12 @@ export default function App() {
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      if (osState !== 'messages' || !ksActiveThreadId || !latestMessageId) return;
+      if (!chatOn || !ksActiveThreadId || !latestMessageId) return;
       markRead(ksActiveThreadId, latestMessageId);
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [osState, ksActiveThreadId, latestMessageId]);
+  }, [chatOn, ksActiveThreadId, latestMessageId]);
   useEffect(() => {
     if (theme.mode === 'dark') {
       document.documentElement.classList.add('dark');
@@ -1396,14 +1494,36 @@ export default function App() {
   // The fonts (lib/fonts.ts): a title font, a message font, and a size. Root
   // font size drives every rem-based size in the UI; 16px is what Tailwind is
   // designed against and the slider multiplies it.
+  // The rooms that read their face outside props (the Radar, Bingo, the shelf)
+  // read the live one, not a local copy that can go stale (lib/house.ts).
+  setOwnerAvatarLive(isLoaded ? { url: appSettings.userAvatar, color: appSettings.userAvatarColor } : null);
   const houseFonts = fontsOf(appSettings, activeTheme.fontFamily);
+  // The laptop reads at its own size, the smallest (theirs, Nov 15 2026: it
+  // helps the top dock look like it should); the phone keeps their slider.
+  const textScale = desk.on ? DESK_TEXT_SCALE : houseFonts.scale;
+  // Sideways rows of tabs follow the wheel and a mouse drag on the laptop.
+  useEffect(() => (desk.on ? installDeskScroll() : undefined), [desk.on]);
+  // The pickers open on the page itself, outside .aerie-root, so the layout
+  // marks the page too and they can sit over the conversation (index.css).
+  useEffect(() => {
+    const root = document.documentElement;
+    if (desk.on) {
+      root.dataset.desk = 'study';
+      root.dataset.deskChat = desk.chat ?? 'tucked';
+      root.dataset.deskDock = desk.dock;
+    } else {
+      delete root.dataset.desk;
+      delete root.dataset.deskChat;
+      delete root.dataset.deskDock;
+    }
+  }, [desk.on, desk.chat, desk.dock]);
   useEffect(() => {
     const root = document.documentElement.style;
-    root.fontSize = `${Math.round(16 * houseFonts.scale * 100) / 100}px`;
+    root.fontSize = `${Math.round(16 * textScale * 100) / 100}px`;
     root.setProperty('--font-title', titleStack(houseFonts.title));
     root.setProperty('--font-body', bodyStack(houseFonts.body));
     root.setProperty('--title-scale', String(houseFonts.titleScale));
-  }, [houseFonts.scale, houseFonts.title, houseFonts.body, houseFonts.titleScale]);
+  }, [textScale, houseFonts.title, houseFonts.body, houseFonts.titleScale]);
 
   // One semantic palette feeds every screen. Components still consume the
   // legacy utility-class contract, while shared surfaces/bubbles and loose
@@ -1679,11 +1799,18 @@ export default function App() {
         colors.textMain,
       )}
       data-theme-mode={theme.mode}
+      // The wide layout's switches, read by the Aerie Desk section of
+      // index.css. None of them is set on the phone, and with none set the
+      // stage and the side below are not boxes at all (display: contents).
+      data-desk={desk.on ? 'study' : undefined}
+      data-desk-dock={desk.on ? desk.dock : undefined}
+      data-desk-chat={desk.on ? (desk.chat ?? 'tucked') : undefined}
+      data-desk-full={desk.on && osState === 'locked' ? '' : undefined}
       style={{ paddingBottom: 'var(--sab)', fontFamily: 'var(--font-body)' }}
     >
       {customThemeStyles && <style>{customThemeStyles}</style>}
       {/* Global Wallpaper Layer */}
-      <AppBackground theme={theme} />
+      <div className="aerie-wallpaper-layer absolute inset-0 z-0 pointer-events-none overflow-hidden"><AppBackground theme={desk.on && theme.deskWallpaper ? { ...theme, wallpaper: theme.deskWallpaper, slideshowEnabled: false } : theme} /></div>
 
       {/* Aerie auth gate — overlays everything when a passcode is required */}
       <AerieLoginGate />
@@ -1699,12 +1826,35 @@ export default function App() {
       <ToyRemotePill hidden={osState === 'toys'} />
       <SoundBar hidden={osState === 'toys'} />
 
+      {/* The dock, stood on its end and kept beside every room (theirs, Nov 14
+          2026). Home's own dock steps aside for it in index.css. */}
+      {desk.on && osState !== 'locked' && (
+        <DeskRail
+          orient={desk.dock}
+          apps={deskDockApps}
+          // Settings sits on the stage over whatever room is under it; a rail
+          // click is them leaving it for somewhere else.
+          current={showSettings ? 'settings' : osState}
+          onOpenApp={(app) => { setShowSettings(false); openApp(app); }}
+          onHome={() => { setShowSettings(false); setOsState('home'); }}
+          onOpenDrawer={() => { setShowSettings(false); setOsState('appdrawer'); }}
+          onLock={() => { setShowSettings(false); setOsState('locked'); }}
+          messagesBadge={chatOn ? 0 : homeUnread.count}
+          cardBacks={(theme.dockCardBacks ?? theme.homeCardBacks) !== false}
+          iconCards={theme.dockIconCards === true}
+          accentIcons={drawerLookOf(theme).iconColor === 'accent'}
+        />
+      )}
+
+      {/* The stage: every screen but the conversation. On the phone this is
+          no box at all, so each screen still fills the phone as it did. */}
+      <div className="aerie-stage">
       <AnimatePresence initial={false}>
         {osState === 'locked' && (
           <LockScreen 
             key="locked" 
             onUnlock={() => setOsState('home')} 
-            wallpaper={theme.lockScreenWallpaper || theme.wallpaper} 
+            wallpaper={(desk.on && theme.deskLockWallpaper) || theme.lockScreenWallpaper || theme.wallpaper} 
             face={lockFaceOf(theme.lockFace)}
             position={lockPositionOf(theme.lockClockPosition)}
             size={lockSizeOf(theme.lockClockSize)}
@@ -1725,8 +1875,8 @@ export default function App() {
             showClock={!lockHiddenOf(theme.lockHidden).has('clock')}
             showWeather={!lockHiddenOf(theme.lockHidden).has('weather')}
             onHide={(piece) => setTheme((prev) => applyThemeUpdate(prev, { lockHidden: withHidden(prev.lockHidden, piece, true) }))}
-            spots={lockSpotsOf(theme.lockSpots)}
-            onPlace={(spots) => updateTheme({ lockSpots: spots })}
+            spots={lockSpotsOf(desk.on ? (theme.lockSpotsDesk ?? theme.lockSpots) : theme.lockSpots)}
+            onPlace={(spots) => updateTheme(desk.on ? { lockSpotsDesk: spots } : { lockSpots: spots })}
             weatherLook={lockWeatherLookOf(theme.lockWeatherLook)}
             cardBacks={lockCardBacksOf(theme.lockCardBacks)}
           />
@@ -1743,7 +1893,8 @@ export default function App() {
             messagesBadge={homeUnread.count}
             dockApps={dockApps}
             widgets={homeWidgetsOf(theme.homeWidgets)}
-            widgetSpots={homePlacesOf(theme.homeWidgetPlaces, theme.homeWidgetSpots)}
+            widgetSpots={desk.on ? homeSpotsOf(theme.homeWidgetPlacesDesk, undefined, DESK_COLS) : homePlacesOf(theme.homeWidgetPlaces, theme.homeWidgetSpots)}
+            deskWall={desk.on}
             quietLine={!!theme.homeQuietLine}
             clockLook={homeClockLookOf(theme.homeClockLook)}
             spotifyLook={lockSpotifyLookOf(theme.homeSpotifyLook)}
@@ -1875,11 +2026,15 @@ export default function App() {
           </RoomBubbleContext.Provider>
         )}
       </AnimatePresence>
+      </div>
 
+      {/* The side: the conversation and its thread list. Beside a room on a
+          wide screen; on the phone, and tucked away, the screen it always was. */}
+      <div className="aerie-side">
       {/* Messages App (Always rendered but hidden if not active to preserve state) */}
       <div className={cn(
         "absolute inset-0 flex flex-col z-10 transition-opacity duration-300",
-        osState === 'messages' ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        chatOn ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
       )}>
         {/* Header */}
         <header
@@ -1895,6 +2050,8 @@ export default function App() {
           <div className="flex flex-col px-4 sm:px-6 py-3 sm:py-4 gap-2 sm:gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1 sm:gap-2">
+                {/* Beside a room there is nothing behind the conversation to go back to. */}
+                {desk.chat === null && (
                 <button
                   onClick={() => { setOsState(messagesReturnTo); setMessagesReturnTo('home'); }}
                   className={cn(
@@ -1904,6 +2061,7 @@ export default function App() {
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
+                )}
                 {/* The card's only door. Repointed to the Companions screen on Jun 9 2026
                     during the header overhaul, which left ContactInfo rendered behind a
                     switch nothing could turn on — unreachable for eleven weeks. It belongs
@@ -1985,13 +2143,13 @@ export default function App() {
             </div>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div data-chat-actions="" className="flex items-center gap-1 sm:gap-2">
               {isSearching ? (
                 <motion.div 
                   initial={{ width: 0, opacity: 0 }} 
                   animate={{ width: 'auto', opacity: 1 }}
                   className={cn(
-                    "flex items-center rounded-[var(--shape-control)] px-4 py-2 border transition-all duration-300",
+                    "aerie-chat-search flex items-center rounded-[var(--shape-control)] px-4 py-2 border transition-all duration-300",
                     colors.panelBg,
                     colors.panelBorder
                   )}
@@ -2122,7 +2280,7 @@ export default function App() {
           ) : (
             <div className="flex-1 flex flex-col justify-end">
               <AnimatePresence initial={false}>
-                {renderedMessages}
+                {chatFull || pendingJumpMessageId.current ? renderedMessages : renderedMessages.slice(-ENTRY_NODES)}
 
 
                 <StreamingReply themeConfig={activeTheme} themeMode={theme.mode} voices={(threadCompanions.length > 0 ? threadCompanions : dbCompanions).map((c: any) => c.slug).filter(Boolean)} />
@@ -2172,7 +2330,10 @@ export default function App() {
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
         threadId={ksActiveThreadId}
-        isAtBottom={isAtBottom}
+        // A search jump loads the stretch around the hit, and its own end is
+        // not the newest message, so the arrow stays up until the thread is
+        // back to its latest (theirs, Nov 15 2026: no arrow after a search jump).
+        isAtBottom={isAtBottom && !ksIsViewingAround}
         onJumpToLatest={() => {
           // The arrow outranks a search hit still being held.
           jumpHoldStopRef.current?.();
@@ -2205,6 +2366,7 @@ export default function App() {
         companions={dbCompanions}
         ourUnread={switcherUnread.byRoom}
       />
+      </div>
 
       {/* Voice belongs to the whole phone, not only the Messages screen.
           When minimized it can ride above Studio, games, and every other
@@ -2227,11 +2389,14 @@ export default function App() {
         }}
       />
 
-      {/* Modals (Moved outside so they overlay the entire OS) */}
+      {/* Settings, on the stage. On the phone the stage is the phone, so it
+          covers everything as it always did. On a wide screen it takes the
+          room's place and the conversation stays beside it, so a bubble they
+          changes is a bubble they can see change (theirs, Nov 14 2026). Its body
+          is see-through like every room's, which is why it cannot simply lie
+          over the rail and the chat. */}
+      <div className="aerie-stage">
       <AnimatePresence>
-        {showExport && activeThread && (
-          <ExportSheet threadId={activeThread.id} onClose={() => setShowExport(false)} />
-        )}
         {showSettings && (
           <SettingsDashboard
             theme={theme}
@@ -2245,6 +2410,14 @@ export default function App() {
               setOsState('appdrawer');
             }}
           />
+        )}
+      </AnimatePresence>
+      </div>
+
+      {/* Modals (Moved outside so they overlay the entire OS) */}
+      <AnimatePresence>
+        {showExport && activeThread && (
+          <ExportSheet threadId={activeThread.id} onClose={() => setShowExport(false)} />
         )}
         {/* All of our statuses, behind the line under our faces. */}
         <StatusSheet

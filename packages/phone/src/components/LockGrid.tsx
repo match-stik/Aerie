@@ -59,7 +59,7 @@ export function LockGrid({
   const [boxes, setBoxes] = useState<Partial<Record<LockGridPiece, { w: number; h: number }>>>({});
   const [lift, setLift] = useState<Lift | null>(null);
   const liftRef = useRef<Lift | null>(null);
-  const hold = useRef({ timer: 0, id: null as LockGridPiece | null, x: 0, y: 0, lastX: 0, lastY: 0, grabX: 0, grabY: 0, pointer: -1, dragging: false, armed: false, droppedAt: 0 });
+  const hold = useRef({ mouse: false, lift: null as (() => void) | null, timer: 0, id: null as LockGridPiece | null, x: 0, y: 0, lastX: 0, lastY: 0, grabX: 0, grabY: 0, pointer: -1, dragging: false, armed: false, droppedAt: 0 });
 
   // The grid's own size and where it sits in the lock screen, kept current.
   useLayoutEffect(() => {
@@ -160,7 +160,8 @@ export function LockGrid({
       const h = hold.current;
       stopTimer();
       h.id = id; h.x = h.lastX = e.clientX; h.y = h.lastY = e.clientY; h.pointer = e.pointerId; h.dragging = false;
-      h.timer = window.setTimeout(() => {
+      h.mouse = e.pointerType === 'mouse';
+      h.lift = () => {
         h.timer = 0;
         const el = els.current.get(id);
         if (!el) return;
@@ -172,14 +173,23 @@ export function LockGrid({
         haptic(55);
         try { el.setPointerCapture(h.pointer); } catch { /* the finger already left */ }
         show(follow(id, h.lastX, h.lastY));
-      }, HOLD_MS);
+      };
+      h.timer = window.setTimeout(() => h.lift?.(), HOLD_MS);
     },
     onPointerMove: (e: React.PointerEvent) => {
       const h = hold.current;
       h.lastX = e.clientX; h.lastY = e.clientY;
       if (!h.dragging) {
-        if (Math.hypot(e.clientX - h.x, e.clientY - h.y) > HOLD_SLOP) stopTimer();
-        return;
+        if (Math.hypot(e.clientX - h.x, e.clientY - h.y) <= HOLD_SLOP) return;
+        // With a mouse, pressing and dragging a piece is the move itself
+        // (theirs, Nov 15 2026, on the laptop); a finger still holds first.
+        const lift = h.mouse && h.timer ? h.lift : null;
+        stopTimer();
+        if (!lift) return;
+        e.stopPropagation();
+        h.lastX = h.x; h.lastY = h.y;
+        lift();
+        h.lastX = e.clientX; h.lastY = e.clientY;
       }
       const next = follow(id, e.clientX, e.clientY);
       if (next && next.over !== liftRef.current?.over && next.over) haptic(20);
@@ -204,6 +214,12 @@ export function LockGrid({
         onPlace(out);
       }
     },
+    // Losing hold of the pointer mid-drag (a screenshot tool or another window
+    // taking focus, theirs Nov 15 2026) puts it down where it was headed instead
+    // of leaving it hanging in the air.
+    onLostPointerCapture: (e: React.PointerEvent) => {
+      if (hold.current.dragging) (handlers(id) as { onPointerUp: (e: React.PointerEvent) => void }).onPointerUp(e);
+    },
     onPointerCancel: () => {
       stopTimer();
       hold.current.dragging = false;
@@ -215,6 +231,15 @@ export function LockGrid({
     },
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   } : {};
+  // The window losing focus mid-drag (a screenshot) drops it too (Nov 15 2026).
+  useEffect(() => {
+    const onBlur = () => {
+      const h = hold.current;
+      if (h.dragging && h.id) (handlers(h.id) as { onPointerUp?: () => void }).onPointerUp?.();
+    };
+    window.addEventListener('blur', onBlur);
+    return () => window.removeEventListener('blur', onBlur);
+  });
 
   // The box a piece draws in when it sits at a spot: its own size, centered
   // across its cells, standing on their bottom edge. The placed piece and the

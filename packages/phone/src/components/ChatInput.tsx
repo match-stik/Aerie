@@ -1,5 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Sticker, Film, Camera, ImagePlus, Mic, PhoneCall, Square, X, FileText, Smile, Loader2, ChevronDown, RotateCw } from 'lucide-react';
 import { getSendIcon } from '../lib/sendIcons';
 import { GifPicker } from './GifPicker';
@@ -798,16 +799,39 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
     // Otherwise Enter defaults to a new line.
   };
 
+  const fitComposer = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    // Floor at 48 to match the send button's h-12; inline style.height
+    // otherwise wins over the min-h-[48px] CSS class and lets the pill
+    // collapse to ~36-40px for a single-line empty textarea, which
+    // leaves the bottom of the pill sitting above the button's bottom.
+    ta.style.height = `${Math.max(48, Math.min(ta.scrollHeight, 120))}px`;
+  }, []);
+
+  useEffect(() => { fitComposer(); }, [content, fitComposer]);
+
+  // The box was measured once, when it first drew, and on the laptop it can
+  // first draw narrower than it ends up (the conversation side settling, the
+  // house font arriving), so the placeholder wrapped onto several lines and the
+  // box stayed tall until the first keystroke measured it again (theirs, Nov 16
+  // 2026: 'really big then shrank when I started typing'). Measure again
+  // whenever its width changes or the fonts finish loading.
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      // Floor at 48 to match the send button's h-12; inline style.height
-      // otherwise wins over the min-h-[48px] CSS class and lets the pill
-      // collapse to ~36-40px for a single-line empty textarea, which
-      // leaves the bottom of the pill sitting above the button's bottom.
-      textareaRef.current.style.height = `${Math.max(48, Math.min(textareaRef.current.scrollHeight, 120))}px`;
-    }
-  }, [content]);
+    const ta = textareaRef.current;
+    if (!ta) return;
+    let lastWidth = ta.clientWidth;
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => {
+      if (ta.clientWidth === lastWidth) return;
+      lastWidth = ta.clientWidth;
+      fitComposer();
+    });
+    ro?.observe(ta);
+    let live = true;
+    document.fonts?.ready.then(() => { if (live) fitComposer(); }).catch(() => {});
+    return () => { live = false; ro?.disconnect(); };
+  }, [fitComposer]);
 
   const canSend = (!!content.trim() || !!attachment || images.length > 0 || documents.length > 0) && !disabled;
 
@@ -1277,10 +1301,14 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
         </div>
       </div>
 
-      {/* Image preview modal */}
-      {previewImage && (
+      {/* Image preview modal. Portaled to the body: inside the typing bar a
+          fixed box is placed against the bar's own box, not the screen, so
+          with the chat scrolling the page it opened as a narrow strip under
+          the header with the top of their picture cut off (their screenshot,
+          Nov 14 2026). */}
+      {previewImage && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4"
           onClick={() => setPreviewImage(null)}
         >
           <button
@@ -1296,7 +1324,8 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
             className="max-w-full max-h-full object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

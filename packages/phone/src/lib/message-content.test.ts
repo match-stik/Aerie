@@ -83,3 +83,18 @@ test('isMediaUrl trusts picture paths and its short list of hosts, not lookalike
   assert.equal(isMediaUrl('https://media.tenor.com.evil.test/abc'), false);
   assert.equal(isMediaUrl('not a url'), false);
 });
+
+test('a file and a picture on one message both come out', () => {
+  const m = parse('here he is [FILE:wick.zip]:/api/files/z [IMG]:/api/files/p');
+  assert.equal(m.isFile, true);
+  assert.equal(m.fileName, 'wick.zip');
+  assert.equal(m.fileContent.trim(), '/api/files/z');
+  assert.equal(m.isImage, true);
+  assert.deepEqual(m.mediaUrls, ['/api/files/p']);
+  assert.equal(m.textContent, 'here he is');
+});
+
+test('a file alone still keeps everything after it', () => {
+  const m = parse('[FILE:notes.txt]:line one\nline two');
+  assert.equal(m.fileContent, 'line one\nline two');
+});

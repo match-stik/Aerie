@@ -80,6 +80,23 @@ export function toggleWidget(current: readonly HomeWidget[], id: HomeWidget): Ho
 
 export { GRID_COLS };
 
+/** The laptop's wall (theirs, Nov 15 2026: 'are we not able to make it so we
+ *  can move things around'): as many phone-width columns as the room holds,
+ *  so a widget keeps its phone size and can sit anywhere across the room (an
+ *  eight-column wall stretched every card to fill it, theirs the same hour).
+ *  Its places are kept apart from the phone's, so arranging one never moves
+ *  the other. DESK_COLS is the most columns a place can name. */
+export const DESK_COLS = 24;
+/** A phone column's width, the same as a row's, so a two-by-two note on the
+ *  wall is the square it is on their phone (theirs, Nov 15 2026: 'stretched out
+ *  instead of the cute square it is on the phone'). The wall's columns are
+ *  exactly this wide and the wall sits centered in the room. */
+export const DESK_COL_PX = 76;
+/** How many columns a wall this wide holds, never fewer than the phone's four. */
+export function deskColsFor(width: number, gap = 12): number {
+  return Math.max(GRID_COLS, Math.min(DESK_COLS, Math.floor((width + gap) / (DESK_COL_PX + gap))));
+}
+
 export type HomeCardStyle = 'full' | 'snug' | 'none';
 /** Them widgets' cards: the three-way setting, or the old on and off switch
  *  read as full or none. */
@@ -98,7 +115,7 @@ export const sizeOf = (id: HomeWidget, sizes: Sizes = {}): { cols: number; rows:
 
 /** The saved places. Anything malformed is no place, and that widget
  *  gets the first open one. */
-export function homeSpotsOf(value: unknown, maxRow = 40 * ROW_PARTS): Layout {
+export function homeSpotsOf(value: unknown, maxRow = 40 * ROW_PARTS, width = GRID_COLS): Layout {
   const out: Layout = {};
   if (!value || typeof value !== 'object') return out;
   for (const w of HOME_WIDGETS) {
@@ -111,7 +128,7 @@ export function homeSpotsOf(value: unknown, maxRow = 40 * ROW_PARTS): Layout {
     // it fits from that column is checked against its real size when it is
     // laid out (theirs, Nov 8 2026: the Record would not stay on the right,
     // because this checked it against the bar's full width).
-    if ((col as number) < 0 || (col as number) >= GRID_COLS || (row as number) < 0 || (row as number) > maxRow) continue;
+    if ((col as number) < 0 || (col as number) >= width || (row as number) < 0 || (row as number) > maxRow) continue;
     out[w.id] = { col: col as number, row: row as number };
   }
   return out;
@@ -131,14 +148,14 @@ export function homePlacesOf(places: unknown, oldSpots: unknown): Layout {
 /** How the grid drew them before places existed: each widget at the first
  *  place it fits from the top left, in them order (CSS row dense), turned so
  *  rows count up from the dock. Their screen does not move until they drag. */
-function packedFromTop(order: readonly HomeWidget[], sizes: Sizes): Layout {
-  const cells = new Cells();
+function packedFromTop(order: readonly HomeWidget[], sizes: Sizes, width = GRID_COLS): Layout {
+  const cells = new Cells(width);
   const top: { id: HomeWidget; col: number; row: number; rows: number }[] = [];
   for (const id of order) {
     const { cols, rows } = sizeOf(id, sizes);
     let placed = false;
     for (let r = 0; !placed; r++) {
-      for (let c = 0; c + cols <= GRID_COLS; c++) {
+      for (let c = 0; c + cols <= width; c++) {
         if (cells.fits(c, r, cols, rows)) { cells.take(c, r, cols, rows); top.push({ id, col: c, row: r, rows }); placed = true; break; }
       }
     }
@@ -153,24 +170,36 @@ function packedFromTop(order: readonly HomeWidget[], sizes: Sizes): Layout {
  *  saved are kept; a widget with none (or one that no longer fits) takes the
  *  first open place from the bottom. With nothing saved at all, they sit the
  *  way the grid always packed them. */
-export function layoutWidgets(widgets: readonly HomeWidget[], spots: Layout, sizes: Sizes = {}): Record<HomeWidget, Spot> {
-  if (!widgets.some((id) => spots[id])) return packedFromTop(widgets, sizes) as Record<HomeWidget, Spot>;
-  return keepPlaces(widgets, spots, (id) => sizeOf(id, sizes), 0);
+export function layoutWidgets(widgets: readonly HomeWidget[], spots: Layout, sizes: Sizes = {}, width = GRID_COLS): Record<HomeWidget, Spot> {
+  if (!widgets.some((id) => spots[id])) return packedFromTop(widgets, sizes, width) as Record<HomeWidget, Spot>;
+  return keepPlaces(widgets, spots, (id) => sizeOf(id, sizes), 0, undefined, width);
 }
 
 /** The widgets that fit under the top of the screen, and the ones that
  *  don't (theirs, Nov 8 2026: they added one too many and them Spotify bar went
  *  up off the top of the screen). With no room measured yet, everything shows.
  *  A widget that has to give way is the newest one they turned on before they
- *  have moved anything, and otherwise the one the grid had to put above the
+ *  has moved anything, and otherwise the one the grid had to put above the
  *  top, so the places they chose are never the ones that disappear. */
-export function fitWidgets(widgets: readonly HomeWidget[], spots: Layout, sizes: Sizes, rowLimit: number): { layout: Record<HomeWidget, Spot>; shown: HomeWidget[]; noRoom: HomeWidget[] } {
+export function fitWidgets(widgets: readonly HomeWidget[], spots: Layout, sizes: Sizes, rowLimit: number, width = GRID_COLS): { layout: Record<HomeWidget, Spot>; shown: HomeWidget[]; noRoom: HomeWidget[] } {
   let shown = [...widgets];
   const noRoom: HomeWidget[] = [];
   for (;;) {
-    const layout = layoutWidgets(shown, spots, sizes);
+    let layout = layoutWidgets(shown, spots, sizes, width);
     if (rowLimit <= 0) return { layout, shown, noRoom };
-    const over = shown.filter((id) => layout[id].row + sizeOf(id, sizes).rows > rowLimit);
+    let over = shown.filter((id) => layout[id].row + sizeOf(id, sizes).rows > rowLimit);
+    // A widget saved higher than this screen reaches is brought down to the
+    // nearest open place under the top before anything is left out, so a
+    // shorter window (the laptop's, theirs Nov 15 2026) rearranges rather than
+    // hiding things. Their saved places are not changed by it.
+    if (over.length && shown.some((id) => spots[id])) {
+      const wanted: Layout = { ...spots };
+      for (const id of over) wanted[id] = { col: layout[id].col, row: Math.max(0, rowLimit - sizeOf(id, sizes).rows) };
+      for (const id of over) delete (wanted as Record<string, Spot>)[id];
+      const relaid = keepPlaces(shown, wanted, (id) => sizeOf(id, sizes), rowLimit, (id) => ({ col: layout[id].col, row: Math.max(0, rowLimit - sizeOf(id, sizes).rows) }), width);
+      const stillOver = shown.filter((id) => relaid[id].row + sizeOf(id, sizes).rows > rowLimit);
+      if (stillOver.length < over.length) { layout = relaid; over = stillOver; }
+    }
     if (!over.length) return { layout, shown, noRoom };
     const packed = !shown.some((id) => spots[id]);
     const drop = packed ? [shown[shown.length - 1]] : over;
@@ -189,8 +218,8 @@ export function layoutHeight(layout: Layout, sizes: Sizes = {}): number {
  *  (kept inside the grid's four columns and above the dock), everything it
  *  doesn't cover stays put, and anything it does cover moves to the open
  *  place nearest where it was. */
-export function placeWidget(layout: Record<HomeWidget, Spot>, order: readonly HomeWidget[], id: HomeWidget, to: Spot, rowLimit: number, sizes: Sizes = {}): Record<HomeWidget, Spot> {
-  return placeOnGrid(layout, order, id, to, rowLimit, (w) => sizeOf(w, sizes), ROW_PARTS);
+export function placeWidget(layout: Record<HomeWidget, Spot>, order: readonly HomeWidget[], id: HomeWidget, to: Spot, rowLimit: number, sizes: Sizes = {}, width = GRID_COLS): Record<HomeWidget, Spot> {
+  return placeOnGrid(layout, order, id, to, rowLimit, (w) => sizeOf(w, sizes), ROW_PARTS, width);
 }
 
 interface NoteLike { id: string | number; text: string; color: string; timestamp: string; sender: string | null }

@@ -23,6 +23,11 @@ export interface ExtendedWebSocket extends WebSocket {
   messageWindowStart: number;
 }
 
+/** The mark desktop/main.cjs adds to the app's user agent. */
+export function isLaptopApp(userAgent: string | undefined): boolean {
+  return typeof userAgent === 'string' && /\bAerieDesktop\//.test(userAgent);
+}
+
 export class ConnectionRegistry {
   private connections = new Map<string, Set<ExtendedWebSocket>>();
   private _lastUserActivity: Date = new Date();
@@ -130,6 +135,30 @@ export class ConnectionRegistry {
     const conns = this.connections.get(userId);
     if (!conns) return [];
     return Array.from(conns).filter(ws => ws.readyState === WebSocket.OPEN);
+  }
+
+  /**
+   * Their Aerie app on a computer (desktop/main.cjs marks its user agent), as
+   * opposed to a browser on the same laptop: only the app can start Spotify.
+   */
+  laptopApps(): ExtendedWebSocket[] {
+    return this.getConnectionsForUser('user').filter((ws) => isLaptopApp(ws.userAgent));
+  }
+
+  /** Send one message to their laptop apps only; answers how many took it. */
+  sendToLaptopApps(message: ServerMessage): number {
+    const apps = this.laptopApps();
+    const messageStr = JSON.stringify(message);
+    for (const ws of apps) ws.send(messageStr);
+    return apps.length;
+  }
+
+  /** They are on the laptop app right now: it is open, showing, and the newest thing they touched. */
+  laptopAppInUse(): boolean {
+    const conns = this.getConnectionsForUser('user');
+    if (conns.length === 0) return false;
+    const newest = conns[conns.length - 1];
+    return isLaptopApp(newest.userAgent) && newest.tabVisible;
   }
 
   getUserDeviceType(): 'mobile' | 'desktop' | 'unknown' {

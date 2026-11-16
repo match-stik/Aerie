@@ -9,6 +9,7 @@
 // (kept on the phone) while it asks, and asks again when the screen comes back.
 import { useEffect, useState } from 'react';
 import type { LockWeather } from './LockClock';
+import { reportFromLaptop } from '../lib/laptop-app';
 
 const KEPT = 'aerie.weather.last';
 const FRESH_MS = 30 * 60_000;
@@ -54,9 +55,13 @@ export function useWeather(): LockWeather | null {
             if (!gone) setWeather(next);
           } catch (e) {
             console.error('Failed to fetch weather', e);
+            reportFromLaptop('weather', `forecast failed: ${e instanceof Error ? e.message : String(e)}`);
           }
         },
-        (error) => console.error('Geolocation error:', error),
+        (error) => {
+          console.error('Geolocation error:', error);
+          reportFromLaptop('weather', `location refused: code ${error.code} ${error.message}`);
+        },
         { enableHighAccuracy: false, timeout: 20000, maximumAge: 5 * 60_000 },
       );
     };

@@ -309,9 +309,9 @@ export function HomePane({ s }: { s: SettingsState }) {
             <span className="text-[10px] opacity-75">The whole line slides across instead of stopping at the edge</span>
           </span>
         </button>
-        {((theme.homeWidgetPlaces && Object.keys(theme.homeWidgetPlaces).length > 0) || (theme.homeWidgetSpots && Object.keys(theme.homeWidgetSpots).length > 0)) && (
+        {((theme.homeWidgetPlaces && Object.keys(theme.homeWidgetPlaces).length > 0) || (theme.homeWidgetSpots && Object.keys(theme.homeWidgetSpots).length > 0) || (theme.homeWidgetPlacesDesk && Object.keys(theme.homeWidgetPlacesDesk).length > 0)) && (
           <button
-            onClick={() => onThemeChange({ homeWidgetSpots: undefined, homeWidgetPlaces: undefined })}
+            onClick={() => onThemeChange({ homeWidgetSpots: undefined, homeWidgetPlaces: undefined, homeWidgetPlacesDesk: undefined })}
             className={cn('flex w-full items-center justify-center px-3 py-2.5 rounded-xl border text-[11px] font-bold uppercase tracking-widest', colors.panelBorder, colors.accentText)}
           >
             Put the widgets back

@@ -400,7 +400,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-30 bg-black/40 backdrop-blur-sm"
+            className="pointer-events-auto absolute inset-0 z-30 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.aside
@@ -409,7 +409,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className={cn('absolute inset-y-0 left-0 z-40 flex w-[85%] max-w-sm flex-col border-r', colors.panelBg, colors.panelBorder)}
+            className={cn('pointer-events-auto absolute inset-y-0 left-0 z-40 flex w-[85%] max-w-sm flex-col border-r', colors.panelBg, colors.panelBorder)}
           >
             <div className="flex items-center justify-between px-4 pb-2" style={{ paddingTop: 'calc(var(--sat) + 0.75rem)' }}>
               <h2 className={cn('text-base font-semibold', colors.textMain)}>Threads</h2>

@@ -139,10 +139,13 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
     >
       {/* Wallpaper Background */}
       {wallpaper && (
-        <div 
-          className="absolute inset-0 z-0 bg-cover bg-center opacity-60"
-          style={{ backgroundImage: `url(${wallpaper})` }}
-        />
+        <>
+          <div aria-hidden="true" className="aerie-lock-wall-blur absolute inset-0 z-0" style={{ backgroundImage: `url(${wallpaper})` }} />
+          <div 
+            className="aerie-lock-wall absolute inset-0 z-0 bg-cover bg-center opacity-60"
+            style={{ backgroundImage: `url(${wallpaper})` }}
+          />
+        </>
       )}
       {!wallpaper && (
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-900 to-black opacity-80" />

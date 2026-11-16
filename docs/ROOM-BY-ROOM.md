@@ -29,6 +29,13 @@ four or five apps in a row.
 **Back** always takes you one step back inside a room before it takes you out
 of it. On Android the back gesture does the same thing.
 
+**On a laptop** (a window 1024 pixels wide or wider) the house lays itself out
+as a desk: the apps down the left side or along the top, the room you have open
+in the middle, and the conversation beside it. You can tuck the conversation away
+when you want the room to yourself. Settings > Laptop holds the laptop's own
+choices: where the dock sits, which apps are in it, its wallpapers and its lock
+screen, all kept apart from the phone's.
+
 ## Companion
 
 ### Messages

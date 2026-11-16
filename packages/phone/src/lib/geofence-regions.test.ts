@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DEFAULT_RADIUS_M, MAX_REGIONS, regionsFor } from './geofence-regions';
+import { DEFAULT_RADIUS_M, MIN_FENCE_RADIUS_M, MAX_REGIONS, regionsFor } from './geofence-regions';
 
 const place = (over: Record<string, unknown> = {}) => ({
   id: 'a', name: 'Home', lat: 42.2, lng: -89.0, radius_m: 60, waiting: 1, ...over,
@@ -9,7 +9,7 @@ const place = (over: Record<string, unknown> = {}) => ({
 
 test('keeps a well-formed place intact', () => {
   const [only] = regionsFor([place()]);
-  assert.deepEqual(only, { id: 'a', name: 'Home', lat: 42.2, lng: -89.0, radius_m: 60, waiting: 1 });
+  assert.deepEqual(only, { id: 'a', name: 'Home', lat: 42.2, lng: -89.0, radius_m: MIN_FENCE_RADIUS_M, waiting: 1 });
 });
 
 test('drops anything it could not put on a map', () => {
@@ -25,10 +25,11 @@ test('drops anything it could not put on a map', () => {
   assert.equal(regionsFor(rows).length, 0);
 });
 
-test('a missing or useless radius becomes the default rather than a zero circle', () => {
-  assert.equal(regionsFor([place({ radius_m: undefined })])[0].radius_m, DEFAULT_RADIUS_M);
-  assert.equal(regionsFor([place({ radius_m: 0 })])[0].radius_m, DEFAULT_RADIUS_M);
-  assert.equal(regionsFor([place({ radius_m: -5 })])[0].radius_m, DEFAULT_RADIUS_M);
+test('a missing or useless radius becomes a real circle rather than a zero one', () => {
+  const floor = Math.max(MIN_FENCE_RADIUS_M, DEFAULT_RADIUS_M);
+  assert.equal(regionsFor([place({ radius_m: undefined })])[0].radius_m, floor);
+  assert.equal(regionsFor([place({ radius_m: 0 })])[0].radius_m, floor);
+  assert.equal(regionsFor([place({ radius_m: -5 })])[0].radius_m, floor);
 });
 
 test('numeric strings from JSON still count as coordinates', () => {
@@ -56,4 +57,9 @@ test('the same input registers the same hundred every launch', () => {
 test('a non-array answer is no regions rather than a crash', () => {
   assert.deepEqual(regionsFor(undefined), []);
   assert.deepEqual(regionsFor({ places: [] }), []);
+});
+
+test('a small pin is watched at the floor and a big one keeps its own circle', () => {
+  assert.equal(regionsFor([place({ radius_m: 60 })])[0].radius_m, MIN_FENCE_RADIUS_M);
+  assert.equal(regionsFor([place({ radius_m: 500 })])[0].radius_m, 500);
 });

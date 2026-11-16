@@ -10,6 +10,8 @@ export interface SearchResult {
   threadId: string;
   threadName: string;
   role: 'user' | 'companion' | 'system';
+  /** Set when the message came in from Discord (who sent it there). */
+  discordName?: string | null;
   content: string;
   highlight: string;
   createdAt: string;
@@ -70,6 +72,12 @@ const ROLE_LABEL: Record<SearchResult['role'], string> = {
   system: 'System',
 };
 
+/** Discord, and who, for a message that came in from Discord; otherwise the role (theirs, Nov 15 2026: it said System). */
+export function roleLabel(r: Pick<SearchResult, 'role' | 'discordName'>): string {
+  if (r.discordName) return `Discord · ${r.discordName}`;
+  return ROLE_LABEL[r.role];
+}
+
 export function SearchResults({
   query,
   results,
@@ -86,7 +94,7 @@ export function SearchResults({
   return (
     <div
       className={cn(
-        'absolute left-3 right-3 top-full mt-2 z-30 max-h-[70vh] overflow-y-auto rounded-2xl border backdrop-blur-xl shadow-xl',
+        'aerie-search-results absolute left-3 right-3 top-full mt-2 z-30 max-h-[70vh] overflow-y-auto rounded-2xl border backdrop-blur-xl shadow-xl',
         colors.panelBg,
         colors.panelBorder,
       )}
@@ -122,7 +130,7 @@ export function SearchResults({
                 >
                   <div className={cn('flex items-center gap-2 text-[10px] uppercase tracking-wider', colors.textMuted)}>
                     <span className="font-bold" style={{ color: colors.accent }}>
-                      {ROLE_LABEL[r.role]}
+                      {roleLabel(r)}
                     </span>
                     <span className="truncate">{r.threadName}</span>
                     <span className="ml-auto whitespace-nowrap opacity-70">

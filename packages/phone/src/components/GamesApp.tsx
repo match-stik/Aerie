@@ -495,7 +495,7 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
               exit={{ opacity: 0, x: -20 }}
               className="h-full p-4 flex flex-col gap-4"
             >
-              <div ref={setMenuScroll} className="grid grid-cols-1 auto-rows-fr gap-3 overflow-y-auto pb-20 scrollbar-hide">
+              <div ref={setMenuScroll} className="grid grid-cols-1 auto-rows-fr gap-3 overflow-y-auto -mx-2 px-2 pt-1 pb-20 scrollbar-hide">
                 <button
                   onClick={() => setActiveGame('battleship')}
                   className={cn(

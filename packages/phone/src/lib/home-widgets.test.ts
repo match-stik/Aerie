@@ -160,3 +160,36 @@ test('nothing goes up off the top: what has no room is left out, newest first, n
   // No room measured yet: everything shows.
   assert.deepEqual(fitWidgets(['companions', 'note', 'music'], {}, {}, 0).noRoom, []);
 });
+
+test('the laptop wall places widgets across DESK_COLS columns, and a phone board still clamps to four', async () => {
+  const { DESK_COLS, homeSpotsOf, placeWidget, layoutWidgets } = await import('./home-widgets');
+  assert.equal(DESK_COLS, 24);
+  // A place past the phone's fourth column is kept on the wall and dropped on the phone.
+  assert.deepEqual(homeSpotsOf({ clock: { col: 6, row: 0 } }, undefined, DESK_COLS), { clock: { col: 6, row: 0 } });
+  assert.deepEqual(homeSpotsOf({ clock: { col: 6, row: 0 } }), {});
+  // Dropped at column 6 on the wall, it stays there; on the phone it is pulled back inside four.
+  const wall = layoutWidgets(['day'], {}, {}, DESK_COLS);
+  const size = (await import('./home-widgets')).sizeOf('day');
+  const onWall = placeWidget(wall, ['day'], 'day', { col: 6, row: 0 }, 30, {}, DESK_COLS);
+  assert.equal(onWall.day.col, Math.min(6, DESK_COLS - size.cols));
+  const onPhone = placeWidget(layoutWidgets(['day'], {}), ['day'], 'day', { col: 6, row: 0 }, 30);
+  assert.equal(onPhone.day.col, 4 - size.cols);
+});
+
+test('the laptop wall holds phone-width columns, as many as fit, never fewer than four', async () => {
+  const { deskColsFor } = await import('./home-widgets');
+  assert.equal(deskColsFor(388), 4);
+  assert.equal(deskColsFor(872), 10);
+  assert.equal(deskColsFor(1200), 13);
+  assert.equal(deskColsFor(100), 4);
+});
+
+test('a widget saved higher than a shorter screen reaches is brought down beside the others, not hidden', async () => {
+  const { fitWidgets, sizeOf } = await import('./home-widgets');
+  const spots = { clock: { col: 0, row: 0 }, day: { col: 0, row: 30 } };
+  const { layout, shown, noRoom } = fitWidgets(['clock', 'day'], spots, {}, 12, 8);
+  assert.deepEqual(noRoom, []);
+  assert.deepEqual(shown, ['clock', 'day']);
+  assert.ok(layout.day.row + sizeOf('day').rows <= 12);
+  assert.deepEqual(layout.clock, { col: 0, row: 0 });
+});

@@ -41,7 +41,7 @@ export function EmojiPicker({ onSelect, onClose, themeConfig, themeMode, customE
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-[91] border-t rounded-t-3xl p-3 flex flex-col",
+          "fixed bottom-0 left-0 right-0 z-[91] border-t rounded-t-3xl p-3 flex flex-col aerie-picker-sheet",
           colors.panelBg,
           colors.panelBorder,
           "backdrop-blur-xl"

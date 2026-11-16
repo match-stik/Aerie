@@ -932,6 +932,21 @@ export function nightUserStops(p: Palette): [string, string] {
   return [mixHex(n.bubbleUser[0], 40, n.surface), mixHex(n.bubbleUser[1], 40, n.surface)];
 }
 
+/** Section headers and accent words at night (theirs, Nov 15 2026: the headers
+ *  in Settings came out blue on several themes, 'not very friendly on the
+ *  eye'). They used the palette's glow, a cool blue-gray on most palettes; now
+ *  the theme's own accent, the same one its tiles and outlines use, lifted
+ *  toward the text color only as far as it needs to read on the panel. */
+function nightAccentText(p: Palette): string {
+  const n = p.night;
+  const accent = PALETTE_TILES[p.id]?.dark?.accent ?? n.primary;
+  for (let pct = 100; pct >= 40; pct -= 10) {
+    const ink = mixHex(accent, pct, n.text);
+    if (contrastRatio(ink, n.surface) >= 4.5) return ink;
+  }
+  return mixHex(accent, 40, n.text);
+}
+
 export function paletteVars(p: Palette, mode: ThemeMode): Record<string, string> {
   if (mode === 'dark') {
     const n = p.night;
@@ -951,7 +966,7 @@ export function paletteVars(p: Palette, mode: ThemeMode): Record<string, string>
       '--pal-user-bubble': nightUserStops(p)[0],
       '--pal-user-bubble-to': nightUserStops(p)[1],
       '--pal-bubble-text': '#FFFFFF',
-      '--pal-accent-text': n.glow,
+      '--pal-accent-text': nightAccentText(p),
       // The doc's night recipe (AERIE-THEMES §3), one value per piece.
       '--pal-panel-wash': easedWash(150, n.primary, 18, 48, n.velvet || n.secondary, 46),
       '--pal-panel-shadow': `inset 0 1px 0 ${mix(n.glow, 22)}, 0 12px 28px rgba(0, 0, 0, 0.3)`,

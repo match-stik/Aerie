@@ -6,7 +6,8 @@ import { expandPatternAsk, savePattern, shapePattern, shelfForLane } from '../..
 import { readStatuses, setStatus, SHARED, OWNER } from '../../services/statuses.js';
 import { readFavorites, addFavorite, removeFavorite, isKnownCard } from '../../services/favorites.js';
 import { readPlayRequest, spotify } from '../../services/spotify.js';
-import { wakeAndPlay } from '../../services/spotify-wake.js';
+import { readWakeWhere, wakeAndPlay } from '../../services/spotify-wake.js';
+import { registry } from '../../services/ws/connection-registry.js';
 import { getPushService } from '../../services/push.js';
 import { readRingAsk, ringData, noteRing, RING_TTL_SECONDS, callerTitle } from '../../services/ring-call.js';
 import { listCompanions } from '../../services/db/companions.js';
@@ -189,6 +190,14 @@ router.post('/internal/spotify/wake-play', async (req, res) => {
     return;
   }
   delete body.companion;
+  // Where to wake it: 'auto' (the laptop when they are on its app, else them
+  // phone), 'phone' or 'laptop'.
+  const where = readWakeWhere(body.where);
+  if (!where) {
+    res.status(400).json({ ok: false, error: "where is 'auto', 'phone' or 'laptop'." });
+    return;
+  }
+  delete body.where;
   const asked = readPlayRequest(body);
   if (!asked.ok) {
     res.status(400).json({ ok: false, error: asked.error });
@@ -198,6 +207,12 @@ router.post('/internal/spotify/wake-play', async (req, res) => {
   const answer = await wakeAndPlay(asked.value, {
     spotify: spotify(),
     sendData: async (data) => (push ? push.sendData(data) : 0),
+    where,
+    laptop: {
+      open: () => registry.laptopApps().length,
+      inUse: () => registry.laptopAppInUse(),
+      wake: () => registry.sendToLaptopApps({ type: 'spotify_wake' }),
+    },
   });
   console.log(`[Spotify] ${companion} wake-play: ${answer.ok ? (answer.woke ? `woke ${answer.device} after ${answer.waitedMs} ms and played` : 'played, nothing to wake') : `${answer.reason} (${answer.error})`}`);
   res.json(answer);

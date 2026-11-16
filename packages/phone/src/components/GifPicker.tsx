@@ -155,7 +155,7 @@ export function GifPicker({ onSelect, onClose, themeConfig, themeMode, apiKey: p
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-[91] border-t rounded-t-3xl overflow-hidden flex flex-col",
+          "fixed bottom-0 left-0 right-0 z-[91] border-t rounded-t-3xl overflow-hidden flex flex-col aerie-picker-sheet",
           colors.panelBg,
           colors.panelBorder
         )}

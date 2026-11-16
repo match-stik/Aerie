@@ -124,6 +124,11 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
 
   const [nearby, setNearby] = useState<NearbyPlace[]>([]);
   const [insideIds, setInsideIds] = useState<Set<string>>(new Set());
+  // The place a fresh arrival notice vouched for. The OS saw them standing there
+  // (it waited out the dwell), so the page says so too, with no GPS fix of its
+  // own. Before this the content opened but the banner said Not here right now
+  // (theirs, Nov 14 2026, at Work).
+  const [arrivedId, setArrivedId] = useState<string | null>(null);
 
   const [pinName, setPinName] = useState('');
   const [pinKind, setPinKind] = useState<PlaceKind>('home');
@@ -267,8 +272,19 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
   const openArrival = useCallback((a: Arrival) => {
     const place = places.find((p) => p.id === a.placeId);
     if (!place) return;
-    void openDetail(place, Date.now() - a.at < ARRIVAL_FRESH_MS);
-  }, [places, openDetail]);
+    const fresh = Date.now() - a.at < ARRIVAL_FRESH_MS;
+    setArrivedId(fresh ? place.id : null);
+    void openDetail(place, fresh);
+    // An older notice can't vouch for them any more, so ask where they are now
+    // rather than making them find the button.
+    if (!fresh) locate();
+  }, [places, openDetail, locate]);
+  // A fix that lands after the page opened puts them inside: read the page again
+  // as standing there, so what is sealed for this place can open.
+  useEffect(() => {
+    if (openPlace && insideIds.has(openPlace.id) && arrivedId !== openPlace.id) void openDetail(openPlace, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insideIds]);
   useEffect(() => {
     if (loading) return;
     const waiting = takeWaitingArrival();
@@ -331,14 +347,14 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
   // ─── Place detail ────────────────────────────────────────
 
   if (openPlace) {
-    const atPlace = insideIds.has(openPlace.id);
+    const atPlace = insideIds.has(openPlace.id) || arrivedId === openPlace.id;
     const Icon = KIND_ICON[openPlace.kind] ?? Trees;
     return (
       <AppShell
         embedded={embedded}
         title={openPlace.name}
         icon={Icon}
-        onClose={() => setOpenPlace(null)}
+        onClose={() => { setOpenPlace(null); setArrivedId(null); }}
         themeConfig={themeConfig}
         themeMode={themeMode}
         headerRight={

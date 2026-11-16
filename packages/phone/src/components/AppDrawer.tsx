@@ -158,6 +158,9 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns 
     // the tiles carry their own glass (owner's call).
     <motion.div
       key="appdrawer"
+      // Named so the wide layout can keep the grid from spreading across a
+      // whole laptop (index.css, Aerie Desk).
+      data-app-drawer=""
       className={cn('absolute inset-0 z-40 flex flex-col', colors.textMain)}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}

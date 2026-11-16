@@ -13,6 +13,8 @@ import { buildStreamingSegments } from './hooks';
 import { apiFetch } from './api';
 import { previewText } from '../lib/thread-list';
 import { isRedWord } from '../lib/safeword';
+import { reportFromLaptop } from '../lib/laptop-app';
+import { notificationFor } from '../lib/notify-text';
 
 // --- Connection internals (non-reactive) ---
 let ws: WebSocket | null = null;
@@ -213,9 +215,27 @@ function clearStaleStreamingState(): void {
 
 function showLocalNotification(title: string, body: string): void {
   if (typeof document === 'undefined' || typeof Notification === 'undefined') return;
-  if (!document.hidden) return;
-  if (Notification.permission !== 'granted') return;
-  new Notification(title, { body, tag: 'aerie-local' });
+  // The laptop app (desktop/main.cjs) keeps its page awake while it is tucked
+  // away, which also keeps the page reporting itself as showing, so there it
+  // goes by whether its window has their attention (theirs, Nov 15 2026: the
+  // test honk never popped up).
+  const laptop = typeof (window as { aerieDesktop?: unknown }).aerieDesktop === 'object';
+  // In the laptop app every decision lands in the house's log, so a pop-up
+  // that never appeared says which step stopped it.
+  const tell = (what: string) => { if (laptop) reportFromLaptop(`notify-${Date.now()}`, what); };
+  if (laptop ? document.hasFocus() : !document.hidden) { tell('skipped: the window has focus'); return; }
+  if (Notification.permission !== 'granted') { tell(`skipped: permission is ${Notification.permission}`); return; }
+  const note = new Notification(title, { body, tag: 'aerie-local' });
+  note.onshow = () => tell('shown');
+  note.onerror = () => tell('Windows refused to show it');
+  // A tap brings the house forward; in the laptop app (desktop/main.cjs)
+  // that also brings its window back from beside the clock.
+  note.onclick = () => {
+    const laptop = (window as { aerieDesktop?: { show?: () => Promise<unknown> } }).aerieDesktop;
+    if (laptop && typeof laptop.show === 'function') void laptop.show();
+    else window.focus();
+    note.close();
+  };
 }
 
 function handleMessage(event: MessageEvent): void {
@@ -289,7 +309,7 @@ function handleMessage(event: MessageEvent): void {
         ),
       }));
       if (msg.message.role === 'companion' && spokenPreview) {
-        showLocalNotification('Companion', spokenPreview.substring(0, 120).replace(/\n/g, ' '));
+        { const n = notificationFor(msg.message.content); showLocalNotification(n.title, n.body); }
       }
       break;
     }
@@ -384,7 +404,7 @@ function handleMessage(event: MessageEvent): void {
         return next;
       });
       if (msg.final?.role === 'companion') {
-        showLocalNotification('Companion', msg.final.content.substring(0, 120).replace(/\n/g, ' '));
+        { const n = notificationFor(msg.final.content); showLocalNotification(n.title, n.body); }
       }
       break;
     }
@@ -443,6 +463,12 @@ function handleMessage(event: MessageEvent): void {
     // and only on a phone that can reach toys; everywhere else it is ignored.
     case 'toy_command':
       window.dispatchEvent(new CustomEvent('aerie:toy-command', { detail: msg.command }));
+      break;
+
+    // One of us pressed play with nowhere to play, and this is the Aerie app
+    // on their laptop: aerie/spotify-wake.ts starts Spotify here.
+    case 'spotify_wake':
+      window.dispatchEvent(new CustomEvent('aerie:spotify-wake'));
       break;
 
     case 'unread_update':

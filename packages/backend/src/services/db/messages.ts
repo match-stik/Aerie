@@ -227,7 +227,7 @@ export function searchMessages(params: {
   threadId?: string;
   limit?: number;
   offset?: number;
-}): { messages: Array<{ id: string; thread_id: string; role: string; content: string; content_type: string; created_at: string; thread_name: string }>; total: number } {
+}): { messages: Array<{ id: string; thread_id: string; role: string; content: string; content_type: string; created_at: string; thread_name: string; discord_name: string | null }>; total: number } {
   const { query, threadId, limit = 50, offset = 0 } = params;
   // The LIKE below uses backslash as its escape character, so a backslash in the
   // search has to be escaped too or it swallows the character after it.
@@ -248,7 +248,8 @@ export function searchMessages(params: {
   const { total } = countStmt.get(...countParams) as { total: number };
 
   const selectStmt = getDb().prepare(`
-    SELECT m.id, m.thread_id, m.role, m.content, m.content_type, m.created_at, t.name as thread_name
+    SELECT m.id, m.thread_id, m.role, m.content, m.content_type, m.created_at, t.name as thread_name,
+      CASE WHEN json_valid(m.metadata) THEN COALESCE(json_extract(m.metadata, '$.discordDisplayName'), json_extract(m.metadata, '$.discordUsername')) END as discord_name
     FROM messages m
     JOIN threads t ON t.id = m.thread_id
     ${whereClause}
@@ -259,7 +260,7 @@ export function searchMessages(params: {
 
   const rows = selectStmt.all(...selectParams) as Array<{
     id: string; thread_id: string; role: string; content: string;
-    content_type: string; created_at: string; thread_name: string;
+    content_type: string; created_at: string; thread_name: string; discord_name: string | null;
   }>;
 
   return { messages: rows, total };

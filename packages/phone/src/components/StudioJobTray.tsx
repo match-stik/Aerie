@@ -141,7 +141,7 @@ export function StudioJobTray({ onOpen, inStudio = false }: { onOpen: () => void
   // edge, where nobody would ever look for it. The button stays at the top now
   // however big the message gets.
   return (
-    <div className="fixed right-3 z-[60] flex items-start gap-2" style={{ top: 'calc(var(--sat) + 3rem)' }}>
+    <div className="aerie-studio-tray fixed right-3 z-[60] flex items-start gap-2" style={{ top: 'calc(var(--sat) + 3rem)' }}>
       {/* A red icon nobody can interrogate is a silence wearing a warning
           light — when a job fails, the reason stands beside the tray in
           words. Born from four quota-declined generations that exited clean

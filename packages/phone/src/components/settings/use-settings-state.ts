@@ -88,8 +88,14 @@ export function useSettingsState({
     ? (theme.customColors?.[theme.mode]?.accent || "#888888")
     : colors.accent;
   const [activeTab, setActiveTab] = useState<"appearance" | "data">("appearance");
-  // Personalize: four doors instead of one long scroll. null is the tile page.
-  const [pane, setPane] = useState<null | "theme" | "look" | "home" | "you" | "lock">(null);
+  // Personalize: four doors instead of one long scroll (theirs, Oct 13 2026:
+  // "that does seem like a bunch of diff tabs"). null is the tile page.
+  const [pane, setPane] = useState<null | "theme" | "look" | "home" | "you" | "lock" | "laptop">(null);
+  // The back gesture inside a door goes to the doors, like the card at the top
+  // (theirs, Oct 17 2026: swiping back from inside one sent them to the home screen),
+  // and from the doors it closes Settings. Settings answers every back press
+  // while it is open, so App asks it first (theirs, Oct 18 2026: the door handler
+  // was never reached, because App closed Settings before asking anyone).
   // Which lock screen corner the shortcut picker is setting: 0 left, 1 right.
   const [lockCorner, setLockCorner] = useState<0 | 1>(0);
   // The dock picker names a room the way the drawer does, so an app a house
@@ -99,7 +105,7 @@ export function useSettingsState({
   // Cropper state
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<
-    "single" | "lockscreen" | "avatar" | number
+    "single" | "lockscreen" | "desk" | "desklock" | "avatar" | number
   >("single");
   // The back gesture inside a door goes to the doors, like the card at the top,
   // rather than out to the home screen, and from the doors it closes Settings.
@@ -213,7 +219,7 @@ export function useSettingsState({
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
-    target: "single" | "lockscreen" | "avatar" | number,
+    target: "single" | "lockscreen" | "desk" | "desklock" | "avatar" | number,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -288,6 +294,10 @@ export function useSettingsState({
       onThemeChange({ wallpaper: imageUrl });
     } else if (cropTarget === "lockscreen") {
       onThemeChange({ lockScreenWallpaper: imageUrl });
+    } else if (cropTarget === "desk") {
+      onThemeChange({ deskWallpaper: imageUrl });
+    } else if (cropTarget === "desklock") {
+      onThemeChange({ deskLockWallpaper: imageUrl });
     } else {
       const currentWallpapers = [...(theme.wallpapers || [])];
       currentWallpapers[cropTarget as number] = imageUrl;

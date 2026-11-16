@@ -7,7 +7,7 @@
 // colour, and only reduce colours if the file is genuinely over a cap.
 
 import { type MouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { Brush, Check, Crop, Download, Eraser, Eye, EyeOff, ImageUp, Loader2, Pipette, RotateCcw, TriangleAlert, Undo2, X, Wand2 } from 'lucide-react';
+import { Brush, Check, Crop, Hand, Download, Eraser, Eye, EyeOff, ImageUp, Loader2, Pipette, RotateCcw, TriangleAlert, Undo2, X, Wand2 } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
@@ -152,6 +152,11 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
   const mouseDrag = useRef<{ id: number; x: number; y: number; pan: { x: number; y: number }; moved: boolean } | null>(null);
   const suppressClick = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
+  // A Move button beside the zoom (theirs, Nov 15 2026: trouble panning while
+  // zoomed in to paint). On, a plain drag moves the picture whatever tool is
+  // out, the same as holding Space, so nobody has to know the key.
+  const [moveMode, setMoveMode] = useState(false);
+  const moveHeld = spaceHeld || moveMode;
   const [dragging, setDragging] = useState(false);
   // The wheel listener is bound once per picture, so it reads the view through
   // refs rather than through a closure that would freeze the first zoom.
@@ -787,7 +792,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
     if (pointers.current.size < 2) gesture.current = null;
   }, []);
 
-  const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, []);
+  const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); setMoveMode(false); }, []);
 
   // What a mouse does instead of two fingers, once the picture is zoomed in.
   // Holding the left button down drags the picture whenever it is not painting
@@ -804,14 +809,14 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
   const panDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     suppressClick.current = false;
     if (e.pointerType === 'touch' || zoom <= 1) return;
-    const claimed = e.button === 1 || (e.button === 0 && spaceHeld);
+    const claimed = e.button === 1 || (e.button === 0 && moveHeld);
     if (!claimed && !(e.button === 0 && !painting && !cropping)) return;
     if (claimed) e.stopPropagation();
     // Stops the browser dragging the image file itself. It does not cancel the
     // click, so a press that never moves still picks.
     e.preventDefault();
     mouseDrag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, pan: { ...pan }, moved: false };
-  }, [zoom, pan, spaceHeld, painting, cropping]);
+  }, [zoom, pan, moveHeld, painting, cropping]);
 
   const panMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     const d = mouseDrag.current;
@@ -1204,7 +1209,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
                 'relative overflow-hidden',
                 (painting || zoom > 1) && 'touch-none',
                 zoom > 1 && 'select-none',
-                zoom > 1 && (spaceHeld || (!painting && !cropping && !picking)) && 'cursor-grab',
+                zoom > 1 && (moveHeld || (!painting && !cropping && !picking)) && 'cursor-grab',
                 dragging && 'cursor-grabbing',
               )}
             >
@@ -1384,6 +1389,16 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
               className="flex-1" style={{ accentColor: colors.accent }}
             />
             <span className={cn('w-9 text-right text-[11px]', colors.textMuted)}>{zoom.toFixed(1)}×</span>
+            <button
+              onClick={() => setMoveMode((v) => !v)}
+              disabled={zoom <= 1}
+              aria-pressed={moveMode}
+              title="Drag to move the picture"
+              className={cn('flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] disabled:opacity-40', colors.panelBorder, moveMode ? '' : colors.textMuted)}
+              style={moveMode && zoom > 1 ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
+            >
+              <Hand size={12} /> Move
+            </button>
             <button
               onClick={resetView}
               disabled={zoom === 1 && pan.x === 0 && pan.y === 0}
@@ -1692,8 +1707,8 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
                 paints, so the gestures never collide. While you paint, a magnifier shows the spot
                 under your hand in the opposite corner.
                 <br />
-                On a laptop, hold Space (or the middle button) and drag to move around while you
-                paint. Two fingers on the trackpad scroll the picture, and a pinch zooms it.
+                On a laptop, press Move by the zoom (or hold Space, or the middle button) and drag
+                to move around while you paint. Two fingers on the trackpad scroll the picture, and a pinch zooms it.
               </div>
               <div className="mt-2 flex gap-1.5">
                 {([['restore', 'Bring back'], ['erase', 'Take away']] as const).map(([id, text]) => (

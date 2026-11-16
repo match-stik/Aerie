@@ -103,6 +103,8 @@ export type ServerMessage =
   // a page turn started or ended, or a keepsake was tied. The phone re-reads
   // GET /api/story-shelf, and the open book if it is the one named.
   | { type: 'story_update'; bookId: string | null }
+  /** A lane's play found nowhere to play: the Aerie app on a laptop starts Spotify there (desktop/main.cjs). */
+  | { type: 'spotify_wake' }
   /** The word beside the dot under the faces, while a bell that has one is running (services/bell-status.ts); null is Home. `companions` names whose cards show it, or is empty for every companion's. */
   | { type: 'status_word'; word: string | null; companions: string[] }
   // A companion's lane asked for their person's toys. Only a phone that can reach toys

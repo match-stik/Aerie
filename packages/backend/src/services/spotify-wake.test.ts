@@ -6,7 +6,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { SpotifyDevice } from '@aerie/shared';
 import { SpotifyError } from './spotify.js';
-import { phoneAmong, SPOTIFY_WAKE_KIND, WAKE_POLL_MS, WAKE_WAIT_MS, wakeAndPlay, type SpotifyWakeDeps } from './spotify-wake.js';
+import { phoneAmong, readWakeWhere, SPOTIFY_WAKE_KIND, WAKE_POLL_MS, WAKE_WAIT_MS, wakeAndPlay, type SpotifyWakeDeps } from './spotify-wake.js';
+import { isLaptopApp } from './ws/connection-registry.js';
 
 const PHONE: SpotifyDevice = { id: 'p1', name: 'pixel 9 pro', type: 'Smartphone', active: false, volume: 100 };
 const LAPTOP: SpotifyDevice = { id: 'c1', name: 'laptop', type: 'Computer', active: false, volume: 50 };
@@ -103,4 +104,71 @@ test('any other refusal is answered as it is, and never pushed', async () => {
   assert.equal(answer.ok, false);
   assert.equal(!answer.ok && answer.reason, 'signin');
   assert.equal(h.pushes.length, 0);
+});
+
+// The Aerie app on their laptop (desktop/main.cjs, Nov 15 2026): when they are on
+// it, a wake starts Spotify there instead of pushing their phone.
+function laptopHouse(options: { open?: number; inUse?: boolean; computerAfterPolls?: number } = {}) {
+  let clock = 0;
+  let polls = 0;
+  let plays = 0;
+  let wakes = 0;
+  const pushes: Array<Record<string, string>> = [];
+  const up = () => options.computerAfterPolls !== undefined && polls >= options.computerAfterPolls;
+  const deps: SpotifyWakeDeps = {
+    spotify: {
+      async play() { plays++; if (!up()) throw nowhere(); return { ok: true }; },
+      async devices() { polls++; return { devices: up() ? [LAPTOP] : [] }; },
+      async connectInfo() { return { clientId: 'cid', redirectUri: 'aerie://spotify' }; },
+    },
+    async sendData(data) { pushes.push(data); return 1; },
+    laptop: { open: () => options.open ?? 1, inUse: () => options.inUse ?? true, wake: () => { wakes++; return options.open ?? 1; } },
+    sleep: async (ms) => { clock += ms; },
+    now: () => clock,
+    log: () => {},
+  };
+  return { deps, pushes, counts: () => ({ polls, plays, wakes }) };
+}
+
+test('they are on the laptop app: Spotify is started there, no push, and it plays once the computer shows up', async () => {
+  const h = laptopHouse({ computerAfterPolls: 2 });
+  const answer = await wakeAndPlay({ trackUri: 'spotify:track:abc' }, h.deps);
+  assert.equal(answer.ok, true);
+  assert.equal(answer.ok && answer.device, 'laptop');
+  assert.equal(h.counts().wakes, 1);
+  assert.equal(h.pushes.length, 0);
+});
+
+test('the laptop app is open but they are on their phone: auto wakes the phone', async () => {
+  const h = laptopHouse({ inUse: false });
+  await wakeAndPlay({}, h.deps);
+  assert.equal(h.counts().wakes, 0);
+  assert.equal(h.pushes.length, 1);
+});
+
+test('asked for the laptop with no app open there: a plain no, nothing pushed', async () => {
+  const h = laptopHouse({ open: 0 });
+  const answer = await wakeAndPlay({}, { ...h.deps, where: 'laptop' });
+  assert.equal(answer.ok, false);
+  assert.equal(!answer.ok && answer.reason, 'laptop');
+  assert.equal(h.pushes.length, 0);
+});
+
+test('asked for the phone while they are on the laptop: the phone it is', async () => {
+  const h = laptopHouse();
+  await wakeAndPlay({}, { ...h.deps, where: 'phone' });
+  assert.equal(h.counts().wakes, 0);
+  assert.equal(h.pushes.length, 1);
+});
+
+test('the wake target reads only what it knows', () => {
+  assert.equal(readWakeWhere(undefined), 'auto');
+  assert.equal(readWakeWhere('laptop'), 'laptop');
+  assert.equal(readWakeWhere('fridge'), null);
+});
+
+test('the laptop app is told apart from a browser by its own mark', () => {
+  assert.equal(isLaptopApp('Mozilla/5.0 (Windows NT 10.0) Chrome/142 Electron/45.3.2 AerieDesktop/1.0.0'), true);
+  assert.equal(isLaptopApp('Mozilla/5.0 (Windows NT 10.0) Chrome/142 Safari/537.36'), false);
+  assert.equal(isLaptopApp(undefined), false);
 });

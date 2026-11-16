@@ -16,6 +16,10 @@ export const MAX_REGIONS = 100;
 
 /** The default circle for a pin that arrived without a usable radius. */
 export const DEFAULT_RADIUS_M = 100;
+/** The smallest circle handed to the operating system. Android's own advice is
+ *  100 to 150 m; their 60 m home pin never fired an arrival while 500 m Work did
+ *  (Nov 13-14 2026). Only the watching widens: the pin keeps its own radius. */
+export const MIN_FENCE_RADIUS_M = 150;
 
 export interface ArmedPlace {
   id: string;
@@ -53,7 +57,7 @@ export function regionsFor(rows: unknown): ArmedPlace[] {
       name: typeof r.name === 'string' && r.name.trim() ? r.name.trim() : 'somewhere you pinned',
       lat,
       lng,
-      radius_m: radius !== null && radius > 0 ? radius : DEFAULT_RADIUS_M,
+      radius_m: Math.max(MIN_FENCE_RADIUS_M, radius !== null && radius > 0 ? radius : DEFAULT_RADIUS_M),
       waiting: waiting !== null && waiting > 0 ? Math.floor(waiting) : 0,
     });
   }

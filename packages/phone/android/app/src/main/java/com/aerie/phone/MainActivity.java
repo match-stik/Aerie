@@ -45,8 +45,12 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         guardRenderProcess();
         answerRingIfAsked(getIntent());
-        // Old update installers this app saved to Downloads, gone once a newer
-        // version is the one running (UpdateCleanup).
+        // The WebView draws no scrollbar of its own (the square at the side
+        // they saw on Nov 13 2026); the page hides every other one.
+        this.bridge.getWebView().setVerticalScrollBarEnabled(false);
+        this.bridge.getWebView().setHorizontalScrollBarEnabled(false);
+        // Old update installers this app saved to their Downloads, gone once
+        // a newer version is the one running (UpdateCleanup).
         UpdateCleanup.sweepInBackground(this);
     }
 

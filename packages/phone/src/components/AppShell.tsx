@@ -38,7 +38,7 @@ export function AppShell({ title, icon: Icon, onClose, themeConfig, themeMode, h
     // No opaque surface here — the wallpaper (App.tsx z-0) shows through
     // app bodies by design; only the drawer paints its own background.
     <motion.div
-      className={cn('absolute inset-0 z-40 flex flex-col', colors.textMain)}
+      className={cn('aerie-room absolute inset-0 z-40 flex flex-col', colors.textMain)}
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.03, transition: { duration: 0.25 } }}

@@ -39,6 +39,34 @@ router.get('/download', (_req, res) => {
   res.sendFile(apkPath);
 });
 
+// The Aerie app on their laptop (desktop/, theirs Nov 15 2026): its zip lives in
+// data/app/desktop/ beside a version.json (desktop/stage.mjs writes both),
+// and the app's Settings button reads one and fetches the other.
+const DESKTOP_DIR = join(APP_DIR, 'desktop');
+
+function desktopMeta(): { version: string; file: string } | null {
+  try {
+    const meta = JSON.parse(readFileSync(join(DESKTOP_DIR, 'version.json'), 'utf-8')) as { version?: unknown; file?: unknown };
+    if (typeof meta.version !== 'string' || typeof meta.file !== 'string' || !/^[\w.\- ]+\.zip$/.test(meta.file)) return null;
+    return existsSync(join(DESKTOP_DIR, meta.file)) ? { version: meta.version, file: meta.file } : null;
+  } catch {
+    return null;
+  }
+}
+
+router.get('/desktop/version', (_req, res) => {
+  const meta = desktopMeta();
+  res.json(meta ? { available: true, version: meta.version } : { available: false });
+});
+
+router.get('/desktop/download', (_req, res) => {
+  const meta = desktopMeta();
+  if (!meta) return res.status(404).json({ error: 'No laptop app staged' });
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${meta.file}"`);
+  res.sendFile(join(DESKTOP_DIR, meta.file));
+});
+
 /**
  * A sideloaded APK has no crash console anywhere. Without this the only report
  * of a native crash is their person describing an app that vanished, so the shell

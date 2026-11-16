@@ -25,10 +25,25 @@ export const WAKE_POLL_MS = 1_500;
 /** The push's data, read by AerieMessagingService on their phone. */
 export const SPOTIFY_WAKE_KIND = 'spotify-wake';
 
+/**
+ * Where to wake Spotify. 'auto' is the laptop when the Aerie app is open on it
+ * and they are on it, otherwise their phone (theirs, Nov 15 2026: the Windows app,
+ * 'and wake spotify with it').
+ */
+export type SpotifyWakeWhere = 'auto' | 'phone' | 'laptop';
+
+export function readWakeWhere(value: unknown): SpotifyWakeWhere | null {
+  if (value === undefined || value === null || value === '') return 'auto';
+  return value === 'auto' || value === 'phone' || value === 'laptop' ? value : null;
+}
+
 export interface SpotifyWakeDeps {
   spotify: Pick<SpotifyReader, 'play' | 'devices' | 'connectInfo'>;
   /** A data-only push to every registered phone; answers how many FCM took. */
   sendData: (data: Record<string, string>) => Promise<number>;
+  /** The laptop app's side: how many open Aerie apps on a computer there are, and whether they are on one now. */
+  laptop?: { open: () => number; inUse: () => boolean; wake: () => number };
+  where?: SpotifyWakeWhere;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
   log?: (line: string) => void;
@@ -41,6 +56,11 @@ export type SpotifyWakeAnswer =
 /** A phone, by Spotify's own word for it. */
 export function phoneAmong(devices: SpotifyDevice[]): SpotifyDevice | null {
   return devices.find((device) => device.type.toLowerCase() === 'smartphone') ?? null;
+}
+
+/** A computer, by Spotify's own word for it. */
+export function computerAmong(devices: SpotifyDevice[]): SpotifyDevice | null {
+  return devices.find((device) => device.type.toLowerCase() === 'computer') ?? null;
 }
 
 function refusal(error: unknown, woke: boolean, waitedMs: number): SpotifyWakeAnswer {
@@ -61,6 +81,20 @@ export async function wakeAndPlay(request: SpotifyPlayRequest, deps: SpotifyWake
     if (!(error instanceof SpotifyError) || error.reason !== 'device') return refusal(error, false, 0);
   }
 
+  // The laptop, when its app is open and they are on it (or it was asked for):
+  // the app starts Spotify there itself, no push involved.
+  const where = deps.where ?? 'auto';
+  const laptopsOpen = deps.laptop ? deps.laptop.open() : 0;
+  const toLaptop = where === 'laptop' || (where === 'auto' && laptopsOpen > 0 && Boolean(deps.laptop?.inUse()));
+  if (toLaptop) {
+    if (laptopsOpen === 0 || !deps.laptop) {
+      return { ok: false, woke: false, waitedMs: 0, reason: 'laptop', error: "The Aerie app isn't open on their laptop, so Spotify couldn't be started there." };
+    }
+    const reachedLaptops = deps.laptop.wake();
+    log(`[spotify-wake] asked ${reachedLaptops} laptop app(s) to start Spotify; waiting for a computer to show up`);
+    return waitAndPlay(request, deps, computerAmong, 'Their laptop', sleep, now, log);
+  }
+
   // The kit's id and redirect ride along; without them the phone goes
   // straight to the media key, which needs neither.
   let clientId = '';
@@ -78,13 +112,25 @@ export async function wakeAndPlay(request: SpotifyPlayRequest, deps: SpotifyWake
     return { ok: false, woke: false, waitedMs: 0, reason: 'push', error: "Their phone couldn't be reached by push, so Spotify wasn't woken." };
   }
   log(`[spotify-wake] push taken for ${reached} phone(s); waiting for one to show up in Spotify`);
+  return waitAndPlay(request, deps, phoneAmong, 'Their phone', sleep, now, log);
+}
 
+/** Wait for the woken device to show up among Spotify's devices, then play there. */
+async function waitAndPlay(
+  request: SpotifyPlayRequest,
+  deps: SpotifyWakeDeps,
+  find: (devices: SpotifyDevice[]) => SpotifyDevice | null,
+  who: string,
+  sleep: (ms: number) => Promise<void>,
+  now: () => number,
+  log: (line: string) => void,
+): Promise<SpotifyWakeAnswer> {
   const started = now();
   let phone: SpotifyDevice | null = null;
   while (now() - started < WAKE_WAIT_MS) {
     await sleep(WAKE_POLL_MS);
     try {
-      phone = phoneAmong((await deps.spotify.devices()).devices);
+      phone = find((await deps.spotify.devices()).devices);
     } catch {
       phone = null;
     }
@@ -92,8 +138,8 @@ export async function wakeAndPlay(request: SpotifyPlayRequest, deps: SpotifyWake
   }
   const waitedMs = now() - started;
   if (!phone) {
-    log(`[spotify-wake] no phone showed up in Spotify after ${waitedMs} ms`);
-    return { ok: false, woke: false, waitedMs, reason: 'device', error: `Their phone didn't show up in Spotify within ${Math.round(WAKE_WAIT_MS / 1000)} seconds of the push.` };
+    log(`[spotify-wake] ${who.toLowerCase()} didn't show up in Spotify after ${waitedMs} ms`);
+    return { ok: false, woke: false, waitedMs, reason: 'device', error: `${who} didn't show up in Spotify within ${Math.round(WAKE_WAIT_MS / 1000)} seconds of the wake.` };
   }
   log(`[spotify-wake] ${phone.name} showed up after ${waitedMs} ms`);
 

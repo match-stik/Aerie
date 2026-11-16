@@ -255,7 +255,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   const avatarSrc = guestAvatar(message.senderId, message.senderAvatar);
   // The Rings choice: each face in its own house color, or all in the theme's.
   const themeRing = look.rings === 'theme';
-  const facePin = cn("absolute w-9", onRight ? "-right-[44px]" : "-left-[44px]", faceTail === 'bottom' ? "bottom-0" : "top-0.5");
+  const facePin = cn("aerie-face absolute w-9", onRight ? "-right-[44px]" : "-left-[44px]", faceTail === 'bottom' ? "bottom-0" : "top-0.5");
   const pinnedFace = isGuest && !isPrivateTab && !voice ? (
     <div className={facePin} title={`${message.sender} · ${message.via}`}>
       {avatarSrc && failedAvatar !== avatarSrc ? (
@@ -414,14 +414,14 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           or their person. Their initial is the fallback, not the design: an older
           message predates us capturing the picture, and the picture can 404. */}
       {isGuest && !isPrivateTab && !voice && (
-        <div className="-ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
+        <div className="aerie-face-rail -ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
       )}
       {/* Voice avatar rail — one face per speaking companion, treehouse-style */}
       {!isUser && !onRight && !isPrivateTab && !isSystem && voice && look.faces && (
-        <div className="-ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
+        <div className="aerie-face-rail -ml-1.5 mr-2 w-9 shrink-0" aria-hidden="true" />
       )}
       <div className={cn(
-        "flex flex-col max-w-[85%] sm:max-w-[75%]",
+        "aerie-bubble-col flex flex-col max-w-[85%] sm:max-w-[75%]",
         (isPrivateTab || isSystem) ? "items-center" : (onRight && !centered) ? "items-end" : "items-start",
         // Indent meta-only preamble bubbles by the avatar-rail width so
         // their left edge lines up with the voice bubbles below them.
@@ -485,7 +485,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           )}
           <div
             ref={swoopBubbleRef}
-            onClick={() => { if (isEditing) return; setShowActions(!showActions); }}
+            onClick={() => { if (isEditing || isSystem) return; setShowActions(!showActions); }}
             data-user={isUser ? 'true' : 'false'}
             className={cn(
               "aerie-message-bubble overflow-hidden transition-all duration-500 cursor-pointer rounded-[var(--shape-bubble)]",
@@ -970,9 +970,11 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           {/* Actions belong to the stored message, not each virtual
               companion bubble. Anchor one tray beneath the final voice, at
               every width: on a wide screen it used to jump out beside the
-              bubble, which is not where it sits on their phone (Oct 23
+              bubble, which is not where it sits on their phone (theirs, Oct 23
               2026, off a screenshot of a laptop). */}
-          {isGroupLast && <div className={cn(
+          {/* A system notice (a timeout, a sign-in warning) has nothing to
+              react to or reroll, so it has no tray (theirs, Nov 15 2026). */}
+          {isGroupLast && !isSystem && <div className={cn(
             "absolute transition-all flex items-center gap-1 px-2 py-1 rounded-[var(--shape-control)] border z-20",
             colors.panelBg,
             colors.panelBorder,
@@ -1268,10 +1270,10 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
       </div>
       {/* Owner avatar rail — mirrors the companion rail on the right */}
       {isUser && !isPrivateTab && userAvatar && look.faces && (
-        <div className="ml-2 -mr-1.5 w-9 shrink-0" aria-hidden="true" />
+        <div className="aerie-face-rail ml-2 -mr-1.5 w-9 shrink-0" aria-hidden="true" />
       )}
       {!isUser && onRight && !isPrivateTab && !isSystem && voice && look.faces && (
-        <div className="ml-2 -mr-1.5 w-9 shrink-0" aria-hidden="true" />
+        <div className="aerie-face-rail ml-2 -mr-1.5 w-9 shrink-0" aria-hidden="true" />
       )}
       {lightboxState && (
         <ImageLightbox

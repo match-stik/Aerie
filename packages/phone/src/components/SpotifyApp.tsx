@@ -378,7 +378,7 @@ export function SpotifyApp({ onClose, themeConfig, themeMode }: SpotifyAppProps)
         </button>
       }
     >
-      <div ref={rootRef} className="mx-auto w-full max-w-md">
+      <div ref={rootRef} className="aerie-spotify-col mx-auto w-full max-w-md">
         {openList ? (
           <PlaylistView
             playlist={openList}
