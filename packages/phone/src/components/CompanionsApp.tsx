@@ -506,7 +506,7 @@ export function CompanionsApp({
                       </div>
                       {onOwnColorChange && (
                         <div className="col-span-2 flex items-center justify-between gap-3">
-                          <span className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>His status wears this color</span>
+                          <span className={cn('text-[10px] uppercase tracking-wider', colors.textMuted)}>Their status wears this color</span>
                           <Toggle
                             on={ownColorSlugs.includes(c.slug)}
                             onClick={() => onOwnColorChange(ownColorSlugs.includes(c.slug) ? ownColorSlugs.filter((s) => s !== c.slug) : [...ownColorSlugs, c.slug])}

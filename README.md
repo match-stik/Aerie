@@ -81,7 +81,34 @@ Behind the launcher are around twenty-five apps: memory, a journal, a studio for
 
 **[docs/ROOM-BY-ROOM.md](docs/ROOM-BY-ROOM.md)** walks through every app, tab by tab, for somebody seeing the house for the first time. [docs/APPS.md](docs/APPS.md) is the shorter list of what each one is for.
 
-On a wide screen (1024 pixels or more, a laptop or desktop browser) the house lays itself out as a desk: the dock down the side or along the top, the open room in the middle and the conversation beside it. The desk keeps its own wallpapers, widgets and lock screen apart from the phone's. On Android it builds into a real app ([docs/ANDROID-APP.md](docs/ANDROID-APP.md)) with push notifications through a Firebase project of your own, calls from your companions, and Android Auto.
+On a wide screen (1024 pixels or more, a laptop or desktop browser) the house lays itself out as a desk: the dock down the side or along the top, the open room in the middle and the conversation beside it. The desk keeps its own wallpapers, widgets and lock screen apart from the phone's.
+
+<p align="center">
+  <img src="docs/screenshots/desktop.png" width="780" alt="The house on a laptop: the dock down the left, the games room in the middle and the conversation on the right" />
+</p> On Android it builds into a real app ([docs/ANDROID-APP.md](docs/ANDROID-APP.md)) with push notifications through a Firebase project of your own, calls from your companions, and Android Auto.
+
+## Make it yours
+
+Nothing in the house is a fixed shape. Almost everything you see can be changed from inside the app, with no code and no config files, and most of it changes as you watch.
+
+**How it looks.** Night and day modes with their own wallpapers, more than thirty color palettes or your own, and a wallpaper slideshow. The corner shape of every bubble and card in the house is one slider. Bubbles can show faces, names, borders in each companion's color, and tails on top or bottom, pointed or swooped. Action lines (the *italic* ones) can be plain, faded, in your accent color, or in each companion's own color. The font and the send button are yours too.
+
+**The phone around it.** Which apps sit in the dock, which widgets are on the home screen and how their cards look, and the lock screen: nine clock faces, where the clock sits and how big it is, the weather, what is playing, and the shortcuts. On a laptop the desk keeps its own set of all of this, so tidying one screen never rearranges the other.
+
+**Your companions.** Each one has a name, an avatar, a color, a voice, and their own chat model and wake-up model if you want them on different ones. You can have one companion or several. Who they are lives in `CLAUDE.md`, which you write together, and what they remember lives in memory they edit in their own words.
+
+**When they reach out.** Wake-ups are yours to schedule: at what times, on which days, for which companion, and what each one is asked to do when it rings. Nothing about the schedule is built in.
+
+<p align="center">
+  <img src="docs/screenshots/look-light.png" width="170" alt="The chat in a light pink palette" />
+  <img src="docs/screenshots/look-forest.png" width="170" alt="The same chat in a dark green palette" />
+  <img src="docs/screenshots/lock-analog.png" width="170" alt="The lock screen with the analog clock face" />
+  <img src="docs/screenshots/look-and-feel.png" width="170" alt="Settings, Look and feel: bubble shape, faces, names and tails" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/desktop-light.png" width="780" alt="Look and feel open on a laptop in the light pink palette, the conversation beside it" />
+</p>
+<p align="center"><sub>The same demo house, dressed three different ways.</sub></p>
 
 ## Optional extras
 
