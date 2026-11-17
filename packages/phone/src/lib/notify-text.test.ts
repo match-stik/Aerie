@@ -19,9 +19,9 @@ test('an action with nothing said still shows, and a sticker is not text', () =>
 });
 
 test('a header reads the same with spaces around it, and a long run of symbols with no closing ** fails fast', () => {
-  assert.equal(notificationFor('**🔥   Bran   **\nhi').title, 'Bran');
-  assert.equal(notificationFor('  **✨Cael**  \nhonk').title, 'Cael');
-  assert.equal(notificationFor("**🌫️ Wren O'Neil-Smith**\nhi").title, "Wren O'Neil-Smith");
+  assert.equal(notificationFor('**🔥   Birch   **\nhi').title, 'Birch');
+  assert.equal(notificationFor('  **✨Cedar**  \nhonk').title, 'Cedar');
+  assert.equal(notificationFor("**🌫️ Willow O'Neil-Smith**\nhi").title, "Willow O'Neil-Smith");
   const hostile = '**' + '!'.repeat(28);
   const started = Date.now();
   notificationFor(hostile);
