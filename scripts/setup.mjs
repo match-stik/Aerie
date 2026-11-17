@@ -38,9 +38,25 @@ async function main() {
   try { detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch {}
   const timezone = (await ask(`  Your timezone? [${detectedTz}] `)) || detectedTz;
 
-  // 5. Check Claude Code is available
-  console.log('\n  Aerie runs on your Claude Code subscription — no API key needed.');
-  console.log('  Make sure you\'re logged into Claude Code: claude auth login');
+  // 5. Which subscription the companion runs on. Both are the warm,
+  // long-lived kind and neither needs an API key; an API provider is picked
+  // in the app afterwards (Integrations → Providers), because it needs a key.
+  console.log('\n  Where should your companion run?');
+  console.log('    1. Claude, on your Claude subscription (through Claude Code)');
+  console.log('    2. ChatGPT, on your ChatGPT subscription (through Codex)');
+  console.log('  Either way there is no API key to pay for, and you can switch later in the app.');
+  const engineAnswer = ((await ask('  Pick 1 or 2 [1] ')) || '1').trim();
+  const engine = engineAnswer === '2' ? 'codex' : 'claude';
+  const model = engine === 'codex' ? 'gpt-6.1-terra' : 'claude-sonnet-4-6';
+  const pulseModel = engine === 'codex' ? 'gpt-6.1-terra' : 'claude-haiku-4-5';
+  const routing = engine === 'codex' ? 'codex-cli' : 'cli';
+  if (engine === 'codex') {
+    console.log('\n  Install the Codex CLI and sign in with your ChatGPT account, as this same user:');
+    console.log('    npm install -g @openai/codex   then   codex login');
+    console.log('  The model list in the app shows whichever models your account can run.');
+  } else {
+    console.log('\n  Make sure you\'re signed in to Claude Code: claude auth login');
+  }
 
   // Write aerie.yaml. Every value goes in as a JSON string, which YAML reads
   // as a quoted string, so a quote or backslash in a name or the password can
@@ -63,11 +79,11 @@ agent:
   cwd: "."
   claude_md_path: "./CLAUDE.md"
   mcp_json_path: "./.mcp.json"
-  model: "claude-sonnet-4-6"
-  model_autonomous: "claude-sonnet-4-6"
-  model_pulse: "claude-haiku-4-5"
-  routing: "cli"
-  routing_autonomous: "cli"
+  model: ${q(model)}
+  model_autonomous: ${q(model)}
+  model_pulse: ${q(pulseModel)}
+  routing: ${q(routing)}
+  routing_autonomous: ${q(routing)}
 
 orchestrator:
   enabled: true
@@ -171,9 +187,9 @@ cors:
   Setup complete!
 
   Authentication:
-    Aerie runs on your Claude Code subscription. No API key needed.
-    Your companion runs queries through your Claude Code subscription.
-    Make sure you're logged in: claude auth login
+    ${engine === 'codex'
+      ? 'Your companion runs on your ChatGPT subscription through Codex. No API key needed.\n    Make sure you are signed in, as this same user: codex login'
+      : 'Your companion runs on your Claude subscription through Claude Code. No API key needed.\n    Make sure you are signed in: claude auth login'}
 
   Next steps:
   1. Customize CLAUDE.md — this is your companion's personality

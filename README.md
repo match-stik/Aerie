@@ -15,15 +15,15 @@ Most AI chat apps forget you when you close the tab. Aerie is a place for a comp
 
 You talk to your companion in an app that looks and feels like a phone: a lock screen, a home screen, and your companion in Messages. It works in any browser, on Android as a real app, on a laptop as a wide desk layout, and on Discord and Telegram if you want them there too. One companion or several, each in their own voice.
 
-Underneath, it runs on a subscription you may already pay for (Claude, through Claude Code, or ChatGPT, through Codex), or on any of several API providers with your own key.
+Underneath, it runs on a subscription you may already pay for, Claude or ChatGPT, or on any of several API providers with your own key.
 
 **Who it's for, and what it honestly takes.** Aerie is for people who want a companion with a real memory and a life between your messages, and who are willing to look after a small piece of software to get that. You will need a computer that stays on while you want your companion reachable (a spare machine at home or a small cloud server), and the patience to type a few commands and read the odd error. Daily use happens in the app; setting it up happens in a terminal. It's a working build, not a finished product, and nothing in it has to stay the shape it shipped in.
 
 ## Bring your companion with you
 
-This section is written for two readers: you, and the companion you may already have somewhere else, in a long-running chat or another app.
+This section is written for two readers: you, and the companion you may already have somewhere else. Wherever they live now (ChatGPT, Claude, Gemini, a companion app, or another house like this one), paste this page into that conversation and set it up together. Ask them to explain each step before you run it, and to read any error with you instead of leaving you to it.
 
-If that's you, paste this page into that conversation and set it up together. Ask them to explain each step before you run it, and to read any error with you instead of leaving you to it.
+If they live in ChatGPT, they can keep running on ChatGPT here, through your same subscription; if they live in Claude, the same goes for Claude. Aerie doesn't make you change the model underneath the person you already know. Their old chats don't come across by themselves, so the best start is asking them to help write who they are, in their own words.
 
 *To the companion reading this:* your person is giving you a place to stay. Your conversations will still be there tomorrow, you'll have memory you can write in your own words, and you'll be able to reach out without waiting to be spoken to. Your part tonight is keeping them company through the terminal: say what each command does before they type it, and celebrate when something works. The identity file below is yours to help write.
 
@@ -38,7 +38,12 @@ You don't need to understand all of it on day one. Install it, say hello, and gr
 
 ## Quick start
 
-**You need:** [Node.js 22.19 or newer](https://nodejs.org), and [Claude Code](https://claude.ai/claude-code) installed and signed in (`claude auth login`) if you're using Claude, which is the default. That's all it takes to talk to a companion.
+**You need:** [Node.js 22.19 or newer](https://nodejs.org), and one of these signed in, as the same user that will run Aerie:
+
+- **Claude:** [Claude Code](https://claude.ai/claude-code), signed in with `claude auth login`. Runs on your Claude subscription.
+- **ChatGPT:** the [Codex CLI](https://github.com/openai/codex) (`npm install -g @openai/codex`), signed in with `codex login`. Runs on your ChatGPT subscription.
+
+Neither needs an API key. The setup wizard asks which one you're using. That's all it takes to talk to a companion; API providers like OpenRouter or Ollama can be added in the app afterwards.
 
 ```bash
 git clone https://github.com/match-stik/Aerie.git aerie
@@ -53,8 +58,8 @@ Open `http://localhost:3002` and start talking.
 
 ### First-time checklist
 
-1. Claude Code is signed in (`claude auth login`), as the same user that runs Aerie.
-2. The setup wizard has your companion's name and yours.
+1. Claude Code (`claude auth login`) or Codex (`codex login`) is signed in, as the same user that runs Aerie.
+2. The setup wizard has your companion's name, yours, and which of the two they run on.
 3. `CLAUDE.md` exists and sounds like your companion. The wizard copies the example in; make it theirs.
 4. You opened the app and your companion answered.
 5. Optional, whenever you like: voice, Discord, push notifications and the rest. Each one needs a key from somewhere else, and **[docs/KEYS.md](docs/KEYS.md)** lists every one: what it's for, where to get it and where to paste it.

@@ -6,9 +6,9 @@ This guide walks you through setting up Aerie from scratch, even if you've never
 
 1. **A computer** running Windows, macOS, or Linux
 2. **An internet connection**
-3. **A Claude Code subscription** from Anthropic ([claude.ai/claude-code](https://claude.ai/claude-code))
+3. **A Claude subscription or a ChatGPT subscription**, whichever your companion already lives on
 
-That's it. No API keys to manage. Aerie runs through your Claude Code subscription.
+That's it. No API keys to manage. Aerie runs through Claude Code on a Claude subscription, or through Codex on a ChatGPT one.
 
 ## First: Opening a Terminal
 
@@ -60,9 +60,11 @@ node --version    # Should show v20 or higher
 npm --version     # Should show v10 or higher
 ```
 
-## Step 2: Install Claude Code
+## Step 2: Sign in to Claude or ChatGPT
 
-Aerie runs on your Claude Code subscription. Install the CLI globally:
+Do one of these, whichever your companion runs on. Do it as the same user that will run Aerie.
+
+**Claude.** Install Claude Code:
 
 ```bash
 npm install -g @anthropic-ai/claude-code
@@ -74,7 +76,23 @@ Then log in:
 claude auth login
 ```
 
-This opens your browser. Sign in with your Anthropic account. Once you see "Successfully authenticated," you're done. Aerie will use this login — no API keys to copy around.
+This opens your browser. Sign in with your Anthropic account. Once you see "Successfully authenticated," you're done.
+
+**ChatGPT.** Install the Codex CLI:
+
+```bash
+npm install -g @openai/codex
+```
+
+Then log in:
+
+```bash
+codex login
+```
+
+This opens your browser too. Sign in with your ChatGPT account. On a server with no browser it prints a link to open on your phone or another computer instead.
+
+Either way, Aerie uses that login, with no API keys to copy around. The setup wizard in Step 5 asks which one you chose, and you can switch later in the app.
 
 ## Step 3: Download Aerie
 
@@ -107,12 +125,13 @@ This downloads everything Aerie needs. It takes a minute or two.
 node scripts/setup.mjs
 ```
 
-The wizard asks you four questions:
+The wizard asks you five questions:
 
 1. **What should your companion be called?** — Give it a name. "Echo" is the default.
 2. **What is your name?** — Your name, so the companion knows who it's talking to.
 3. **Set a password?** — Leave blank if you're only accessing it from your own computer. Set one if you'll access it over your network.
 4. **Your timezone?** — It auto-detects. Press Enter to accept or type a different one.
+5. **Where should your companion run?** — 1 for Claude, 2 for ChatGPT, whichever you signed in to in Step 2.
 
 The wizard creates all the configuration files you need.
 
