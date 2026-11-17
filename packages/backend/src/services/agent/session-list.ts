@@ -296,6 +296,59 @@ async function readHead(filePath: string): Promise<string> {
 }
 
 /**
+ * The first delivered message, looked for past the head. A room now opens on a
+ * launch prompt and an orientation turn that run to about 750 KB before the
+ * first "Stop hook feedback:" entry (measured on a working house), so a 256 KiB head saw only the banner and the list dropped
+ * every room as a failed launch, and the Sessions tab came up empty. Reads ahead in
+ * 1 MiB steps, at most DELIVERED_SCAN_BYTES, and stops at the first entry that
+ * gives a title.
+ */
+const DELIVERED_SCAN_BYTES = 8 * 1024 * 1024;
+const DELIVERED_NEEDLE = Buffer.from('"Stop hook feedback:');
+export async function findDeliveredTitle(filePath: string, size: number): Promise<string | undefined> {
+  const handle = await open(filePath, 'r');
+  try {
+    const limit = Math.min(size, DELIVERED_SCAN_BYTES);
+    const step = 1024 * 1024;
+    let carry = Buffer.alloc(0);
+    for (let pos = 0; pos < limit; pos += step) {
+      const len = Math.min(step, limit - pos);
+      const chunk = Buffer.allocUnsafe(len);
+      const { bytesRead } = await handle.read(chunk, 0, len, pos);
+      if (bytesRead <= 0) break;
+      const buf = Buffer.concat([carry, chunk.subarray(0, bytesRead)]);
+      let from = 0;
+      for (;;) {
+        const hit = buf.indexOf(DELIVERED_NEEDLE, from);
+        if (hit === -1) break;
+        const start = buf.lastIndexOf(10, hit) + 1;
+        const end = buf.indexOf(10, hit);
+        if (end === -1) {
+          // The line runs past this chunk: keep it for the next round.
+          break;
+        }
+        from = end + 1;
+        try {
+          const entry = JSON.parse(buf.toString('utf8', start, end));
+          if (entry?.type === 'user' && entry.isMeta && !entry.isSidechain) {
+            const title = deliveredMessageTitle(extractText(entry.message?.content) || '');
+            if (title) return title;
+          }
+        } catch {
+          // Not a whole record; move on.
+        }
+      }
+      // Keep the tail from the last line start, so a record split across chunks is read whole.
+      const lastNl = buf.lastIndexOf(10);
+      carry = lastNl === -1 ? buf : buf.subarray(lastNl + 1);
+    }
+    return undefined;
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
  * The first assistant requestId in a transcript — the chain key. Cheap on
  * purpose: it comes out of the head bytes already read for the title, and a
  * transcript with no assistant record yet simply has no chain.
@@ -440,6 +493,10 @@ export async function listAgentSessions(dir: string, limit = 50): Promise<AgentS
         Promise.resolve(parseSessionHead(head)),
         readSessionUsage(filePath, size, mtime),
       ]);
+      if (!meta.customTitle && (!meta.summary || LAUNCH_BANNER.test(meta.summary))) {
+        const later = await findDeliveredTitle(filePath, size).catch(() => undefined);
+        if (later) meta.summary = later;
+      }
       return {
         sessionId: basename(filePath, '.jsonl'),
         lastModified: mtime,

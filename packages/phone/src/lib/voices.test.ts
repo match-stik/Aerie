@@ -213,3 +213,14 @@ test('a picture that names whose it is hangs under that voice, the rest under th
   assert.match(absent[1].content, /files\/a/);
   assert.doesNotMatch(absent[0].content, /files/);
 });
+
+test('a voice section holds its own words as written, bold kept and no header (what a bubble copies)', () => {
+  const message = companionMessage({
+    content: '**🌿 Ivy**\n**What it does for you**\nIt remembers.\n\n**🦊 Fox**\nPost 2, 40 characters.',
+    segments: undefined,
+  });
+  const sections = splitMessageVoices(message, companions);
+  assert.ok(sections);
+  assert.equal(sections[0].content.trim(), '**What it does for you**\nIt remembers.');
+  assert.equal(sections[1].content.trim(), 'Post 2, 40 characters.');
+});

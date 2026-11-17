@@ -1,7 +1,10 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { projectKeyForDir, parseSessionHead } from './session-list.js';
+import { projectKeyForDir, parseSessionHead, findDeliveredTitle } from './session-list.js';
+import { mkdtempSync, writeFileSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 test('project key matches Claude Code on-disk encoding', () => {
   assert.equal(projectKeyForDir('/home/ada_q1/aerie'), '-home-ada-q1-aerie');
@@ -281,4 +284,34 @@ test('a reply written as several records is counted once', async () => {
   assert.equal(got.outputTokens, 600);
   // The context is still the last reply's prompt: 5 + 40000 + 60.
   assert.equal(got.contextTokens, 40_065);
+});
+
+test('a room whose first message sits past the head is still named by it, even across a read boundary', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'session-list-'));
+  try {
+    const banner = JSON.stringify({ type: 'queue-operation', operation: 'enqueue', content: 'A fresh heartbeat session is starting.' });
+    // About 1 MiB of setup records, so the head sees only the banner and the
+    // first delivered line straddles the first 1 MiB read.
+    const filler = JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'x'.repeat(4000) }] } });
+    const lines = [banner];
+    while (lines.join('\n').length + filler.length + 1 < 1024 * 1024 - 400) lines.push(filler);
+    // One record sized so the delivered line starts 200 bytes before the first 1 MiB read ends.
+    const shell = JSON.stringify({ type: 'assistant', pad: '' });
+    const room = 1024 * 1024 - 200 - lines.join('\n').length - 2 - shell.length;
+    lines.push(JSON.stringify({ type: 'assistant', pad: 'y'.repeat(room) }));
+    assert.equal(lines.join('\n').length + 1, 1024 * 1024 - 200);
+    const delivered = JSON.stringify({
+      type: 'user', isMeta: true, isSidechain: false,
+      message: { role: 'user', content: 'Stop hook feedback:\n[1:49 PM] #aerie Ada: [Status, set earlier: out]\n\nthe sessions tab is empty\n' + ' '.repeat(600) },
+    });
+    lines.push(delivered);
+    const file = join(dir, 'room.jsonl');
+    writeFileSync(file, lines.join('\n') + '\n');
+    const head = lines.join('\n').slice(0, 256 * 1024);
+    assert.doesNotMatch(parseSessionHead(head).summary, /sessions tab/, 'the head alone never reaches the delivered line');
+    const title = await findDeliveredTitle(file, statSync(file).size);
+    assert.equal(title, 'the sessions tab is empty');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

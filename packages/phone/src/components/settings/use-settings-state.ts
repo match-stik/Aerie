@@ -6,7 +6,7 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { disableWebPush, enableWebPush } from "../../lib/web-push";
 import { Capacitor } from "@capacitor/core";
 import { AppTheme, ThemeId, AppSettings, EmojiPack } from "../../types";
-import { THEMES } from "../../lib/theme";
+import { THEMES, liveTheme } from "../../lib/theme";
 import { useAppName } from "../../lib/apps";
 import { noteColorsForAccent, noteColorsForPalette } from '../../lib/note-colors';
 import getCroppedImg from "../../lib/cropImage";
@@ -57,7 +57,7 @@ export function useSettingsState({
   // The Bubbles preview's two bubbles, for the swoop drawn beside them.
   const oursPreviewRef = useRef<HTMLSpanElement>(null);
   const minePreviewRef = useRef<HTMLSpanElement>(null);
-  const activeTheme = THEMES[theme.id] || THEMES["monochrome"];
+  const activeTheme = liveTheme(theme);
   const colors = activeTheme[theme.mode];
 
   // These five used to be five pale hex values written into this file, saved on
@@ -74,7 +74,7 @@ export function useSettingsState({
       ? theme.customColors?.[theme.mode]?.accent
       : colors.accent;
     const accent = typeof raw === 'string' ? raw.trim() : '';
-    const pal = THEMES[theme.id]?.palette;
+    const pal = liveTheme(theme).palette;
     const generated = pal
       ? noteColorsForPalette(theme.mode === 'dark' ? pal.night : pal.day, theme.mode)
       : accent.startsWith('#') ? noteColorsForAccent(accent, theme.mode) : [];
@@ -341,12 +341,16 @@ export function useSettingsState({
           },
         },
       });
+    } else if (themeId === "custom") {
+      // The bare Custom tile is the working slot, not a saved theme.
+      onThemeChange({ id: themeId, savedThemeId: undefined });
     } else {
       onThemeChange({ id: themeId });
     }
   };
 
   const isColorSelected = (themeId: ThemeId) => {
+    if (themeId === "custom") return theme.id === "custom" && !theme.savedThemeId;
     return theme.id === themeId;
   };
 

@@ -48,7 +48,7 @@ import { APPS, DOCK_APPS, drawerColumnsOf, migrateAppIds, type AppDef } from './
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 
-import { THEMES, PALETTE_TILES, contrastTextColor, onAccentInk, resolveThemeColors, themeRadiusPx, shapeVarsFor, setLivePalette, paletteVars, flattenOver, selectedFill, fitForWhite, nightUserStops } from './lib/theme';
+import { THEMES, liveTheme, PALETTE_TILES, contrastTextColor, onAccentInk, resolveThemeColors, themeRadiusPx, shapeVarsFor, setLivePalette, paletteVars, flattenOver, selectedFill, fitForWhite, nightUserStops } from './lib/theme';
 import { PALETTES } from './lib/palettes';
 import { DEFAULT_THEME, readSavedTheme, useCustomThemeStyles, useThemeFrame } from './lib/use-app-theme';
 import { applyThemeUpdate } from './lib/wallpaper-mode';
@@ -1319,7 +1319,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [generating]);
 
-  const activeTheme = THEMES[theme.id] || THEMES['monochrome'];
+  const activeTheme = liveTheme(theme);
   const PlainApp = PLAIN_APPS[osState];
   const colors = activeTheme[theme.mode];
   // The faces at the top of a conversation follow the Rings choice too.
@@ -1393,7 +1393,8 @@ export default function App() {
           .join('')
           .trim()
         : (msg.content || '');
-      const bubbleFor = (m: typeof msg, voice: any, pos: 'only' | 'first' | 'middle' | 'last', centered?: boolean) => (
+      const sectionCopyText = (sec: { content: string }) => sec.content.trim() || undefined;
+      const bubbleFor = (m: typeof msg, voice: any, pos: 'only' | 'first' | 'middle' | 'last', centered?: boolean, copy?: string) => (
         <MessageBubble
           message={m}
           voice={voice}
@@ -1426,7 +1427,7 @@ export default function App() {
             }
           }}
           onReply={() => bubbleHandlersRef.current.setReplyTo(msg)}
-          copyText={copyText}
+          copyText={copy ?? copyText}
           onJumpToReply={(id) => bubbleHandlersRef.current.scrollToMessageId(id)}
           themeConfig={activeTheme}
           themeMode={theme.mode}
@@ -1463,6 +1464,10 @@ export default function App() {
                 // Leading meta-only section (thinking/tool badges
                 // before the first voice) → centered, no tail.
                 sec.voice === null && !sec.content.trim(),
+                // A bubble's Copy takes that bubble's own words as written,
+                // bold and all, not the whole message with every voice and
+                // header in it.
+                sectionCopyText(sec),
               )}
             </motion.div>,
           );
@@ -1602,7 +1607,7 @@ export default function App() {
     // Full color for everything: every surface is the
     // panel color laid over the page color, solid, so nothing of the
     // wallpaper shows through a card, a tile or the dock.
-    const livePal = (THEMES[theme.id] || THEMES.monochrome).palette;
+    const livePal = liveTheme(theme).palette;
     const pageSolid = solid(resolved.pageBg, customMode?.pageBg);
     const panelSolid = livePal
       ? (theme.mode === 'dark' ? livePal.night.surface : livePal.day.soft.surface)
@@ -1633,7 +1638,7 @@ export default function App() {
     root.style.setProperty('--aerie-label', `color-mix(in srgb, ${resolved.textMain} 82%, transparent)`);
     // The multi-color palettes: real colors behind the --pal-* classes, and the
     // [data-palette] hook index.css paints the two-color boxes and bubbles from.
-    const livePalette = (THEMES[theme.id] || THEMES.monochrome).palette;
+    const livePalette = liveTheme(theme).palette;
     for (const name of Object.keys(paletteVars(PALETTES[0], 'dark'))) root.style.removeProperty(name);
     if (livePalette) {
       for (const [k, v] of Object.entries(paletteVars(livePalette, theme.mode))) root.style.setProperty(k, v);
@@ -1645,9 +1650,9 @@ export default function App() {
       // pressed toward black by day only as far as it takes to read on both
       // ends of the bubble's blend. It used to be plain
       // white or black whatever the theme.
-      const comp = theme.mode === 'dark'
+      const comp = (theme.mode === 'dark' ? livePalette.night.bubbleComp : livePalette.day.bubbleComp) ?? (theme.mode === 'dark'
         ? [mixHex(livePalette.night.velvet || livePalette.night.primary, livePalette.night.velvet ? 34 : 18, livePalette.night.surface), mixHex(livePalette.night.secondary, livePalette.night.velvet ? 18 : 16, livePalette.night.surface)]
-        : [mixHex(livePalette.day.primary, 12, livePalette.day.soft.surface), mixHex(livePalette.day.secondary, 12, livePalette.day.soft.surface)];
+        : [mixHex(livePalette.day.primary, 12, livePalette.day.soft.surface), mixHex(livePalette.day.secondary, 12, livePalette.day.soft.surface)]);
       const side = theme.mode === 'dark' ? livePalette.night : livePalette.day;
       // Started from the theme's own text color, the ink every label, title and
       // line in the rest of the app is written in, so the chat never clashes in
@@ -1679,7 +1684,7 @@ export default function App() {
     // Shape: the theme's radius class is the default, the user's slider overrides.
     // --shape-scale drives every rounded-* utility via the @theme tokens in
     // index.css, so the whole phone slides, not just the chat chrome.
-    const shapeBase = theme.shapeRadius ?? themeRadiusPx((THEMES[theme.id] || THEMES.monochrome).radius);
+    const shapeBase = theme.shapeRadius ?? themeRadiusPx(liveTheme(theme).radius);
     root.style.setProperty('--shape-scale', String(shapeBase / 16));
     for (const [k, v] of Object.entries(shapeVarsFor(shapeBase))) root.style.setProperty(k, v);
   }, [colors, theme.mode, theme.id, theme.customColors, theme.shapeRadius, theme.bubblePlainWords]);

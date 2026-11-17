@@ -14,11 +14,15 @@ export interface NightPalette {
   primary: string; secondary: string; glow: string; spark: string;
   velvet?: string; deep: string; surface: string; text: string; muted: string;
   ink: string; number2: string; bubbleUser: [string, string];
+  /** The companions' bubbles in the person's own color, set only on the Custom palette (lib/custom-palette.ts). */
+  bubbleComp?: [string, string];
 }
 export interface DayPalette {
   primary: string; secondary: string; glow: string; spark: string;
   wash: string; page: string; surface: string; text: string; muted: string;
   ink: string; bubbleUser: [string, string];
+  /** The companions' bubbles in the person's own color, set only on the Custom palette (lib/custom-palette.ts). */
+  bubbleComp?: [string, string];
   /** Soft paper, about 8% dimmer than page. The default by day. */
   soft: { page: string; surface: string; muted: string; glow: string };
 }

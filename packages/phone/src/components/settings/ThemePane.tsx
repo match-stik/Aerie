@@ -1,12 +1,16 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React from "react";
-import { Moon, Sun, Check, Plus } from "lucide-react";
+import { Moon, Sun, Check, Plus, Trash2 } from "lucide-react";
+import { saveThemeAs, updateSavedTheme, deleteSavedTheme, wearSavedTheme } from "../../lib/saved-themes";
 import { PALETTE_THEME_IDS, THEMES } from "../../lib/theme";
 import { cn } from "../../lib/utils";
 import type { SettingsState } from './use-settings-state';
 
 export function ThemePane({ s }: { s: SettingsState }) {
   const { colors, shownNoteColors, handleColorSelect, isColorSelected, theme, onThemeChange, onClose } = s;
+  const wornSaved = theme.id === "custom" ? (theme.savedThemes ?? []).find((t) => t.id === theme.savedThemeId) : undefined;
+  const [themeName, setThemeName] = React.useState(wornSaved?.name ?? "");
+  React.useEffect(() => { setThemeName(wornSaved?.name ?? ""); }, [wornSaved?.id]);
   return (
     <>
     {/* Appearance Mode */}
@@ -122,6 +126,28 @@ export function ThemePane({ s }: { s: SettingsState }) {
             Custom
           </span>
         </button>
+        {(theme.savedThemes ?? []).map((saved) => {
+          const side = saved.colors[theme.mode] ?? {};
+          const worn = theme.id === "custom" && theme.savedThemeId === saved.id;
+          return (
+            <button key={saved.id} onClick={() => onThemeChange(wearSavedTheme(saved))} className="flex flex-col items-center gap-1.5 transition-all duration-300">
+              <div
+                className="relative w-full h-10 rounded-xl border-2"
+                style={{
+                  background: `linear-gradient(135deg, ${side.accent || "#888"}, ${side.pageBg || "#000"})`,
+                  borderColor: worn ? "#FFFFFF" : "transparent",
+                }}
+              >
+                {worn && (
+                  <Check size={16} strokeWidth={3} className="absolute left-1.5 top-1.5" style={{ color: "#ffffff", filter: "drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.75))" }} />
+                )}
+              </div>
+              <span className={cn("max-w-full truncate text-[9px] font-bold uppercase tracking-wide text-center leading-tight", worn ? colors.accentText : colors.textMuted)}>
+                {saved.name}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </section>
 
@@ -189,9 +215,43 @@ export function ThemePane({ s }: { s: SettingsState }) {
                 color: 'var(--aerie-page)',
               }}
             >
-              Save
+              Done
             </button>
           </div>
+        </div>
+        {/* Keep these colors by name (lib/saved-themes.ts). */}
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={themeName}
+            onChange={(e) => setThemeName(e.target.value)}
+            placeholder={wornSaved ? wornSaved.name : "Name this theme"}
+            maxLength={40}
+            className={cn("min-w-0 flex-1 rounded-[var(--shape-control)] border bg-transparent px-3 py-1.5 text-xs", colors.panelBorder, colors.textMain)}
+          />
+          {wornSaved && (
+            <button
+              onClick={() => { const next = updateSavedTheme(theme, themeName); if (next) onThemeChange(next); }}
+              className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-[var(--shape-control)]"
+              style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
+            >
+              Update
+            </button>
+          )}
+          <button
+            onClick={() => { const next = saveThemeAs(theme, wornSaved && themeName.trim() === wornSaved.name ? "" : themeName, `saved-${Date.now()}`); if (next) onThemeChange(next); }}
+            className={cn("text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-[var(--shape-control)] border", colors.panelBorder, colors.accentText)}
+          >
+            {wornSaved ? "Save as new" : "Save theme"}
+          </button>
+          {wornSaved && (
+            <button
+              onClick={() => { if (window.confirm(`Delete ${wornSaved.name}? Its colors stay in Custom.`)) onThemeChange(deleteSavedTheme(theme, wornSaved.id)); }}
+              className={cn("rounded-[var(--shape-control)] p-1.5", colors.textMuted)}
+              aria-label={`Delete ${wornSaved.name}`}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[

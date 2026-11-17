@@ -1,5 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { PALETTES, type Palette } from './palettes';
+import { customPalette } from './custom-palette';
 import { contrastRatio, mixHex } from './bubble-look';
 
 export type ThemeMode = 'light' | 'dark';
@@ -966,7 +967,9 @@ export function paletteVars(p: Palette, mode: ThemeMode): Record<string, string>
       '--pal-panel-wash': easedWash(150, n.primary, 18, 48, n.velvet || n.secondary, 46),
       '--pal-panel-shadow': `inset 0 1px 0 ${mix(n.glow, 22)}, 0 12px 28px rgba(0, 0, 0, 0.3)`,
       '--pal-panel-shadow-nested': `inset 0 1px 0 ${mix(n.glow, 22)}`,
-      '--pal-comp-bubble': `linear-gradient(160deg, ${mix(n.velvet || n.primary, n.velvet ? 34 : 18, n.surface)} 0%, ${mix(n.secondary, n.velvet ? 18 : 16, n.surface)} 100%)`,
+      '--pal-comp-bubble': n.bubbleComp
+        ? `linear-gradient(160deg, ${n.bubbleComp[0]} 0%, ${n.bubbleComp[1]} 100%)`
+        : `linear-gradient(160deg, ${mix(n.velvet || n.primary, n.velvet ? 34 : 18, n.surface)} 0%, ${mix(n.secondary, n.velvet ? 18 : 16, n.surface)} 100%)`,
       '--pal-comp-border': mix(n.primary, 28),
       '--pal-user-bubble-grad': `linear-gradient(135deg, ${nightUserStops(p)[0]}, ${nightUserStops(p)[1]})`,
     };
@@ -992,7 +995,9 @@ export function paletteVars(p: Palette, mode: ThemeMode): Record<string, string>
     '--pal-panel-wash': easedWash(150, d.primary, 12, 50, d.wash, 100),
     '--pal-panel-shadow': `inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 10px 26px ${mix(d.text, 10)}`,
     '--pal-panel-shadow-nested': 'inset 0 1px 0 rgba(255, 255, 255, 0.85)',
-    '--pal-comp-bubble': `linear-gradient(160deg, ${mix(d.primary, 12, d.soft.surface)} 0%, ${mix(d.secondary, 12, d.soft.surface)} 100%)`,
+    '--pal-comp-bubble': d.bubbleComp
+      ? `linear-gradient(160deg, ${d.bubbleComp[0]} 0%, ${d.bubbleComp[1]} 100%)`
+      : `linear-gradient(160deg, ${mix(d.primary, 12, d.soft.surface)} 0%, ${mix(d.secondary, 12, d.soft.surface)} 100%)`,
     '--pal-comp-border': mix(d.primary, 24),
     '--pal-user-bubble-grad': `linear-gradient(135deg, ${d.bubbleUser[0]}, ${d.bubbleUser[1]})`,
   };
@@ -1053,4 +1058,22 @@ export function shapeVarsFor(base: number): Record<string, string> {
     // pill anyway, so capping keeps small things from outracing big ones.
     '--shape-chip': `${Math.min(base, 12)}px`,
   };
+}
+
+/**
+ * The theme config for what the person has picked. Every theme but Custom is a fixed
+ * entry in THEMES; Custom is their own colors turned into a palette, so it goes
+ * down the palettes' road and paints everything they paint (lib/custom-palette.ts).
+ */
+let customCache: { key: string; theme: ThemeConfig } | null = null;
+export function liveTheme(theme: { id: string; customColors?: { light: Record<string, string>; dark: Record<string, string> } }): ThemeConfig {
+  if (theme.id === 'custom' && theme.customColors) {
+    const key = JSON.stringify(theme.customColors);
+    if (customCache?.key !== key) {
+      const base = paletteTheme(customPalette(theme.customColors));
+      customCache = { key, theme: decorateTheme({ ...base, id: 'custom', name: 'Custom' }) };
+    }
+    return customCache.theme;
+  }
+  return THEMES[theme.id] || THEMES.monochrome;
 }

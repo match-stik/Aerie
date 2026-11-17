@@ -74,5 +74,9 @@ export function withAlpha(color: string, alpha: number): string {
   }
   const rgbMatch = color.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
   if (rgbMatch) return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${alpha})`;
-  return color;
+  // Anything else (a custom theme's accent is var(--custom-accent)) used to be
+  // handed back whole, so a 5% tint painted the full accent.
+  // color-mix takes the alpha off any color the browser can read.
+  const pct = Math.round(Math.min(1, Math.max(0, alpha)) * 1000) / 10;
+  return `color-mix(in srgb, ${color} ${pct}%, transparent)`;
 }

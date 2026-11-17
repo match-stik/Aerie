@@ -179,14 +179,14 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
   const automaticTextClass = (ink: string) => ink === '#ffffff' ? 'text-white' : 'text-black';
   const textColorClass = isPrivateTab
     ? (themeMode === 'light' ? 'text-black' : colors.compBubbleText)
-    : themeConfig.id === 'custom'
+    : themeConfig.id === 'custom' && !themeConfig.palette
       ? (isUser ? colors.userBubbleText : colors.compBubbleText)
       // A palette's bubbles carry its own ink, fitted in App.tsx; plain white or black here was covering it up.
       : themeConfig.palette
         ? (isUser ? 'text-[var(--aerie-user-bubble-text)]' : 'text-[var(--aerie-comp-bubble-text)]')
         : automaticTextClass(isUser ? autoUserText : autoCompText);
   const isLightText = textColorClass === 'text-white' || /text-\[#[CDEFcdef]/.test(textColorClass)
-    || (!!themeConfig.palette && !isPrivateTab && themeConfig.id !== 'custom' && themeMode === 'dark');
+    || (!!themeConfig.palette && !isPrivateTab && themeMode === 'dark');
 
   const isGroupLast = groupPos === 'only' || groupPos === 'last';
   const isGroupFirst = groupPos === 'only' || groupPos === 'first';

@@ -7,7 +7,7 @@ import { useEffect, useMemo } from 'react';
 import { paintSystemBars } from '../aerie/system-chrome';
 import { barColorsFor } from './system-bar-colors';
 import { guardTheme } from './theme-guard';
-import { THEMES, resolveThemeColors, setLivePalette } from './theme';
+import { THEMES, liveTheme, resolveThemeColors, setLivePalette } from './theme';
 import type { AppTheme } from '../types';
 
 export const KNOWN_THEME_IDS: ReadonlySet<string> = new Set(Object.keys(THEMES));
@@ -47,7 +47,7 @@ export function readSavedTheme(): AppTheme {
 export function useThemeFrame(theme: AppTheme, osState: string, showSettings: boolean) {
   // Update theme-color meta tag, Native Status Bar, and Body Background
   useEffect(() => {
-    const activeTheme = THEMES[theme.id] || THEMES['monochrome'];
+    const activeTheme = liveTheme(theme);
     const colors = activeTheme[theme.mode];
     setLivePalette(activeTheme.palette, theme.mode);
     const resolved = resolveThemeColors(colors);

@@ -86,6 +86,10 @@ export interface AppTheme {
     light: Record<string, string>;
     dark: Record<string, string>;
   };
+  // The person's own themes kept by name, and which one is in the Custom slot now
+  // (lib/saved-themes.ts).
+  savedThemes?: Array<{ id: string; name: string; colors: { light: Record<string, string>; dark: Record<string, string> } }>;
+  savedThemeId?: string;
   stickyNoteColors?: string[];
   // The shape slider — overrides the theme's radius token when set. The token
   // came across from Kay's theme system with the control left upstream; this

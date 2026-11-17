@@ -4,6 +4,7 @@ import { apiFetch } from '../../aerie';
 import { DRAW_CANVAS_BACKGROUND_BY_THEME, ANTIGRAVITY_DEFAULT_MODEL, clampDimension, PROMPT_DIRECTIVES } from './constants';
 import { galleryItemToImage } from './gallery-utils';
 import { saveHref } from '../../lib/download';
+import { swapOnToggle, type PendingSwap } from '../../lib/studio-name-swap';
 import type { ViewMode, Backend, AspectRatioValue, DrawTool, GeneratedImage, StudioFolder, RefDrawer, StudioBackendStatus, StudioWindowWarning, UseStudioStateParams } from './types';
 
 const BACKEND_KEYS: Backend[] = ['codex', 'antigravity', 'openart'];
@@ -333,7 +334,16 @@ export function useStudioState({
     }
   }, [viewMode, themeMode]);
 
+  // Swapping one person's chip for another's swaps the name in the words too,
+  // so a carried-over prompt does not keep asking for the old face
+  // (lib/studio-name-swap.ts).
+  const pendingSwapRef = useRef<PendingSwap>({});
   const toggleSubject = (slug: string) => {
+    const picked = !selectedSubjects.includes(slug);
+    const label = drawers.find((d) => d.slug === slug)?.label || slug;
+    const swapped = swapOnToggle(prompt, pendingSwapRef.current, label, picked);
+    pendingSwapRef.current = swapped.pending;
+    if (swapped.prompt !== prompt) setPrompt(swapped.prompt);
     setSelectedSubjects(prev =>
       prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]
     );
