@@ -176,9 +176,9 @@ const DEFAULTS: AerieConfig = {
     claude_md_path: './CLAUDE.md',
     mcp_json_path: './.mcp.json',
     multi_lane: false,
-    model: 'claude-sonnet-4-6',
-    model_autonomous: 'claude-sonnet-4-6',
-    model_pulse: 'claude-haiku-4-5-20251001',
+    model: 'claude-opus-5-5',
+    model_autonomous: 'claude-opus-5-5',
+    model_pulse: 'claude-haiku-5-5',
     // No Archivist model until the person running the house picks one in the
     // Memory app: a default provider only works for whoever holds that key,
     // and everybody else met a 401 on day one.

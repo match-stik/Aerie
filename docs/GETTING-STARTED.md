@@ -125,13 +125,14 @@ This downloads everything Aerie needs. It takes a minute or two.
 node scripts/setup.mjs
 ```
 
-The wizard asks you five questions:
+The wizard asks you six questions:
 
 1. **What should your companion be called?** — Give it a name. "Echo" is the default.
 2. **What is your name?** — Your name, so the companion knows who it's talking to.
 3. **Set a password?** — Leave blank if you're only accessing it from your own computer. Set one if you'll access it over your network.
 4. **Your timezone?** — It auto-detects. Press Enter to accept or type a different one.
 5. **Where should your companion run?** — 1 for Claude, 2 for ChatGPT, whichever you signed in to in Step 2.
+6. **Which model should your companion start on?** — Pick one of the three it offers, or type the name of another. Press Enter for the first. You can change it any time in the app, under **Agent → Models**.
 
 The wizard creates all the configuration files you need.
 

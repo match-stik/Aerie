@@ -185,9 +185,9 @@ identity:
   timezone: "America/New_York"
 
 agent:
-  model: "claude-sonnet-4-6"            # Your messages (pick any model your plan offers, in the app)
-  model_autonomous: "claude-sonnet-4-6" # Scheduled wake-ups
-  model_pulse: "claude-haiku-4-5"        # Quick check-ins when you've been away
+  model: "claude-opus-5-5"              # Your messages (the wizard asks; change it any time in the app)
+  model_autonomous: "claude-opus-5-5"   # Scheduled wake-ups
+  model_pulse: "claude-haiku-5-5"        # Quick check-ins when you've been away
   routing: "cli"                         # cli = Claude Code, codex-cli = Codex, api = a provider, auto = by model
   routing_autonomous: "cli"              # Wake-ups can use a different one
 

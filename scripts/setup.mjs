@@ -47,9 +47,39 @@ async function main() {
   console.log('  Either way there is no API key to pay for, and you can switch later in the app.');
   const engineAnswer = ((await ask('  Pick 1 or 2 [1] ')) || '1').trim();
   const engine = engineAnswer === '2' ? 'codex' : 'claude';
-  const model = engine === 'codex' ? 'gpt-6.1-terra' : 'claude-sonnet-4-6';
-  const pulseModel = engine === 'codex' ? 'gpt-6.1-terra' : 'claude-haiku-4-5';
   const routing = engine === 'codex' ? 'codex-cli' : 'cli';
+
+  // 6. Which model to start on. Any of these can be changed later in the app
+  // (Agent → Models), so this is only where the house starts.
+  const choices = engine === 'codex'
+    ? [
+        ['gpt-6.1-terra', 'GPT-6.1 Terra, a good everyday start'],
+        ['gpt-6.1-sol', 'GPT-6.1 Sol, the workhorse'],
+        ['gpt-6-astra', 'GPT-6 Astra, the most capable, and the heaviest on your limits'],
+      ]
+    : [
+        ['claude-opus-5-5', 'Claude Opus 5.5, where Anthropic suggests most people start'],
+        ['claude-sonnet-5-5', 'Claude Sonnet 5.5, lighter on your plan\'s limits'],
+        ['claude-fable-5-2', 'Claude Fable 5.2, the most capable, with a usage limit of its own'],
+      ];
+  console.log('\n  Which model should your companion start on?');
+  choices.forEach(([, label], i) => console.log(`    ${i + 1}. ${label}`));
+  console.log(`    ${choices.length + 1}. Another one (type its name)`);
+  console.log('  You can change it any time in the app, under Agent → Models.');
+  const modelAnswer = ((await ask(`  Pick 1-${choices.length + 1} [1] `)) || '1').trim();
+  let model = choices[0][0];
+  const picked = parseInt(modelAnswer, 10);
+  if (String(picked) === modelAnswer && picked >= 1 && picked <= choices.length) {
+    model = choices[picked - 1][0];
+  } else if (String(picked) === modelAnswer && picked === choices.length + 1) {
+    const typed = (await ask('  Model name: ')).trim();
+    if (typed) model = typed;
+  } else if (modelAnswer && !/^\d+$/.test(modelAnswer)) {
+    model = modelAnswer;
+  }
+  // The quick check-ins when you've been away use a small model on Claude;
+  // on ChatGPT they use the one you picked.
+  const pulseModel = engine === 'codex' ? model : 'claude-haiku-5-5';
   if (engine === 'codex') {
     console.log('\n  Install the Codex CLI and sign in with your ChatGPT account, as this same user:');
     console.log('    npm install -g @openai/codex   then   codex login');

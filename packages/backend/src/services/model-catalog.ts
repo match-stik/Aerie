@@ -56,6 +56,11 @@ export const CLAUDE_MODELS: ModelInfo[] = [
   // A model id only works if the CLI on this box carries it: 2.1.197 had neither opus-5 nor
   // opus-5-5 in it, and a lane pointed at a model its CLI has never heard of dies on launch.
   { id: 'claude-opus-5-5', name: 'Claude Opus 5.5', provider: 'anthropic', tier: 'included', context_length: 1000000, supports_tools: true },
+  // The rest of the 5.5 family and Fable 5.2, read off the installed CLI package (2.1.325);
+  // context windows from Anthropic's models overview, Nov 2026.
+  { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', provider: 'anthropic', tier: 'included', context_length: 1000000, supports_tools: true },
+  { id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', provider: 'anthropic', tier: 'included', context_length: 1000000, supports_tools: true },
+  { id: 'claude-fable-5-2', name: 'Claude Fable 5.2', provider: 'anthropic', tier: 'included', context_length: 1000000, supports_tools: true },
   { id: 'claude-opus-5', name: 'Claude Opus 5', provider: 'anthropic', tier: 'included', context_length: 1000000, supports_tools: true },
   { id: 'claude-sonnet-5', name: 'Claude Sonnet 5', provider: 'anthropic', tier: 'included', context_length: 1000000, supports_tools: true },
   { id: 'claude-fable-5', name: 'Claude Fable 5', provider: 'anthropic', tier: 'included', context_length: 1000000, supports_tools: true },
