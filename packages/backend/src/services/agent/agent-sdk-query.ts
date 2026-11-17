@@ -164,7 +164,7 @@ export async function processSdkQuery(
   // Two-tier model: autonomous wakes use cheaper model (configurable)
   const model = isAutonomous
     ? cfg.agent.model_autonomous
-    : (cfg.agent.model || process.env.AGENT_MODEL || 'claude-sonnet-4-6');
+    : (cfg.agent.model || process.env.AGENT_MODEL || 'claude-opus-5-5');
 
   // ─── Runtime Routing ───────────────────────────────────────────
   // Route through ApiRouterRuntime (Ollama, OpenRouter, etc.) when:

@@ -222,10 +222,10 @@ export function resolveModel(companion: Companion, isAutonomous: boolean): strin
   if (isAutonomous) {
     return companion.model_autonomous
       || config.agent.model_autonomous
-      || 'claude-sonnet-4-6';
+      || 'claude-opus-5-5';
   }
 
   return companion.model
     || config.agent.model
-    || 'claude-sonnet-4-6';
+    || 'claude-opus-5-5';
 }

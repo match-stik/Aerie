@@ -132,7 +132,7 @@ The wizard asks you six questions:
 3. **Set a password?** — Leave blank if you're only accessing it from your own computer. Set one if you'll access it over your network.
 4. **Your timezone?** — It auto-detects. Press Enter to accept or type a different one.
 5. **Where should your companion run?** — 1 for Claude, 2 for ChatGPT, whichever you signed in to in Step 2.
-6. **Which model should your companion start on?** — Pick one of the three it offers, or type the name of another. Press Enter for the first. You can change it any time in the app, under **Agent → Models**.
+6. **Which model should your companion start on?** — Pick one of the three it offers, or type the name of another. Press Enter for the first. This is only where the house starts: in the app, the model at the top of a chat changes it for the whole house, a thread can have its own (**Model** in that thread's menu in the thread list), and so can each companion (their card in the **Companions** app).
 
 The wizard creates all the configuration files you need.
 

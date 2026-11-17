@@ -346,7 +346,7 @@ export async function dispatchAgentTurn(
   // Two-tier model: autonomous wakes use their own configured model
   const houseModel = isAutonomous
     ? cfg.agent.model_autonomous
-    : (cfg.agent.model || process.env.AGENT_MODEL || 'claude-sonnet-4-6');
+    : (cfg.agent.model || process.env.AGENT_MODEL || 'claude-opus-5-5');
   // A thread can carry its own model (services/agent/thread-model.ts); the
   // route is worked out from whichever one this turn actually asks for.
   const threadModel = isAutonomous ? null : readThreadModel(threadId);

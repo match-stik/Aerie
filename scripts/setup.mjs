@@ -83,7 +83,9 @@ async function main() {
   console.log('\n  Which model should your companion start on?');
   choices.forEach(([, label], i) => console.log(`    ${i + 1}. ${label}`));
   console.log(`    ${choices.length + 1}. Another one (type its name)`);
-  console.log('  You can change it any time in the app, under Agent → Models.');
+  console.log('  You can change it any time in the app: the model at the top of a chat is the whole house\'s,');
+  console.log('  a thread can have its own (Model, in that thread\'s menu in the thread list), and so can each');
+  console.log('  companion (their card in the Companions app).');
   const modelAnswer = ((await ask(`  Pick 1-${choices.length + 1} [1] `)) || '1').trim();
   let model = choices[0][0];
   const picked = parseInt(modelAnswer, 10);

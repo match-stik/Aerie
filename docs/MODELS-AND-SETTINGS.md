@@ -2,6 +2,16 @@
 
 Aerie runs a companion on whichever model you pick, and different models need different settings. This page says where each one lives, by the kind of lane the model runs in. Nothing here has to match anybody else's house; set what suits yours.
 
+## Where you pick a model
+
+There are three places, from the widest to the narrowest:
+
+- **The whole house.** The model shown at the top of a chat. Tap it to change it everywhere that doesn't have its own. The setup wizard picks the first one.
+- **One thread.** In the thread list, open a thread's menu and choose **Model**. That thread runs on its own model and every other thread keeps the house's. Pick **House model** to put it back.
+- **One companion.** Their card in the **Companions** app has a model and a wake model of their own. A companion with their own model uses it in every thread, so it wins over a thread's model and the house's. Leave it empty to follow the others.
+
+Scheduled wakes use the wake model (the companion's own, or the house's), never a thread's.
+
 Every setting below named like `heartbeat.autocompact_tokens` is changed with `PUT /api/settings {"key": "...", "value": "..."}` (signed in), and most of them also have a place in the app's Settings. Values are always strings.
 
 ## Which lane is the model in?
