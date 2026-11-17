@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# The house this copy is built for. Never committed.
+house.json

@@ -1,0 +1,42 @@
+<!-- Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self'">
+<title>Aerie</title>
+<style>
+  html, body { height: 100%; margin: 0; background: #090807; color: #fffaf5; font-family: system-ui, sans-serif; }
+  main { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; box-sizing: border-box; }
+  img { width: 96px; height: 96px; border-radius: 24px; }
+  h1 { font-weight: 600; margin: 0; }
+  p { margin: 0; opacity: 0.7; text-align: center; max-width: 28rem; line-height: 1.5; }
+  form { display: flex; gap: 8px; width: 100%; max-width: 28rem; }
+  input { flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: #151014; color: inherit; font-size: 15px; }
+  button { padding: 12px 18px; border-radius: 12px; border: 0; background: #f97316; color: #fff; font-weight: 600; font-size: 15px; cursor: pointer; }
+  .bad { color: #f87171; opacity: 1; }
+</style>
+</head>
+<body>
+<main>
+  <img src="icon.png" alt="">
+  <h1>Aerie</h1>
+  <p id="say">Where does your house live? Type the address you open it at in a browser.</p>
+  <form id="f">
+    <input id="u" placeholder="aerie.example.com" autofocus autocomplete="url">
+    <button type="submit">Open</button>
+  </form>
+</main>
+<script>
+  document.getElementById('f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const answer = await window.aerieDesktop.setHouse(document.getElementById('u').value);
+    if (!answer || !answer.ok) {
+      const say = document.getElementById('say');
+      say.textContent = "That doesn't look like an address. Try the one from your browser's address bar.";
+      say.className = 'bad';
+    }
+  });
+</script>
+</body>
+</html>

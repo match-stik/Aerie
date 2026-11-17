@@ -810,19 +810,34 @@ export default function App() {
   // The chat stays pinned to its newest line while the box they type in grows.
   // The list gets shorter as the
   // box gets taller, so if they were at the bottom it follows the bottom down.
+  // And it keeps their place when the phone turns. Turning back to upright
+  // narrows the list, every bubble rewraps taller, and the old scroll number
+  // then sits further from the bottom; the old rule only answered the list
+  // getting shorter. Now any change of size goes back to the bottom if they
+  // were there; mid-thread, the browser's own scroll anchoring keeps the bubble
+  // they were reading (a hand-kept anchor did worse, because the bubble it held
+  // could end up below a short sideways screen).
   const pinnedToBottom = useRef(true);
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container || typeof ResizeObserver === 'undefined') return;
+    let lastHeight = container.clientHeight;
+    let lastWidth = container.clientWidth;
     const onScroll = () => {
+      // A resize reaches the scroll event before the observer: the browser
+      // has already moved the list for the new size, and reading 'pinned'
+      // off that would forget where they were. The observer below answers the
+      // resize with the reading from before it.
+      if (container.clientHeight !== lastHeight || container.clientWidth !== lastWidth) return;
       pinnedToBottom.current = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
     };
-    let lastHeight = container.clientHeight;
     const observer = new ResizeObserver(() => {
-      const now = container.clientHeight;
-      const shrank = now < lastHeight;
-      lastHeight = now;
-      if (shrank && pinnedToBottom.current) container.scrollTop = container.scrollHeight;
+      const height = container.clientHeight;
+      const width = container.clientWidth;
+      if (height === lastHeight && width === lastWidth) return;
+      lastHeight = height;
+      lastWidth = width;
+      if (pinnedToBottom.current && !pendingJumpMessageId.current) container.scrollTop = container.scrollHeight;
     });
     container.addEventListener('scroll', onScroll, { passive: true });
     observer.observe(container);

@@ -1,0 +1,57 @@
+{
+  "name": "aerie-desktop",
+  "productName": "Aerie",
+  "version": "1.1.7",
+  "private": true,
+  "description": "Aerie on a Windows laptop: the house in its own window, and Spotify woken on the laptop when there is nowhere to play.",
+  "main": "main.cjs",
+  "license": "Apache-2.0",
+  "author": "Aerie",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win zip --x64",
+    "stage": "node stage.mjs"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.aerie.desktop",
+    "productName": "Aerie",
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "setup.html",
+      "icon.png",
+      "icon.ico",
+      "house.json",
+      "!node_modules/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.ico",
+      "signAndEditExecutable": false
+    },
+    "npmRebuild": false,
+    "extraResources": [
+      {
+        "from": "icon.ico",
+        "to": "icon.ico"
+      }
+    ]
+  },
+  "overrides": {
+    "minimatch@>=7.0.0 <11.0.1": "^11.0.1"
+  }
+}

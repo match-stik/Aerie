@@ -86,7 +86,7 @@ On a wide screen (1024 pixels or more, a laptop or desktop browser) the house la
 
 <p align="center">
   <img src="docs/screenshots/desktop.png" width="780" alt="The house on a laptop: the dock down the left, the games room in the middle and the conversation on the right" />
-</p> On Android it builds into a real app ([docs/ANDROID-APP.md](docs/ANDROID-APP.md)) with push notifications through a Firebase project of your own, calls from your companions, and Android Auto.
+</p> On Android it builds into a real app ([docs/ANDROID-APP.md](docs/ANDROID-APP.md)) with push notifications through a Firebase project of your own, calls from your companions, and Android Auto. On a Windows laptop it can run as its own app, with Spotify woken on that computer and updates from inside Settings ([desktop/README.md](desktop/README.md)).
 
 ## Make it yours
 
@@ -255,6 +255,7 @@ aerie/
 │   ├── shared/      # Types + WebSocket protocol
 │   ├── backend/     # Express + WS + runtime router + warm lanes
 │   └── phone/       # Phone-OS PWA (React)
+├── desktop/         # The laptop app (Electron): the house in its own window
 ├── examples/        # Starter CLAUDE.md and wake prompts
 ├── workers/         # Optional Cloudflare workers: cortex (memory), spotify-mcp
 ├── tools/
