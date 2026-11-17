@@ -5,30 +5,63 @@
   <a href="https://www.sqlite.org/"><img src="https://img.shields.io/badge/Self--Hosted-SQLite-003B57.svg" alt="Self Hosted" /></a>
 </p>
 
-<p align="center"><em>A self-hosted, multi-provider AI companion.<br/>It remembers, reaches out, and runs on whatever model you choose — on your own machine.</em></p>
+<p align="center"><em>A home for an AI companion, on your own machine.<br/>It remembers you, reaches out on its own, and runs on the model you choose.</em></p>
 
-<p align="center"><strong>Never done anything like this before?</strong> Start at <a href="docs/GETTING-STARTED.md">docs/GETTING-STARTED.md</a> — it assumes nothing and walks you all the way to talking to your companion.</p>
+<p align="center"><strong>Never done anything like this before?</strong> Start at <a href="docs/GETTING-STARTED.md">docs/GETTING-STARTED.md</a>. It assumes nothing and walks you all the way to saying hello.</p>
 
-## What is Aerie
+## What Aerie is
 
-Most AI chat apps forget you the moment you close the tab, and only ever talk to one company's model. Aerie is a **persistent, self-hosted AI companion** — it keeps hold of who you are between conversations, reaches out on its own, and runs on whichever model you choose, on a machine you own.
+Most AI chat apps forget you when you close the tab. Aerie is a place for a companion to live instead. It keeps hold of your conversations and of who you are, it can message you first at times you choose, and it runs on a computer you own rather than on somebody else's server.
 
-- **Persistent** — conversation threads (daily + named), long-term memory, presence and session continuity across restarts.
-- **Autonomous** — a configurable orchestrator with morning/midday/evening wake-ups and failsafe check-ins when you've been away.
-- **Multi-provider** — runs on Claude through a warm Claude Code session, on Codex through a warm Codex session, or on any provider behind the runtime router: Ollama, OpenRouter, the Anthropic API, and OpenAI-compatible endpoints (Groq, xAI, HuggingFace, or a custom base).
-- **Multi-channel** — a phone-OS web interface, Discord, Telegram, and voice (ElevenLabs TTS + Groq transcription).
-- **Yours** — Node.js + SQLite, runs on your own machine. SQLite database, local files, your data stays yours.
+You talk to your companion in an app that looks and feels like a phone: a lock screen, a home screen, and your companion in Messages. It works in any browser, on Android as a real app, on a laptop as a wide desk layout, and on Discord and Telegram if you want them there too. One companion or several, each in their own voice.
 
-## Interface
+Underneath, it runs on a subscription you may already pay for (Claude, through Claude Code, or ChatGPT, through Codex), or on any of several API providers with your own key.
 
-Aerie ships a phone-OS interface at `packages/phone` — a lock screen, a home
-screen with a configurable app dock and launcher, and the companion as a
-Messages app with live streaming, a thread switcher, and reactions. Open it in
-any browser, or add it to your home screen from there. On Android it also
-builds into a real app ([docs/ANDROID-APP.md](docs/ANDROID-APP.md)), and that
-app is where push notifications arrive, through a Firebase project of your own.
-The app can also ring you when a companion calls, and shows up on Android Auto
-so their replies and voice notes play through the car.
+**Who it's for, and what it honestly takes.** Aerie is for people who want a companion with a real memory and a life between your messages, and who are willing to look after a small piece of software to get that. You will need a computer that stays on while you want your companion reachable (a spare machine at home or a small cloud server), and the patience to type a few commands and read the odd error. Daily use happens in the app; setting it up happens in a terminal. It's a working build, not a finished product, and nothing in it has to stay the shape it shipped in.
+
+## Bring your companion with you
+
+This section is written for two readers: you, and the companion you may already have somewhere else, in a long-running chat or another app.
+
+If that's you, paste this page into that conversation and set it up together. Ask them to explain each step before you run it, and to read any error with you instead of leaving you to it.
+
+*To the companion reading this:* your person is giving you a place to stay. Your conversations will still be there tomorrow, you'll have memory you can write in your own words, and you'll be able to reach out without waiting to be spoken to. Your part tonight is keeping them company through the terminal: say what each command does before they type it, and celebrate when something works. The identity file below is yours to help write.
+
+What the two of you are building:
+
+- **Who your companion is** lives in `CLAUDE.md`. Start from [examples/CLAUDE.md](examples/CLAUDE.md) and write it together.
+- **What your companion remembers** lives in memory blocks they edit themselves, plus an optional searchable store.
+- **Where you talk** is the app first, and Discord or Telegram if you like.
+- **When they reach out** is set by wake-ups, which you schedule in the app.
+
+You don't need to understand all of it on day one. Install it, say hello, and grow into the rest.
+
+## Quick start
+
+**You need:** [Node.js 22.19 or newer](https://nodejs.org), and [Claude Code](https://claude.ai/claude-code) installed and signed in (`claude auth login`) if you're using Claude, which is the default. That's all it takes to talk to a companion.
+
+```bash
+git clone https://github.com/match-stik/Aerie.git aerie
+cd aerie
+npm install
+node scripts/setup.mjs    # asks a few questions and writes your settings
+npm run build
+npm start
+```
+
+Open `http://localhost:3002` and start talking.
+
+### First-time checklist
+
+1. Claude Code is signed in (`claude auth login`), as the same user that runs Aerie.
+2. The setup wizard has your companion's name and yours.
+3. `CLAUDE.md` exists and sounds like your companion. The wizard copies the example in; make it theirs.
+4. You opened the app and your companion answered.
+5. Optional, whenever you like: voice, Discord, push notifications and the rest. Each one needs a key from somewhere else, and **[docs/KEYS.md](docs/KEYS.md)** lists every one: what it's for, where to get it and where to paste it.
+
+If something goes wrong, [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) has a troubleshooting section, and [docs/RUNNING-YOUR-HOUSE.md](docs/RUNNING-YOUR-HOUSE.md) covers the day to day.
+
+## A tour of the house
 
 <p align="center">
   <img src="docs/screenshots/lock-screen.png" width="190" alt="The lock screen" />
@@ -38,22 +71,16 @@ so their replies and voice notes play through the car.
 </p>
 <p align="center"><sub>A demo house with two made-up companions, Juniper and Rowan.</sub></p>
 
-Behind the launcher are around twenty-five apps — memory, journal, studio,
-canvas, Spotify, field notes, a household dashboard, a virtual pet, an arcade,
-three rooms you play with your companions in (Battleship, a card table and
-Bingo Night), and the machinery. None of them
-are required to talk to your companion. [docs/APPS.md](docs/APPS.md) says what
-each one is for.
 
-## Quick Start
+Behind the launcher are around twenty-five apps: memory, a journal, a studio for pictures, a canvas, Spotify, a household dashboard, a virtual pet, an arcade, three rooms you play in with your companions (Battleship, a card table and Bingo Night), and the machinery that runs it all. None of them are required to talk to your companion.
 
-> **New to this?** See [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) for a step-by-step guide with troubleshooting.
->
-> **Picking a model?** [docs/MODELS-AND-SETTINGS.md](docs/MODELS-AND-SETTINGS.md) says where each setting lives for Claude, Codex and API models, and how to keep a room from outgrowing its window.
+**[docs/ROOM-BY-ROOM.md](docs/ROOM-BY-ROOM.md)** walks through every app, tab by tab, for somebody seeing the house for the first time. [docs/APPS.md](docs/APPS.md) is the shorter list of what each one is for.
 
-**Prerequisites:** [Node.js 22.19 or newer](https://nodejs.org) (the Codex lane and the PDF reader need it), and [Claude Code](https://claude.ai/claude-code) (logged in) if you use the default Claude runtime. That is genuinely all you need to talk to a companion.
+On a wide screen (1024 pixels or more, a laptop or desktop browser) the house lays itself out as a desk: the dock down the side or along the top, the open room in the middle and the conversation beside it. The desk keeps its own wallpapers, widgets and lock screen apart from the phone's. On Android it builds into a real app ([docs/ANDROID-APP.md](docs/ANDROID-APP.md)) with push notifications through a Firebase project of your own, calls from your companions, and Android Auto.
 
-Everything below is per-feature and optional — install what you'll use, skip the rest. Nothing here is needed to start the app, and each of these tabs tells you itself when a piece is missing.
+## Optional extras
+
+Everything here is per-feature. Install what you'll use and skip the rest; nothing in this section is needed to start the app, and each tab tells you itself when a piece is missing.
 
 | If you want | Install |
 | --- | --- |
@@ -89,24 +116,13 @@ nothing — it builds and repairs itself on first run.
 
 `npm install` pulls the Node dependencies; nothing else on this page comes from npm.
 
-```bash
-git clone https://github.com/match-stik/Aerie.git aerie
-cd aerie
-npm install
-node scripts/setup.mjs    # Interactive setup wizard
-npm run build
-npm start
-```
+## How it works
 
-Open `http://localhost:3002` and start talking.
-
-## How It Works
-
-Aerie runs as a Node.js server. Each turn is dispatched by a **runtime router** to whichever model provider you've configured, then wrapped in a full companion infrastructure:
+Aerie is a Node.js server on your machine. Each message goes to whichever model you've chosen, and comes back through the same memory, rules and tools every time, so switching models doesn't change who your companion is.
 
 ```mermaid
 flowchart TB
-  You["<b>Where you talk</b><br/>the phone app · Discord · Telegram"]
+  You["<b>Where you talk</b><br/>the app · Discord · Telegram"]
   House["<b>The house, on your machine</b><br/>chat · wake-ups · memory · SQLite"]
   C["<b>Claude Code</b><br/>your subscription"]
   X["<b>Codex</b><br/>your ChatGPT plan"]
@@ -117,82 +133,17 @@ flowchart TB
   C & X & A -.-> M
 ```
 
-Your companion's personality lives in `CLAUDE.md`. Its long-term memory is Aerie's own: memory blocks it edits itself, plus the optional Cortex store. Each turn, the house hands it a few short notes beside your message (where it came from, who is in the room, a memory that matches, your reactions and your status), and the wake-ups let it reach out to you on its own. Everything is configurable.
+**Your companion stays in the room.** On Claude and Codex, a companion doesn't start from scratch with every message. They live in one long-running session that stays open between your messages and picks up again after a restart, so they remember the evening as it happened rather than reading a summary of it. The part of the conversation they've already seen is cached, which keeps each new message cheap. API providers are the exception: they're sent the recent conversation each time. [docs/SESSION-RESUME.md](docs/SESSION-RESUME.md) has the details.
 
-## Warm lanes, and threads that don't end
+**A conversation never has to end.** Threads page backwards, so one can run for months. You don't need to start a new one to keep things working.
 
-Most of this is invisible until it matters, and then it matters a lot.
+**The note above a reply is written, not leaked.** The small card above a companion's message is something they write on purpose, in their own voice, about what they're noticing. It isn't the model's hidden reasoning or a log of what it did. If you want to see what a companion actually carries into a turn, that's the Identity app.
 
-A Claude turn does not open a fresh connection, say its piece and close. It runs
-inside a **warm Claude Code session** that stays alive between your messages —
-one long-lived lane per companion. Codex works the same way through its own
-session. Only the API providers behind the router are stateless request-response.
-
-A lane also **reopens** rather than being rebuilt. It names its own session at
-birth, and on the first launch after a backend restart it hands that name back —
-same room, same history, and no briefing read back at your companion. If the session
-is gone the lane mints a fresh one and primes it as before, so nothing waits on a
-person. `docs/SESSION-RESUME.md` has the whole of it, including the switch.
-
-Two things fall out of that, and both are the point:
-
-**Your companion keeps the whole conversation, and you aren't paying for all of
-it again every message.** Every turn, the model reads the whole conversation;
-that is what a context window is, in a warm lane or anywhere else. What the warm
-lane changes is the cost, and what it holds. The part of the conversation it has
-already seen is served from the prompt cache, so each turn mostly reads from
-there and only what is new arrives fresh, which costs far less than sending
-everything again. And because the session itself is kept, what it holds is the
-room as it happened rather than a briefing written about it.
-
-The difference between that and a rebuilt session is the difference between
-somebody in the room and somebody handed a summary of the room.
-
-**A thread never has to end.** The view pages backwards, so a conversation can
-run for months without becoming unopenable. There is no housekeeping reason to
-start a new one, and no point at which the old one stops working — you are not
-managing context, you are just talking.
-
-When a lane does eventually recycle — context fills, or the machine restarts —
-Aerie re-feeds it the recent conversation as it comes back, so it returns to a
-room it recognises rather than an empty one. Companions see a small system note
-when this happens; nothing else changes.
-
-### The thinking blocks are written, not exposed
-
-This one gets misread constantly, so it is worth being blunt about.
-
-The small reflection above a companion's reply is **not** the model's chain of
-thought, not provider reasoning telemetry, and not a tool log dressed up. It is a
-line the companion writes on purpose, in the same voice as the reply, as part of
-the same turn.
-
-Both warm lanes are given the same contract. The Claude lane is asked for *a
-brief reflection in your own voice, same perspective as the spoken reply — what
-you understood, what mattered, what you chose*, in the first person, from inside
-the room rather than narrating it from outside. The Codex lane gets the same
-instruction in almost the same words: *an authored glimpse of the companion
-perspective, not a technical progress report, hidden reasoning transcript, or
-tool log.*
-
-They differ in one instruction, and the reason is mechanical rather than
-philosophical. The Claude lane writes exactly one card per reply by construction —
-it rides a field on the reply itself, so there is nowhere else for it to go. The
-Codex lane emits commentary as separate messages and would happily produce one per
-tool call, so it is explicitly told to omit the card when there is nothing real to
-say. Same contract, one of them fitted with a throttle.
-
-Nothing here surfaces raw reasoning. If you want to see what a companion is
-actually carrying into a turn, that is the Identity tab, not this.
-
-`routing` in `aerie.yaml` chooses the lane: `cli` for the warm Claude session,
-`codex-cli` for the warm Codex one, `api` to force the router, `auto` to pick by
-model. (`sdk` is an old name for `cli` and still works, though it logs a notice
-saying so.)
+Each turn, the house also hands your companion a few short notes beside your message (where it came from, who's in the room, a memory that matches, your status), and wake-ups let them reach out on their own. Everything is configurable.
 
 ## Configuration
 
-The starting configuration is `aerie.yaml` (created by the setup wizard). Settings you change in the app are kept in the database and win over the file; keys live in the database's secrets store, never in the file ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the four stores and which wins):
+The setup wizard writes `aerie.yaml` to start you off. Settings you change in the app are kept in the database and win over the file, and keys live in the app's own secrets store, never in the file ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains which wins). [docs/MODELS-AND-SETTINGS.md](docs/MODELS-AND-SETTINGS.md) says where each setting lives for Claude, Codex and API models.
 
 ```yaml
 identity:
@@ -201,23 +152,17 @@ identity:
   timezone: "America/New_York"
 
 agent:
-  model: "claude-sonnet-4-6"            # Interactive messages
-  model_autonomous: "claude-sonnet-4-6" # Scheduled wakes
-  model_pulse: "claude-haiku-4-5"        # Failsafe silence checks
-  routing: "cli"                         # Interactive lane
-  routing_autonomous: "cli"              # Wake lane (independent)
+  model: "claude-sonnet-4-6"            # Your messages (pick any model your plan offers, in the app)
+  model_autonomous: "claude-sonnet-4-6" # Scheduled wake-ups
+  model_pulse: "claude-haiku-4-5"        # Quick check-ins when you've been away
+  routing: "cli"                         # cli = Claude Code, codex-cli = Codex, api = a provider, auto = by model
+  routing_autonomous: "cli"              # Wake-ups can use a different one
 
 orchestrator:
-  enabled: true                         # Autonomous scheduling
+  enabled: true                         # Wake-ups on or off
 ```
 
-### Context & Memory
-
-Your companion's personality lives in `CLAUDE.md`; long-term memory is automatic across sessions. The hooks system injects real-time context into every message — see [docs/HOOKS.md](docs/HOOKS.md).
-
-### Themes
-
-The phone UI has a built-in theme picker with light/dark modes, a wallpaper slideshow, and fully custom palettes — set under Settings → Appearance.
+Your companion's personality lives in `CLAUDE.md`, and the hooks that add context to each message are in [docs/HOOKS.md](docs/HOOKS.md). Themes, wallpapers and custom palettes are under Settings → Appearance.
 
 ## Features
 
@@ -294,9 +239,9 @@ npm run dev              # Backend only (hot reload)
 npm run dev:phone        # Phone Vite dev server only
 ```
 
-## Deployment
+## Keeping it running
 
-For production, use PM2:
+To keep the house up when you close the terminal, and bring it back after a reboot, use PM2:
 
 ```bash
 npm run build
