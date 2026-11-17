@@ -70,8 +70,14 @@ async function del(endpoint, timeoutMs = 10000) {
   return request('DELETE', endpoint, undefined, timeoutMs);
 }
 
-const [,, cmd, ...args] = process.argv;
-const thread = getThread();
+const [,, cmd, ...rawArgs] = process.argv;
+// --thread ID works on every command that posts into a thread, and wins over
+// AERIE_THREAD. Today's lanes don't set AERIE_THREAD for the companion, so a
+// command run from a lane names its thread this way. search reads its own
+// --thread below, so it is left in place for it.
+const threadFlag = rawArgs.indexOf('--thread');
+const thread = threadFlag >= 0 && rawArgs[threadFlag + 1] ? rawArgs[threadFlag + 1] : getThread();
+const args = cmd === 'search' || threadFlag < 0 ? rawArgs : rawArgs.filter((_, i) => i !== threadFlag && i !== threadFlag + 1);
 
 // ASKING FOR HELP MUST NEVER BE MISTAKEN FOR CONTENT.
 //

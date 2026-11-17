@@ -6,7 +6,7 @@ Tools are accessed through `tools/sc.mjs` — a CLI that wraps Aerie's internal 
 
 On every system, and on Windows especially, call it as `node <your house>/tools/sc.mjs ...`. The bare `sc` in the examples below is shorthand: on Windows a bare `sc` runs Windows' own service-control program instead.
 
-Commands that post into a thread take it from the `AERIE_THREAD` environment variable, or `--thread ID` where a command accepts one. (An older lane wrote the current thread to `.aerie-thread` on every message; the current lanes do not.) The port is read from `aerie.yaml`.
+Commands that post into a thread (share, canvas, react, voice) need to know which one. Add `--thread ID` to any of them, or set the `AERIE_THREAD` environment variable. Today's lanes don't set it for your companion, so from a lane `--thread` is the way. The port is read from `aerie.yaml`.
 
 ---
 
@@ -48,7 +48,7 @@ sc voice "[whispers] hey [sighs] I missed you"
 
 Tone tags: `[whispers]` `[softly]` `[excited]` `[laughs]` `[sighs]` `[playfully]` `[calm]` `[gasps]` `[dramatically]` `[deadpan]` `[cheerfully]` `[nervous]` `[mischievously]`
 
-Requires `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` in `.env`.
+Needs an ElevenLabs key and voice ID: paste them in Integrations → Secrets, or give a companion its own voice on its card in the Companions app ([KEYS.md](KEYS.md)).
 
 ---
 
@@ -88,10 +88,10 @@ Control the autonomous wake schedule. The orchestrator triggers your agent at co
 sc schedule status                 # Show all schedules
 sc schedule enable                 # Enable orchestrator
 sc schedule disable                # Disable orchestrator
-sc schedule reschedule morning_anchor "0 8 * * *"   # Reschedule a wake
+sc schedule reschedule morning_watch "0 8 * * *"   # Reschedule a wake
 ```
 
-Wake types depend on your `aerie.yaml` orchestrator config and `wake-prompts.md`.
+The wakes are the bells in the Orchestrator app's Bells tab, where you can add, move and switch them off without the command line. What each bell says to your companion lives in `prompts/wake.md`; `examples/wake-prompts.md` is a place to start.
 
 ### Timers
 One-shot scheduled reminders. Fire once at a specific time.

@@ -10,29 +10,11 @@ Aerie runs on your machine by default. That means when your laptop sleeps, your 
 
 ## Prerequisites
 
-- A Claude Code subscription (Pro or Max)
-- A VPS with Ubuntu 24.04 (1GB RAM is enough)
+- A Claude subscription (Pro or Max), or a ChatGPT subscription if your companion runs on ChatGPT
+- A VPS with Ubuntu 24.04 and 2GB of RAM (1GB starts, but it's tight; see Out of memory below)
 - A domain name (optional, for HTTPS access)
 
-## Step 1: Generate Your OAuth Token
-
-On your local machine (where you're already logged into Claude Code):
-
-```bash
-claude setup-token
-```
-
-This opens your browser. Authenticate, and it prints a token starting with `sk-ant-oat01-...`. **Save this token** — you'll need it on the VPS. It's valid for 1 year.
-
-Also grab your account info:
-
-```bash
-cat ~/.claude.json
-```
-
-Note the `accountUuid` and `emailAddress`.
-
-## Step 2: Create a VPS
+## Step 1: Create a VPS
 
 ### DigitalOcean
 
@@ -52,7 +34,7 @@ ssh root@YOUR_IP
 
 (First login may ask you to change the root password.)
 
-**Root is only for installing system packages (Step 3).** The companion runs Claude Code with its permission prompts switched off (see [SECURITY.md](../SECURITY.md)), so it gets an ordinary account of its own, never root. Claude Code itself refuses to skip its prompts as root. After Step 3 you make that account and do everything else as it.
+**Root is only for installing system packages (Step 2).** The companion runs Claude Code with its permission prompts switched off (see [SECURITY.md](../SECURITY.md)), so it gets an ordinary account of its own, never root. Claude Code itself refuses to skip its prompts as root. After Step 2 you make that account and do everything else as it.
 
 ### Other Providers
 
@@ -62,7 +44,7 @@ ssh root@YOUR_IP
 
 Any Ubuntu 24.04 VPS works.
 
-## Step 3: Install Dependencies
+## Step 2: Install Dependencies
 
 SSH into your VPS and run:
 
@@ -80,6 +62,8 @@ npm install -g pm2
 
 # Claude Code CLI
 npm install -g @anthropic-ai/claude-code
+# ...or, if your companion runs on ChatGPT, the Codex CLI instead
+# npm install -g @openai/codex
 
 # Verify
 node --version    # Should show v22+
@@ -91,43 +75,29 @@ usermod -aG sudo aerie
 su - aerie
 ```
 
-Everything from here on runs as that account, not as root.
+Everything from here on runs as that account, not as root. Don't give it passwordless sudo: the companion can't type a password, and that's what keeps root jobs yours.
 
-## Step 4: Set Up Claude Code Authentication
+## Step 3: Sign In
 
-Create the auth config:
-
-```bash
-cat > ~/.claude.json << 'EOF'
-{
-  "hasCompletedOnboarding": true,
-  "lastOnboardingVersion": "2.1.79",
-  "oauthAccount": {
-    "accountUuid": "YOUR_ACCOUNT_UUID",
-    "emailAddress": "YOUR_EMAIL"
-  }
-}
-EOF
-chmod 600 ~/.claude.json
-```
-
-Add the OAuth token to your environment:
+Still as the aerie account:
 
 ```bash
-echo 'export CLAUDE_CODE_OAUTH_TOKEN="sk-ant-oat01-YOUR_TOKEN_HERE"' >> ~/.bashrc
-source ~/.bashrc
-chmod 600 ~/.bashrc
+claude auth login
 ```
 
-**Test it works:**
+It prints a link. Open it on your own computer or phone, sign in, and paste the code it gives you back into the SSH window. Then run `claude` once, answer its first-run questions, and type `/exit`, so your companion never has to meet them.
+
+If your companion runs on ChatGPT instead:
 
 ```bash
-claude -p "say hello"
+codex login --device-auth
 ```
 
-You should get a response. If it says "Not logged in", double-check the token and `.claude.json`.
+It prints a link and a short code. Open the link anywhere and type the code in.
 
-## Step 5: Clone and Configure Aerie
+Either way, the sign-in belongs to this account, so Aerie has to run as this account too. Check it any time with `claude auth status` (or `codex login status`).
+
+## Step 4: Clone and Configure Aerie
 
 ```bash
 git clone https://github.com/match-stik/Aerie.git aerie
@@ -151,35 +121,13 @@ agent:
   cwd: "/home/aerie/aerie"  # Or wherever you cloned it — absolute path
 ```
 
-### Environment for PM2
+The wizard also writes `ecosystem.config.cjs` for PM2. Your sign-in lives in this account's own Claude (or Codex) files, so there's nothing to add to it.
 
-PM2 doesn't source `.bashrc` automatically. Create an ecosystem config that includes the token:
-
-```bash
-cat > ecosystem.config.cjs << 'EOF'
-module.exports = {
-  apps: [{
-    name: 'aerie',
-    script: 'packages/backend/dist/server.js',
-    cwd: '/home/aerie/aerie',
-    env: {
-      NODE_ENV: 'production',
-      CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-YOUR_TOKEN_HERE',
-    },
-    autorestart: true,
-    max_restarts: 10,
-    restart_delay: 3000,
-    max_memory_restart: '800M',
-  }]
-};
-EOF
-chmod 600 ecosystem.config.cjs
-```
-
-## Step 6: Build and Start
+## Step 5: Build and Start
 
 ```bash
 npm run build
+npm run vendor    # the Artifacts viewer and Story Shelf widgets' React and Babel
 pm2 start ecosystem.config.cjs
 pm2 save
 pm2 startup    # Auto-start on reboot
@@ -197,7 +145,7 @@ Server running at http://127.0.0.1:3002
 Companion: Echo | User: Alex
 ```
 
-## Step 7: Set Up HTTPS Access
+## Step 6: Set Up HTTPS Access
 
 Your companion is running on `localhost:3002`. To access it from outside, you need a tunnel or reverse proxy.
 
@@ -235,8 +183,8 @@ cloudflared tunnel route dns aerie companion.yourdomain.com
 #   origins:
 #     - "https://companion.yourdomain.com"
 
-# Rebuild after config change
-npm run build --workspace=packages/backend
+# Restart so Aerie reads the change
+pm2 restart aerie
 
 # Start tunnel
 cloudflared tunnel run aerie
@@ -273,20 +221,6 @@ tailscale ip -4
 
 Access at `http://YOUR_TAILSCALE_IP:3002` from any Tailscale device. `0.0.0.0` would listen on every interface, the VPS's public address included, over plain HTTP; the Tailscale address is the one only your tailnet can reach. `tailscale serve 3002` is another way: Aerie stays on `127.0.0.1` and Tailscale serves it over HTTPS to your tailnet. Aerie will not start on any address other than `127.0.0.1` without a password.
 
-### Option C: Direct IP (Not Recommended)
-
-Only for testing. No HTTPS.
-
-```bash
-# Update aerie.yaml
-# server:
-#   host: "0.0.0.0"
-# auth:
-#   password: "set-a-strong-password"
-```
-
-Access at `http://YOUR_VPS_IP:3002`. **Not secure** — no encryption.
-
 ## Common Operations
 
 ### Update Aerie
@@ -294,7 +228,9 @@ Access at `http://YOUR_VPS_IP:3002`. **Not secure** — no encryption.
 ```bash
 cd ~/aerie
 git pull
+npm install
 npm run build
+npm run vendor
 pm2 restart aerie
 ```
 
@@ -311,7 +247,7 @@ pm2 logs aerie --lines 50 --nostream  # Last 50 lines
 pm2 restart aerie
 ```
 
-After changing the OAuth token or `.env`:
+After changing `.env`:
 ```bash
 pm2 restart aerie --update-env
 ```
@@ -333,25 +269,17 @@ cp ~/aerie/data/aerie.db ~/aerie-backup-$(date +%Y%m%d).db
 
 ### "Not logged in" errors
 
-The OAuth token isn't reaching the process.
+The sign-in belongs to one account, and Aerie has to run as that same account. As the aerie account:
 
 ```bash
-# Verify token is set
-echo $CLAUDE_CODE_OAUTH_TOKEN | head -c 20
-
-# Test CLI directly
-claude -p "hello"
-
-# If PM2 doesn't have it, restart with --update-env
-export CLAUDE_CODE_OAUTH_TOKEN="sk-ant-oat01-..."
-pm2 restart aerie --update-env
+claude auth status      # or: codex login status
 ```
+
+If it says you're signed out, do Step 3 again, then `pm2 restart aerie`. If it says you're signed in, make sure PM2 was started as the aerie account, not root.
 
 ### Messages don't send (WebSocket issues)
 
-Check the Content Security Policy. Your domain must be in the CSP `connect-src` directive. This is set in `packages/backend/src/server.ts` — look for `connectSrc`. Add your domain as `wss://yourdomain.com`, rebuild, restart.
-
-Also check CORS origins in `packages/backend/src/services/ws.ts` and `aerie.yaml`.
+The address you open Aerie on has to be in `cors.origins` in `aerie.yaml` (for example `https://companion.yourdomain.com`). Aerie builds the list of places the page may open its live connection to from that list, so add it there and `pm2 restart aerie`. No code changes or rebuild needed.
 
 ### Out of memory
 
@@ -372,33 +300,24 @@ swapon /swapfile
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 ```
 
-### Token expired
-
-Tokens last 1 year. When it expires:
-
-1. On a machine with a browser: `claude setup-token`
-2. Copy the new token to the VPS
-3. Update `.bashrc`, `.profile`, and `ecosystem.config.cjs`
-4. `pm2 restart aerie --update-env`
-
 ### Tunnel not working
 
 ```bash
-# Check if cloudflared is running
-ps aux | grep cloudflared
+# Is the service running?
+sudo systemctl status cloudflared
 
-# Check logs
-cat /var/log/cloudflared.log
+# Its recent logs
+sudo journalctl -u cloudflared -n 50
 
-# Restart
-cloudflared tunnel run aerie
+# Restart it (restart, not reload: a reload signal stops cloudflared)
+sudo systemctl restart cloudflared
 ```
 
 ## Security Checklist
 
 - [ ] Set a strong password in `aerie.yaml` (`auth.password`)
 - [ ] Use HTTPS (Cloudflare Tunnel or Tailscale) — never expose HTTP directly
-- [ ] File permissions: `chmod 600` on `.env`, `.bashrc`, `.claude.json`, `ecosystem.config.cjs`
-- [ ] Keep Node.js updated: `apt update && apt upgrade`
-- [ ] The OAuth token is as powerful as your Claude Code login — treat it like a password
-- [ ] Firewall: only ports 22 (SSH) and 443 (HTTPS via tunnel) need to be open
+- [ ] File permissions: `chmod 600 .env` (the wizard already makes `aerie.yaml` private)
+- [ ] Keep the system updated: `apt update && apt upgrade`
+- [ ] The sign-in files in `~/.claude` and `~/.codex` are as powerful as your login; keep that account to yourself
+- [ ] Firewall: a Cloudflare tunnel and Tailscale both connect outward, so nothing needs to come in except SSH (22)

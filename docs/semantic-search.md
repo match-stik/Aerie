@@ -4,7 +4,7 @@ Aerie includes local semantic search across all conversation history. Your compa
 
 ## How It Works
 
-- Uses `all-MiniLM-L6-v2`, a small (30MB) embedding model that runs locally in Node.js
+- Uses `all-MiniLM-L6-v2`, a small embedding model (about 90MB on disk) that runs locally in Node.js
 - No external API calls — everything stays on your machine
 - Messages are automatically embedded when created
 - Search uses cosine similarity to find the most relevant messages
@@ -51,7 +51,15 @@ New messages are embedded automatically. To index your existing conversation his
 node tools/sc.mjs backfill 100    # process 100 messages at a time
 ```
 
-Run this multiple times or with larger batch sizes to index your full history. Your companion can also do this during autonomous time.
+Run it again until everything is indexed, or let it run on its own in the background until it's done:
+
+```bash
+node tools/sc.mjs backfill start      # 50 at a time, every 5 seconds, until it's finished
+node tools/sc.mjs backfill status     # how far it has got
+node tools/sc.mjs backfill stop
+```
+
+Your companion can do this too, during autonomous time.
 
 ## Usage
 
@@ -65,24 +73,24 @@ node tools/sc.mjs search "that conversation about the project deadline"
 node tools/sc.mjs search "query" --thread THREAD_ID --limit 5
 
 # Check indexing progress
-node tools/sc.mjs backfill 0    # processes 0, but shows indexed/total counts
+node tools/sc.mjs backfill status
 ```
 
 ### Internal API (for programmatic access)
 
+These live on the internal port (`server.internal_port` in `aerie.yaml`, 3012 unless you changed it), which only answers on the machine Aerie runs on, so they need no password.
+
 ```bash
 # Semantic search
-curl -X POST http://localhost:PORT/api/internal/search-semantic \
+curl -X POST http://127.0.0.1:3012/api/internal/search-semantic \
   -H "Content-Type: application/json" \
   -d '{"query": "your search", "threadId": "optional", "limit": 10}'
 
 # Backfill embeddings
-curl -X POST http://localhost:PORT/api/internal/embed-backfill \
+curl -X POST http://127.0.0.1:3012/api/internal/embed-backfill \
   -H "Content-Type: application/json" \
   -d '{"batchSize": 50}'
 ```
-
-Both endpoints are localhost-only (no auth required).
 
 ## Technical Details
 
@@ -95,10 +103,10 @@ Both endpoints are localhost-only (no auth required).
 
 ## Troubleshooting
 
-**Model download fails**: Check your internet connection. The two files are fetched from Hugging Face Hub into `data/models/all-MiniLM-L6-v2/`; you can also drop them in by hand.
+**Model download fails**: Check your internet connection. The weights are fetched from Hugging Face Hub into `data/models/all-MiniLM-L6-v2/`; you can also drop them in by hand.
 
 **Vectors look wrong after a tokenizer change**: `bert-tokenizer.test.ts` holds golden token ids captured from the original reference tokenizer. If it fails, the tokenizer changed and every embedding already stored in the database did not — re-index rather than shipping the change.
 
-**Search returns no results**: Run `node tools/sc.mjs backfill` to index existing messages. New messages are indexed automatically.
+**Search returns no results**: Run `node tools/sc.mjs backfill start` to index existing messages. New messages are indexed automatically.
 
 **Slow first search**: The first search loads the model into memory (~5-10 seconds). Subsequent searches are fast (<100ms for query embedding + similarity computation).
