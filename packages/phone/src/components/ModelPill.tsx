@@ -94,7 +94,7 @@ export function ModelPill({ themeConfig, themeMode, threadModel }: ModelPillProp
   const [draft, setDraft] = useState('');
   const [draftError, setDraftError] = useState('');
   const [adding, setAdding] = useState(false);
-  // Check for new models (theirs, Nov 10 2026): Anthropic's own models page, each
+  // Check for new models: Anthropic's own models page, each
   // listed model marked with whether the picker has it and whether this box's
   // Claude Code knows it (routes/models.ts, /models/claude-check).
   const [newCheck, setNewCheck] = useState<

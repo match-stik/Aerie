@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Web push, the house's half (theirs, Oct 29 2026: both options in the kit, for
-// people without the Android app). A real encrypted push goes to a stand-in
+// Web push, the house's half. A real encrypted push goes to a stand-in
 // push service on loopback; a browser cannot subscribe from this box (headless
 // Chromium has no push service), so the browser half is proven on a device.
 import assert from 'node:assert/strict';

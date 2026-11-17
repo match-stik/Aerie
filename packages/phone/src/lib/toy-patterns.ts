@@ -15,7 +15,7 @@ import type { ToyStep } from '@aerie/shared';
 
 export const RECORD_STEP_MS = 200;
 /** The longest a recording runs before it stops itself. */
-/** A take can run an hour, the same as one pattern on the shelf (theirs, Nov 10 2026). */
+/** A take can run an hour, the same as one pattern on the shelf. */
 export const RECORD_MAX_MS = 60 * 60_000;
 
 export interface LevelChange {

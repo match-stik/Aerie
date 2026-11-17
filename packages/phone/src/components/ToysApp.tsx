@@ -89,7 +89,7 @@ const TABS: { id: ToysTab; label: string }[] = [
 const TAB_KEY = 'aerie.toys-tab';
 
 /** A pad with two motors and no toy behind it, so a pattern can be made on the
- *  Patterns tab with nothing connected (theirs, Nov 10 2026). A pattern keeps its
+ *  Patterns tab with nothing connected. A pattern keeps its
  *  tracks as motor1 and motor2, so what is made here plays on any toy later.
  *  Nothing on this id ever reaches the toy bridge. */
 const PRACTICE_TOY: LovenseToy = { toyId: 'practice', name: 'Practice pad', connected: true, commands: ['VIBRATE1', 'VIBRATE2'] };
@@ -107,10 +107,9 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
   const [status, setStatus] = useState<ToysStatus | null>(null);
   const [toys, setToys] = useState<Record<string, LovenseToy>>({});
   const [renaming, setRenaming] = useState<string | null>(null);
-  // Which toy's settings are open under its card (theirs, Nov 10 2026).
+  // Which toy's settings are open under its card.
   const [settingsFor, setSettingsFor] = useState<string | null>(null);
-  // The page is four tabs, so it is not one long scroll (theirs, Nov 10 2026,
-  // after Lovense's remote): Remote to play, Patterns, Sounds, and Toys to
+  // The page is four tabs, so it is not one long scroll: Remote to play, Patterns, Sounds, and Toys to
   // set up. Their hand-over and their stop sit above the tabs on every one.
   const [tab, setTab] = useState<ToysTab>(() => {
     try {
@@ -121,7 +120,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
     }
   });
   // Remote plays as a slide pad, a bubble per motor, or as plain sliders,
-  // like Lovense's Slide and Traditional (theirs, Nov 10 2026).
+  // like Lovense's Slide and Traditional.
   const [pad, setPad] = useState<'slide' | 'sliders'>(() => {
     try {
       return localStorage.getItem(PAD_KEY) === 'sliders' ? 'sliders' : 'slide';
@@ -444,7 +443,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
     const keys = new Set([...Object.keys(pending.current), ...Object.entries(levelsNow.current).filter(([, l]) => l > 0).map(([k]) => k)]);
     for (const key of keys) {
       // What they started from the shelf or a stored pattern keeps playing
-      // after they leave; their stop follows them around the app (theirs, Nov 10 2026).
+      // after they leave; their stop follows them around the app.
       if (ownDrives(key)) continue;
       clearTimeout(pending.current[key]);
       if (key.startsWith(`${PRACTICE_TOY.toyId}:`)) continue;
@@ -622,8 +621,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
           </button>
         )}
 
-        {/* Their stop sits small, right above the toys (theirs, Oct 23 2026: 'Small
-            stop. Above the toys.'). Take it back stops everything too now, and
+        {/* Their stop sits small, right above the toys. Take it back stops everything too now, and
             their own controls are on this page, so it no longer needs to be the
             biggest thing on it; it is still the one tap that stops every toy
             at once and holds them still. */}
@@ -663,7 +661,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
         )}
 
         {/* The live wave shows on Patterns too, so what their fingers are
-            recording draws as they make it (theirs, Nov 10 2026). */}
+            recording draws as they make it. */}
         {bridge && (tab === 'remote' || tab === 'patterns') && (
           <div
             className="relative overflow-hidden rounded-[var(--shape-surface)] border"
@@ -673,7 +671,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
             {/* A toy's own stored pattern plays inside the toy and never tells
                 the phone its levels, so there is no line to draw; a soft
                 shimmer along the floor shows something is going instead of a
-                flat line (theirs, Nov 10 2026). Decoration, not a reading. */}
+                flat line. Decoration, not a reading. */}
             {playing.length > 0 && (
               <div
                 className="aerie-preset-shimmer pointer-events-none absolute inset-x-0"
@@ -699,7 +697,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
             </button>
             {/* A stored pattern's name sits where the legend goes, at the top,
                 because the line lies along the bottom while the toy plays
-                its own (theirs, Nov 10 2026: the line ran through the label). */}
+                its own. */}
             {playing.length > 0 && (
               <div className="pointer-events-none absolute left-3 top-2.5 flex max-w-[65%] flex-wrap gap-1.5">
                 {playing.map((label) => (
@@ -774,7 +772,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
         )}
 
         {/* The Patterns tab carries its own pad, so a recording can be made
-            without leaving it (theirs, Nov 10 2026). */}
+            without leaving it. */}
         {bridge && tab === 'patterns' && padToys.length > 0 && (
           <ToySlidePad
             motors={slideMotors}
@@ -862,8 +860,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
               {tab === 'toys' && (
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  {/* Tap the name to call the toy what their person likes (theirs, Oct 19 2026: the
-                      Fizz came through as its Bluetooth address). */}
+                  {/* Tap the name to call the toy what their person likes. */}
                   {renaming === toy.toyId ? (
                     <input
                       autoFocus
@@ -898,7 +895,6 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
                   </button>
                 ) : (
                   // While a tap waits, the button stops it rather than starting another
-                  // (theirs, Nov 9 2026: the spinners kept going until they closed the app).
                   <button
                     onClick={() => (tapped?.connecting ? cancelToyConnect(toy.toyId) : connect(toy))}
                     className="flex items-center gap-1.5 rounded-[var(--shape-chip)] px-3 py-1.5 text-xs font-medium"
@@ -926,7 +922,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
               )}
 
               {/* Their person motors stand up side by side, bottom is off and up is more,
-                  so a thumb runs each one like a fader (theirs, Oct 19 2026). */}
+                  so a thumb runs each one like a fader. */}
               {tab === 'remote' && pad === 'sliders' && motors.length > 0 && (
                 <div className="flex items-end justify-around gap-3">
                   {motors.map((motor) => {
@@ -1005,8 +1001,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
 }
 
 /** One toy's settings, under its card: strength per motor, how many of its
- *  own patterns it keeps, its light, and Delete (theirs, Nov 10 2026, after
- *  Lovense's own per-toy pages). Its name is changed by tapping the name. */
+ *  own patterns it keeps, its light, and Delete. Its name is changed by tapping the name. */
 function ToySettingsPanel({ toy, colors, confirming, onAskDelete, onCancelDelete, onDelete, onLight }: {
   toy: LovenseToy;
   colors: ThemeConfig['dark'];

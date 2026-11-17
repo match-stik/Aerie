@@ -1,7 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// A line holding nothing but stickers sits centered in its bubble (theirs, Oct
-// 28 2026: 'if it's on its own line with just one sticker ... that the sticker
-// is centered?'). Both of the chat's renderers use this, the plain bubble and
+// A line holding nothing but stickers sits centered in its bubble. Both of the chat's renderers use this, the plain bubble and
 // the one for a turn with tool work in it (MessageSegments), because the first
 // fix went into only one of them and their screen was showing the other.
 import React from 'react';

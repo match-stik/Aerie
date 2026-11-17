@@ -86,7 +86,7 @@ export function StreamingReply({ themeConfig, themeMode, voices }: StreamingRepl
             if (nonTextSegments.findIndex((s) => s.type === 'tool') !== i) return null;
             const phrases = phrasesFor(voices);
             const phrase = phrases[(phraseStart(messageId, phrases.length) + tick) % phrases.length] || 'Working';
-            // The count opens into the list of what ran (theirs, Nov 2 2026);
+            // The count opens into the list of what ran;
             // the outbox writes stay out of it, as on the finished message.
             const tools = nonTextSegments.filter(
               (s): s is MessageSegment & { type: 'tool' } => s.type === 'tool' && !isHiddenTool(s as MessageSegment & { type: 'tool' }),

@@ -56,13 +56,13 @@ interface HomeScreenProps {
   cardBacks?: boolean;
   /** Cards that wrap what each widget shows instead of filling its spot. */
   cardSnug?: boolean;
-  /** The dock's own card (theirs, Nov 8 2026: a switch each for the widgets and the dock). */
+  /** The dock's own card. */
   dockCardBacks?: boolean;
   /** With the dock's card off, its icons keep theirs anyway. */
   dockIconCards?: boolean;
-  /** The drawer's icon color reaches the dock too, so the two match (theirs, Nov 9 2026). */
+  /** The drawer's icon color reaches the dock too, so the two match. */
   dockAccentIcons?: boolean;
-  /** Their own cards, apart from the other widgets'; unset follows the widgets (theirs, Nov 9 2026). */
+  /** Their own cards, apart from the other widgets'; unset follows the widgets. */
   companionsCard?: 'card' | 'none';
   quietCard?: 'card' | 'none';
   quietScroll?: boolean;
@@ -238,8 +238,7 @@ export function HomeScreen({
         // bottom row down under the quiet line (their screenshot, 2:41 AM).
         className="flex min-h-0 flex-1 flex-col justify-end px-3"
         // Measured off the dock and the quiet line as they are actually drawn
-        // on their phone (theirs, Nov 8 2026: moving widgets down overlapped the
-        // quiet line, because a fixed 168 was a guess at their height).
+        // on their phone.
         style={{ paddingBottom: typingInWidget ? 12 : dockH !== null ? dockH + 16 + 12 : quietLine ? 168 : 124 }}
         onFocusCapture={(e) => { if (isTextField(e.target)) setTypingInWidget(true); }}
         onBlurCapture={(e) => { if (isTextField(e.target)) setTypingInWidget(false); }}

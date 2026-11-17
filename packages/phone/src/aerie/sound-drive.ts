@@ -1,7 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// A sound on the shelf driving their toys in time with it (theirs, Nov 10 2026:
-// 'hook up the wave form that the audio would make to control the wave of
-// the toy'). The house works out the sound's loudness once
+// A sound on the shelf driving their toys in time with it. The house works out the sound's loudness once
 // (GET /api/toys/sounds/:id/envelope, a level every tenth of a second), and
 // while they have this switched on and the sound plays, each connected toy's
 // main motor follows it: up as fast as the sound gets loud, down gently.
@@ -29,8 +27,7 @@ let fetching: string | null = null;
 const sent = new Map<string, number>();
 /** Each toy's motors in order: the first follows every syllable, any after
  *  it the slow swell of the sound, so on the Flexer the buzz chatters with
- *  the words while the curl rolls with the phrases (theirs, Nov 10 2026: it
- *  only did the vibration). */
+ *  the words while the curl rolls with the phrases. */
 let targets: { toyId: string; command: string; slow: boolean }[] = [];
 let level = 0;
 let swell = 0;

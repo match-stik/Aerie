@@ -136,7 +136,7 @@ export function parseMessageContent(
   if (textContent.includes('[FILE:')) {
     // The file's url or text runs up to the next sentinel, not to the end:
     // a zip sent with a picture used to swallow the [IMG]: after it, so the
-    // picture never drew (theirs, Nov 14 2026, a vector drawing and its zip).
+    // picture never drew.
     const match = textContent.match(/\[FILE:(.*?)\]:?\s*([\s\S]*?)(?=\s*\[(?:IMG|GIF|VIDEO)\]:|\s*\[FILE:|$)/);
     if (match) {
       isFile = true;

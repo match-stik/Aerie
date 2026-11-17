@@ -91,8 +91,8 @@ export class PushService {
   }
 
   /**
-   * Web push, for people running the house in a browser instead of the APK
-   * (theirs, Oct 29 2026: both options in the kit). The VAPID pair is made the
+   * Web push, for people running the house in a browser instead of the APK.
+   * The VAPID pair is made the
    * first time a browser asks for it and kept in the secrets store, so it
    * never changes under a device that already subscribed. Nothing here caches
    * the app or touches a fetch: the service worker that receives these only
@@ -217,7 +217,7 @@ export class PushService {
   }
 
   /** Browsers only: a ring for a house run in a browser, where the phone's
-   *  data-only ring has nobody to read it (theirs, Nov 9 2026). */
+   *  data-only ring has nobody to read it. */
   async sendWebOnly(payload: PushPayload): Promise<number> {
     return this.sendWebPush(payload);
   }

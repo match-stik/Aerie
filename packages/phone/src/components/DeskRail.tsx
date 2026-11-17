@@ -20,13 +20,12 @@ interface DeskRailProps {
   cardBacks: boolean;
   iconCards: boolean;
   accentIcons: boolean;
-  /** Bottom stands the rail on its side along the foot of every room (theirs, Nov 15 2026). */
+  /** Bottom stands the rail on its side along the foot of every room. */
   /** Down the left, or a bar along the bottom or the top. */
   orient?: 'left' | 'bottom' | 'top';
 }
 
-// The dock, stood on its end for a wide screen (lib/desk.ts; theirs, Nov 14
-// 2026). On the phone the dock lives on the home screen and every room is a
+// The dock, stood on its end for a wide screen (lib/desk.ts). On the phone the dock lives on the home screen and every room is a
 // step away from it; here it stays down the left of every room, so going from
 // Notes to the Treehouse is one click and not a trip home. It is built from
 // the dock's own pieces (.aerie-dock, its buttons, tiles and labels), so them
@@ -41,8 +40,7 @@ export function DeskRail({ apps, current, onOpenApp, onHome, onOpenDrawer, onLoc
       onClick={onClick}
       // A long name (Screening Room) takes two lines and shrinks a little to
       // fit, as on the phone; the row lines up at the top so its icon stays
-      // level with the others (theirs, Nov 15 2026: shoving, then the wide tile
-      // made the padding go weird).
+      // level with the others.
       className="aerie-dock-button relative flex w-14 shrink-0 flex-col items-center gap-1"
       data-current={on ? '' : undefined}
       aria-current={on ? 'page' : undefined}

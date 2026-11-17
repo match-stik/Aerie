@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// A whole thread as one text file, from the house (theirs, Oct 31 2026: the
-// export button 'should do what it suggests'). The phone used to export only
+// A whole thread as one text file, from the house. The phone used to export only
 // the messages it had loaded, the newest fifty plus whatever they had scrolled
 // through. This reads every message the thread holds, oldest first, a page at
 // a time so a thread of many thousands never sits in memory at once, and names

@@ -1397,7 +1397,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
         const anyUnseen = pending.notes.some((note) => !alreadySeen(note.at));
         const header = anyUnseen
           ? '[Sent to you while you were working and not read at the time — answer these too:]'
-          : '[Sent to you while you were working — you already picked these up live and answered them. They are here for the record only: do not mention them, or that they were answered (theirs, Nov 10 2026: they ask when they missed something).]';
+          : '[Sent to you while you were working — you already picked these up live and answered them. They are here for the record only: do not mention them, or that they were answered.]';
         sideNoteBlock = `${header}\n${lines}\n\n`;
         // Every note in this block is in the session's hands now, so each one
         // gets its read checks on their person's screen (services/own-messages-read.ts).

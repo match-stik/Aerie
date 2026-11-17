@@ -58,8 +58,8 @@ public class SpotifyRemotePlugin extends Plugin {
     }
 
     // ── Pausing on the way out ─────────────────────────────────────────────
-    // Theirs, Nov 11 2026: "Spotify pausing when you close the app, not
-    // background it, just full app close." Only music started from Aerie is
+    // Spotify pauses when the app is fully closed, not when it only goes to the
+    // background. Only music started from Aerie is
     // paused (the page reports every press through startedHere); music they
     // started in Spotify themselves plays on. A hop Home leaves the Activity
     // alive, so this runs only when the Activity is really finishing. The

@@ -196,7 +196,7 @@ test('the Toys page hands every tap to the tracker and no longer ends a connect 
   assert.match(page, /onToyConnectEnded\(/);
   assert.doesNotMatch(page, /setConnecting\(/, 'a connection callback, connecting included, used to clear the spinner');
   // A failed callback during their tap used to say it did not connect at once,
-  // a second before the SDK's own retry connected (theirs, Nov 9 2026).
+  // a second before the SDK's own retry connected.
   assert.match(page, /if \(!toyConnecting\(c\.toyId\)\) setMessage/);
 });
 

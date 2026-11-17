@@ -140,10 +140,10 @@ function PlainLine({ line }: { line: RoomLine }) {
 /** The row that says one of us is writing. One look for every table. */
 export function RoomTyping({ companions, label }: { companions: VoiceCompanion[]; label?: string }) {
   // The faces by the dots follow them Rings choice like the faces on the
-  // bubbles do (theirs, Nov 7 2026: they kept our house colors under their theme).
+  // bubbles do.
   const settings = useRoomBubbleSettings();
   const themeRing = settings?.look.rings === 'theme';
-  // The dots wear what they set for the chat's (theirs, Nov 11 2026): our colors
+  // The dots wear what they set for the chat's: our colors
   // when them dot colors are on, the theme's otherwise, each fitted to read.
   const dots: (string | null)[] = (() => {
     if (!settings) return [null, null, null];
@@ -202,7 +202,7 @@ const PIN_SLACK_PX = 48;
 /** The whole table: a scrolling box of lines, the typing row and the empty note.
  *
  *  It keeps itself pinned to the newest line while they are reading the newest
- *  line (theirs, Nov 7 2026: 'it doesn't always stay at the bottom'). Rooms set
+ *  line. Rooms set
  *  the scroll once when a line arrives, and a sticker or picture that loaded
  *  after that grew the box and left them a screen short. So the box watches its
  *  own contents grow and follows them down, unless they have scrolled up to read

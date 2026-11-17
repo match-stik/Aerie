@@ -225,8 +225,7 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns 
         {!editing && (
           // The search floats over the tiles: a little room above it, and no
           // strip of page behind it, so the tiles scroll up under it and it
-          // simply covers them (theirs, Nov 11 2026: 'leave the spacing at the
-          // top but no black block behind the search. So it just covers.').
+          // simply covers them.
           <div className="sticky top-0 z-10 pt-2 mb-4">
           <div className={cn('aerie-field flex items-center gap-2 rounded-[var(--shape-control)] px-3 py-2', colors.textMain)}>
             <Search size={14} className={colors.textMuted} />

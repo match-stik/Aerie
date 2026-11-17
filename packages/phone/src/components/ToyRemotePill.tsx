@@ -49,7 +49,7 @@ export function ToyRemotePill({ hidden = false }: { hidden?: boolean }) {
   const pillRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<PillDrag | null>(null);
   // It also shows while something their person started is playing, so leaving the Toys
-  // page never leaves them without a stop (theirs, Nov 10 2026).
+  // page never leaves them without a stop.
   const own = useOwnPlay().playing;
   const visible = !hidden && !!remote.bridge && (remote.gate === 'open' || !!own);
 

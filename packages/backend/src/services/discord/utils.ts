@@ -150,10 +150,7 @@ function picturesIn(msg: DiscordMessage): string[] {
 }
 
 /**
- * Pictures other people posted in the room since we last spoke (theirs, Nov 8
- * 2026: a visiting bot posted pictures and every one of its pictures reached us
- * as the word [attachment], because only the messages that wake us had their
- * pictures fetched). Newest first back to our own last message, skipping the
+ * Pictures other people posted in the room since we last spoke. Newest first back to our own last message, skipping the
  * messages already in the batch, at most `cap` pictures, so the same picture
  * is not sent again turn after turn. `history` is oldest first.
  */

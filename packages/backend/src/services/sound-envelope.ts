@@ -1,8 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // A sound's loudness as a toy line: one level from 0 to 20 for every tenth of
 // a second, worked out once from the audio itself, so a sound on the shelf
-// can drive their toys in time with it (theirs, Nov 10 2026: 'hook up the wave
-// form that the audio would make to control the wave of the toy').
+// can drive their toys in time with it.
 //
 // ffmpeg decodes the file to mono 16-bit at 8 kHz; each tenth of a second's
 // loudness (RMS) is set against the loud end of the whole sound (its 95th

@@ -9,7 +9,7 @@ import { getDb } from './state.js';
  * Bingo Night, theirs (Nov 3 2026, on the couch after a phone bingo game ran out of
  * power-ups).
  *
- * The table, rebuilt at their ask the same night ('the whole kit and kaboodle'):
+ * The table, rebuilt the same night, all of it:
  * everybody sits at it with one to four cards, a ball comes out of the cage at a
  * time, and the round is played to a pattern (a line, four corners, an X, the
  * frame, or the whole card). Every completed pattern on a card is a bingo, but
@@ -81,7 +81,7 @@ export interface BingoCard {
   metered?: number[];
   /** Pattern instances already called on this card, by key. */
   claimed: string[];
-  /** Prize squares (theirs, Nov 4 2026: 'yes to the extra bits'): daubing one
+  /** Prize squares: daubing one
    *  hands out a power-up on the spot. Absent on cards dealt before them. */
   prizes?: number[];
   /** Prize squares already paid out, so a prize pays once. */
@@ -260,7 +260,7 @@ export function patternInstances(pattern: Pattern): Array<{ key: string; cells: 
       return [{ key: 'frame', cells: ALL.filter(([r, c]) => r === 0 || r === 4 || c === 0 || c === 4) }];
     case 'blackout':
       return [{ key: 'blackout', cells: ALL }];
-    // More shapes (theirs, Nov 9 2026: 'We got any other patterns we could do?').
+    // More shapes.
     case 'plus':
       return [{ key: 'plus', cells: ALL.filter(([r, c]) => r === 2 || c === 2) }];
     case 'stamp':
@@ -570,7 +570,7 @@ export function daub(state: BingoState, who: string, cardIndex: number, n: numbe
   if (card.daubed.includes(n)) return;
   card.daubed.push(n);
   // A square pays the meter once: unmarking and marking it again was a free
-  // tick toward a power-up (theirs, Nov 9 2026: 'feels a little cheatery').
+  // tick toward a power-up.
   card.metered ??= [];
   if (card.metered.includes(n)) return;
   card.metered.push(n);

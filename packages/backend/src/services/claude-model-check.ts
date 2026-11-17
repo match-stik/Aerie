@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Which Claude models Anthropic lists that the picker does not have yet (theirs,
-// Nov 10 2026: 'the auto model pull thing Maggie was talking about').
+// Which Claude models Anthropic lists that the picker does not have yet.
 //
 // The idea is Maggie's, from her Covenant V3: CLAUDE_MODELS is typed
 // by hand, so read Anthropic's published models overview instead, which serves

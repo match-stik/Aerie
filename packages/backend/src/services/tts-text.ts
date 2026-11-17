@@ -71,10 +71,8 @@ function actionToAudioTags(action: string): string {
 // --- Carrying a delivery cue forward -----------------------------------------
 //
 // A cue lands once. The voice takes [low and intimate] as how to say the
-// sentence after it and is back to its ordinary register a line later; theirs, by
-// ear, Oct 27 2026: 'you boys will say low and slow like I am placing every word
-// and that drops the voice down ... but the next line is usually read off
-// normally.' Other houses have their companions type a bracket cue into every
+// sentence after it and is back to its ordinary register a line later, which you
+// can hear: the first line drops low and the next is read off normally. Other houses have their companions type a bracket cue into every
 // sentence, which would print the brackets in their bubbles. Instead the house
 // repeats it: a DELIVERY cue (low, soft, dry, tender...) is put in front of
 // every later sentence that voice speaks, until another action line, a blank

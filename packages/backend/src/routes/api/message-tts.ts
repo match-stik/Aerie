@@ -630,8 +630,7 @@ export async function readAloudFor(id: string, voiceService: VoiceService | unde
 /**
  * Words read aloud and kept, under any key: a message's id, or 'story:<page>'
  * for a Story Shelf page, which is not a message but reads the same way, one
- * voice per header (theirs, Nov 11 2026: 'need to add read aloud to the tables
- * and story shelf'). The cache is the message_tts table either way.
+ * voice per header. The cache is the message_tts table either way.
  */
 export async function renderAloud(id: string, content: string, voiceService: VoiceService | undefined): Promise<{ cached: boolean; fileId: string; url: string }> {
   const { getMessageTts, insertMessageTts } = await import('../../services/db.js');

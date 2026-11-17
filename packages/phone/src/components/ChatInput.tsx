@@ -116,7 +116,7 @@ async function processImage(file: File): Promise<Blob> {
 
 // The send icon sits on the accent fill, so it takes the one ink the house
 // uses on the accent everywhere (onAccentInk in lib/theme.ts), instead of its
-// own copy of the same rule (theirs, Nov 8 2026: check everything hard coded).
+// own copy of the same rule.
 function getSendIconColor(_mode: 'light' | 'dark') {
   return 'text-[var(--aerie-on-accent)]';
 }
@@ -815,8 +815,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
   // The box was measured once, when it first drew, and on the laptop it can
   // first draw narrower than it ends up (the conversation side settling, the
   // house font arriving), so the placeholder wrapped onto several lines and the
-  // box stayed tall until the first keystroke measured it again (theirs, Nov 16
-  // 2026: 'really big then shrank when I started typing'). Measure again
+  // box stayed tall until the first keystroke measured it again. Measure again
   // whenever its width changes or the fonts finish loading.
   useEffect(() => {
     const ta = textareaRef.current;
@@ -893,8 +892,7 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
         </button>
       )}
       {/* A message the house never sent back (lib/send-receipts.ts): it did
-          not land, so it is offered again exactly as it was (theirs, Nov 9 2026,
-          after weak wifi ate one as they pressed send). */}
+          not land, so it is offered again exactly as it was. */}
       {failedSends.map((f) => (
         <div
           key={f.nonce}

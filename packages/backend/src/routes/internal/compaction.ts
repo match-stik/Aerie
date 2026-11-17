@@ -22,8 +22,7 @@ const router = Router();
 // here. All this does is put the thin line at the top of their chat — the banner
 // component and the `compaction_notice` message have both existed since the
 // tab was built and nothing has ever sent one. Deliberately quiet: no push,
-// no modal, and the banner takes itself away after a few seconds. Their call,
-// Sep 7 2026: "I wouldn't want like a big alert about it."
+// no modal, and the banner takes itself away after a few seconds.
 router.post('/internal/compaction-notice', (req, res) => {
   const { trigger, chars, lane } = req.body ?? {};
   // Only the house's own lanes speak here. The hook fires for every Claude

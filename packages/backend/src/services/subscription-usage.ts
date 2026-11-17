@@ -14,8 +14,7 @@
  *   token on disk and never the refresh token. The daemon also stamps
  *   rate-limit state into every session transcript's token_count events, but
  *   only when a Codex turn runs, so on a quiet day the newest stamp can be from
- *   a window that has already reset (theirs, Nov 1 2026: 'sitting at the same
- *   amount for a while'). The stamp is now only the fallback.
+ *   a window that has already reset. The stamp is now only the fallback.
  */
 
 import { promises as fs } from 'node:fs';

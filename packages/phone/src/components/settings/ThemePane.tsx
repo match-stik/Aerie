@@ -70,8 +70,7 @@ export function ThemePane({ s }: { s: SettingsState }) {
               key={themeId}
               onClick={() => handleColorSelect(themeId)}
               className={cn(
-                // Every swatch at full strength (theirs, Nov 8 2026: faded to 75%
-                // on Daylight's pale paper they all looked washed out).
+                // Every swatch at full strength.
                 "flex flex-col items-center gap-1.5 transition-all duration-300",
               )}
             >
@@ -80,9 +79,9 @@ export function ThemePane({ s }: { s: SettingsState }) {
                 style={{
                   background: `linear-gradient(135deg, ${side.primary}, ${side.secondary})`,
                   // White on every theme in both modes, matching the white check: the
-                  // theme's own ink made the outline change color from theme to theme
-                  // (theirs, Nov 8 2026), and a black one by day beside a white check
-                  // looked mismatched (theirs, Nov 9 2026: 'Let's just do white').
+                  // theme's own ink made the outline change color from theme to theme.
+                  // And a black one by day beside a white check
+                  // looked mismatched.
                   borderColor: isSelected ? "#FFFFFF" : "transparent",
                   boxShadow: isSelected ? `0 0 18px ${side.primary}66` : undefined,
                 }}

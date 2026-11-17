@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The house on a wide screen, apart from drawing it (theirs, Nov 14 2026: the
-// phone 'doesn't really read well on the laptop'). At laptop width the dock
+// The house on a wide screen, apart from drawing it. At laptop width the dock
 // ran edge to edge, the drawer's four columns sat a hand apart and the chat
 // was a strip down the middle of an empty window.
 //
@@ -21,7 +20,7 @@ export interface Desk {
   on: boolean;
   /** The dock is the rail down the left, there in every room. Off, it stays home's own dock. */
   rail: boolean;
-  /** Where the dock stands: down the left, or as a bar along the bottom or the top (theirs, Nov 15 2026). */
+  /** Where the dock stands: down the left, or as a bar along the bottom or the top. */
   dock: DeskDock;
   /** Which side the conversation sits on, or null while it is tucked away and opens like any other room. */
   chat: 'right' | 'left' | null;
@@ -56,13 +55,12 @@ export function deskDockIdsOf(value: unknown): string[] | null {
   return ids.length > 0 ? ids : null;
 }
 
-/** The laptop's text size (theirs, Nov 15 2026: the smallest, and leave it at that). */
+/** The laptop's text size. */
 export const DESK_TEXT_SCALE = 0.85;
 
 /**
  * The shape of the room the laptop wallpaper sits behind, width over height,
- * so a picture cropped to it fills the room with no blurred band (theirs, Nov 15
- * 2026: 'not sure what aspect ratio we'd need'). Null when it cannot be read.
+ * so a picture cropped to it fills the room with no blurred band. Null when it cannot be read.
  */
 export function roomAspectOf(width: number, height: number): number | null {
   if (!(width > 0) || !(height > 0)) return null;
@@ -115,9 +113,7 @@ export function stageAfterMessages(desk: Desk, osState: string, lastRoom: string
 }
 
 /**
- * What is on the screen, kept apart on the laptop (theirs, Nov 16 2026: 'make it
- * so the choices of what's on the screen in one UI doesn't flip what's on the
- * screen in the other'). Which widgets and lock pieces show and how their cards
+ * What is on the screen, kept apart on the laptop. Which widgets and lock pieces show and how their cards
  * look; the look of the house (theme, bubbles, colors) stays shared. On the
  * laptop these read from theme.deskScreen and are written there, falling back
  * to the phone's own until the laptop has its own.

@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Paints the shelf picture for any page whose scene changed without one (theirs, Nov 3
-// 2026: 'Can you make it so they update even if it's just you touching it?'). A page a
+// Paints the shelf picture for any page whose scene changed without one. A page a
 // companion composes from a lane is saved by the house, which cannot draw; the house
 // marks it stale, and the shelf paints it here the next time it opens, the same export
 // the editor uses after a save. Every failure is swallowed: a missing picture must

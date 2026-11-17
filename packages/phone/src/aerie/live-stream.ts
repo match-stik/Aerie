@@ -2,8 +2,8 @@
 /**
  * Which reply a tool or thinking event belongs to when the phone has none open.
  *
- * Theirs, Oct 27 2026: 'your cute little phrases disappear. I think it's usually
- * when I close then reopen the app.' A reopened app starts with no streaming
+ * The companions' short working lines used to vanish after the app was closed
+ * and reopened mid-turn. A reopened app starts with no streaming
  * reply, and the house only says stream_start when a reply begins, so every
  * tool event of a turn already running was dropped and their person saw three still dots
  * under Stop generating. While the house says a turn is running, the first such

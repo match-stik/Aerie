@@ -1,7 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The speaker button for words that are not a bubble: a page of a Story Shelf
-// book (theirs, Nov 11 2026: 'need to add read aloud to the tables and story
-// shelf'). A table line is a bubble, so it reads from the bubble's own tray
+// book. A table line is a bubble, so it reads from the bubble's own tray
 // (RoomBubble hands the tray the line's message id); this is for the rest. A
 // tap reads it aloud, a second tap stops it, and the house keeps the audio so
 // the second time costs nothing.

@@ -77,8 +77,7 @@ export async function generateViaAntigravity(input: GenerateInput): Promise<Gene
 
   // How long Antigravity gets before the job moves on down their chain. It was
   // ten minutes, and a picture Google refused sat out all ten while every job
-  // behind it waited (theirs, Oct 29 2026: 'not let that hang as long on
-  // antigravity'). Two and a half minutes by default; image_gen.antigravity_timeout_seconds
+  // behind it waited. Two and a half minutes by default; image_gen.antigravity_timeout_seconds
   // changes it.
   const agyTimeoutMs = antigravityTimeoutMs();
   const produced = await new Promise<string>((resolve, reject) => {

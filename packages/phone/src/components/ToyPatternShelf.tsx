@@ -64,14 +64,14 @@ interface Recording {
 
 const LOOP_KEY = 'aerie.toys.patternLoop';
 const OPEN_KEY = 'aerie.toys.patternsOpen';
-/** Patterns shown at once; the rest are a page turn away, so the shelf never scrolls forever (theirs, Nov 9 2026). */
+/** Patterns shown at once; the rest are a page turn away, so the shelf never scrolls forever. */
 const PAGE_SIZE = 5;
 
 export function ToyPatternShelf(props: Props) {
   const { connected, levels, tapRef, stopEpoch, lanePlaying, holding, accentHex, panelClass, textMain, textMuted, panelBorder } = props;
   const [patterns, setPatterns] = useState<ShelfPattern[] | null>(null);
   // What plays lives in aerie/own-play.ts, outside this page, so it keeps
-  // going while they are in the chat (theirs, Nov 10 2026).
+  // going while they are in the chat.
   const own = useOwnPlay();
   const loop = own.loop;
   const shelfPlaying = own.playing?.kind === 'shelf' ? own.playing : null;
@@ -95,7 +95,7 @@ export function ToyPatternShelf(props: Props) {
   const [stitchName, setStitchName] = useState('');
   const [page, setPage] = useState(0);
   // The shelf folds to its header row, so Record is a tap away and the
-  // sliders are not a scroll below it (theirs, Nov 9 2026).
+  // sliders are not a scroll below it.
   const [open, setOpen] = useState<boolean>(() => {
     try { return localStorage.getItem(OPEN_KEY) !== 'closed'; } catch { return true; }
   });

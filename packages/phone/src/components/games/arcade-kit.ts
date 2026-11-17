@@ -118,8 +118,7 @@ export function fitCanvas(canvas: HTMLCanvasElement, w: number, h: number): Canv
 // ── Words over a moving picture ─────────────────────────────────────────────
 // The pop-ups ("Level 3", "Dusk", "+10") used to be drawn in a palette colour
 // with a blurred shadow, so on a pale day page or a dark sea of the same hue
-// they drowned (theirs, Nov 11 2026: 'a color pass for legibility on all of the
-// themes'). A label now reads what is actually painted behind it and leans its
+// they drowned. A label now reads what is actually painted behind it and leans its
 // ink just far enough toward white or black to read, with a thin crisp edge.
 
 /** WCAG relative luminance of a #rrggbb colour. */

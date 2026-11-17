@@ -20,7 +20,7 @@ const reported = new Set<string>();
 /**
  * One line in the house's error log from inside the laptop app, once per
  * subject per page load, so a thing that will not load there can be read from
- * the house (theirs, Nov 15 2026: the note and the weather on the app's home).
+ * the house.
  * Says nothing anywhere else.
  */
 export function reportFromLaptop(subject: string, message: string): void {

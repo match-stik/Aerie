@@ -60,8 +60,7 @@ const SpotifyRemote = registerPlugin<SpotifyRemoteBridge>('SpotifyRemote');
 // ---- the Aerie app on their laptop (desktop/main.cjs) ----
 //
 // The laptop app hands the page window.aerieDesktop, whose wakeSpotify starts
-// Spotify on that computer (theirs, Nov 15 2026: 'an actual app ... and wake
-// spotify with it'). The house then sees the laptop among their devices.
+// Spotify on that computer. The house then sees the laptop among their devices.
 
 interface LaptopBridge {
   wakeSpotify(): Promise<{ launched: boolean; road: string }>;

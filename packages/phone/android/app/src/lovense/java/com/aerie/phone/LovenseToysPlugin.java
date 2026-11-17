@@ -538,7 +538,7 @@ public class LovenseToysPlugin extends Plugin {
             Log.w(TAG, "stop on the way out", t);
         }
         // And their toys are let go, the way Lovense's own app does when it is
-        // closed (theirs, Nov 10 2026: closing the app left them connected).
+        // closed.
         // Each toy is set to stop itself when the phone loses it
         // (SET_AUTO_SWITCH on connect), so a zero still in the queue when the
         // link drops is covered either way.

@@ -12,7 +12,7 @@ import { useSyncExternalStore } from 'react';
 export const RECEIPT_KEY = 'clientNonce';
 export const RECEIPT_TIMEOUT_MS = 12_000;
 /** When the phone itself says it has no connection there is nothing to wait for
- *  (theirs, Nov 9 2026: the tab took a little while to show with their data off). */
+  */
 export const RECEIPT_OFFLINE_MS = 1_500;
 
 export interface WatchedSend {

@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Where each piece of the lock screen sits (theirs, Nov 8 2026: 'I think the
-// grid'). Before this the clock and the weather moved freely, the cards at the
+// Where each piece of the lock screen sits. Before this the clock and the weather moved freely, the cards at the
 // bottom never moved, and the Spotify card slid up out of the way of anything
 // it touched, which read as being shoved. Now every piece sits on the same
 // four-column grid as the home screen (lib/grid-place.ts), rows in thirds
@@ -8,13 +7,10 @@
 // actually draws. A drop that clips a neighbor snaps flush against it; a real
 // overlap moves the other piece to the nearest open place; nothing slides.
 // Places are cells, not pixels, so the same layout fits any screen.
-// Across, a piece moves in QUARTER columns (theirs, Nov 8 2026: the weather line
-// would not sit exactly in the middle): a one-column piece on a four-column
+// Across, a piece moves in QUARTER columns: a one-column piece on a four-column
 // grid has no middle column to sit in. A piece is sized in half columns and
 // moved in quarters, so whatever its width there is a step that puts it dead
-// center. Up and down works the same way (theirs, Nov 8 2026: pieces that
-// looked like they'd stack were pushing each other apart, because a one-line
-// weather piece held a whole row it never drew in, gap and all): rows step in
+// center. Up and down works the same way: rows step in
 // quarters, and the gap between two pieces is part of the space each one
 // takes, so a piece holds at most a quarter row more than it draws. Places
 // save in columns and rows that may end in .25, .5 or .75; places saved

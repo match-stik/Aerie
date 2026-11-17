@@ -127,7 +127,6 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
   // The place a fresh arrival notice vouched for. The OS saw them standing there
   // (it waited out the dwell), so the page says so too, with no GPS fix of its
   // own. Before this the content opened but the banner said Not here right now
-  // (theirs, Nov 14 2026, at Work).
   const [arrivedId, setArrivedId] = useState<string | null>(null);
 
   const [pinName, setPinName] = useState('');

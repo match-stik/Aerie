@@ -95,9 +95,7 @@ router.get('/internal/paint/:id', (req, res) => {
 });
 
 /**
- * Make a NEW voice note and hand back its file ids, posting nothing (their person's ask,
- * Nov 6 2026: 'you should be able to create voice notes and drop them in if I
- * ask'). Same narrow road as a picture: hooks/speak.cjs is the only thing on
+ * Make a NEW voice note and hand back its file ids, posting nothing. Same narrow road as a picture: hooks/speak.cjs is the only thing on
  * their Discord turn allowed to call it, it records what it made in io/.painted,
  * and reply.cjs attaches only files made on that same turn.
  */

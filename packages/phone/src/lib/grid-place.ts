@@ -1,7 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The grid the home screen's widgets and the lock screen's pieces both sit on
-// (theirs, Nov 8 2026: the lock screen goes on the grid too, so the two never
-// disagree). Four columns; rows count up from the bottom edge, in whatever
+// The grid the home screen's widgets and the lock screen's pieces both sit on.
+// Four columns; rows count up from the bottom edge, in whatever
 // unit the caller draws them (the home screen and the lock screen both use
 // thirds of a widget row). Kept free of imports so it can be tested alone.
 
@@ -89,8 +88,7 @@ export function gridHeight<K extends string>(layout: Partial<Record<K, GridSpot>
  *  (kept inside the columns and under rowLimit), everything it doesn't cover
  *  stays put, and anything it does cover moves to the open place nearest
  *  where it was. A drop that only clips a neighbor by less than `snapRows`
- *  was meant to sit against it (theirs, Nov 8 2026: dropping things down to the
- *  Record kept kicking it up to the top), so it snaps flush instead. */
+ *  was meant to sit against it, so it snaps flush instead. */
 export function placeOnGrid<K extends string>(
   layout: Record<K, GridSpot>,
   order: readonly K[],

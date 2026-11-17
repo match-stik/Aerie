@@ -41,8 +41,7 @@ export function motorsFor(toy: { commands: readonly string[] }): ToyMotor[] {
   // pump, as Lovense's SDK names it (AIR_AUTO, 0 to 3), which the phone's
   // bridge already sends and already zeroes on a stop; a level asked above 3
   // is held at 3. Added so a house with one gets a slider instead of nothing
-  // (their person's ask, Oct 26 2026: 'adding it and the note that they're
-  // untested is best'). Lovense's support table (Android SDK page, read
+  //. Lovense's support table (Android SDK page, read
   // Oct 26 2026) lists THRUST for the Solace, so a Solace already gets the
   // Thrust slider above; SOLACE, thrust with a depth of 1 to 3, has no
   // column in that table at all, so whether a Solace reports it is not known. The Solace Pro's SPEED (speed,
@@ -61,8 +60,7 @@ export function motorsFor(toy: { commands: readonly string[] }): ToyMotor[] {
  *  modes its own button clicks through after its three steady levels. */
 //
 // A toy they have programmed more into from Lovense's own app (it offers six)
-// can be told so on its settings page, up to the command's 10 (theirs, Nov 10
-// 2026: what they program there is kept on the toy, and Preset plays it).
+// can be told so on its settings page, up to the command's 10.
 export function presetsFor(toy: { commands: readonly string[]; toyId?: string }): number {
   if (!toy.commands.includes('PRESET')) return 0;
   const said = toy.toyId ? toySettings.get(toy.toyId).presets : undefined;

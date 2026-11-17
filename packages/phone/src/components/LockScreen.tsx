@@ -151,7 +151,7 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-900 to-black opacity-80" />
       )}
 
-      {/* Every piece on the grid (components/LockGrid.tsx, theirs, Nov 8 2026):
+      {/* Every piece on the grid (components/LockGrid.tsx):
           the clock in them face and size, the weather in its look, who's
           written, a note on the fridge, and what is playing. Holding one
           lifts it; nothing slides out of anything's way. */}

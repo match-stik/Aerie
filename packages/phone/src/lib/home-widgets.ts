@@ -29,8 +29,7 @@ export type Sizes = Partial<Record<HomeWidget, { cols: number; rows: number }>>;
 
 /** The sizes them picked looks give: the slim Spotify line is two thirds of a
  *  row, just tall enough for its pill; the Record stands stacked in half the
- *  width, two rows tall, so something fits beside it (theirs, Nov 8 2026, the
- *  way the lock screen's Record already sat). */
+ *  width, two rows tall, so something fits beside it. */
 export function lookSizes(looks: { spotify?: string; weather?: string }): Sizes {
   const sizes: Sizes = {};
   if (looks.spotify === 'slim') sizes.music = { cols: 4, rows: 2 };
@@ -40,8 +39,7 @@ export function lookSizes(looks: { spotify?: string; weather?: string }): Sizes 
   return sizes;
 }
 
-/** The home Weather widget's looks (theirs, Nov 9 2026: 'like we have for the
- *  lock screen'). Card is the one it always was. */
+/** The home Weather widget's looks. Card is the one it always was. */
 export type HomeWeatherLook = 'card' | 'big' | 'line' | 'pill';
 export const HOME_WEATHER_LOOKS: readonly HomeWeatherLook[] = ['card', 'big', 'line', 'pill'];
 export function homeWeatherLookOf(value: unknown): HomeWeatherLook {
@@ -80,16 +78,14 @@ export function toggleWidget(current: readonly HomeWidget[], id: HomeWidget): Ho
 
 export { GRID_COLS };
 
-/** The laptop's wall (theirs, Nov 15 2026: 'are we not able to make it so we
- *  can move things around'): as many phone-width columns as the room holds,
+/** The laptop's wall: as many phone-width columns as the room holds,
  *  so a widget keeps its phone size and can sit anywhere across the room (an
  *  eight-column wall stretched every card to fill it, theirs the same hour).
  *  Its places are kept apart from the phone's, so arranging one never moves
  *  the other. DESK_COLS is the most columns a place can name. */
 export const DESK_COLS = 24;
 /** A phone column's width, the same as a row's, so a two-by-two note on the
- *  wall is the square it is on their phone (theirs, Nov 15 2026: 'stretched out
- *  instead of the cute square it is on the phone'). The wall's columns are
+ *  wall is the square it is on their phone. The wall's columns are
  *  exactly this wide and the wall sits centered in the room. */
 export const DESK_COL_PX = 76;
 /** How many columns a wall this wide holds, never fewer than the phone's four. */
@@ -126,8 +122,7 @@ export function homeSpotsOf(value: unknown, maxRow = 40 * ROW_PARTS, width = GRI
     // Only the column has to be on the grid here: a widget's width depends on
     // the look they picked (the Record is half as wide as the bar), so whether
     // it fits from that column is checked against its real size when it is
-    // laid out (theirs, Nov 8 2026: the Record would not stay on the right,
-    // because this checked it against the bar's full width).
+    // laid out.
     if ((col as number) < 0 || (col as number) >= width || (row as number) < 0 || (row as number) > maxRow) continue;
     out[w.id] = { col: col as number, row: row as number };
   }
@@ -176,8 +171,7 @@ export function layoutWidgets(widgets: readonly HomeWidget[], spots: Layout, siz
 }
 
 /** The widgets that fit under the top of the screen, and the ones that
- *  don't (theirs, Nov 8 2026: they added one too many and them Spotify bar went
- *  up off the top of the screen). With no room measured yet, everything shows.
+ *  don't. With no room measured yet, everything shows.
  *  A widget that has to give way is the newest one they turned on before they
  *  has moved anything, and otherwise the one the grid had to put above the
  *  top, so the places they chose are never the ones that disappear. */

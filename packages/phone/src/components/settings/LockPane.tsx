@@ -105,8 +105,7 @@ export function LockPane({ s }: { s: SettingsState }) {
             </div>
           </div>
         </section>
-        {/* The clock and everything about it in one place (theirs, Nov 8 2026:
-            the sizes sat apart from the faces, mixed in with other things). */}
+        {/* The clock and everything about it in one place. */}
         <section className={cn("space-y-4 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
           <h3 className={cn("micro-label", colors.accentText)}>Clock</h3>
           <div className="grid grid-cols-3 gap-3">
@@ -167,7 +166,7 @@ export function LockPane({ s }: { s: SettingsState }) {
           </div>
         </section>
         {/* Every card on the lock screen, together: what each one shows, then
-            how they all look (theirs, Nov 8 2026). */}
+            how they all look. */}
         <section className={cn("space-y-3 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
           <h3 className={cn("micro-label", colors.accentText)}>Cards</h3>
           <h3 className={cn("micro-label pt-1", colors.accentText)}>Who's written you</h3>
@@ -192,7 +191,7 @@ export function LockPane({ s }: { s: SettingsState }) {
               </button>
             ))}
           </div>
-          {/* Its look (theirs, Nov 7 2026: more looks for the player). */}
+          {/* Its look. */}
           <div className="grid grid-cols-3 gap-2">
             {([["bar", "Bar"], ["cover", "Record"], ["slim", "Slim"]] as [LockSpotifyLook, string][]).map(([id, label]) => (
               <button key={id} onClick={() => onThemeChange({ lockSpotifyLook: id })} className={chip(lockSpotifyLookOf(theme.lockSpotifyLook) === id)} style={chipStyle(lockSpotifyLookOf(theme.lockSpotifyLook) === id)} aria-pressed={lockSpotifyLookOf(theme.lockSpotifyLook) === id}>
@@ -211,7 +210,7 @@ export function LockPane({ s }: { s: SettingsState }) {
               </button>
             ))}
           </div>
-          {/* Off, the cards and the weather float on the wallpaper (theirs, Nov 8 2026). */}
+          {/* Off, the cards and the weather float on the wallpaper. */}
           <h3 className={cn("micro-label pt-1", colors.accentText)}>Card behind</h3>
           <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
             Off takes the card out from behind the messages, the note, Spotify and the weather, so the words float on your wallpaper with a soft shadow. Good on a quiet wallpaper.

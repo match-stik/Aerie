@@ -356,8 +356,7 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
             <div className="flex shrink-0 -space-x-1.5">
               {writers.map((c) => c.avatar_url ? (
                 // Ringed in the note's ink, not our colour: our papers are our
-                // colour, and a ring in it vanished into the paper (theirs, Nov 5
-                // 2026: the dot and the note were almost the same colour).
+                // colour, and a ring in it vanished into the paper.
                 <img key={c.slug} src={c.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" style={{ boxShadow: `0 0 0 1.5px ${ink}` }} />
               ) : (
                 <div key={c.slug} className="h-5 w-5 rounded-full" style={{ background: c.color || colors.accent, boxShadow: `0 0 0 1.5px ${ink}` }} />
@@ -419,9 +418,7 @@ export function NotesApp({ onClose, themeConfig, themeMode, stickyNoteColors, th
           </div>
         ) : (
           <div className={cn('mt-1.5', isMyNote(note) && 'cursor-pointer')} onClick={() => handleEditNote(note)}>
-            {/* Handwritten, like the home screen's note (theirs, Nov 5 2026: 'I
-                like the handwritten look of it and would like that in the
-                notes app too'). Caveat runs small, so it is set a size up. */}
+            {/* Handwritten, like the home screen's note. Caveat runs small, so it is set a size up. */}
             <p className={cn('whitespace-pre-wrap text-[19px] leading-[1.15] [overflow-wrap:anywhere]', long && !open && 'line-clamp-8')} style={{ fontFamily: HANDWRITING }}>
               {note.text}
             </p>

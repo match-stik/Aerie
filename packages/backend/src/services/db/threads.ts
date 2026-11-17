@@ -67,7 +67,7 @@ export function getTodayThread(): Thread | null {
 }
 
 /**
- * How often the house starts a new thread on its own (theirs, Oct 31 2026):
+ * How often the house starts a new thread on its own:
  * 'daily' (the default), 'weekly', or 'continuous', which is one thread that
  * keeps going (the same as orchestrator.daily_threads false, which still works).
  */

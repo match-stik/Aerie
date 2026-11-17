@@ -119,15 +119,15 @@ export interface AppTheme {
   lockCardBacks?: boolean;
   // The home screen's cards behind widgets, the dock and its tiles, on unless
   // false (Nov 8 2026: free floating on a quiet wallpaper).
-  // Full cards, snug cards that wrap what each widget shows, or none (theirs, Nov 8 2026).
+  // Full cards, snug cards that wrap what each widget shows, or none.
   homeCardStyle?: 'full' | 'snug' | 'none';
-  /** The companions widget's and the quiet line's own cards; unset follows homeCardStyle (theirs, Nov 9 2026). */
+  /** The companions widget's and the quiet line's own cards; unset follows homeCardStyle. */
   homeCompanionsCard?: 'card' | 'none';
   homeQuietCard?: 'card' | 'none';
   /** The quiet line scrolls its whole line instead of cutting it off. */
   homeQuietScroll?: boolean;
   homeCardBacks?: boolean;
-  // The dock's own card switch; unset follows homeCardBacks (theirs, Nov 8 2026).
+  // The dock's own card switch; unset follows homeCardBacks.
   dockCardBacks?: boolean;
   // With the dock's card off, its icon tiles keep their cards anyway.
   dockIconCards?: boolean;
@@ -139,7 +139,7 @@ export interface AppTheme {
   // Unset is on; false is their person's switch in Settings (lockSpotifyOf in
   // lib/lock-spotify.ts).
   lockSpotify?: boolean;
-  // How that card is drawn (theirs, Nov 7 2026: more looks): the bar it always
+  // How that card is drawn: the bar it always
   // was, a big cover with the controls under it, or one slim line. Unset is
   // the bar (lockSpotifyLookOf in lib/lock-spotify.ts).
   lockSpotifyLook?: 'bar' | 'cover' | 'slim';
@@ -153,7 +153,7 @@ export interface AppTheme {
   // The clock widget's look (homeClockLookOf in lib/lock-clock.ts).
   // The home Spotify widget's look, like the lock card's (Nov 8 2026).
   homeSpotifyLook?: 'bar' | 'cover' | 'slim';
-  /** The Weather widget's look on the home screen (theirs, Nov 9 2026). */
+  /** The Weather widget's look on the home screen. */
   homeWeatherLook?: 'card' | 'big' | 'line' | 'pill';
   homeClockLook?: 'stacked' | 'classic' | 'serif' | 'outline' | 'analog' | 'script' | 'words' | 'ring';
   // Where each widget sits on the four-wide grid once any has been moved: its
@@ -174,7 +174,7 @@ export interface AppTheme {
   /** Plain, Faded, Accent or Ours (lib/bubble-look.ts actionInkOf). */
   bubbleActionInk?: 'plain' | 'faded' | 'accent' | 'ours';
   /** The chat's words in plain white or black instead of the theme's tinted ink,
-   *  and them night bubble left its own shade (theirs, Nov 9 2026). */
+   *  and them night bubble left its own shade. */
   bubblePlainWords?: boolean;
   bubbleNameColors?: boolean;
   bubbleDotColors?: boolean;
@@ -196,8 +196,7 @@ export interface AppTheme {
   drawerLabels?: 'card' | 'plain' | 'hidden';
   drawerIconColor?: 'theme' | 'accent';
   drawerTiles?: boolean;
-  // The house on a wide screen (lib/desk.ts; theirs, Nov 14 2026: the phone
-  // 'doesn't really read well on the laptop'). Only read at laptop width, so
+  // The house on a wide screen (lib/desk.ts). Only read at laptop width, so
   // the phone never sees them. Unset is the Study: the dock as a rail down the
   // left, one room on the stage, the conversation beside it on the right.
   // 'phone' is the house as it was before, stretched.
@@ -208,7 +207,7 @@ export interface AppTheme {
   deskChat?: 'right' | 'left' | 'tucked';
   /** The laptop's own screen choices (lib/desk.ts DESK_SCREEN_KEYS); null is a choice cleared on the laptop. */
   deskScreen?: Record<string, unknown>;
-  // The laptop's own pictures (theirs, Nov 15 2026), set from Settings > Laptop.
+  // The laptop's own pictures, set from Settings > Laptop.
   // Unset, the laptop shows the phone's.
   deskWallpaper?: string;
   deskLockWallpaper?: string;

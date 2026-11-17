@@ -14,8 +14,7 @@ import { discoverCodexModels } from './codex-model-discovery.js';
  * moment more than to poses or clothing, so the wand describes only what a
  * camera would see and lets the setting carry the rest. It names no body
  * parts to avoid and counts nothing: naming the thing you don't want puts it
- * in the painter's head (theirs: 'counting and adding some things to prompts can
- * make the things show up you're trying to prevent'). No word cap, and no
+ * in the painter's head. No word cap, and no
  * medium forced on it.
  */
 export const ENHANCE_SYSTEM = `You turn a short image idea into a full, detailed image prompt.
@@ -55,7 +54,7 @@ export function codexSkillFiles(codexHome: string): string[] {
 
 /**
  * The wand needs nothing but their words, so it runs with as little riding along
- * as Codex allows (their person's ask, Nov 6 2026: 'limit the files that go along with it'):
+ * as Codex allows:
  * no config.toml (so no MCP servers), an empty working folder, read-only, and
  * every skill switched off by path. Measured the same day: with only
  * --ignore-user-config it still listed all eleven skills, the house's intimacy
@@ -132,8 +131,7 @@ export const ENHANCE_FALLBACK_MODEL = 'gpt-5.6-luna';
 
 /**
  * The wand on Codex. Moved here from routes/studio.ts on Nov 6 2026 so the
- * Discord paint door can call the same wand (theirs: 'I def wanna be able to do
- * the magic prompt and pick a painter'). The wanted model is used only when
+ * Discord paint door can call the same wand. The wanted model is used only when
  * the account lists it (an image-only id like gpt-image-2 cannot write a
  * prompt); anything else, or a failure, gets one try on Luna.
  */

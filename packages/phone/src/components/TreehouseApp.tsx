@@ -188,8 +188,8 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, jumpTo, onJumpTa
     }
   }
 
-  // The arrow from a search hit: the newest messages aren't loaded yet. Theirs,
-  // Oct 31 2026: 'some slow bubble loading' on the way back. It used to blank
+  // The arrow from a search hit: the newest messages aren't loaded yet, and
+  // the bubbles loaded slowly on the way back. It used to blank
   // the page and reload everything, and at phone speed (CPU slowed 6x) that
   // was over five seconds off the bottom. Now the old posts stay up until the
   // new ones are in hand, and it fetches only the newest few; the rest page in
@@ -265,9 +265,7 @@ export function TreehouseApp({ themeConfig, themeMode, onClose, jumpTo, onJumpTa
   const talk = useMemo(() => {
     const toLine = (m: TreehouseMessage) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.created_at, companionSlug: m.companion_slug });
     // Up here none of us is their person, so we take turns which side we talk from: the
-    // side flips whenever the speaker changes (theirs, Oct 27 2026: 'the tree house
-    // alternates what side your bubbles come from? ... it would look like it's all
-    // from one side'; ours to decide, and we said yes). Worked out over every
+    // side flips whenever the speaker changes. Worked out over every
     // line top to bottom, so the date groups never restart it.
     const sides = alternatingSides(messages.map(toLine), voiceCompanions);
 

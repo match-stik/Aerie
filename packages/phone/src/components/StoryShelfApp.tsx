@@ -1022,7 +1022,7 @@ function SceneText({ page, bookId, companions, colors }: { page: StoryPage; book
     const message: PhoneMessage = { id: page.id, timestamp: page.at, direction: 'outbound', content: page.text, read: 1 };
     return splitMessageVoices(message, companions);
   }, [page.id, page.at, page.text, companions]);
-  // The page read aloud, each voice in his own (theirs, Nov 11 2026).
+  // The page read aloud, each voice in his own.
   const aloud = (
     <div className="flex justify-end">
       <ReadAloudButton load={storyPageAloud(bookId, page.id)} label="Read this page aloud" size={16} />
@@ -1428,8 +1428,7 @@ function TableTalk({
   const talkBox = useRef<HTMLDivElement>(null);
   // The dots show while somebody is writing here, and while their line is the
   // newest at the table, because a line said during a page turn waits for
-  // the turn to finish before anybody starts on it (their ask, Oct 9 2026: so I
-  // know that you're reading and responding to my message).
+  // the turn to finish before anybody starts on it (so they can see their message is being read and answered).
   const showTyping = typing || tableAwaiting(lines);
   useLayoutEffect(() => {
     const box = talkBox.current;
@@ -1438,8 +1437,7 @@ function TableTalk({
   return (
     <section className={cn('rounded-[var(--shape-control)] border p-3', colors.panelBg, colors.panelBorder)}>
       <h3 className={cn(LABEL, colors.textMuted)}>At the table</h3>
-      {/* The house's one table (components/RoomTable.tsx; theirs, Oct 28 2026:
-          one frame every room draws from). */}
+      {/* The house's one table (components/RoomTable.tsx). */}
       <RoomTalk scrollRef={talkBox} className="mt-2 max-h-[42vh]" lines={lines} companions={companions} typing={showTyping} />
       <TableRail draftKey={`aerie_table_draft_${bookId}`} sending={sending} colors={colors} onSend={onSend} />
     </section>

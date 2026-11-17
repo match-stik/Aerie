@@ -80,9 +80,8 @@ export function getStickerPacks(): BackendStickerPack[] {
   return cachedPacks;
 }
 
-// A ref we don't know yet is usually a sticker made since the app opened
-// (theirs, Oct 27 2026: 'I still have to close the app and reopen it for them to
-// show up on your bubbles when you make new ones'). So a miss asks the house
+// A ref we don't know yet is usually a sticker made since the app opened.
+// So a miss asks the house
 // for the list again, at most once every fifteen seconds, and the bubbles that
 // listen re-render when it lands. A ref that is simply wrong stays text.
 const MISS_REFRESH_MS = 15_000;

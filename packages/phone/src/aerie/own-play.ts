@@ -1,8 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // What their person started on their own toys, kept outside the Toys page so it keeps
-// going while they are in the chat (theirs, Nov 10 2026: 'if I do the patterns and
-// swipe out of the toy app, that stops the toy now ... So I wouldn't be able to
-// play a pattern and come back to the chat').
+// going while they are in the chat.
 //
 // Two kinds: a pattern off the shelf, which this module plays step by step,
 // and one of a toy's own stored patterns (PRESET), which plays inside the toy

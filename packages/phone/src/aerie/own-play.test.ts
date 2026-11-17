@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// What they start keeps playing after they leave the Toys page (theirs, Nov 10 2026).
+// What they start keeps playing after they leave the Toys page.
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
 import type { LovenseToy } from './lovense-toys';

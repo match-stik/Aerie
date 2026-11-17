@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The slide pad on the Remote tab, after Lovense's own remote (theirs, Nov 10
-// 2026, from their screenshots): one bubble per motor, each with its name,
+// The slide pad on the Remote tab, after Lovense's own remote: one bubble per motor, each with its name,
 // sitting on the floor of the pad. Drag a bubble up and that motor rises
 // with it; let go and it drops back to nothing. Two switches down the side
 // change what letting go means: Float leaves the bubble where it was, so one
@@ -192,8 +191,7 @@ export function ToySlidePad({ motors, holding, onLevel, textMuted, panelClass, n
 
   // The switches ride inside the card along its top edge, small, and the
   // bubbles' floor and ceiling sit below them, so turning one on or the
-  // let-go chip appearing never changes the pad's size (theirs, Nov 10 2026:
-  // tapping Loop resized the pad, and the switches floated off to one side).
+  // let-go chip appearing never changes the pad's size.
   return (
     <div className={`touch-none select-none overflow-hidden rounded-[var(--shape-surface)] border ${panelClass}`}>
       {note && <p className={`px-3 pt-2.5 text-[11px] leading-snug ${textMuted}`}>{note}</p>}

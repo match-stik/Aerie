@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Cancelling a Studio picture (theirs, Oct 29 2026): a refused picture sat out
+// Cancelling a Studio picture: a refused picture sat out
 // a ten-minute wait while every job behind it waited too. A running job is
 // cancelled here against a painter that never finishes, through the real queue.
 import assert from 'node:assert/strict';

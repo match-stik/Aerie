@@ -1,11 +1,9 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The lock screen's pieces on a grid (theirs, Nov 8 2026: 'I think the grid').
+// The lock screen's pieces on a grid.
 // Every piece takes the cells it actually draws (measured, so a bigger clock
 // or a weather card simply takes more), sits where they put it, and nothing
 // slides out of anything's way. Holding a piece lifts it; a dashed box shows
-// exactly where it will land, at its own size (theirs, Nov 8 2026: what they held
-// wasn't falling into the outline, because the box drew the whole cell span
-// while the piece sits centered in it); letting go puts it there
+// exactly where it will land, at its own size; letting go puts it there
 // (lib/grid-place.ts), and a piece let go of in the strip at the top is
 // tucked away if it can be. Across, places count in quarter columns
 // (lib/lock-grid.ts), so any piece can sit dead center.
@@ -181,8 +179,8 @@ export function LockGrid({
       h.lastX = e.clientX; h.lastY = e.clientY;
       if (!h.dragging) {
         if (Math.hypot(e.clientX - h.x, e.clientY - h.y) <= HOLD_SLOP) return;
-        // With a mouse, pressing and dragging a piece is the move itself
-        // (theirs, Nov 15 2026, on the laptop); a finger still holds first.
+        // With a mouse, pressing and dragging a piece is the move itself.
+        // A finger still holds first.
         const lift = h.mouse && h.timer ? h.lift : null;
         stopTimer();
         if (!lift) return;

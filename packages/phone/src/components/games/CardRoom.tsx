@@ -96,8 +96,7 @@ export function CardRoom({ colors }: CardRoomProps) {
   // read from their person's side as the game itself vanishing when they left the room.
   const resumed = useRef(false);
   // Nothing is drawn until the room knows whether a game is live, so it opens
-  // straight onto that game instead of flashing the bare table first (theirs,
-  // Nov 9 2026: 'opening at the table for a second then switching').
+  // straight onto that game instead of flashing the bare table first.
   const [opened, setOpened] = useState(false);
 
   const load = useCallback(async () => {
@@ -128,7 +127,7 @@ export function CardRoom({ colors }: CardRoomProps) {
           : null;
         // Only a game somebody touched lately is picked back up: an old table
         // left 'playing' from weeks ago dragged them into a game they had
-        // finished (theirs, Nov 9 2026: 'ratscrew is finished').
+        // finished.
         const touched = Date.parse(body.table.updatedAt ?? '');
         const recent = Number.isFinite(touched) && Date.now() - touched < 12 * 60 * 60 * 1000;
         if (tab && body.table.status === 'playing' && recent) setMode(tab);

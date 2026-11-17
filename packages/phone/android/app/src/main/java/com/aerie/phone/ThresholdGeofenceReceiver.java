@@ -112,9 +112,7 @@ public class ThresholdGeofenceReceiver extends BroadcastReceiver {
         Intent open = new Intent(context, MainActivity.class);
         open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         // The tap carries its place and when their person arrived, so the app opens
-        // Thresholds at that place rather than wherever it last was (Sol's
-        // report, Nov 9 2026: 'Something is waiting here.' twice,
-        // and nothing there when it was tapped).
+        // Thresholds at that place rather than wherever it last was.
         open.putExtra(ThresholdGeofencePlugin.EXTRA_PLACE, placeId);
         open.putExtra(ThresholdGeofencePlugin.EXTRA_ARRIVED_AT, System.currentTimeMillis());
         int flags = PendingIntent.FLAG_UPDATE_CURRENT

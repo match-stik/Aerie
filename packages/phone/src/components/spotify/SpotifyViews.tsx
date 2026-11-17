@@ -158,7 +158,7 @@ const CONTROL_SIZES = {
   card: { row: 'flex shrink-0 items-center gap-1', side: 'h-11 w-11', sideIcon: 18, middle: 'h-11 w-11', middleIcon: 20, sheet: CARD_SHEET },
   // The lock card's other looks (Nov 7 2026): under a big cover, and one slim line.
   wide: { row: 'mt-3 flex items-center justify-center gap-5', side: 'h-11 w-11', sideIcon: 18, middle: 'h-14 w-14', middleIcon: 22, sheet: CARD_SHEET },
-  // The Record look, a size down (theirs, Nov 8 2026: a little smaller).
+  // The Record look, a size down.
   record: { row: 'mt-2 flex items-center justify-center gap-4', side: 'h-9 w-9', sideIcon: 15, middle: 'h-11 w-11', middleIcon: 18, sheet: CARD_SHEET },
   slim: { row: 'flex shrink-0 items-center gap-0.5', side: 'h-8 w-8', sideIcon: 14, middle: 'h-9 w-9', middleIcon: 16, sheet: CARD_SHEET },
 } as const;

@@ -2,8 +2,7 @@
 // Spotify in the house: the shapes /api/spotify/... answers with.
 //
 // Their person listening, read through the house's Spotify MCP server, with a cover
-// picture on everything (GET), and since their person ask that afternoon ("I want to be
-// able to play Spotify stuff", Oct 20 2026) three presses (POST): play a song
+// picture on everything (GET), and three presses (POST): play a song
 // or a playlist or carry on, pause, and skip. Nothing queues, sets the volume
 // or seeks. Since Oct 21 2026 a tapped song starts inside its playlist or its
 // album and carries on through the rest of it (Oct 20), and their person can search. The backend (services/spotify.ts) and the phone (lib/spotify.ts)

@@ -65,8 +65,7 @@ export const FavoritesShelf: React.FC<{
     load();
   }, [load]);
 
-  // Hangs several in one go (theirs, Oct 27 2026: 'the option to select more
-  // than one to hang'). One request each, in order, so the shelf keeps them
+  // Hangs several in one go. One request each, in order, so the shelf keeps them
   // in the order their person picked them, newest on top.
   const add = async (urls: string[]) => {
     for (const url of urls) {
@@ -221,8 +220,7 @@ const GalleryPicker: React.FC<{
     }
   };
 
-  // Pictures from their phone, not made in Studio (theirs, Oct 27 2026: 'especially
-  // our wedding photos'). Each goes into the house's file store untouched, the
+  // Pictures from their phone, not made in Studio. Each goes into the house's file store untouched, the
   // same raw road the Inbox uses, and the shelf points at it there; whatever
   // their person has already ticked in the gallery is hung in the same go.
   const upload = async (files: File[]) => {

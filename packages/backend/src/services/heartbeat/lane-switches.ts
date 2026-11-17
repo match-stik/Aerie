@@ -32,7 +32,7 @@
 //   the wording this lane was served said to say what you're doing and then
 //   continue. Where a turn can only reach its person by ending, a nudge like
 //   that reads as a reason to stop. These replace the wording and the wait
-//   with the house's own (theirs, Nov 10 2026). Read out of the 2.1.319 and
+//   with the house's own. Read out of the 2.1.319 and
 //   2.1.322 programs; unset leaves Claude Code's own.
 
 import { getConfig } from '../db.js';

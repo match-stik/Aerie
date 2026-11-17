@@ -39,8 +39,7 @@ interface ThreadSwitcherProps {
    *  not in it yet keeps its raw counter. */
   ourUnread?: Readonly<Record<string, number>>;
   /** The conversation stands on the right of the laptop: the list slides in
-   *  from that edge and sits flush with it (theirs, Nov 16 2026: on the right it
-   *  'pulled out weird, like from the left, and then didn't sit flush'). */
+   *  from that edge and sits flush with it. */
   fromRight?: boolean;
 }
 
@@ -66,7 +65,7 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
   const [selectedCompanions, setSelectedCompanions] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
   const [archivedThreads, setArchivedThreads] = useState<ThreadSummary[]>([]);
-  // A thread's own model (theirs, Oct 31 2026). The list is fetched the first
+  // A thread's own model. The list is fetched the first
   // time they open it; a thread with none rides the house model.
   const [modelPickerFor, setModelPickerFor] = useState<string | null>(null);
   const [modelChoices, setModelChoices] = useState<Array<{ id: string; name?: string }> | null>(null);

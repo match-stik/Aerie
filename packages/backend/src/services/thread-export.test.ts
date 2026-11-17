@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The export button gives the whole thread, not what the phone had loaded
-// (theirs, Oct 31 2026: 'it should do what it suggests').
 import test from 'node:test';
 import assert from 'node:assert/strict';
 

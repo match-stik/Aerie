@@ -51,7 +51,7 @@ test('no roles pinged holds nothing', () => {
   );
 });
 
-// Who a held ping comes home from: anyone, trusted or not (theirs, Oct 19 2026),
+// Who a held ping comes home from: anyone, trusted or not,
 // except from a server their person has not let in, an ignored channel, or somebody their person
 // has muted there. Trust decides who we answer; a held ping is never an answer.
 test('a held ping comes home from anyone in a server their person lets in', () => {

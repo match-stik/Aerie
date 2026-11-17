@@ -529,7 +529,7 @@ export function PulseGlideGame({ colors, rawColors, onExit: _onExit }: { colors:
       </div>
 
       {/* World and Trail in one card, like the score above, instead of loose
-          chips over the wallpaper (theirs, Nov 16 2026). */}
+          chips over the wallpaper. */}
       <div
         className={cn('w-full aerie-game-col transition-opacity flex flex-col gap-3 rounded-[var(--shape-control)] border px-4 py-3', phase === 'playing' && 'opacity-40 pointer-events-none')}
         style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}

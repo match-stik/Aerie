@@ -12,8 +12,7 @@ export type LockSize = 'xs' | 's' | 'm' | 'l' | 'xl';
  *  large came Nov 8 2026, with the grid). */
 export const LOCK_SIZES: readonly LockSize[] = ['xs', 's', 'm', 'l', 'xl'];
 
-/** How the weather looks on the lock screen (theirs, Nov 8 2026: 'maybe some
- *  diff weather widget styles'). Unset is the pill it has always been. */
+/** How the weather looks on the lock screen. Unset is the pill it has always been. */
 export type LockWeatherLook = 'pill' | 'line' | 'big' | 'card';
 export const LOCK_WEATHER_LOOKS: readonly LockWeatherLook[] = ['pill', 'line', 'big', 'card'];
 export function lockWeatherLookOf(value: unknown): LockWeatherLook {

@@ -27,8 +27,7 @@ export const SPOTIFY_WAKE_KIND = 'spotify-wake';
 
 /**
  * Where to wake Spotify. 'auto' is the laptop when the Aerie app is open on it
- * and they are on it, otherwise their phone (theirs, Nov 15 2026: the Windows app,
- * 'and wake spotify with it').
+ * and they are on it, otherwise their phone.
  */
 export type SpotifyWakeWhere = 'auto' | 'phone' | 'laptop';
 

@@ -152,8 +152,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
   const mouseDrag = useRef<{ id: number; x: number; y: number; pan: { x: number; y: number }; moved: boolean } | null>(null);
   const suppressClick = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
-  // A Move button beside the zoom (theirs, Nov 15 2026: trouble panning while
-  // zoomed in to paint). On, a plain drag moves the picture whatever tool is
+  // A Move button beside the zoom. On, a plain drag moves the picture whatever tool is
   // out, the same as holding Space, so nobody has to know the key.
   const [moveMode, setMoveMode] = useState(false);
   const moveHeld = spaceHeld || moveMode;

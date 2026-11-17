@@ -30,7 +30,6 @@ export function toolLine(seg: ToolSegment): { label: string; detail: string; ski
   const mcp = /^mcp__(.+?)__(.+)$/.exec(name);
   detail = detail.replace(/\s+/g, ' ').trim();
   // A file's own name says enough; the whole path only pushed past the bubble
-  // (theirs, Nov 2 2026: 'little messy').
   const fileName = (d: string) => d.split('/').filter(Boolean).pop() || d;
   const words: Record<string, string> = {
     Bash: 'Ran', Read: 'Read', Edit: 'Edited', Write: 'Wrote', Grep: 'Searched', Glob: 'Looked for',

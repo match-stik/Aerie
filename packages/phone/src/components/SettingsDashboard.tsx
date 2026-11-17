@@ -20,7 +20,7 @@ import { useDesk } from '../lib/use-desk';
 export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
   const s = useSettingsState(props);
   // On the desktop, Home and Lock edit the desktop's own screen (lib/desk.ts
-  // DESK_SCREEN_KEYS), so the tiles say so (theirs, Nov 16 2026).
+  // DESK_SCREEN_KEYS), so the tiles say so.
   const onDesk = useDesk(props.theme).on;
   const { activeTheme, colors, resolvedAccent, activeTab, setActiveTab, pane, setPane, cropImageSrc, setCropImageSrc, cropTarget, isSaving, crop, setCrop, zoom, setZoom, onCropComplete, handleSaveCrop, handleUseOriginal, theme, onClose } = s;
   return (
@@ -229,7 +229,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
                       showClock={!lockHiddenOf(theme.lockHidden).has('clock')}
                     />
                   </button>
-                  {/* The house on a wide screen (theirs, Nov 14 2026). It is on
+                  {/* The house on a wide screen. It is on
                       the phone's page too, since the look travels between
                       them and they may want to set one from the other. */}
                   <button

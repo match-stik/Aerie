@@ -1,7 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Holding a search hit in the middle of a scrolling list while what's around it
-// loads (theirs, Oct 31 2026: search 'has a hard time jumping to the actual
-// message'). It waits up to three seconds for the hit to appear, then keeps it
+// loads. It waits up to three seconds for the hit to appear, then keeps it
 // centered for up to twenty, finding it by id on every tick and lighting it
 // again if it was rebuilt, and lets go the moment they touch, scroll or type.
 // Every jump reports how it went, because their phone has done what a browser on
@@ -108,8 +107,7 @@ export function holdMessageInView(container: HTMLElement, messageId: string, opt
 
 /**
  * Keeps a list at its bottom until the bottom has stopped moving, because what
- * comes in after a scroll pushes it further away (theirs, Oct 31 2026: the arrow
- * left 'a sliver of the latest bubble cut off'). Lets go on a touch.
+ * comes in after a scroll pushes it further away. Lets go on a touch.
  */
 export function holdAtBottom(container: HTMLElement, smoothMs = 600): void {
   const startedAt = Date.now();

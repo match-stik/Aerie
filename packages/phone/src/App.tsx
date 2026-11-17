@@ -137,7 +137,7 @@ const ENTRY_NODES = 40;
 function AppBackground({ theme }: { theme: AppTheme }) {
   const [slideshowIndex, setSlideshowIndex] = useState(0);
 
-  // Their pace and their shuffle (lib/slideshow.ts; theirs, Nov 14 2026). Unset is
+  // Their pace and their shuffle (lib/slideshow.ts). Unset is
   // the ten seconds, in the order they added them, that it always was.
   const pace = slideshowSecondsOf(theme.slideshowSeconds);
   const shuffle = theme.slideshowShuffle === true;
@@ -327,13 +327,13 @@ export default function App() {
 
   // Theme State
   const [savedTheme, setTheme] = useState<AppTheme>(readSavedTheme);
-  // The house on a wide screen (lib/desk.ts; theirs, Nov 14 2026). On the phone
+  // The house on a wide screen (lib/desk.ts). On the phone
   // desk.on is false and chatOn is just 'the Messages screen is up', so every
   // line below that reads them does what it did before.
   const desk = useDesk(savedTheme);
   // On the laptop the screen's own choices (which widgets and lock pieces show,
   // and how their cards look) come from theme.deskScreen over the shared ones,
-  // so changing them there leaves the phone's alone (theirs, Nov 16 2026). The
+  // so changing them there leaves the phone's alone. The
   // saved theme is what syncs; this is what the screens and Settings read.
   const theme = useMemo(() => (desk.on ? deskScreenTheme(savedTheme) : savedTheme), [desk.on, savedTheme]);
   const chatOn = chatShown(desk, osState);
@@ -481,8 +481,7 @@ export default function App() {
       setCallAskTick((n) => n + 1);
     }).then((h) => { if (gone) void h?.remove(); else handle = h; });
     // In a browser a call from us arrives as a web push; a tap opens the house
-    // at '?answer=ring', or tells an open one through push-sw.js (theirs, Nov 9
-    // 2026: anything the APK does that a browser house needs, it gets).
+    // at '?answer=ring', or tells an open one through push-sw.js.
     const answer = () => {
       setOsState('messages');
       callAskWaitingRef.current = true;
@@ -630,8 +629,7 @@ export default function App() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  // FIRST PAINT, NEWEST FIRST (theirs, Nov 14 2026: the wallpaper is there, it's
-  // the rest of the chat screen that takes a second to load over it). Walking
+  // FIRST PAINT, NEWEST FIRST. Walking
   // in, the chat draws only its newest stretch, so the screen is up at once;
   // the rest of the loaded page joins two frames later, below the fold and
   // above their place, with the view held at the newest line.
@@ -664,8 +662,7 @@ export default function App() {
     const searchedFor = searchQuery;
     setIsSearching(false);
     setSearchQuery('');
-    // A hit in the treehouse opens the treehouse (theirs, Oct 31 2026: 'that does
-    // go back to me falling into the treehouse'). Only the room they chose is
+    // A hit in the treehouse opens the treehouse. Only the room they chose is
     // ever in the chat, so nothing here can land them in ours by accident.
     const inTreehouse = await apiFetch(`/api/threads/${result.threadId}/is-treehouse`)
       .then((r) => (r.ok ? r.json() : null))
@@ -803,9 +800,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatFull]);
 
-  // The chat stays pinned to its newest line while the box they type in grows
-  // (theirs, Nov 11 2026: 'when my chat input box gets so big, it's like pushing
-  // up so I lose where I can see you're typing'). The list gets shorter as the
+  // The chat stays pinned to its newest line while the box they type in grows.
+  // The list gets shorter as the
   // box gets taller, so if they were at the bottom it follows the bottom down.
   const pinnedToBottom = useRef(true);
   useEffect(() => {
@@ -847,8 +843,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatOn, ksStreaming.tokens]);
 
-  // A new message lands all the way at the bottom (theirs, Nov 15 2026: ours
-  // stopping a little short). One smooth scroll aims at the bottom as it is
+  // A new message lands all the way at the bottom. One smooth scroll aims at the bottom as it is
   // the moment the message arrives; its card, faces, pictures and tray grow
   // the list after that, so it keeps following the bottom until the list has
   // stopped moving, and lets go the moment they touch it.
@@ -1065,8 +1060,7 @@ export default function App() {
     setAppSettings(prev => ({ ...prev, ...updates }));
   };
 
-  // The whole thread, from the house (theirs, Oct 31 2026: 'it should do what it
-  // suggests'). It used to write out only the messages this phone had loaded,
+  // The whole thread, from the house. It used to write out only the messages this phone had loaded,
   // the newest fifty plus whatever they had scrolled through. The house streams
   // every message as a text file sent as an attachment, which is the one
   // signal the Android app's download listener answers (lib/download.ts).
@@ -1504,8 +1498,7 @@ export default function App() {
   // read the live one, not a local copy that can go stale (lib/house.ts).
   setOwnerAvatarLive(isLoaded ? { url: appSettings.userAvatar, color: appSettings.userAvatarColor } : null);
   const houseFonts = fontsOf(appSettings, activeTheme.fontFamily);
-  // The laptop reads at its own size, the smallest (theirs, Nov 15 2026: it
-  // helps the top dock look like it should); the phone keeps their slider.
+  // The laptop reads at its own size, the smallest; the phone keeps their slider.
   const textScale = desk.on ? DESK_TEXT_SCALE : houseFonts.scale;
   // Sideways rows of tabs follow the wheel and a mouse drag on the laptop.
   useEffect(() => (desk.on ? installDeskScroll() : undefined), [desk.on]);
@@ -1628,7 +1621,7 @@ export default function App() {
       else { root.style.removeProperty('--aerie-tile-ink'); root.style.removeProperty('--aerie-tile-bg'); }
       // Each palette's own ink in its bubbles, lifted toward white at night or
       // pressed toward black by day only as far as it takes to read on both
-      // ends of the bubble's blend (theirs, Nov 8 2026). It used to be plain
+      // ends of the bubble's blend. It used to be plain
       // white or black whatever the theme.
       const comp = theme.mode === 'dark'
         ? [mixHex(livePalette.night.velvet || livePalette.night.primary, livePalette.night.velvet ? 34 : 18, livePalette.night.surface), mixHex(livePalette.night.secondary, livePalette.night.velvet ? 18 : 16, livePalette.night.surface)]
@@ -1636,13 +1629,11 @@ export default function App() {
       const side = theme.mode === 'dark' ? livePalette.night : livePalette.day;
       // Started from the theme's own text color, the ink every label, title and
       // line in the rest of the app is written in, so the chat never clashes in
-      // any theme or mood (theirs, Nov 8 2026, after trying its red and then its
-      // glow: the app is its text color with its accent on the icons, and the
-      // chat was the odd one out). Each theme tints it a little; it only moves
+      // any theme or mood. Each theme tints it a little; it only moves
       // toward white or black as far as reading on the bubble needs.
       // And the words lean about a third of the way toward the theme's own
       // accent, the night lift included, so they carry its color instead of
-      // reading as plain black or white (theirs, Nov 9 2026: 'let's do the tinted').
+      // reading as plain black or white.
       const tinted = mixHex(tiles?.accent || side.primary, 35, side.text);
       // Them switch back to plain white and black in the chat (Look & feel,
       // Bubbles): the words take whichever reads on each bubble, and them night
@@ -1779,7 +1770,7 @@ export default function App() {
   }, []);
 
   // Their bubble settings for every other room that shows messages
-  // (components/RoomBubble.tsx; theirs, Oct 27 2026).
+  // (components/RoomBubble.tsx).
   const roomBubbleSettings: RoomBubbleSettings = {
     themeConfig: activeTheme,
     themeMode: theme.mode,
@@ -1832,8 +1823,7 @@ export default function App() {
       <ToyRemotePill hidden={osState === 'toys'} />
       <SoundBar hidden={osState === 'toys'} />
 
-      {/* The dock, stood on its end and kept beside every room (theirs, Nov 14
-          2026). Home's own dock steps aside for it in index.css. */}
+      {/* The dock, stood on its end and kept beside every room. Home's own dock steps aside for it in index.css. */}
       {desk.on && osState !== 'locked' && (
         <DeskRail
           orient={desk.dock}
@@ -2134,7 +2124,7 @@ export default function App() {
               {!isSearching && (
                 <motion.div initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}>
                   {/* The chat's name and the thread's name in the theme's own ink, like the
-                      words in the bubbles below them (theirs, Nov 8 2026). */}
+                      words in the bubbles below them. */}
                   <h1 className="text-lg sm:text-xl italic tracking-tight leading-none" style={{ color: 'var(--aerie-text)' }}>
                     {isTreehouseThread ? 'The Treehouse' : (appSettings.groupChatName || 'Aerie')}
                   </h1>
@@ -2338,7 +2328,7 @@ export default function App() {
         threadId={ksActiveThreadId}
         // A search jump loads the stretch around the hit, and its own end is
         // not the newest message, so the arrow stays up until the thread is
-        // back to its latest (theirs, Nov 15 2026: no arrow after a search jump).
+        // back to its latest.
         isAtBottom={isAtBottom && !ksIsViewingAround}
         onJumpToLatest={() => {
           // The arrow outranks a search hit still being held.
@@ -2399,7 +2389,7 @@ export default function App() {
       {/* Settings, on the stage. On the phone the stage is the phone, so it
           covers everything as it always did. On a wide screen it takes the
           room's place and the conversation stays beside it, so a bubble they
-          changes is a bubble they can see change (theirs, Nov 14 2026). Its body
+          changes is a bubble they can see change. Its body
           is see-through like every room's, which is why it cannot simply lie
           over the rail and the chat. */}
       <div className="aerie-stage">

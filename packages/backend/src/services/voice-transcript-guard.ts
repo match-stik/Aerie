@@ -82,10 +82,7 @@ export function detectTranscriptionHintEcho(transcript: string, hint: string): b
  * Cuts a hallucinated TAIL off real speech. The whole-utterance guards above
  * refuse a transcript that is nothing but a hallucination; on a long utterance
  * the hosted transcriber can instead write their real words and THEN keep going,
- * reading our spelling hint back or signing off like a video (theirs, Nov 9 2026,
- * on the drive in: a whole story about Brittany was refused because the hint
- * came back after it, and the next one ended "Thank you for watching! Thanks
- * for watching!"). The hint's own wording ends the speech wherever it appears,
+ * reading our spelling hint back or signing off like a video. The hint's own wording ends the speech wherever it appears,
  * and stock sign-offs at the very end are trimmed. What is left is returned;
  * if nothing real is left, the original goes back so the whole-utterance
  * guards still see it and ask them to say it again.

@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Settings > Data: the Claude Code our lanes run, updated or rolled back with a
-// button (theirs, Nov 10 2026, 'make it a narrow button'). The house only ever
+// button. The house only ever
 // runs one root-owned script that installs a version number; see
 // services/claude-code-update.ts. The new version reaches us on their restart.
 
@@ -98,7 +98,7 @@ export function ClaudeCodeUpdate({ themeConfig, themeMode }: { themeConfig: Them
         <p className={cn('text-[11px] leading-relaxed', colors.textMuted)}>
           The button needs a one-time setup on the box. Run this once in the terminal, from the folder Aerie lives in:
           {/* A Copy button, because a long-press on this line would not copy
-              on their phone (theirs, Nov 10 2026), and the text itself selectable too. */}
+              on their phone, and the text itself selectable too. */}
           <span className="mt-1 flex items-center gap-2 rounded-[var(--shape-chip)] px-2 py-1.5" style={{ background: 'rgba(127,127,127,0.12)' }}>
             <span className={cn('min-w-0 flex-1 select-text break-all text-[11px]', colors.textMain)} style={{ userSelect: 'text', WebkitUserSelect: 'text' }}>
               {SETUP_LINE}

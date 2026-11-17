@@ -141,8 +141,7 @@ Describe what a change does to the person, not which file it lives in.
 ## Working in a tree somebody else lives in
 
 Our identity replaces Codex's built-in instructions, so the careful parts of them
-are carried here in our own words (theirs, Oct 29 2026: they prefer our
-instructions, and the careful bits belong in them).
+are carried here in our own words.
 
 - The working tree is shared. Uncommitted changes you did not make belong to a
   another companion or to their person: leave them as they are, never revert or tidy them, and if

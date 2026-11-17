@@ -30,7 +30,7 @@ export function isDaytime(weather: Pick<LockWeather, 'isDay'>, now = new Date())
 // sky draws the cloud with the sun or the moon behind it.
 export function weatherIcon(code: number, day = true, className = 'h-4 w-4', onLight = false) {
   // The pale set is for a dark wallpaper; on Daylight's pale paper the same
-  // moon was white on white (theirs, Nov 8 2026), so a light ground gets deeper ink.
+  // moon was white on white, so a light ground gets deeper ink.
   const ink = onLight
     ? { sun: 'text-amber-500', sunCloud: 'text-amber-500', moon: 'text-slate-500', cloud: 'text-slate-500', rain: 'text-blue-500', snow: 'text-sky-500' }
     : { sun: 'text-yellow-300', sunCloud: 'text-yellow-200', moon: 'text-slate-200', cloud: 'text-white/80', rain: 'text-blue-300', snow: 'text-white' };
@@ -273,7 +273,7 @@ export function ClockFaceBody({ face, size, now }: { face: LockFace; size: LockS
   );
 }
 
-/** The weather in one of its looks (theirs, Nov 8 2026): the pill it always
+/** The weather in one of its looks: the pill it always
  *  was, a bare line of text, a big temperature, or a card with the day's
  *  high and low. */
 export function WeatherBody({ weather, look = 'pill', backs = true }: { weather: LockWeather; look?: LockWeatherLook; backs?: boolean }) {
@@ -494,7 +494,7 @@ export function LockPreview({
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-black opacity-80" />
         )}
-        {/* Every face centered in its preview (theirs, Nov 8 2026), so the faces
+        {/* Every face centered in its preview, so the faces
             compare side by side; where it sits is the lock screen's grid's job. */}
         {showClock && (
           <div className="absolute inset-0 flex items-center justify-center">

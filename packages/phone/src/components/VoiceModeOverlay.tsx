@@ -90,8 +90,7 @@ export interface VoiceModeOverlayProps {
   onRestore?: () => void;
   onPhaseChange?: (phase: VoiceModePhase) => void;
   /**
-   * Started from the car's dash (theirs, Nov 6 2026: 'it didn't give me a
-   * chance to start talking though?'). Nobody can tap a phone while driving,
+   * Started from the car's dash. Nobody can tap a phone while driving,
    * so a quiet stretch or a bump of road noise listens again instead of
    * pausing.
    */

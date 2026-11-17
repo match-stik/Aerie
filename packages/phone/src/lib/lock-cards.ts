@@ -47,9 +47,7 @@ export const LOCK_CARD_LOOKS = {
   },
 } as const satisfies Record<LockCardLook, Record<string, string>>;
 
-/** Them other lock screen switch (Nov 8 2026: 'take tiles/cards front behind
- *  so that they'll be kind of free floating', for a quiet wallpaper like them
- *  night sky): on, the cards wear their tint as always; off, the words float
+/** Them other lock screen switch: on, the cards wear their tint as always; off, the words float
  *  on the wallpaper with only a shadow under them. Unset is on. */
 export function lockCardBacksOf(value: unknown): boolean {
   return value !== false;

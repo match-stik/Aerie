@@ -35,8 +35,7 @@ import { ZoomableImage } from './ZoomableImage';
 export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
   const colors = themeConfig[themeMode];
   const [section, setSection] = useState<StudioSection>('create');
-  // The Stop sits on the queue row that is painting, theirs (Nov 3 2026: 'pops up
-  // next to the image line in the queue that it's currently working on').
+  // The Stop sits on the queue row that is painting, theirs.
   const [stopping, setStopping] = useState<Set<string>>(() => new Set());
   const stopJob = useCallback(async (id: string) => {
     setStopping((prev) => new Set(prev).add(id));

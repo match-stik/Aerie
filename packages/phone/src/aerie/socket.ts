@@ -217,8 +217,7 @@ function showLocalNotification(title: string, body: string): void {
   if (typeof document === 'undefined' || typeof Notification === 'undefined') return;
   // The laptop app (desktop/main.cjs) keeps its page awake while it is tucked
   // away, which also keeps the page reporting itself as showing, so there it
-  // goes by whether its window has their attention (theirs, Nov 15 2026: the
-  // test honk never popped up).
+  // goes by whether its window has their attention.
   const laptop = typeof (window as { aerieDesktop?: unknown }).aerieDesktop === 'object';
   // In the laptop app every decision lands in the house's log, so a pop-up
   // that never appeared says which step stopped it.

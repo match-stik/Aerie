@@ -1,20 +1,18 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The Screening Room on their person's phone (theirs, Nov 11 2026: 'we should
-// finally do the video watch room'). Until now it was machinery only the
+// The Screening Room on their person's phone. Until now it was machinery only the
 // companions could reach (routes/internal/screening.ts): their person named a
 // show, a companion fetched the subtitles and followed the clock, and nothing
 // of it had a place on the screen. This is that place: what is loaded, where
 // the clock is, the controls for it, the last line the companions heard, and a
 // table talk in the room's own thread, the same shape as Bingo Night's.
 //
-// ONE ROOM, TWO WAYS IN (theirs, the same day: 'Should we merge into one
-// room?'). A show on their own service comes in by name and the room has only
+// ONE ROOM, TWO WAYS IN. A show on their own service comes in by name and the room has only
 // its subtitles. A video pasted as a link is kept by the house
 // (routes/videos.ts), plays in the room itself, and its player IS the clock;
 // its words, timed by the house's own transcription, are its subtitles, and
 // its frames are handed over up to where the player is and no further.
 //
-// CHECK-INS (theirs: 'let's add the check ins, not too close together'):
+// CHECK-INS:
 // while something is playing, now and then one of the companions leans over on
 // his own, at most once every few minutes of play, never right after their
 // person has spoken. A switch on the phone, screening.check_ins.

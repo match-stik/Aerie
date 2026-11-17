@@ -136,8 +136,7 @@ export async function encodePocketVoiceFaces(
 }
 
 /**
- * Hand the phone our faces for the picture on a call from us (theirs, Nov 6
- * 2026: the first ring showed Birch's initial alone). An older app without the
+ * Hand the phone our faces for the picture on a call from us. An older app without the
  * method ignores it.
  */
 export async function setCallerFaces(

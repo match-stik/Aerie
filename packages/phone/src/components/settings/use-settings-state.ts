@@ -88,14 +88,11 @@ export function useSettingsState({
     ? (theme.customColors?.[theme.mode]?.accent || "#888888")
     : colors.accent;
   const [activeTab, setActiveTab] = useState<"appearance" | "data">("appearance");
-  // Personalize: four doors instead of one long scroll (theirs, Oct 13 2026:
-  // "that does seem like a bunch of diff tabs"). null is the tile page.
+  // Personalize: four doors instead of one long scroll. null is the tile page.
   const [pane, setPane] = useState<null | "theme" | "look" | "home" | "you" | "lock" | "laptop">(null);
   // The back gesture inside a door goes to the doors, like the card at the top
-  // (theirs, Oct 17 2026: swiping back from inside one sent them to the home screen),
   // and from the doors it closes Settings. Settings answers every back press
-  // while it is open, so App asks it first (theirs, Oct 18 2026: the door handler
-  // was never reached, because App closed Settings before asking anyone).
+  // while it is open, so App asks it first.
   // Which lock screen corner the shortcut picker is setting: 0 left, 1 right.
   const [lockCorner, setLockCorner] = useState<0 | 1>(0);
   // The dock picker names a room the way the drawer does, so an app a house

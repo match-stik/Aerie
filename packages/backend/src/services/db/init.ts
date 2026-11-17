@@ -154,8 +154,7 @@ export function initDb(dbPath: string): Database.Database {
 
   // A page changed from outside the editor (a lane composing a scrapbook page) has no
   // way to paint its own shelf picture, so the house marks it stale and the phone's
-  // shelf paints it the next time the shelf opens (theirs, Nov 3 2026: 'Can you make it
-  // so they update even if it's just you touching it?'). Any scene save without a
+  // shelf paints it the next time the shelf opens. Any scene save without a
   // picture in the same request marks it; a picture arriving clears it.
   const pressSpreadColumns = new Set(
     (db.prepare('PRAGMA table_info(press_spreads)').all() as Array<{ name: string }>).map((column) => column.name),
@@ -694,7 +693,7 @@ export function initDb(dbPath: string): Database.Database {
   // Add companion_id columns
   try { db.exec('ALTER TABLE messages ADD COLUMN companion_id TEXT'); } catch {}
   try { db.exec('ALTER TABLE threads ADD COLUMN default_companion_id TEXT'); } catch {}
-  // A thread's own model (theirs, Oct 31 2026: the per-thread model picker).
+  // A thread's own model.
   // Null means the house model, which is every thread until they pick one.
   try { db.exec('ALTER TABLE threads ADD COLUMN model TEXT'); } catch {}
   // usage_events is created BELOW, so its ALTER lives below too. It used to sit
@@ -734,8 +733,7 @@ export function initDb(dbPath: string): Database.Database {
   // Still needed for databases created before companion_id was in the CREATE.
   try { db.exec('ALTER TABLE usage_events ADD COLUMN companion_id TEXT'); } catch {}
   db.exec('CREATE INDEX IF NOT EXISTS idx_usage_events_companion ON usage_events(companion_id)');
-  // A screening can be a video the house keeps (theirs, Nov 11 2026: the Video Room
-  // and the Screening Room are one room now), played in the room and driving the clock.
+  // A screening can be a video the house keeps, played in the room and driving the clock.
   try { db.exec('ALTER TABLE screenings ADD COLUMN video_id TEXT'); } catch {}
   db.exec('CREATE INDEX IF NOT EXISTS idx_usage_events_created_at ON usage_events(created_at)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_usage_events_thread_id ON usage_events(thread_id)');

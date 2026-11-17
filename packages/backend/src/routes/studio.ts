@@ -813,9 +813,7 @@ router.post('/studio/enhance', async (req, res) => {
     // the fast utility lane.
     // An image-only model (gpt-image-2) cannot write a prompt at all, so the wand goes
     // to Luna for those; and if the picked model fails for any other reason, Luna gets
-    // one try before anything else (theirs, Nov 3 2026: 'My prompt enhancement keeps
-    // failing', with gpt-image-2 picked: every press died in Codex and then in an
-    // Ollama fallback that names a model Ollama does not have).
+    // one try before anything else.
     try {
       const enhanced = await enhanceWithCodex(prompt, backend === 'codex' ? codexModel : undefined, style);
       res.json({ enhanced });

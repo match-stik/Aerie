@@ -18,7 +18,7 @@
 /** The longest one command may run. A longer scene sends again. */
 export const TOY_REMOTE_MAX_MS = 180_000;
 /** The longest one pattern on their shelf may run one time through: an hour,
- *  like Lovense's own app (theirs, Nov 10 2026). Their phone plays a kept
+ *  like Lovense's own app. Their phone plays a kept
  *  pattern whole; a lane playing one still sends it a command at a time. */
 export const TOY_PATTERN_MAX_MS = 60 * 60_000;
 /** Steps shorter than this are stretched to it; a toy will not take more. */

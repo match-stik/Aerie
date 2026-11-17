@@ -17,9 +17,7 @@
  */
 
 /**
- * A call started from the car's dash (theirs, Nov 6 2026: the reply played with
- * Aerie on screen, the phone hid Aerie mid-reply, and the call never listened
- * again, because a hidden page cannot get a live line back). A dash call holds
+ * A call started from the car's dash. A dash call holds
  * its line the whole time, as a hidden page does, and its replies take the
  * car's call line (call-line.ts). The overlay sets it when such a call opens
  * and clears it when the call closes.

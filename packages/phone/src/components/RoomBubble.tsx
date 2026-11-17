@@ -1,8 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The main chat's bubble, for every other room that shows messages: the
-// treehouse, the Fleet Room comms, the Story Shelf's table talk. Theirs, Oct 27
-// 2026: 'all the settings should carry over to our chat tables other places
-// ... You know me and my consistency thing.' The rooms used to draw their own
+// treehouse, the Fleet Room comms, the Story Shelf's table talk. The rooms used to draw their own
 // plain cards; now they draw MessageBubble from one shared set of their settings,
 // so anything their person changes in Look & feel follows into every room with nothing
 // to keep in sync.
@@ -47,8 +45,7 @@ export interface RoomBubbleProps {
   mirror?: boolean;
   /** The stored message this bubble is part of, for its tray's read aloud: a
    *  line split into several voices draws several bubbles, and only the line
-   *  itself is a message the house can read (theirs, Nov 11 2026: read aloud in
-   *  the table's tray, not under the line). */
+   *  itself is a message the house can read. */
   messageId?: string;
 }
 

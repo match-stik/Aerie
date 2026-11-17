@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The sound shelf on the Toys page: their audio, read-alouds and anything else
 // they like, uploaded once and played from here while the remote is handed
-// over or while they play on their own (theirs, Nov 9 2026). The player is
+// over or while they play on their own. The player is
 // lib/sound-player.ts, one for the whole app, so leaving the page does not
 // stop what is playing. The audio lives in the house's file store, and
 // services/toy-sounds.ts on the house keeps the shelf.

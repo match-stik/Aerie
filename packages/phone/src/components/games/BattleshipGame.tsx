@@ -751,8 +751,7 @@ export function BattleshipGame({
         </div>
       </header>
 
-      {/* On the laptop the two boards stand side by side (theirs, Nov 16 2026:
-          'Fleet Rooms massive cards, they could probably fit side by side'). */}
+      {/* On the laptop the two boards stand side by side. */}
       <div className="space-y-3 aerie-fleet-boards">
         <div data-board="hunt">
         <OceanBoard
@@ -841,7 +840,7 @@ export function BattleshipGame({
 
         {/* The same table talk the Card Room and Bingo Night draw (TableTalk:
             maximize, the colon tray, GIFs, stickers), so every table in the
-            house is one table (theirs, Nov 9 2026). */}
+            house is one table. */}
         {game.companionError && (
           <div
             className="rounded-[var(--shape-control)] border px-4 py-3 text-[13px] leading-5"

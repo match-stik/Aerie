@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * A thread's own model (theirs, Oct 31 2026: the per-thread model picker).
+ * A thread's own model.
  *
  * A thread with no model of its own rides the house model, which is every
  * thread until somebody picks one. A thread with one uses it for the messages

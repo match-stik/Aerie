@@ -890,9 +890,7 @@ function mix(c: string, n: number, base = 'transparent'): string {
  * The old wash went straight from one color down to transparent and straight
  * back up to the other, and the corner where the two straight ramps meet is
  * something the eye sees as a line. Across a big card the corner is spread wide
- * and melts; on a small pill or tile it lands as a hard diagonal (theirs, Oct 27
- * 2026, five screenshots: 'that harsh blend on a lot of cards ... mostly the
- * smaller ones? The bigger ones seem to fade better'). Easing each half
+ * and melts; on a small pill or tile it lands as a hard diagonal. Easing each half
  * (strength falls off as the distance to the middle to the power 1.5) meets the
  * middle flat from both sides, so there is no corner left to see.
  */
@@ -918,8 +916,7 @@ export function easedWash(angle: number, from: string, fromPct: number, mid: num
  *  Day uses soft paper by default, per the doc. */
 /** Them bubble at night, taken a shade deeper only as far as it has to go for
  *  them tinted words to read on it at 4.5 to 1, so their side carries the
- *  theme's color like ours (theirs, Nov 9 2026: 'let's try the shade deeper to
- *  see my color'). A bubble that already lets them read is left exactly as it
+ *  theme's color like ours. A bubble that already lets them read is left exactly as it
  *  was. The tint is the one App.tsx gives the words: a third of the accent. */
 export function nightUserStops(p: Palette): [string, string] {
   const n = p.night;
@@ -932,9 +929,7 @@ export function nightUserStops(p: Palette): [string, string] {
   return [mixHex(n.bubbleUser[0], 40, n.surface), mixHex(n.bubbleUser[1], 40, n.surface)];
 }
 
-/** Section headers and accent words at night (theirs, Nov 15 2026: the headers
- *  in Settings came out blue on several themes, 'not very friendly on the
- *  eye'). They used the palette's glow, a cool blue-gray on most palettes; now
+/** Section headers and accent words at night. They used the palette's glow, a cool blue-gray on most palettes; now
  *  the theme's own accent, the same one its tiles and outlines use, lifted
  *  toward the text color only as far as it needs to read on the panel. */
 function nightAccentText(p: Palette): string {
@@ -1004,14 +999,10 @@ export function paletteVars(p: Palette, mode: ThemeMode): Record<string, string>
 }
 
 /** A palette's own app-tile fill and icon ink for one mode, where the
- *  accent-tinted default reads poorly (theirs, Nov 8 2026: on Petrol & Bronze at
- *  night the deep bronze went olive as an icon and muddy as a tile; they picked
- *  the theme's own spark gold for the icons and its petrol teal for the tiles,
- *  from samples of their own drawer). */
+ *  accent-tinted default reads poorly. */
 export const PALETTE_TILES: Partial<Record<string, Partial<Record<ThemeMode, { ink: string; bg?: string; accent?: string }>>>> = {
   // And the accent itself at night, so outlines, rings and highlights draw in
-  // the same gold rather than the deep bronze (theirs, Nov 8 2026: 'tweak the
-  // gold colors in the rest of it').
+  // the same gold rather than the deep bronze.
   petrolbronze: { dark: { ink: '#DB9B62', bg: 'color-mix(in srgb, #3E5656 30%, #1E1B18)', accent: '#DB9B62' } },
   // Them picks, Nov 9 2026 (column 3 of the warm sample): each theme's own gold
   // lifted out of its accent, on a tile warmed by its second color. Ember kept

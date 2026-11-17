@@ -1,7 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The size of the room the laptop wallpaper sits behind, read off the
-// wallpaper layer itself (theirs, Nov 15 2026: 'not sure what aspect ratio we'd
-// need'). Null on the phone or before the layer is on the page.
+// wallpaper layer itself. Null on the phone or before the layer is on the page.
 import { useEffect, useState } from 'react';
 
 export interface RoomSize { width: number; height: number }

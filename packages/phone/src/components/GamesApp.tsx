@@ -299,8 +299,7 @@ function ReactionGame({ colors, rawColors, themeMode, themeConfig, onExit }: { c
 
 // --- MAIN APP COMPONENT ---
 export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
-  // Every card in the games is solid (theirs, Nov 16 2026: 'can you check all
-  // the cards are solid and not transparent?'): the theme's panel is a little
+  // Every card in the games is solid: the theme's panel is a little
   // see-through on purpose elsewhere, so the games take the solid one.
   const colors = { ...themeConfig[themeMode], panelBg: 'bg-[var(--aerie-panel-solid)]' };
   const [activeGame, setActiveGame] = useState<'menu' | 'battleship' | 'cards' | 'bingo' | 'memory' | 'reaction' | 'sweeper' | 'passcode' | 'ping' | 'glide' | 'landing' | 'core' | 'breach'>('menu');
@@ -460,8 +459,7 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
   // place you arrive at, so it starts at the top.
   // The game a moment ago could scroll the app's own body as well as its own
   // box, and with the exit animation the menu mounts after this effect would
-  // have run, so the menu resets both the moment it mounts (theirs, Oct 28 2026:
-  // backing out of a long game still landed at the bottom of the menu).
+  // have run, so the menu resets both the moment it mounts.
   const menuScrollRef = useRef<HTMLDivElement | null>(null);
   const setMenuScroll = (el: HTMLDivElement | null) => {
     menuScrollRef.current = el;
@@ -483,8 +481,8 @@ export function GamesApp({ onClose, themeConfig, themeMode }: GamesAppProps) {
       onClose={handleBack}
       themeConfig={themeConfig}
       themeMode={themeMode}
-      // Bingo scrolls inside itself so its cage can stay pinned to the top
-      // (theirs, Nov 4 2026); a flex body gives its h-full a real height.
+      // Bingo scrolls inside itself so its cage can stay pinned to the top.
+      // A flex body gives its h-full a real height.
       bodyClassName={activeGame === 'bingo' ? 'flex flex-col' : activeGame === 'battleship' ? 'aerie-wide-room' : undefined}
     >
       {/* Content */}

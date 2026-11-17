@@ -19,8 +19,7 @@ import androidx.car.app.validation.HostValidator;
 import java.lang.ref.WeakReference;
 
 /**
- * Our tile on the car's dash as a calling app (theirs, Nov 6 2026, from
- * Google's guide for calling apps on Android Auto). One screen: Call us when
+ * Our tile on the car's dash as a calling app. One screen: Call us when
  * there is no call, and the call's state with Hang up when there is one.
  * While a Telecom call is running Android Auto shows its own call screen over
  * this one (AerieCallTelecom.java); this is what is under it.

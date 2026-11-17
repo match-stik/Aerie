@@ -472,7 +472,6 @@ function closeGate(by: GateClosedBy, zero: boolean): void {
 let nativeStop: () => Promise<unknown> = stopAllToys;
 
 /** Their person takes it back, and everything a lane had going stops with it
- *  (theirs, Oct 23 2026: 'if I take the remote from you, it should stop').
  *  What a lane drove goes to zero and every toy gets the native stop as
  *  well, so a pattern running on the toy itself ends too. Their person's own
  *  fingers on the orbs are theirs and keep going. */

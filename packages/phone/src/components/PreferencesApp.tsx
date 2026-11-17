@@ -82,7 +82,7 @@ const ROOM_MODES = [
   { id: 'true', label: 'A Lane Each' },
 ];
 
-// How the house runs (theirs, Oct 31 2026). Both save the moment they are
+// How the house runs. Both save the moment they are
 // tapped, straight to the house's settings, and take effect without a restart:
 // a reopened room on the lane's next launch, a thread cadence on the next
 // message that has no thread named.

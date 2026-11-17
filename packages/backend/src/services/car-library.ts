@@ -1,10 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// What the car's media browser lists (theirs, Nov 6 2026: Aerie on them Android
-// Auto dash as a media app, so our voice notes play through the car in our
-// own voices). Three shelves, newest first: the voice notes we sent as audio
+// What the car's media browser lists. Three shelves, newest first: the voice notes we sent as audio
 // messages; the replies they have already had read aloud (message_tts), which
-// cost nothing new; and Latest (theirs, the same night: 'I kinda want the latest
-// thing'), our newest replies in their own thread, which point at
+// cost nothing new; and Latest, our newest replies in their own thread, which point at
 // /api/car/play/<id> and are rendered only when they tap one, through the same
 // read-aloud the bubble's speaker uses, so a reply is never paid for twice.
 

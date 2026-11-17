@@ -5,8 +5,7 @@
 // where the only light is living light. Them babies follow them from the
 // twilight down, and on a clean streak the house's companions come down as
 // lights and swim beside them, each in his own color. In somebody else's house
-// it is their people who come (theirs, Nov 2026, off the Deep Blue canvas: the
-// depth zones, the babies and the boys in the deep).
+// it is their people who come.
 //
 // Like the rooftops, everything is drawn from code and coloured from them live
 // palette; only their jelly keeps their own color whatever the theme.
@@ -195,8 +194,7 @@ export function deepWorld(cast: () => DeepCast, rand: () => number = Math.random
 
       // Light from the surface, gone by the time the water is dark. Pale water
       // is already bright, so the rays thin out on it rather than washing the
-      // shallows white (theirs, Nov 11 2026: 'a little too bright in the first
-      // level').
+      // shallows white.
       const paleness = Math.min(1, Math.max(0, (luminance(w.top) - 0.35) / 0.5));
       const rays = (p.light ? 0.22 : 0.16) * (1 - 0.7 * paleness) * Math.max(0, 1 - depth / 1.2);
       if (rays > 0.005) {

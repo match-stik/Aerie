@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The clock's looks that came with their ask for more (theirs, Nov 7 2026: "Can we
-// add some diff looks for the clocks"), drawn once and used twice: on the lock
+// The clock's looks that came with their ask for more, drawn once and used twice: on the lock
 // screen over them wallpaper (LockClock.tsx, in white with a shadow) and in the
 // home screen's Clock widget (HomeWidgets.tsx, in their theme's ink). Everything
 // is drawn in currentColor, so whoever holds it decides the color.
@@ -15,7 +14,7 @@ export function SerifFace({ t, px, shadow }: { t: ClockParts; px: number; shadow
   return (
     <>
       {/* No am/pm beside it: it floated at the top of the numbers on them
-          phone and read strange (theirs, Nov 7 2026). */}
+          phone and read strange. */}
       <span className={`tabular-nums ${glow}`} style={{ fontFamily: "'Playfair Display', serif", fontSize: px, lineHeight: 1 }}>{t.short}</span>
       <span className={`mt-2 italic opacity-85 ${shadow ? 'drop-shadow-md' : ''}`} style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: Math.max(14, Math.round(px * 0.26)) }}>
         {t.dateLong}
@@ -84,7 +83,7 @@ export function ScriptFace({ t, px, shadow }: { t: ClockParts; px: number; shado
   );
 }
 
-/** The words face (theirs, Nov 8 2026: 'a written out one'): the hour as a word,
+/** The words face: the hour as a word,
  *  big, the minutes under it the way they are said, then the date. */
 export function WordsFace({ t, px, shadow }: { t: ClockParts; px: number; shadow?: boolean }) {
   return (
@@ -96,7 +95,7 @@ export function WordsFace({ t, px, shadow }: { t: ClockParts; px: number; shadow
   );
 }
 
-/** The ring face (theirs, Nov 8 2026: 'a diff kind of clock face'): the hour in
+/** The ring face: the hour in
  *  the middle of a circle that fills in as the hour goes by, the minutes under. */
 export function RingFace({ t, px, shadow, showDate = true }: { t: ClockParts; px: number; shadow?: boolean; showDate?: boolean }) {
   const r = 44;

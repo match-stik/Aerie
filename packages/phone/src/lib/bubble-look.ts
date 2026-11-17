@@ -208,8 +208,7 @@ export function mixHex(a: string, pct: number, b: string): string {
   return toHex([0, 1, 2].map((i) => x[i] * t + y[i] * (1 - t)) as [number, number, number]);
 }
 
-/** The words in a palette's chat bubbles (theirs, Nov 8 2026: 'font colors per
- *  theme/mood that are adjusted to be legible'). The bubbles used to be pure
+/** The words in a palette's chat bubbles. The bubbles used to be pure
  *  white at night and near-black by day whatever the theme; now each starts
  *  from the color it is given (the theme's own) and only moves toward white or
  *  black as far as it must to read at 4.5 to 1 on both ends of its bubble's blend. */

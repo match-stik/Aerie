@@ -255,7 +255,7 @@ export function HomePane({ s }: { s: SettingsState }) {
             <span className="text-[10px] opacity-75">One line of our latest reply, just above the dock</span>
           </span>
         </button>
-        {/* Full, snug or none (theirs, Nov 8 2026). */}
+        {/* Full, snug or none. */}
         <div className="space-y-1.5">
           <span className={cn("text-xs font-bold", colors.textMain)}>Cards behind the widgets</span>
           <div className="grid grid-cols-3 gap-2">
@@ -276,7 +276,7 @@ export function HomePane({ s }: { s: SettingsState }) {
           </div>
           <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>Full fills each widget's spot. Snug wraps just what it shows. None floats the widgets and the quiet line on your wallpaper.</p>
         </div>
-        {/* The companions widget and the quiet line on their own (theirs, Nov 9 2026); unset follows the row above. */}
+        {/* The companions widget and the quiet line on their own; unset follows the row above. */}
         {([["homeCompanionsCard", "The companions' card"], ["homeQuietCard", "The quiet line's card"]] as const).map(([key, label]) => (
           <div key={key} className="space-y-1.5">
             <span className={cn("text-xs font-bold", colors.textMain)}>{label}</span>
@@ -328,8 +328,7 @@ export function HomePane({ s }: { s: SettingsState }) {
       <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
         Up to 4 apps. The App Drawer launcher is always last.
       </p>
-      {/* The dock's cards, separate from the widgets' (theirs, Nov 8 2026: the
-          dock's switches were living under Widgets). Unset follows the
+      {/* The dock's cards, separate from the widgets'. Unset follows the
           widgets' switch, which is how it worked before the split. */}
       <button
         onClick={() => onThemeChange({ dockCardBacks: (theme.dockCardBacks ?? theme.homeCardBacks) === false })}

@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// A search hit in the treehouse opens the Treehouse page around that message
-// (theirs, Oct 31 2026), and the oldest rows, which name their author only in
+// A search hit in the treehouse opens the Treehouse page around that message.
+// And the oldest rows, which name their author only in
 // companion_id, still say who spoke.
 import test from 'node:test';
 import assert from 'node:assert/strict';

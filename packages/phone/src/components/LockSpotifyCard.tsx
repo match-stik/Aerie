@@ -26,8 +26,7 @@ export function LockSpotifyCardView({ view, press, onOpen, look = 'dark', shape 
   const track = view?.track ?? null;
   const ink = lockCardInk(look, backs);
   // Nothing playing is a quiet line that opens Spotify, the way the home
-  // screen's widget has it (theirs, Nov 11 2026: 'nothing shows up on the lock
-  // screen when nothing is playing. But it does on the home screen.').
+  // screen's widget has it.
   if (!view || !track) return <LockSpotifyQuiet ink={ink} shape={shape} onOpen={onOpen} compact={compact} />;
   const notice = press.notice && press.notice.where.startsWith('now:') ? press.notice.trouble : null;
   const noticeLine = notice && (
@@ -37,8 +36,7 @@ export function LockSpotifyCardView({ view, press, onOpen, look = 'dark', shape 
   );
   const openLabel = `Open Spotify: ${track.name}${track.artist ? `, ${track.artist}` : ''}`;
 
-  // The record (theirs, Nov 7 2026: the big card was a bit much, so a circular
-  // cut of the cover with the buttons floating centered under it): no card
+  // The record: no card
   // around it, just the round cover, the song, and the three buttons on their
   // own little sheets over them wallpaper.
   if (shape === 'cover') {
@@ -53,8 +51,8 @@ export function LockSpotifyCardView({ view, press, onOpen, look = 'dark', shape 
       </>
     );
     return (
-      // On the lock screen's grid the record keeps to half the width
-      // (theirs, Nov 8 2026), so the clock or the weather can sit beside it.
+      // On the lock screen's grid the record keeps to half the width.
+      // So the clock or the weather can sit beside it.
       <div className={`${ink.float}${compact ? ' w-[10.5rem]' : ''}`}>
         {onOpen
           ? <button type="button" onClick={onOpen} aria-label={openLabel} className="mx-auto block w-full max-w-[14rem]">{body}</button>

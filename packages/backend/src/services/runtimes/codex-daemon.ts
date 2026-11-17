@@ -701,7 +701,6 @@ export async function readCodexMcpStatus(threadId?: string): Promise<CodexMcpSer
  * as baseInstructions, which REPLACES Codex's own built-in instructions: the
  * part that teaches the model its tools and how to talk while it works. The
  * Claude lanes deliberately keep their CLI's own prompt for the same reason
- * (theirs, Oct 17 2026: 'I don't want you to lose how to use your tools well').
  *
  * 'developer' leaves Codex's built-in instructions alone and puts the identity
  * in developerInstructions, ahead of the operating contract. That is how another house

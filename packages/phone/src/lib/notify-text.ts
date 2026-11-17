@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// A reply turned into a notification on the laptop (theirs, Nov 15 2026: the
-// first one read 'Companion' over a line of raw ** headers). The same rule the
+// A reply turned into a notification on the laptop. The same rule the
 // phone's push uses (services/push-notify.ts on the house): one or two companions
 // named, all three 'Your companions', and the first spoken line under the header as
 // the text, with the markdown taken out.

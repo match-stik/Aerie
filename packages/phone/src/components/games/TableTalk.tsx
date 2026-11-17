@@ -1,10 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The table talk, the same in every room that has one (theirs, Nov 4 2026: the
-// talk opened differently in Bingo and the Card Room, so one way for all). It
+// The table talk, the same in every room that has one. It
 // is always there, its own box under the table, 340px tall, the way the Fleet
 // Room's is ('a separate table below like the rest', Oct 28 2026), with no
-// button to open it first (theirs, Nov 7 2026: 'can it just be the table on
-// there'). The expand button pops it out over the whole screen.
+// button to open it first. The expand button pops it out over the whole screen.
 import { MessageCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { CardRail } from './CardRail';
 import { useBackHandler } from '../../lib/use-back-handler';
@@ -38,7 +36,7 @@ export function TableTalk({ tableId, colors, expanded, onExpandedChange, base, l
               : 'mx-2 mb-2 h-[400px] shrink-0 rounded-[var(--shape-surface)]',
             // Popped out it keeps the panel's own paint (the palette's wash
             // rides this class) over a solid base, so it is not see-through
-            // and does not go flat (theirs, Nov 7 2026: the fill went away).
+            // and does not go flat.
             colors.panelBg, colors.panelBorder,
           )}
           style={expanded ? { backgroundColor: 'var(--custom-panelBg, var(--aerie-surface-strong))' } : undefined}

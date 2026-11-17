@@ -536,8 +536,7 @@ export function CoreDefenseGame({ colors: _colors, rawColors, onExit: _onExit }:
           {phase === 'ready' && (
             <motion.div key="ready" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-x-0 bottom-8 flex justify-center pointer-events-none">
               {/* On a soft card, like Signal Glide's, so it reads over the
-                  grass by day too (theirs, Oct 26 2026: 'do the same for the
-                  core defense'). */}
+                  grass by day too. */}
               <div
                 className="text-center mx-6 px-5 py-3 rounded-[var(--shape-surface)] border backdrop-blur-md"
                 style={{ backgroundColor: rawColors.panelBg, borderColor: rawColors.panelBorder }}

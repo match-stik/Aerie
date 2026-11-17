@@ -7,8 +7,7 @@
 // A rule from another house's own logs (Oct 21 2026): meter the exit,
 // not the rooms. So the first thing to hear a limit sets the brake here, every
 // Codex request checks it before it leaves, and nothing goes out until the
-// time Codex named has passed. Built at their word, Oct 22 2026: 'You can do the
-// Codex brakes.'
+// time Codex named has passed.
 
 /** When a limit names no time at all, how long everything waits anyway. */
 export const CODEX_DEFAULT_HOLD_MS = 60_000;

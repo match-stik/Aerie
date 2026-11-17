@@ -1,7 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The slim bar for whatever the sound shelf is playing, anywhere in the app
-// (theirs, Nov 10 2026: 'the audio player should pop out a slim bar over things
-// so you can stop it or play from wherever'). One row: play or pause, the
+// The slim bar for whatever the sound shelf is playing, anywhere in the app.
+// One row: play or pause, the
 // name, loop, and stop, with a thin line under it they can drag to move
 // through the sound. It floats over every app except the Toys page, where it
 // sits in the page instead (inline), and they can drag it to wherever it sits

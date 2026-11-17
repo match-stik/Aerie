@@ -49,7 +49,7 @@ const GUEST_SIGIL = '🐾';
 // Their face as the running app has it. The localStorage copy below is written
 // best-effort and can stop updating once their settings outgrow the browser's
 // quota (a picture is a long string), so on the laptop the Radar kept showing
-// a face they had since changed (theirs, Nov 15 2026). App hands the live one in.
+// a face they had since changed. App hands the live one in.
 let liveOwnerAvatar: { url?: string; color?: string } | null = null;
 
 export function setOwnerAvatarLive(avatar: { url?: string; color?: string } | null): void {

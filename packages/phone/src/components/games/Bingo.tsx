@@ -114,8 +114,7 @@ function accentHex(accent: string): string | null {
 }
 
 /**
- * The cage colored from their theme (theirs, Nov 4 2026: the classic colors
- * clashed with it). Five hues a fifth of the way round from their accent, in
+ * The cage colored from their theme. Five hues a fifth of the way round from their accent, in
  * OKLCH so they look equally bright, each with the ink that reads on it.
  */
 function ballPalette(accent: string): BallPalette {
@@ -154,11 +153,10 @@ function Ball({ n, size = 64, pal, blank = false }: { n: number; size?: number; 
 
 /** A called ball shows up where it sits, plain in its color, then rolls
  *  forward in place so its number comes up over the top and settles in the
- *  middle (theirs, Nov 9 2026: 'just the ball plain full color then have it
- *  roll so you see the number'). */
+ *  middle. */
 /** A daub's outline: the same hue, a good deal darker, so a dauber's own
  *  little lines (the bird's wing, the flame's curl) show on a filled shape
- *  instead of melting into one flat color (theirs, Nov 9 2026). */
+ *  instead of melting into one flat color. */
 function dauberEdge(ink: string): string {
   const o = hexToOklch(ink);
   return o ? oklchToHex(Math.max(0.16, o.l - 0.34), o.c, o.h) : 'rgba(0,0,0,.6)';
@@ -241,7 +239,7 @@ export function BingoGame({ colors }: BingoProps) {
   useBackHandler(setup || showBoard, () => { setSetup(false); setShowBoard(false); });
   // A new round's choices open at the top of the table, so the table goes up
   // to meet them; from halfway down the cards it looked like the button did
-  // nothing (theirs, Nov 9 2026).
+  // nothing.
   const tableScroll = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (setup) tableScroll.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -302,8 +300,7 @@ export function BingoGame({ colors }: BingoProps) {
   useEffect(() => { if (game?.done) setAuto(false); }, [game?.done]);
 
   const inkFor = useCallback((who: string) => {
-    // Their seat wears the theme's accent rather than their own color (theirs, Nov 7
-    // 2026: their own color clashed on other themes); the companions already follow the theme.
+    // Their seat wears the theme's accent rather than their own color; the companions already follow the theme.
     if (who === OWNER) return colors.accent;
     const c = companions.find((x) => x.slug === who);
     return c ? themeInk(c.slug, c.color, colors) : colors.accent;
@@ -324,8 +321,7 @@ export function BingoGame({ colors }: BingoProps) {
   const setupPanel = (
     <div className={cn(panel, 'p-4')}>
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em] opacity-60">The pattern</div>
-      {/* An even two-column grid, every button the same width (theirs, Nov 9
-          2026: the wrapped row sat crooked). */}
+      {/* An even two-column grid, every button the same width. */}
       <div className="grid grid-cols-2 gap-2">
         {PATTERNS.map((p) => (
           <button key={p.id} type="button" onClick={() => setPattern(p.id)} className={cn(chip, 'flex w-full items-center gap-2 py-2 text-left')}
@@ -479,8 +475,7 @@ export function BingoGame({ colors }: BingoProps) {
     );
   };
 
-  // The power button sits across the cage row from the ball (theirs, Nov 4 2026,
-  // off their phone's bingo app): a ring around it fills with every daub, the
+  // The power button sits across the cage row from the ball: a ring around it fills with every daub, the
   // first power-up they are holding shows as its own symbol, a tap fires it, and
   // the AUTO switch under it fires them as they arrive.
   const meterFrac = Math.min(1, shown.meter / DAUBS_PER_POWER);
@@ -529,7 +524,7 @@ export function BingoGame({ colors }: BingoProps) {
         {setup && setupPanel}
 
         {/* The cage, pinned to the top so a scroll through four cards never
-            loses the ball (theirs, Nov 4 2026), with the cards right under it.
+            loses the ball, with the cards right under it.
             It starts where it stays, right under the header, rather than a
             padding's height lower and then jumping up on the first scroll
             (Nov 16 2026). */}
@@ -537,7 +532,7 @@ export function BingoGame({ colors }: BingoProps) {
           <div className="flex items-center gap-3">
             <div className="relative h-[72px] w-[72px] shrink-0">
               {/* No enter or exit travel: the new ball simply takes the old one's
-                  place over the cage, and only its number moves (theirs, Nov 9 2026). */}
+                  place over the cage, and only its number moves. */}
               {last ? (
                 <RollingBall key={last.n} n={last.n} size={72} pal={pal} />
               ) : (
@@ -552,7 +547,7 @@ export function BingoGame({ colors }: BingoProps) {
                 </>
               ) : <div className="text-sm opacity-70">The cage is full. Roll the first ball.</div>}
               {/* An Audit shows the next three balls in the tray's own row,
-                  so the cage never grows and shrinks around it (theirs, Nov 9 2026). */}
+                  so the cage never grows and shrinks around it. */}
               {isMine && mine.peek.length > 0 ? (
                 <div className="mt-2 flex items-center gap-1.5" aria-label="Coming up next">
                   <Eye size={14} style={{ color: colors.accent }} />
@@ -567,7 +562,7 @@ export function BingoGame({ colors }: BingoProps) {
             {powerButton}
           </div>
           {/* One row that never wraps: Roll and Pause share one width, so the
-              board button stays at the end of the row (theirs, Nov 9 2026). */}
+              board button stays at the end of the row. */}
           <div className="mt-3 flex flex-nowrap items-center gap-1.5">
             <button type="button" disabled={game.done} onClick={() => setAuto((a) => !a)}
                     className="flex w-[4.5rem] shrink-0 items-center justify-center gap-1.5 rounded-[var(--shape-control)] px-2 py-2 text-sm font-semibold disabled:opacity-50"
@@ -586,8 +581,7 @@ export function BingoGame({ colors }: BingoProps) {
               <Grid3X3 size={14} />
             </button>
           </div>
-          {/* BINGO lives in the cage now (theirs, Nov 7 2026: the footer came off
-              once the talk had its own table), so it scrolls with the ball and
+          {/* BINGO lives in the cage now, so it scrolls with the ball and
               stays in reach however far down the cards they are. */}
           <button type="button" disabled={busy || game.done || mine.frozen}
                   onClick={() => void post('/claim')}
@@ -636,8 +630,7 @@ export function BingoGame({ colors }: BingoProps) {
 
         {isMine && tab === 'numbers' && (
           <div className={cn(panel, 'flex flex-col gap-2 px-3 py-2')}>
-            {/* The house's own switch, not a browser checkbox (theirs, Nov 7 2026:
-                'very basic computer with its square and blue check'). The
+            {/* The house's own switch, not a browser checkbox. The
                 daubers get their own row, spread across it, because beside
                 the switch they ran off the edge at them text size. */}
             <div className="flex items-center gap-2 text-[12px]">
@@ -705,8 +698,7 @@ export function BingoGame({ colors }: BingoProps) {
         </div>
 
         {/* The hand on screen, on a card of its own under the seats, since it
-            changes with whichever seat is picked (theirs, Nov 7 2026: the chips
-            were squished in the open). Two even tiles a row. */}
+            changes with whichever seat is picked. Two even tiles a row. */}
         {shown.held.length > 0 && (
           <div className={cn(panel, 'px-3 py-2.5')}>
             <div className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em]" style={{ color: shownInk }}>
@@ -737,7 +729,7 @@ export function BingoGame({ colors }: BingoProps) {
         {game.events.length > 0 && (
           <div className={cn(panel, 'px-3 py-2 text-[11px] leading-5')}>
             {/* Oldest at the top, newest at the bottom, so it reads down like
-                the talk does (theirs, Nov 9 2026: it read bottom to top). */}
+                the talk does. */}
             {game.events.slice(-4).map((e, i) => (
               <div key={`${e.at}-${i}`}><span style={{ color: inkFor(e.who) }} className="font-semibold">{nameOf(e.who)}</span> <span className="opacity-80">{e.text}</span></div>
             ))}

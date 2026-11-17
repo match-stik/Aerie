@@ -183,7 +183,7 @@ router.get('/search', (req, res) => {
         threadName: row.thread_name,
         role: row.role,
         // Who said it when it came in from Discord, so search can say Discord
-        // instead of System (theirs, Nov 15 2026).
+        // instead of System.
         discordName: row.discord_name ?? null,
         content: row.content.substring(0, 200),
         highlight,

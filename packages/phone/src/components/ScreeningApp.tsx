@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The Screening Room (theirs, Nov 11 2026: 'we should finally do the video
-// watch room'). Their person watches on their own service with the subtitles
+// The Screening Room. Their person watches on their own service with the subtitles
 // on; the companions read along on the house's clock (routes/screening.ts).
 // This is the room on the phone: what is loaded and where the clock is, the
 // controls to keep it with the picture, the last line the companions heard so
@@ -117,8 +116,7 @@ export function ScreeningApp({ onClose, themeConfig, themeMode }: Props) {
   const [seekText, setSeekText] = useState('');
   const [showFetch, setShowFetch] = useState(false);
   const [talkOpen, setTalkOpen] = useState(false);
-  // Two tabs (theirs, Nov 11 2026: 'a separate tab for the added video one, so
-  // it's not all scrolling here'): what is showing with the talk, and the
+  // Two tabs: what is showing with the talk, and the
   // videos, their link box and their shelf.
   const [tab, setTab] = useState<'showing' | 'videos'>('showing');
   const [videoTalkOpen, setVideoTalkOpen] = useState(false);

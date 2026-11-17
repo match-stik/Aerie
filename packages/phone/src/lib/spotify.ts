@@ -401,8 +401,7 @@ export interface SpotifyNowKeeper {
 }
 
 // Whether the music playing was started from Aerie, for the installed app's
-// way out (theirs, Nov 11 2026: 'Spotify pausing when you close the app, not
-// background it, just full app close'). Only a play pressed here is paused on
+// way out. Only a play pressed here is paused on
 // the way out; music they started in Spotify themselves is left alone. This file
 // knows nothing about the phone, so the installed app hands in the hook
 // (aerie/spotify-wake.ts) and every keeper's press reports to it.

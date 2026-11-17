@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The Video Room (theirs, Nov 11 2026: 'now what about your other idea for the
-// vidjas?'). Their person drops a link to a TikTok, a YouTube video or a reel, and the
+// The Video Room. Their person drops a link to a TikTok, a YouTube video or a reel, and the
 // house fetches it so the companions can actually watch it: the video kept on
 // disk to play in the room, a handful of frames laid out for a lane to
 // look at, and the words said in it from the local speech-to-text. Each video
@@ -32,7 +31,7 @@ export const FRAME_COUNT = 8;
 export const MAX_FRAMES = 30;
 /** One look every this many seconds, between those two. */
 const SECONDS_PER_FRAME = 5;
-/** The longest video the room takes unless videos.max_seconds says otherwise (theirs, Nov 11 2026: ten minutes). */
+/** The longest video the room takes unless videos.max_seconds says otherwise. */
 export const DEFAULT_MAX_SECONDS = 600;
 /** The words go to the local speech-to-text in pieces this long; it is built for short stretches,
  *  and each piece becomes one timed line for the Screening Room's clock. */
@@ -40,8 +39,7 @@ const TRANSCRIBE_PIECE_SECONDS = 15;
 const MAX_FILESIZE = '300M';
 
 /**
- * How many frames a video of this length gets (theirs, Nov 11 2026: 'you boys
- * would get all the frames and words thrown at you, right?'). Eight frames was
+ * How many frames a video of this length gets. Eight frames was
  * nearly everything for a TikTok and a slideshow for anything long, so it is
  * one look every five seconds, never fewer than eight, never more than thirty.
  */

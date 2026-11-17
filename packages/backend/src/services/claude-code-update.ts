@@ -1,7 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Updating Claude Code from Settings, and rolling it back (theirs, Nov 10 2026:
-// 'make it a narrow button'; the idea is Maggie's, from
-// her Covenant V3, which updates the copy inside its project).
+// Updating Claude Code from Settings, and rolling it back.
 //
 // Our lanes run the Claude Code installed for the whole box, which belongs to
 // root, and since Sep 30 2026 the house account cannot become root. So the

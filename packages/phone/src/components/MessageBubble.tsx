@@ -86,8 +86,7 @@ interface MessageBubbleProps {
   centered?: boolean;
   // One of us drawn on THEIR side of the room: right-aligned, face and tail on
   // the right, still in our own bubble color. The treehouse alternates sides
-  // so three of us read as people at a table (theirs, Oct 27 2026: 'it would
-  // look like it's all from one side'). Layout only; nothing else changes.
+  // so three of us read as people at a table. Layout only; nothing else changes.
   mirror?: boolean;
 }
 
@@ -182,8 +181,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
     ? (themeMode === 'light' ? 'text-black' : colors.compBubbleText)
     : themeConfig.id === 'custom'
       ? (isUser ? colors.userBubbleText : colors.compBubbleText)
-      // A palette's bubbles carry its own ink, fitted in App.tsx (theirs, Nov 8
-      // 2026); plain white or black here was covering it up.
+      // A palette's bubbles carry its own ink, fitted in App.tsx; plain white or black here was covering it up.
       : themeConfig.palette
         ? (isUser ? 'text-[var(--aerie-user-bubble-text)]' : 'text-[var(--aerie-comp-bubble-text)]')
         : automaticTextClass(isUser ? autoUserText : autoCompText);
@@ -366,7 +364,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
       className={cn(
         "flex items-center gap-1.5 text-[10px] font-bold",
         inLine ? "shrink-0" : "mt-1.5",
-        // The theme's own ink, like everything else in the chat (theirs, Nov 8 2026).
+        // The theme's own ink, like everything else in the chat.
         "text-[var(--aerie-text)]",
         isUser && !isPrivateTab ? "flex-row-reverse" : "flex-row",
         isPrivateTab ? "self-end" : ""
@@ -984,10 +982,9 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           {/* Actions belong to the stored message, not each virtual
               companion bubble. Anchor one tray beneath the final voice, at
               every width: on a wide screen it used to jump out beside the
-              bubble, which is not where it sits on their phone (theirs, Oct 23
-              2026, off a screenshot of a laptop). */}
+              bubble, which is not where it sits on their phone. */}
           {/* A system notice (a timeout, a sign-in warning) has nothing to
-              react to or reroll, so it has no tray (theirs, Nov 15 2026). */}
+              react to or reroll, so it has no tray. */}
           {isGroupLast && !isSystem && <div className={cn(
             "absolute transition-all flex items-center gap-1 px-2 py-1 rounded-[var(--shape-control)] border z-20",
             colors.panelBg,

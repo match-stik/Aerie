@@ -56,8 +56,7 @@ export function CardRail({ tableId, colors, base = '/api/games/cards', label = '
   const [threadId, setThreadId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   // What they have typed and not sent stays put when they leave the room and
-  // comes back (theirs, Nov 11 2026: 'tables aren't saving my messages in the
-  // input box'), kept per room the way the chat keeps one per thread.
+  // comes back, kept per room the way the chat keeps one per thread.
   const draftKey = `table:${base}`;
   const [draft, setDraftState] = useState(() => readDraft(draftKey));
   const setDraft = useCallback((text: string | ((prev: string) => string)) => {
@@ -67,8 +66,7 @@ export function CardRail({ tableId, colors, base = '/api/games/cards', label = '
       return next;
     });
   }, [draftKey]);
-  // Pictures and talk-to-type at the table, the chat's own two (theirs, Nov 11
-  // 2026). A picture is uploaded the moment it is picked and rides their line as
+  // Pictures and talk-to-type at the table, the chat's own two. A picture is uploaded the moment it is picked and rides their line as
   // an image; the house hands it to us to look at. The mic is the chat's
   // transcription, its text landing in this box, not the chat's.
   const [pictures, setPictures] = useState<Array<{ key: string; url: string | null; failed?: boolean }>>([]);
@@ -129,16 +127,16 @@ export function CardRail({ tableId, colors, base = '/api/games/cards', label = '
   // A sticker at the table, the same tray as chat, on a line of its own; Enter
   // is a new line here and the button sends (their person's ask, Oct 26 2026).
   const [stickers, setStickers] = useState(false);
-  // Emojis and GIFs too, the chat's own trays (theirs, Nov 7 2026). An emoji
+  // Emojis and GIFs too, the chat's own trays. An emoji
   // goes in where they are typing; a GIF goes on a line of its own as a picture.
   const [tray, setTray] = useState<'emoji' | 'gif' | null>(null);
   useBackHandler(tray !== null, () => setTray(null));
   const room = useRoomBubbleSettings();
   // A GIF waits beside the box as a picture until they send, rather than
-  // sitting in it as ![gif](...) text (theirs, Nov 7 2026: it read as a link).
+  // sitting in it as ![gif](...) text.
   const [gif, setGif] = useState<string | null>(null);
 
-  // The chat's colon tray, here too (theirs, Nov 7 2026): ':' finds their emojis,
+  // The chat's colon tray, here too: ':' finds their emojis,
   // '::' finds stickers, the same lookup ChatInput runs.
   const [caret, setCaret] = useState(0);
   const [stickerTick, setStickerTick] = useState(0);
@@ -237,8 +235,7 @@ export function CardRail({ tableId, colors, base = '/api/games/cards', label = '
   }, [threadId, latestId]);
 
   // A line that didn't reach the house waits here with a Retry, the way the
-  // chat's failed sends do (theirs, Nov 11 2026: 'need the retry send on the
-  // tables too'). A 409 is the table already mid-reply: it waits the same way.
+  // chat's failed sends do. A 409 is the table already mid-reply: it waits the same way.
   const [unsent, setUnsent] = useState<string | null>(null);
   const deliver = useCallback(async (content: string) => {
     let ok = false;
@@ -276,7 +273,7 @@ export function CardRail({ tableId, colors, base = '/api/games/cards', label = '
 
   // The talk is drawn once per change in what was said, not once per letter
   // they type: every keystroke re-ran every bubble's markdown, which is why
-  // the box lagged behind their thumbs (theirs, Nov 7 2026).
+  // the box lagged behind their thumbs.
   const talk = useMemo(() => (
     <RoomTalk
       className="flex-1 p-3"
@@ -300,16 +297,14 @@ export function CardRail({ tableId, colors, base = '/api/games/cards', label = '
     // stacked panels made the Card Room's header read as a colored band that
     // the Fleet Room does not have.
     <div className="flex h-full flex-col" style={{ color: PANEL_TEXT }}>
-      {/* The house's one table (components/RoomTable.tsx; theirs, Oct 28 2026:
-          one frame every room draws from). */}
+      {/* The house's one table (components/RoomTable.tsx). */}
       {talk}
 
       <div className="relative border-t px-3 pb-3 pt-2" style={{ borderColor: PANEL_BORDER }}>
         {/* The trays sit in a slim row above the box, the way the chat's do,
-            so the box gets the whole width (theirs, Nov 7 2026: smaller buttons,
-            a longer box). Enter is a new line; the button sends. */}
+            so the box gets the whole width. Enter is a new line; the button sends. */}
         {/* The colon tray floats over the talk rather than pushing it out of
-            the box (theirs, Nov 7 2026: it came up inside the talk and buried it). */}
+            the box. */}
         {matches.length > 0 && room && (
           <div className="absolute inset-x-2 bottom-full z-20">
           <ShortcodePalette

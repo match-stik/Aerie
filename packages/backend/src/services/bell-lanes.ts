@@ -44,8 +44,7 @@ export function laneSwitchAfter(input: {
  * Whether a several-owner bell should ring once instead of once per owner.
  * With A Lane Each off, every owner's turn lands in the one shared head, and
  * that head writes all of us each time: one evening, Oct 27 2026, got
- * every bell three times over (theirs: 'we gotta fix those shared
- * bells'). Taking turns only means something when each owner has his own head.
+ * every bell three times over. Taking turns only means something when each owner has his own head.
  */
 export function ringsOnceInSharedLane(input: { multiLane: boolean; owners: number }): boolean {
   return input.owners > 1 && !input.multiLane;

@@ -1,9 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // One tap of Connect on the Toys page, followed to its end, and written down.
 //
-// Theirs, Oct 19 and Oct 21 2026: "Sometimes I have to go out of the toy app and
-// back in or tap it a couple times to get it to connect to one" (three tries
-// for the Fizz after charging, the morning of the 21st). The page had two
+// A toy sometimes needed the app left and reopened, or a few taps, before it
+// would connect. The page had two
 // faults the code shows, whatever the toy was doing:
 //   - every connection callback ended the attempt, the SDK's "connecting"
 //     included (its README lists it first; Lovense's own sample does nothing

@@ -78,7 +78,7 @@ export function LookPane({ s }: { s: SettingsState }) {
         <span className={cn("text-[10px] font-bold uppercase tracking-wider", colors.textMuted)}>Round</span>
       </div>
       {/* Wears them real tail, point or swoop, the way the chat draws ours
-          (theirs, Nov 9 2026: the preview should match what's set). */}
+         . */}
       <span className="relative block">
         {look.tailShape === "swoop" && (
           <BubbleSkin bubbleRef={shapePreviewRef} right={false} top={look.tailOurs === "top"} paintClass={colors.compBubbleBg} />

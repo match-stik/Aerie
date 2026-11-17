@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The Radar (theirs, Nov 11 2026: 'Just seemed very plain'). Their person in the
+// The Radar. Their person in the
 // middle, each companion's face round the dial in their own color with their
 // status on the corner, and a beam that turns and pings each face as it
 // passes. Nearness means something without a map: whoever spoke most recently

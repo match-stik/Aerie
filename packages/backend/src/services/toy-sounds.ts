@@ -1,9 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // The sound shelf on the Toys page: audio they upload (read-alouds, anything
 // they like) to play while the remote is handed over or while they play on
-// their own. Theirs, Nov 9 2026: 'Upload and play audios ... so I can upload my
-// fave read aloud files and things to play while you boys have the remote or
-// if I'm playing by myself.' The audio itself lives in the file store; this
+// their own. The audio itself lives in the file store; this
 // table keeps its name and order, and file-references.ts keeps every file
 // named here safe from Clean orphans.
 
@@ -79,9 +77,7 @@ export function removeSound(id: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Playlists: several sounds played one after another (theirs, Nov 10 2026: 'can
-// we add a playlist creator to the sound things? So that I can add multiple
-// audios'). A playlist keeps sound ids in their order; a sound cleared off the
+// Playlists: several sounds played one after another. A playlist keeps sound ids in their order; a sound cleared off the
 // shelf simply drops out of every playlist it was in.
 // ---------------------------------------------------------------------------
 

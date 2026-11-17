@@ -72,7 +72,7 @@ const ROLE_LABEL: Record<SearchResult['role'], string> = {
   system: 'System',
 };
 
-/** Discord, and who, for a message that came in from Discord; otherwise the role (theirs, Nov 15 2026: it said System). */
+/** Discord, and who, for a message that came in from Discord; otherwise the role. */
 export function roleLabel(r: Pick<SearchResult, 'role' | 'discordName'>): string {
   if (r.discordName) return `Discord · ${r.discordName}`;
   return ROLE_LABEL[r.role];

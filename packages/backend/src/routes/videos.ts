@@ -1,7 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 // Videos the house keeps (services/video-room.ts): drop a link, the house
-// fetches it. They live in the Screening Room's Videos tab (theirs, Nov 11 2026:
-// 'a separate player ... It just kind of aggressively snaps you in here'), with
+// fetches it. They live in the Screening Room's Videos tab, with
 // a player and a table of their own, so a show on Now showing is never touched.
 // A short one is watched whole the moment it lands; for a longer one, what they
 // say carries where their player is, and the turn gets only what has played.

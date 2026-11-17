@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 /**
- * The word under the faces (Oct 20 2026; and then "Maybe it could update? Like if you're out on a date? Idk .. I don't want to make it too personal in the kit and levels").
+ * The word under the faces, which a bell can update while it rings (a date, say).
  *
  * A bell may carry a status word, as a setting: `cron.<wakeType>.status_word`.
  * While that bell's turn is running, its word is up, and the phone shows it

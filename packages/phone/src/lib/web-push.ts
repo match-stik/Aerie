@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Web push for a browser (theirs, Oct 29 2026: both options in the kit, for
-// people without the Android app). The Android app never comes here; it uses
+// Web push for a browser. The Android app never comes here; it uses
 // Firebase. The worker lives at /push-sw.js under a scope no page sits in, so
 // it never controls a page or sees a request (see the comment at its top).
 
@@ -32,7 +31,7 @@ function inLaptopApp(): boolean {
  * A worker registered for a scope no page sits in never makes
  * navigator.serviceWorker.ready resolve (that promise waits for one serving
  * this page), so waiting on it hung the switch forever after the browser's
- * own question (theirs, Nov 15 2026: 'it asked but then nothing flipped').
+ * own question.
  * This waits for this registration's own worker instead, with a ceiling.
  */
 function activeWorker(reg: ServiceWorkerRegistration, ms = 10_000): Promise<boolean> {

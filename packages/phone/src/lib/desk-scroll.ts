@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Sideways rows on the laptop (theirs, Nov 15 2026: 'I can't drag over on the
-// longer tab cards'). A row of tabs that scrolls sideways was built for a
+// Sideways rows on the laptop. A row of tabs that scrolls sideways was built for a
 // thumb; a mouse has neither a swipe nor a scrollbar there (they are hidden
 // house-wide). So on the laptop such a row follows the wheel, and a mouse can
 // drag it, the click at the end of a drag landing nowhere.
@@ -13,8 +12,7 @@ const ROW_MAX_HEIGHT = 160;
  * row rather than an area. The walk stops at the first thing that scrolls up
  * and down, because the wheel belongs to that: walking on past it handed the
  * wheel to whatever sideways box sat further out, and the room stopped
- * scrolling wherever the mouse happened to be (theirs, Nov 16 2026: 'I randomly
- * lose the ability to scroll').
+ * scrolling wherever the mouse happened to be.
  */
 export function sidewaysRow(start: EventTarget | null): HTMLElement | null {
   let el = start instanceof Element ? start as HTMLElement : null;

@@ -164,10 +164,9 @@ function CompanionsWidget({ companions, customEmojis, onOpen }: { companions: Wi
   const ours = companions
     .map((c) => ({ c, s: liveStatus(statuses.companions[c.slug], now) }))
     .filter((x): x is { c: WidgetCompanion; s: NonNullable<typeof x.s> } => !!x.s);
-  // Theirs rides the same line (theirs, Oct 27 2026: 'Mine doesn't scroll with
-  // yours though'). It never fades, so with theirs set the line is always there,
+  // Theirs rides the same line. It never fades, so with theirs set the line is always there,
   // and when none of ours is set the three of us still show as one Home entry
-  // beside their person ('the boys one still scrolls with mine'). Three of ours saying
+  // beside their person. Three of ours saying
   // the same thing collapse into one entry, the way the shared one reads.
   const theirs = liveStatus(statuses.owner, now);
   const sameText = ours.length === companions.length && ours.length > 1
@@ -292,7 +291,7 @@ function NoteWidget({ companions, palette, mode, onOpen }: { companions: WidgetC
     const load = () => apiFetch('/api/notes')
       .then(async (r) => {
         const rows = r.ok ? await r.json().catch(() => null) : null;
-        // In the laptop app the note once never showed (theirs, Nov 15 2026);
+        // In the laptop app the note once never showed;
         // when it comes back empty there, the house is told what was seen.
         if (!r.ok || !Array.isArray(rows)) reportFromLaptop('note', `notes answered ${r.status}${Array.isArray(rows) ? '' : ', not a list'}`);
         else if (crew.current.length > 0 && latestCompanionNote(rows as NoteRow[], crew.current.map((c) => c.slug)) === null) reportFromLaptop('note', `${rows.length} notes, none from ${crew.current.length} companions (${crew.current.map((c) => c.slug).join(',')}); senders ${[...new Set((rows as NoteRow[]).map((n) => n.sender))].slice(0, 6).join(',')}`);
@@ -340,7 +339,7 @@ function WeatherWidget({ onOpen, onLight = false, look = 'card' }: { onOpen: () 
   const weather = useWeather();
   const day = weather ? isDaytime(weather) : true;
   const hiLo = weather && typeof weather.high === 'number' && typeof weather.low === 'number' ? `H ${weather.high}° · L ${weather.low}°` : null;
-  // The lock screen's looks, drawn in the theme's own ink (theirs, Nov 9 2026).
+  // The lock screen's looks, drawn in the theme's own ink.
   if (look === 'big') {
     return (
       <button type="button" onClick={onOpen} className="flex h-full w-full items-center justify-center gap-2.5 rounded-[var(--shape-surface)] px-3 text-left" style={surface}>
@@ -421,12 +420,11 @@ function LetterWidget({ companions, onOpen }: { companions: WidgetCompanion[]; o
 }
 
 /** The Clock widget, in whichever look they picked in the widget sheet
- *  (theirs, Nov 7 2026: different looks for the clocks on the home screen). */
+  */
 function ClockWidget({ look }: { look: HomeClockLook }) {
   const now = useNow(15_000);
   const t = clockParts(new Date(now));
-  // No card, and one row tall (theirs, Nov 8 2026: trim the padding, there are
-  // only so many places to put everything), so every look fits in one row's
+  // No card, and one row tall, so every look fits in one row's
   // height, about 76px; the two-line looks drop the date to fit.
   let face: React.ReactNode;
   if (look === 'stacked') {
@@ -467,7 +465,7 @@ function ClockWidget({ look }: { look: HomeClockLook }) {
   }
   return (
     // The clock wears the widgets' card like everything else when the cards are
-    // on, and floats when they're off (theirs, Nov 8 2026: every card switches).
+    // on, and floats when they're off.
     <div
       className="flex h-full flex-col items-center justify-center overflow-hidden rounded-[var(--shape-surface)] px-2"
       style={{ ...surface, color: 'var(--aerie-text)', filter: 'var(--aerie-float-drop)' }}
@@ -477,7 +475,7 @@ function ClockWidget({ look }: { look: HomeClockLook }) {
   );
 }
 
-/** The Spotify widget (theirs, Nov 7 2026): what is playing, with its buttons,
+/** The Spotify widget: what is playing, with its buttons,
  *  read the same way the lock screen's card reads it. Nothing playing is a
  *  quiet line that opens Spotify. */
 function MusicWidget({ onOpen, look = 'bar' }: { onOpen: () => void; look?: LockSpotifyLook }) {
@@ -504,8 +502,7 @@ function MusicWidget({ onOpen, look = 'bar' }: { onOpen: () => void; look?: Lock
     notice: state.notice,
     onPress: (what, where) => void lock.keeper.press(what, where),
   };
-  // The record: no card, stacked in half the width (theirs, Nov 8 2026: the way
-  // it sits on the lock screen): a round cover, the song under it, the
+  // The record: no card, stacked in half the width: a round cover, the song under it, the
   // buttons under that, floating on them wallpaper.
   if (look === 'cover') {
     return (
@@ -638,7 +635,6 @@ export function HomeWidgets({
   // Measured in the home screen's own pixels: while it zooms in on the way
   // back from an app it is drawn scaled, and a scaled measure read as less
   // room than there is, so them note was left out until something re-measured
-  // (theirs, Nov 8 2026: coming back home popped the note off).
   const roomFor = (g: HTMLElement) => {
     const home = g.closest<HTMLElement>('[data-home-screen]') ?? g.parentElement;
     const box = home?.getBoundingClientRect();
@@ -654,8 +650,7 @@ export function HomeWidgets({
     if (!g) return;
     // While they are typing (the quiet line's Answer us), the keyboard squashes
     // the screen and the grid rides up with it; that is not less room, so the
-    // count only grows until the field lets go (theirs, Nov 10 2026: tapping
-    // Answer us told them there was no room for their clock or their note).
+    // count only grows until the field lets go.
     const read = () => setFitRows((prev) => {
       const next = roomFor(g);
       if (next < prev && typingNow()) return prev;
@@ -711,8 +706,7 @@ export function HomeWidgets({
         h.fromX = h.lastX; h.fromY = h.lastY;
         // Room from the grid's bottom edge up to the top of the middle of the
         // home screen, in whole rows.
-        // Up to just under the status bar (theirs, Nov 8 2026: closer to the
-        // top), not only to the bottom of the lock button's row.
+        // Up to just under the status bar, not only to the bottom of the lock button's row.
         h.rows = Math.max(layoutHeight(layout, sizes), roomFor(g));
         setRoomRows(h.rows);
         h.dragging = true;
@@ -926,8 +920,7 @@ export function WidgetSheet({
         <p className="text-[11px] opacity-75">Hold a widget on your home screen to move it.</p>
         {HOME_WIDGETS.map((w) => {
           const on = widgets.includes(w.id);
-          // Each widget's looks sit right under it, once it is on (theirs, Nov 9
-          // 2026: 'not all in one block under Spotify').
+          // Each widget's looks sit right under it, once it is on.
           const looks: React.ReactNode =
             !on ? null
             : w.id === 'music' && onSpotifyLook ? (

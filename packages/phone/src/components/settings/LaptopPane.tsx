@@ -10,8 +10,7 @@ import { APPS, migrateAppIds, useAppName } from "../../lib/apps";
 import { SLIDESHOW_PACES, paceLabel, slideshowSecondsOf } from "../../lib/slideshow";
 import type { SettingsState } from './use-settings-state';
 
-// The house on a wide screen (lib/desk.ts; theirs, Nov 14 2026: the phone
-// 'doesn't really read well on the laptop'). These ride in the theme like
+// The house on a wide screen (lib/desk.ts). These ride in the theme like
 // every other look, so they can set the laptop from their phone and the other
 // way round; the layout rows only ever show on a window wide enough for them.
 export function LaptopPane({ s }: { s: SettingsState }) {
@@ -26,7 +25,7 @@ export function LaptopPane({ s }: { s: SettingsState }) {
   const phoneDock = migrateAppIds(s.appSettings.dockAppIds ?? APPS.filter((x) => x.dock).map((x) => x.id));
   const dockIds = ownDock ? migrateAppIds(ownDock) : phoneDock;
   // The Aerie app on their laptop, when this is it (desktop/): its version,
-  // starting with Windows, and its update (theirs, Nov 15 2026).
+  // starting with Windows, and its update.
   const app = laptopApp();
   const [about, setAbout] = React.useState<{ version: string; startWithWindows: boolean | null } | null>(null);
   const [update, setUpdate] = React.useState<string | null>(null);
@@ -43,7 +42,7 @@ export function LaptopPane({ s }: { s: SettingsState }) {
     setNewer(answer.newer);
     // No version from the house is not the same as nothing newer: until the
     // house's own restart its version answer did not exist, and this said
-    // 'You have the newest' to an app two versions behind (theirs, Nov 16 2026).
+    // 'You have the newest' to an app two versions behind.
     if (!answer.latest) { setUpdate(`You have ${answer.current}. The house didn't say which version it holds, so this couldn't tell.`); return; }
     setUpdate(answer.newer ? `Version ${answer.latest} is ready.` : `You have the newest (${answer.current}).`);
   };
@@ -182,8 +181,7 @@ export function LaptopPane({ s }: { s: SettingsState }) {
         </section>
       )}
 
-      {/* The laptop's own pictures (theirs, Nov 15 2026: separate wallpapers for
-          the laptop's lock screen and the main room). Cropped wide; Use Full
+      {/* The laptop's own pictures. Cropped wide; Use Full
           Image keeps the whole picture. An empty one shows the phone's. */}
       <section className={cn("space-y-4 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
         <h3 className={cn("micro-label", colors.accentText)}>Wallpapers</h3>

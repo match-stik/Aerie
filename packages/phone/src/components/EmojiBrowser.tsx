@@ -147,8 +147,7 @@ export function EmojiBrowser({ onSelect, colors, customEmojis, emojiPacks, gridC
             </div>
           ) : (
             // Each emote in its own 40px square, about eight across a phone
-            // (their person's ask, Nov 6 2026: 'can the emoji previews be a little bigger in
-            // the picker? ... they so small'; at 1.4em they ran eleven across).
+            //.
             <div className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1 px-0.5 py-1">
               {activeCustomEmojis.map((emoji) => (
                 <button

@@ -1,6 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// Which Ollama Cloud models this account can actually run (theirs, Nov 8 2026:
-// 'let's drop it to the 7'). ollama.com's model list is its whole public
+// Which Ollama Cloud models this account can actually run. ollama.com's model list is its whole public
 // catalog and comes back the same with or without a key, so the picker was
 // offering 26 models on a free plan that runs 7; the other 19 answer 402
 // ('not included in your free usage') or are not chat models at all. The only

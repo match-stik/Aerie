@@ -131,7 +131,6 @@ router.post('/fire', (req, res) => {
 
 // The table talk the Card Room and Bingo Night draw (phone CardRail): the
 // Fleet Room's thread in the same shape, so all three tables are one table
-// (theirs, Nov 9 2026: 'we missed matching the fleet room table').
 router.get('/rail', (req, res) => {
   try {
     const id = typeof req.query.id === 'string' ? req.query.id : undefined;
