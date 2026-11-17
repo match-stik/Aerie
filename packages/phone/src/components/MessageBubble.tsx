@@ -495,7 +495,15 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
           )}
           <div
             ref={swoopBubbleRef}
-            onClick={() => { if (isEditing || isSystem) return; setShowActions(!showActions); }}
+            onClick={() => {
+              if (isEditing || isSystem) return;
+              // A mouse that just dragged across the words is selecting them,
+              // not asking for the tray; opening it redrew the bubble and the
+              // highlight vanished before Ctrl+C.
+              const picked = window.getSelection();
+              if (picked && !picked.isCollapsed && picked.toString().trim()) return;
+              setShowActions(!showActions);
+            }}
             data-user={isUser ? 'true' : 'false'}
             className={cn(
               "aerie-message-bubble overflow-hidden transition-all duration-500 cursor-pointer rounded-[var(--shape-bubble)]",

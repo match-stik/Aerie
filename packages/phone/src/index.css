@@ -644,8 +644,22 @@
   50% { box-shadow: 0 0 16px 4px var(--glow-color, currentColor); }
 }
 
+/* No highlight from a stray tap on a touch screen, but a mouse selects and
+   copies like anywhere else.
+   With a mouse only the controls stay unselectable, so a click on a button or
+   an icon still never paints a highlight. */
+@media (pointer: coarse) {
+  body { -webkit-user-select: none; user-select: none; }
+}
+@media not (pointer: coarse) {
+  button, [role="button"], nav, svg, img, label {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
 body {
-  @apply bg-[#0A0A0A] overflow-hidden font-sans antialiased select-none;
+  @apply bg-[#0A0A0A] overflow-hidden font-sans antialiased;
   /* Their message font, not only inside .aerie-root: trays and sheets portal
      straight into body and were falling back to plain sans. */
   font-family: var(--font-body, var(--font-sans));

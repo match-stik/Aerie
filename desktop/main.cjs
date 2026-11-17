@@ -10,7 +10,7 @@
 // app is built for one house, otherwise the address typed in on first run,
 // kept in the app's own folder. Nothing about any house is written in here.
 
-const { app, BrowserWindow, ipcMain, shell, session, Menu, Tray, nativeImage, net } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, session, Menu, Tray, nativeImage, net, clipboard } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -429,6 +429,44 @@ function createWindow() {
 
   // F12 or Ctrl+Shift+I opens the inspector, so a thing that will not load
   // can be looked at from inside the app.
+  // A right-click menu, which a browser gives every page and Electron gives
+  // none: spelling fixes on a misspelled word, cut, copy and paste where
+  // they apply, select all inside a box they type in, and copying a link or
+  // a picture.
+  win.webContents.on('context-menu', (_event, params) => {
+    const items = [];
+    if (params.misspelledWord) {
+      for (const word of params.dictionarySuggestions.slice(0, 5)) {
+        items.push({ label: word, click: () => win.webContents.replaceMisspelling(word) });
+      }
+      if (params.dictionarySuggestions.length === 0) items.push({ label: 'No suggestions', enabled: false });
+      items.push({ label: 'Add to dictionary', click: () => win.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord) });
+      items.push({ type: 'separator' });
+    }
+    if (params.linkURL && /^https?:/i.test(params.linkURL)) {
+      items.push({ label: 'Open link in browser', click: () => void shell.openExternal(params.linkURL) });
+      items.push({ label: 'Copy link', click: () => clipboard.writeText(params.linkURL) });
+      items.push({ type: 'separator' });
+    }
+    if (params.mediaType === 'image' && params.srcURL) {
+      items.push({ label: 'Copy picture', click: () => win.webContents.copyImageAt(params.x, params.y) });
+      items.push({ type: 'separator' });
+    }
+    const flags = params.editFlags || {};
+    if (params.isEditable) {
+      items.push({ role: 'cut', enabled: Boolean(flags.canCut) });
+      items.push({ role: 'copy', enabled: Boolean(flags.canCopy) });
+      items.push({ role: 'paste', enabled: Boolean(flags.canPaste) });
+      items.push({ role: 'selectAll' });
+    } else {
+      // No Select all out here: it would take the whole page, every message
+      // and every button, not a bubble.
+      items.push({ role: 'copy', enabled: Boolean(params.selectionText && params.selectionText.trim()) });
+    }
+    while (items.length && items[items.length - 1].type === 'separator') items.pop();
+    Menu.buildFromTemplate(items).popup({ window: win });
+  });
+
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
     const inspector = input.key === 'F12' || (input.control && input.shift && input.key.toLowerCase() === 'i');
