@@ -1550,6 +1550,19 @@ html[data-desk] {
   pointer-events: none;
 }
 
+/* A game open with the conversation tucked: its table talk needs the column,
+   so the side stands on the right like the conversation would (the talk lives in the column on the laptop). */
+.aerie-root[data-desk][data-desk-chat='tucked'][data-desk-table] .aerie-stage {
+  right: var(--desk-side);
+}
+
+.aerie-root[data-desk][data-desk-chat='tucked'][data-desk-table] .aerie-side {
+  left: auto;
+  width: var(--desk-side);
+  border-left: 1px solid var(--aerie-hairline);
+  pointer-events: auto;
+}
+
 .aerie-root[data-desk][data-desk-chat='right'] .aerie-stage {
   right: var(--desk-side);
 }

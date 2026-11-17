@@ -2,8 +2,12 @@
 // What the Aerie app on their laptop (desktop/preload.cjs) hands the page, read
 // safely: in a browser or on the phone there is none and every answer is null.
 
+/** How the last Settings update went, from the app's own update.log (desktop 1.1.4 and later); null when there was none. */
+export interface LaptopLastUpdate { ok: boolean; from: string | null; to: string; note: string }
+export interface LaptopAbout { version: string; startWithWindows: boolean | null; lastUpdate?: LaptopLastUpdate | null }
+
 export interface LaptopApp {
-  about(): Promise<{ version: string; startWithWindows: boolean | null }>;
+  about(): Promise<LaptopAbout>;
   setStartWithWindows(on: boolean): Promise<boolean | null>;
   checkUpdate(): Promise<{ current: string; latest: string | null; newer: boolean }>;
   installUpdate(): Promise<{ ok: boolean; error?: string }>;

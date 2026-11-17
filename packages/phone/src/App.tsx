@@ -120,6 +120,7 @@ import { startToyRemote } from './aerie/toy-remote';
 import { ToyRemotePill } from './components/ToyRemotePill';
 import { SoundBar } from './components/SoundBar';
 import { startSoundDrive } from './aerie/sound-drive';
+import { sideTable, useSideTable } from './lib/side-table';
 
 const DEFAULT_CONTACTS: Record<string, ContactProfile> = {
   companion1: {
@@ -336,7 +337,13 @@ export default function App() {
   // so changing them there leaves the phone's alone. The
   // saved theme is what syncs; this is what the screens and Settings read.
   const theme = useMemo(() => (desk.on ? deskScreenTheme(savedTheme) : savedTheme), [desk.on, savedTheme]);
-  const chatOn = chatShown(desk, osState);
+  // On the laptop a game's table talk takes the conversation's column while
+  // the room is open (lib/side-table.ts); the conversation shows there again
+  // only by its button, so read marks follow what is actually on screen.
+  const sideTalk = useSideTable();
+  const tableOnDesk = desk.on && sideTalk.tables > 0;
+  const chatOn = tableOnDesk ? sideTalk.showChat && osState !== 'locked' : chatShown(desk, osState);
+  useEffect(() => { sideTable.setDesk(desk.on); }, [desk.on]);
   // With the conversation beside them, a tap that asks for the Messages screen
   // (a notification, a search hit, the dock) has nowhere new to go: the chat is
   // already there. Put the stage back on the room they were in.
@@ -1803,6 +1810,7 @@ export default function App() {
       data-desk-dock={desk.on ? desk.dock : undefined}
       data-desk-chat={desk.on ? (desk.chat ?? 'tucked') : undefined}
       data-desk-full={desk.on && osState === 'locked' ? '' : undefined}
+      data-desk-table={tableOnDesk ? '' : undefined}
       style={{ paddingBottom: 'var(--sab)', fontFamily: 'var(--font-body)' }}
     >
       {customThemeStyles && <style>{customThemeStyles}</style>}
@@ -2027,6 +2035,8 @@ export default function App() {
       {/* The side: the conversation and its thread list. Beside a room on a
           wide screen; on the phone, and tucked away, the screen it always was. */}
       <div className="aerie-side">
+      {/* The laptop's slot for a game's table talk (components/games/TableTalk.tsx). */}
+      {desk.on && <div ref={sideTable.setSlot} className="absolute inset-0 z-20 pointer-events-none" />}
       {/* Messages App (Always rendered but hidden if not active to preserve state) */}
       <div className={cn(
         "absolute inset-0 flex flex-col z-10 transition-opacity duration-300",
@@ -2047,7 +2057,17 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1 sm:gap-2">
                 {/* Beside a room there is nothing behind the conversation to go back to. */}
-                {desk.chat === null && (
+                {tableOnDesk && (
+                <button
+                  onClick={() => sideTable.showChat(false)}
+                  className={cn("p-2 -ml-2 rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10", colors.textMuted)}
+                  aria-label="Back to the table talk"
+                  title="Back to the table talk"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                )}
+                {desk.chat === null && !tableOnDesk && (
                 <button
                   onClick={() => { setOsState(messagesReturnTo); setMessagesReturnTo('home'); }}
                   className={cn(

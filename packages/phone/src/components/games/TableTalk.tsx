@@ -3,7 +3,11 @@
 // is always there, its own box under the table, 340px tall, the way the Fleet
 // Room's is ('a separate table below like the rest', Oct 28 2026), with no
 // button to open it first. The expand button pops it out over the whole screen.
-import { MessageCircle, Maximize2, Minimize2 } from 'lucide-react';
+// On the laptop it lives in the conversation's column instead (lib/side-table.ts).
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { MessageCircle, Maximize2, Minimize2, MessagesSquare } from 'lucide-react';
+import { sideTable, useSideTable } from '../../lib/side-table';
 import { CardRail } from './CardRail';
 import { useBackHandler } from '../../lib/use-back-handler';
 import { cn } from '../../lib/utils';
@@ -20,7 +24,52 @@ export interface TableTalkProps {
   extraBody?: () => Record<string, unknown>;
 }
 
-export function TableTalk({ tableId, colors, expanded, onExpandedChange, base, label, extraBody }: TableTalkProps) {
+export function TableTalk(props: TableTalkProps) {
+  const side = useSideTable();
+  return side.desk ? <ColumnTalk {...props} slot={side.slot} hidden={side.showChat} /> : <PhoneTalk {...props} />;
+}
+
+/**
+ * The laptop: the talk fills the conversation's column for as long as the
+ * room is open, with a button back to the conversation (and the conversation
+ * has one back here). Hidden rather than unmounted while the chat shows, so
+ * the rail keeps its place.
+ */
+function ColumnTalk({ tableId, colors, base, label, extraBody, slot, hidden }: TableTalkProps & { slot: HTMLElement | null; hidden: boolean }) {
+  useEffect(() => sideTable.enter(), []);
+  if (!slot) return null;
+  return createPortal(
+    <section
+      className={cn('absolute inset-0 flex flex-col', hidden ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100')}
+      // The frame's own black (white in Daylight), the color the conversation's
+      // header is painted, so the column reads the same whichever is in it.
+      style={{ backgroundColor: 'var(--aerie-header, #000)' }}
+      aria-hidden={hidden || undefined}
+    >
+      <div className={cn('flex items-center justify-between border-b px-3 py-2', colors.panelBorder)} style={{ paddingTop: 'calc(var(--sat, 0px) + 8px)' }}>
+        <div className="flex items-center gap-2">
+          <MessageCircle size={15} style={{ color: colors.accent }} />
+          <span className="text-[13px] font-semibold uppercase tracking-[.14em]">The table talk</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => sideTable.showChat(true)}
+          className={cn('flex items-center gap-1.5 rounded-[var(--shape-chip)] border px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[.12em] transition active:scale-95', colors.panelBorder)}
+          aria-label="Back to the conversation"
+        >
+          <MessagesSquare size={14} /> Back to chat
+        </button>
+      </div>
+      <div className="min-h-0 flex-1">
+        <CardRail tableId={tableId} colors={colors} base={base} label={label} extraBody={extraBody} />
+      </div>
+    </section>,
+    slot,
+  );
+}
+
+/** The phone, as it was: a box under the table that pops out over the screen. */
+function PhoneTalk({ tableId, colors, expanded, onExpandedChange, base, label, extraBody }: TableTalkProps) {
   // Back folds a popped-out talk back under the table before it leaves the room.
   useBackHandler(expanded, () => onExpandedChange(false));
   return (

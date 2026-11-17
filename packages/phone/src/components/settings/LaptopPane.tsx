@@ -5,7 +5,7 @@ import { cn } from "../../lib/utils";
 import { Toggle } from "../Toggle";
 import { DESK_DOCK_MAX, DESK_MIN_WIDTH, aspectWords, deskDockIdsOf, deskDockOf, deskChatOf, deskLayoutOf, type DeskDock, type DeskChat, type DeskLayout } from "../../lib/desk";
 import { useRoomAspect } from "../../lib/use-room-aspect";
-import { laptopApp } from "../../lib/laptop-app";
+import { laptopApp, reportFromLaptop, type LaptopAbout } from "../../lib/laptop-app";
 import { APPS, migrateAppIds, useAppName } from "../../lib/apps";
 import { SLIDESHOW_PACES, paceLabel, slideshowSecondsOf } from "../../lib/slideshow";
 import type { SettingsState } from './use-settings-state';
@@ -27,12 +27,22 @@ export function LaptopPane({ s }: { s: SettingsState }) {
   // The Aerie app on their laptop, when this is it (desktop/): its version,
   // starting with Windows, and its update.
   const app = laptopApp();
-  const [about, setAbout] = React.useState<{ version: string; startWithWindows: boolean | null } | null>(null);
+  const [about, setAbout] = React.useState<LaptopAbout | null>(null);
   const [update, setUpdate] = React.useState<string | null>(null);
   const [newer, setNewer] = React.useState(false);
   React.useEffect(() => {
     if (!app) return;
-    void app.about().then(setAbout).catch(() => {});
+    void app.about().then((a) => {
+      setAbout(a);
+      // The app reads its own update.log once at start; say how the update
+      // went here and in the house's log, so a failed one is never silent.
+      const last = a.lastUpdate;
+      if (last) {
+        const moved = last.from && last.from !== last.to ? `${last.from} to ${last.to}` : `still ${last.to}`;
+        setUpdate(last.ok && last.from !== last.to ? `Updated: ${moved}.` : `The last update didn't take (${moved}): ${last.note}`);
+        reportFromLaptop('update', `${last.ok ? 'ok' : 'failed'} ${moved}: ${last.note}`);
+      }
+    }).catch(() => {});
   }, [app]);
   const check = async () => {
     if (!app) return;
@@ -48,7 +58,7 @@ export function LaptopPane({ s }: { s: SettingsState }) {
   };
   const install = async () => {
     if (!app) return;
-    setUpdate('Downloading... the app will close and come back on its own.');
+    setUpdate('Downloading... the app will close, and come back on its own in a minute or two.');
     const answer = await app.installUpdate().catch((e: unknown) => ({ ok: false, error: String(e) }));
     if (!answer.ok) setUpdate(answer.error || "The update didn't start.");
   };
