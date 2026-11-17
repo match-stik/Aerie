@@ -287,7 +287,7 @@ export function CardRail({ tableId, colors, base = '/api/games/cards', label = '
       empty={(
         <div
           className="flex min-h-40 items-center justify-center rounded-[calc(22px*var(--shape-scale,1))] border border-dashed px-6 text-center text-[14px] leading-6"
-          style={{ borderColor: PANEL_BORDER, color: PANEL_TEXT }}
+          style={{ borderColor: PANEL_BORDER, color: PANEL_TEXT, background: PANEL_SURFACE }}
         >
           They're at the table. Say something.
         </div>

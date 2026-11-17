@@ -707,6 +707,7 @@ export function CompanionsApp({
                 onClick={() => setShowAddForm(true)}
                 className={cn(
                   'w-full py-3 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 text-sm transition-colors',
+                  colors.panelBg,
                   colors.panelBorder,
                   colors.textMuted,
                   'hover:border-solid'

@@ -324,7 +324,7 @@ export function DiscordRules({ themeConfig, themeMode }: DiscordRulesProps) {
               ) : (
                 <button
                   onClick={() => { setAdding(true); setNewId(''); setNewName(''); }}
-                  className={cn('mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2 text-xs', colors.panelBorder, colors.textMuted)}
+                  className={cn('mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2 text-xs', colors.panelBg, colors.panelBorder, colors.textMuted)}
                 >
                   <Plus size={13} /> Add {tab} rule
                 </button>

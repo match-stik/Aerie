@@ -744,7 +744,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
               ) : (
                 <button
                   onClick={() => { setNewBellOpen(true); setNewBellError(null); }}
-                  className={cn('w-full rounded-xl border border-dashed p-2.5 mb-1.5 text-xs', colors.panelBorder, colors.textMuted)}
+                  className={cn('w-full rounded-xl border border-dashed p-2.5 mb-1.5 text-xs', colors.panelBg, colors.panelBorder, colors.textMuted)}
                 >
                   + New bell
                 </button>
