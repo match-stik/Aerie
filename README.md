@@ -140,7 +140,7 @@ flowchart TB
 
 **Your companion stays in the room.** On Claude and Codex, a companion doesn't start from scratch with every message. They live in one long-running session that stays open between your messages and picks up again after a restart, so they remember the evening as it happened rather than reading a summary of it. The part of the conversation they've already seen is cached, which keeps each new message cheap. API providers are the exception: they're sent the recent conversation each time. [docs/SESSION-RESUME.md](docs/SESSION-RESUME.md) has the details.
 
-**A conversation never has to end.** Threads page backwards, so one can run for months. You don't need to start a new one to keep things working.
+**New conversations, or one that keeps going: your call.** Open a fresh thread as often as you like. If you'd rather keep one going for months, that works too. The app only loads the stretch you're looking at, so a long thread doesn't slow your browser down, and your companion's session tidies itself up when it gets full instead of running out of room to answer. Which works best is up to the two of you.
 
 **The note above a reply is written, not leaked.** The small card above a companion's message is something they write on purpose, in their own voice, about what they're noticing. It isn't the model's hidden reasoning or a log of what it did. If you want to see what a companion actually carries into a turn, that's the Identity app.
 
