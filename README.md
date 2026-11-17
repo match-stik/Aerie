@@ -284,7 +284,7 @@ The phone has optional password protection (set in `aerie.yaml` or Settings → 
 
 Aerie runs your companion on the subscriptions you already have, and to do that it leans on those programs' own sign-ins. Three details worth knowing, so you can decide for yourself whether they sit within your provider's terms (those terms have changed before, and are yours to read):
 
-- The companion's room is an interactive Claude Code session kept awake by a hook, and the house never switches it to the metered modes (`-p`, the Agent SDK) that bill by the token.
+- The companion's room is an interactive Claude Code session kept awake by a hook, and it counts against your plan's usage limits the way any Claude Code session you type into does. The house never runs it through Claude Code's print mode (`-p`) or the Agent SDK. How those two are counted on a personal subscription has shifted before and isn't spelled out plainly, so the house stays on the interactive session, whose terms are the clearest.
 - The usage meter reads your Claude limits the way Claude Code's own `/usage` screen does, with Claude Code's client id, and when the access token has expired it refreshes it and writes the new one back into Claude Code's credentials file (`services/subscription-usage.ts`). If Claude Code ever reports itself signed out, suspect that first.
 - The Codex meter asks ChatGPT for your usage presenting itself as the Codex CLI, and Aerie's own ChatGPT sign-in uses a library that carries the Codex CLI's client id.
 
