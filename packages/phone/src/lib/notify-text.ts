@@ -6,8 +6,12 @@
 // the text, with the markdown taken out.
 
 const COLLECTIVE_LABEL = 'Your companions';
-/** A voice header on its own line: the whole thing in bold, a sigil, then the name. */
-const HEADER = /^\s*\*\*\s*(?:[^\p{L}\p{N}\s*]+\s*)+([\p{L}][\p{L}\p{N} .'-]*?)\s*\*\*\s*$/u;
+/** A voice header on its own line: the whole thing in bold, a sigil, then the name.
+ *  Each stretch is matched by exactly one quantifier, so a long run of symbols
+ *  with no closing ** fails in a straight line instead of backtracking (CodeQL
+ *  js/redos, Nov 16 2026): the sigil run takes spaces itself, and the name ends
+ *  on a non-space so it never competes with the spaces before the closing **. */
+const HEADER = /^\s*\*\*[^\p{L}\p{N}*]+([\p{L}](?:[\p{L}\p{N} .'-]*[\p{L}\p{N}.'-])?)\s*\*\*\s*$/u;
 
 function flatten(text: string): string {
   return text

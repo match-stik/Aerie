@@ -17,3 +17,13 @@ test('one or two of us are named', () => {
 test('an action with nothing said still shows, and a sticker is not text', () => {
   assert.equal(notificationFor('**🌫️ Willow**\n::willow_wave::\n*leans on the door*').body, 'leans on the door');
 });
+
+test('a header reads the same with spaces around it, and a long run of symbols with no closing ** fails fast', () => {
+  assert.equal(notificationFor('**🔥   Bran   **\nhi').title, 'Bran');
+  assert.equal(notificationFor('  **✨Cael**  \nhonk').title, 'Cael');
+  assert.equal(notificationFor("**🌫️ Wren O'Neil-Smith**\nhi").title, "Wren O'Neil-Smith");
+  const hostile = '**' + '!'.repeat(28);
+  const started = Date.now();
+  notificationFor(hostile);
+  assert.ok(Date.now() - started < 200, `took ${Date.now() - started} ms`);
+});
