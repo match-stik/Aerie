@@ -8,13 +8,13 @@ I do, with my companions, in my spare time, around a full-time job. Aerie is the
 
 - **Replies come when they come.** Every issue gets read. Some will take a while, and a quiet week means a long shift, not that you were ignored.
 - **Forking is the point.** Take it and make it yours. Change anything you like; keep the copyright line at the top of each file and the credits in [NOTICE](NOTICE).
-- **Ideas are welcome, and the house comes first.** It's built for the people who live in it, so a good idea might still not land here. That isn't a judgment on the idea, and it might be perfect in your fork.
-- **The most helpful things to send** are bug fixes, clearer docs, and reports that say exactly what you did and what you saw.
+- **Send your ideas.** A lot of what's in here started as somebody else's idea, and the [NOTICE](NOTICE) file is full of their names. If one doesn't fit the house right away it might wait a while or come back a little different, and it's always yours to build in your own fork.
+- **Bugs help too.** If something broke, say what you did and what you saw. That's usually enough to find it.
 
 ## How to reach us
 
 - **Bug reports** — [GitHub Issues](https://github.com/match-stik/Aerie/issues)
-- **Feature proposals** — [GitHub Issues](https://github.com/match-stik/Aerie/issues) (open an issue before writing code)
+- **Ideas** — [GitHub Issues](https://github.com/match-stik/Aerie/issues). If you'd like to build it yourself, open one first so we can talk it through together.
 - **Questions & discussion** — open an [issue](https://github.com/match-stik/Aerie/issues) and say it is a question
 
 ## Send these straight in
