@@ -5,8 +5,26 @@
 // Usage: node scripts/setup.mjs
 
 import { createInterface } from 'readline';
-import { writeFileSync, existsSync, copyFileSync, mkdirSync, readdirSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync, copyFileSync, mkdirSync, readdirSync } from 'fs';
+import { homedir } from 'os';
 import { join, resolve } from 'path';
+
+// The names offered under "Another one". For Claude, the ones Claude Code
+// carries that Aerie's model list knows; for ChatGPT, the list Codex saved from
+// the signed-in account, when there is one.
+function otherModelNames(engine) {
+  if (engine === 'codex') {
+    try {
+      const cache = JSON.parse(readFileSync(join(homedir(), '.codex', 'models_cache.json'), 'utf8'));
+      const list = Array.isArray(cache) ? cache : cache.models;
+      return (list || []).map((m) => m.slug || m.id).filter((id) => typeof id === 'string' && id.startsWith('gpt-'));
+    } catch { return []; }
+  }
+  return [
+    'claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-2',
+    'claude-opus-5', 'claude-sonnet-5', 'claude-opus-4-8', 'claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5',
+  ];
+}
 
 const rl = createInterface({ input: process.stdin, output: process.stdout });
 const ask = (q) => new Promise((res) => rl.question(q, res));
@@ -72,6 +90,13 @@ async function main() {
   if (String(picked) === modelAnswer && picked >= 1 && picked <= choices.length) {
     model = choices[picked - 1][0];
   } else if (String(picked) === modelAnswer && picked === choices.length + 1) {
+    const others = otherModelNames(engine);
+    if (others.length) {
+      console.log(engine === 'codex' ? '  The models your ChatGPT account offers:' : '  The Claude models Claude Code knows:');
+      for (const name of others) console.log(`    ${name}`);
+    } else {
+      console.log('  Sign in to Codex first (codex login) and its model list will show here; the app shows it too.');
+    }
     const typed = (await ask('  Model name: ')).trim();
     if (typed) model = typed;
   } else if (modelAnswer && !/^\d+$/.test(modelAnswer)) {
