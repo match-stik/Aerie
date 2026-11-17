@@ -91,7 +91,7 @@ sc schedule disable                # Disable orchestrator
 sc schedule reschedule morning_watch "0 8 * * *"   # Reschedule a wake
 ```
 
-The wakes are the bells in the Orchestrator app's Bells tab, where you can add, move and switch them off without the command line. What each bell says to your companion lives in `prompts/wake.md`; `examples/wake-prompts.md` is a place to start.
+The wakes are the bells in the Agent app's Wakes tab, where you can add, move and switch them off without the command line. What every bell says to your companion lives in `prompts/wake.md`, and a bell you make in the tab writes its own section there for you. `examples/wake-prompts.md` is a place to start.
 
 ### Timers
 One-shot scheduled reminders. Fire once at a specific time.

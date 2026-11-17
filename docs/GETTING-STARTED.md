@@ -296,7 +296,7 @@ Open the **Memory** app and expand **Archivist settings**, just under the status
 - **Provider** — `Anthropic (Claude)`, `Codex (ChatGPT)`, `Groq`, `OpenAI`, `OpenRouter` or
   `Ollama Cloud`. Codex reuses the account you signed into with the Codex CLI; every
   other provider needs its own key in the Providers tab.
-- **Model** — e.g. `claude-haiku-5-5` for Anthropic, `gpt-5.6-sol` for Codex. A small,
+- **Model** — e.g. `claude-haiku-5-5` for Anthropic, `gpt-6-luna` for Codex. A small,
   cheap model does this job well.
 - **Effort** and **Thinking** — how hard it reasons about each sweep.
 

@@ -1,6 +1,6 @@
 # Antigravity CLI (agy)
 
-Google's agent-first coding CLI tool. Free image generation on Pro tier.
+Google's command-line agent. Aerie uses it for pictures: it can paint on a Google account's own allowance, with no API key.
 
 ## Install
 
@@ -40,11 +40,6 @@ Tokens stored in `~/.gemini/antigravity-cli/`.
 agy
 ```
 
-### Image Generation
-```bash
-agy /image "a fox asleep in a teacup"
-```
-
 ### Check Quotas
 ```bash
 agy /usage
@@ -52,34 +47,21 @@ agy /usage
 
 ## Models
 
-Default models (as of v1.0.13):
-- **Text**: gemini-3.5-flash
-- **Image**: gemini-3.1-flash-image-preview
+`agy models` lists what your account can use right now. Read on version 1.5.10 in November 2026, the picture models were Gemini 3.8 Flash (High, Medium and Low); it also lists Claude and GPT-OSS models, which Studio doesn't use. Google retires models without much notice, so trust `agy models` over this page.
 
-Image gen models available: Flash 3.5 Low/Medium/High, Pro 3.1 Low/High
+Studio's list of Gemini models is typed by hand in `packages/backend/src/services/image-gen/settings.ts`, so if Google moves on before Aerie does, that list is the one to update.
 
-## Quotas (Pro Tier)
+## Quotas
 
-Per 5-hour rolling window:
-- Claude/GPT models: separate pool
-- Gemini models: separate pool
-- Image generation: 2/minute, higher daily cap than free
-
-Free tier: ~2 images/minute, very low daily cap, data may be analyzed by Google.
+`agy /usage` shows what's left. Aerie reads the same thing for the usage meter in the app, and it doesn't use up a turn.
 
 ## Aerie Integration
 
-Studio has "Gemini (Free)" backend option that uses agy for image generation:
+Studio's **Gemini** painter uses agy, as a choice of its own or as a fallback when another painter turns a picture down:
 - `packages/backend/src/services/image-gen/antigravity.ts`
 - Prompts piped via stdin (not CLI args) to handle large payloads
 - Images saved to `data/generated-images/` and served via `/api/studio/gallery/`
 
 ## SDK (Not Recommended)
 
-A Python SDK exists (`pip install google-antigravity`) but:
-- Requires API key (can't use Pro OAuth)
-- Free API key has severe limits
-- Audio/video input may not work on free tier
-- Spawns localharness subprocess that can lag system
-
-Stick with CLI for actual use.
+There is a Python SDK, but it wants an API key rather than your Google sign-in. Stick with the CLI.

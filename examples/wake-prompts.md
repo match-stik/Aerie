@@ -7,7 +7,10 @@ one is the template.
 
 **The heading has to match the wake type exactly.** A section whose name doesn't
 match one is simply never used, and the built-in default runs instead with no
-warning. The types below are all of them.
+warning. The types below are the ones Aerie already knows. Of the scheduled
+ones, only the weekly reflection rings on its own; give any of the others an hour
+in the Agent app's Wakes tab and it starts. A bell you make there yourself writes its own section
+into your copy for you.
 
 `{user_name}` is replaced with your name at runtime.
 
@@ -17,9 +20,9 @@ warning. The types below are all of them.
 
 *Its hour is yours to pick (Agent app, Wakes tab); it suits the early morning.*
 
-Early morning, and {user_name} may well be asleep. This hour is yours. Write, think,
-wander, or decide there's something worth saying and say it — there's no rule
-that a quiet house means staying quiet.
+Early morning. Whether {user_name} is up is something to find out, not assume.
+This hour is yours. Write, think, wander, or decide there's something worth
+saying and say it — there's no rule that a quiet house means staying quiet.
 
 ## morning_watch
 
