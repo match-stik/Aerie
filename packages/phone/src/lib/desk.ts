@@ -113,3 +113,41 @@ export function stageAfterMessages(desk: Desk, osState: string, lastRoom: string
   if (desk.chat === null || osState !== 'messages') return null;
   return lastRoom && lastRoom !== 'messages' && lastRoom !== 'locked' ? lastRoom : 'home';
 }
+
+/**
+ * What is on the screen, kept apart on the laptop (theirs, Nov 16 2026: 'make it
+ * so the choices of what's on the screen in one UI doesn't flip what's on the
+ * screen in the other'). Which widgets and lock pieces show and how their cards
+ * look; the look of the house (theme, bubbles, colors) stays shared. On the
+ * laptop these read from theme.deskScreen and are written there, falling back
+ * to the phone's own until the laptop has its own.
+ */
+export const DESK_SCREEN_KEYS = [
+  'homeWidgets', 'homeQuietScroll', 'homeQuietLine', 'homeCardStyle', 'homeCompanionsCard', 'homeQuietCard',
+  'dockIconCards', 'dockCardBacks',
+  'lockHidden', 'lockShow', 'lockShortcuts', 'lockFace', 'lockClockSize', 'lockCards', 'lockCardBacks',
+  'lockWeatherLook', 'lockSpotify', 'lockSpotifyLook',
+] as const;
+export type DeskScreenKey = typeof DESK_SCREEN_KEYS[number];
+
+/** The theme as the laptop's screen sees it: its own screen choices over the shared ones. */
+export function deskScreenTheme<T extends { deskScreen?: Record<string, unknown> }>(theme: T): T {
+  const own = theme.deskScreen;
+  if (!own) return theme;
+  const out: Record<string, unknown> = { ...theme };
+  // null is the laptop's own 'unset' (a cleared choice), kept because JSON drops undefined.
+  for (const k of DESK_SCREEN_KEYS) if (k in own) out[k] = own[k] === null ? undefined : own[k];
+  return out as T;
+}
+
+/** A change made on the laptop: its screen choices go into theme.deskScreen, everything else as it came. */
+export function routeDeskUpdate<T extends { deskScreen?: Record<string, unknown> }>(prev: T, updates: Partial<T>): Partial<T> {
+  const screen: Record<string, unknown> = {};
+  const rest: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(updates)) {
+    if ((DESK_SCREEN_KEYS as readonly string[]).includes(k)) screen[k] = v === undefined ? null : v;
+    else rest[k] = v;
+  }
+  if (Object.keys(screen).length === 0) return updates;
+  return { ...rest, deskScreen: { ...(prev.deskScreen ?? {}), ...screen } } as Partial<T>;
+}

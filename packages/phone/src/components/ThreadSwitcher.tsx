@@ -38,6 +38,10 @@ interface ThreadSwitcherProps {
    *  place of the room's raw counter, which counts a listening cafe too. A room
    *  not in it yet keeps its raw counter. */
   ourUnread?: Readonly<Record<string, number>>;
+  /** The conversation stands on the right of the laptop: the list slides in
+   *  from that edge and sits flush with it (theirs, Nov 16 2026: on the right it
+   *  'pulled out weird, like from the left, and then didn't sit flush'). */
+  fromRight?: boolean;
 }
 
 function monthLabel(key: string): string {
@@ -46,7 +50,7 @@ function monthLabel(key: string): string {
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 }
 
-export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, companions, ourUnread }: ThreadSwitcherProps) {
+export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, companions, ourUnread, fromRight = false }: ThreadSwitcherProps) {
   const colors = themeConfig[themeMode];
   const threads = useThreads();
   const activeThreadId = useActiveThreadId();
@@ -405,11 +409,11 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
           />
           <motion.aside
             key="ts-panel"
-            initial={{ x: '-100%' }}
+            initial={{ x: fromRight ? '100%' : '-100%' }}
             animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
+            exit={{ x: fromRight ? '100%' : '-100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className={cn('pointer-events-auto absolute inset-y-0 left-0 z-40 flex w-[85%] max-w-sm flex-col border-r', colors.panelBg, colors.panelBorder)}
+            className={cn('pointer-events-auto absolute inset-y-0 z-40 flex w-[85%] max-w-sm flex-col', fromRight ? 'right-0 border-l' : 'left-0 border-r', colors.panelBg, colors.panelBorder)}
           >
             <div className="flex items-center justify-between px-4 pb-2" style={{ paddingTop: 'calc(var(--sat) + 0.75rem)' }}>
               <h2 className={cn('text-base font-semibold', colors.textMain)}>Threads</h2>

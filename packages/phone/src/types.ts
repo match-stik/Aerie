@@ -206,6 +206,8 @@ export interface AppTheme {
   /** The laptop dock's own apps (Nov 15 2026); unset uses the phone's dock. */
   deskDockAppIds?: string[];
   deskChat?: 'right' | 'left' | 'tucked';
+  /** The laptop's own screen choices (lib/desk.ts DESK_SCREEN_KEYS); null is a choice cleared on the laptop. */
+  deskScreen?: Record<string, unknown>;
   // The laptop's own pictures (theirs, Nov 15 2026), set from Settings > Laptop.
   // Unset, the laptop shows the phone's.
   deskWallpaper?: string;

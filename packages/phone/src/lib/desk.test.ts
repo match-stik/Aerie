@@ -67,3 +67,22 @@ test('a room shape is said in plain numbers', () => {
   assert.equal(aspectWords(16 / 10), '1.60 : 1, about 8 by 5');
   assert.match(aspectWords(960 / 690), /^1\.39 : 1, about 7 by 5$/);
 });
+
+test("the desktop's screen choices sit apart from the phone's, and the shared look stays shared", async () => {
+  const { deskScreenTheme, routeDeskUpdate } = await import('./desk');
+  const phone = { homeWidgets: ['companions', 'note'], lockFace: 'serif', mode: 'dark', deskScreen: undefined as Record<string, unknown> | undefined };
+  // Nothing chosen on the desktop yet: it shows what the phone shows.
+  assert.deepEqual(deskScreenTheme(phone).homeWidgets, ['companions', 'note']);
+  // A screen choice made on the desktop goes into deskScreen; the theme's mode is shared.
+  const upd = routeDeskUpdate(phone, { homeWidgets: ['weather'], mode: 'light' } as never) as Record<string, unknown>;
+  assert.equal(upd.mode, 'light');
+  assert.equal('homeWidgets' in upd, false);
+  assert.deepEqual(upd.deskScreen, { homeWidgets: ['weather'] });
+  const after = { ...phone, ...upd } as typeof phone;
+  assert.deepEqual(after.homeWidgets, ['companions', 'note'], 'the phone keeps its widgets');
+  assert.deepEqual(deskScreenTheme(after).homeWidgets, ['weather'], 'the desktop shows its own');
+  // Clearing a choice on the desktop is kept as its own unset, not the phone's value.
+  const cleared = { ...after, ...(routeDeskUpdate(after, { lockFace: undefined } as never) as object) } as typeof phone;
+  assert.equal(deskScreenTheme(cleared).lockFace, undefined);
+  assert.equal(cleared.lockFace, 'serif');
+});

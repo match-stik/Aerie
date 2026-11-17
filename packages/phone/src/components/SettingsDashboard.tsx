@@ -15,9 +15,13 @@ import { HomePane } from './settings/HomePane';
 import { LaptopPane } from './settings/LaptopPane';
 import { DataPane } from './settings/DataPane';
 import { deskRoomAspect, deskWindowAspect } from '../lib/use-room-aspect';
+import { useDesk } from '../lib/use-desk';
 
 export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
   const s = useSettingsState(props);
+  // On the desktop, Home and Lock edit the desktop's own screen (lib/desk.ts
+  // DESK_SCREEN_KEYS), so the tiles say so (theirs, Nov 16 2026).
+  const onDesk = useDesk(props.theme).on;
   const { activeTheme, colors, resolvedAccent, activeTab, setActiveTab, pane, setPane, cropImageSrc, setCropImageSrc, cropTarget, isSaving, crop, setCrop, zoom, setZoom, onCropComplete, handleSaveCrop, handleUseOriginal, theme, onClose } = s;
   return (
     <AppShell
@@ -192,7 +196,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
                   {([
                     { id: "theme", label: "Theme", hint: "Night & day, palettes, notes", Icon: Palette },
                     { id: "look", label: "Look & feel", hint: "Shape, bubbles, font, send button", Icon: Shapes },
-                    { id: "home", label: "Home", hint: "Wallpapers and the dock", Icon: Home },
+                    { id: "home", label: "Home", hint: onDesk ? "This desktop's own widgets and cards" : "Wallpapers and the dock", Icon: Home },
                     { id: "you", label: "You", hint: "Avatar, ring, names", Icon: UserRound },
                   ] as const).map(({ id, label, hint, Icon }) => (
                     <button
@@ -213,7 +217,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
                   >
                     <span className="flex flex-col gap-1">
                       <span className={cn("text-sm font-bold", colors.textMain)}>Lock screen</span>
-                      <span className={cn("text-[11px] leading-snug", colors.textMuted)}>Clock faces, shortcuts and more</span>
+                      <span className={cn("text-[11px] leading-snug", colors.textMuted)}>{onDesk ? "This desktop's own clock, pieces and shortcuts" : "Clock faces, shortcuts and more"}</span>
                     </span>
                     <LockPreview
                       face={lockFaceOf(theme.lockFace)}
@@ -233,7 +237,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
                     className={cn("col-span-2 flex items-center justify-between gap-4 p-4 rounded-2xl border text-left transition-transform active:scale-[0.98]", colors.panelBg, colors.panelBorder)}
                   >
                     <span className="flex flex-col gap-1">
-                      <span className={cn("text-sm font-bold", colors.textMain)}>Laptop</span>
+                      <span className={cn("text-sm font-bold", colors.textMain)}>Desktop</span>
                       <span className={cn("text-[11px] leading-snug", colors.textMuted)}>Wide-screen layout, the dock, slideshow pace</span>
                     </span>
                     <Laptop size={24} style={{ color: "var(--aerie-accent)" }} />

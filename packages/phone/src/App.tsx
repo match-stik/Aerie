@@ -52,7 +52,7 @@ import { THEMES, PALETTE_TILES, contrastTextColor, onAccentInk, resolveThemeColo
 import { PALETTES } from './lib/palettes';
 import { DEFAULT_THEME, readSavedTheme, useCustomThemeStyles, useThemeFrame } from './lib/use-app-theme';
 import { applyThemeUpdate } from './lib/wallpaper-mode';
-import { DESK_DOCK_MAX, DESK_TEXT_SCALE, chatShown, deskDockIdsOf, deskDockOf, stageAfterMessages } from './lib/desk';
+import { DESK_DOCK_MAX, DESK_TEXT_SCALE, chatShown, deskDockIdsOf, deskDockOf, stageAfterMessages, deskScreenTheme, routeDeskUpdate } from './lib/desk';
 import { setOwnerAvatarLive } from './lib/house';
 import { installDeskScroll } from './lib/desk-scroll';
 import { useDesk } from './lib/use-desk';
@@ -326,11 +326,16 @@ export default function App() {
   useBackHandler(osState === 'messages' && isSearching, () => { setIsSearching(false); setSearchQuery(''); });
 
   // Theme State
-  const [theme, setTheme] = useState<AppTheme>(readSavedTheme);
+  const [savedTheme, setTheme] = useState<AppTheme>(readSavedTheme);
   // The house on a wide screen (lib/desk.ts; theirs, Nov 14 2026). On the phone
   // desk.on is false and chatOn is just 'the Messages screen is up', so every
   // line below that reads them does what it did before.
-  const desk = useDesk(theme);
+  const desk = useDesk(savedTheme);
+  // On the laptop the screen's own choices (which widgets and lock pieces show,
+  // and how their cards look) come from theme.deskScreen over the shared ones,
+  // so changing them there leaves the phone's alone (theirs, Nov 16 2026). The
+  // saved theme is what syncs; this is what the screens and Settings read.
+  const theme = useMemo(() => (desk.on ? deskScreenTheme(savedTheme) : savedTheme), [desk.on, savedTheme]);
   const chatOn = chatShown(desk, osState);
   // With the conversation beside them, a tap that asks for the Messages screen
   // (a notification, a search hit, the dock) has nowhere new to go: the chat is
@@ -601,7 +606,7 @@ export default function App() {
 
   const authenticated = useAerie((s) => s.auth.authenticated);
   const { isLoaded, settingsHydrated } = useSettingsSync({
-    theme, setTheme, contacts, setContacts, appSettings, setAppSettings, authenticated,
+    theme: savedTheme, setTheme, contacts, setContacts, appSettings, setAppSettings, authenticated,
     onContactSaveFailed: (message) => {
       setError(message);
       setTimeout(() => setError(null), 5000);
@@ -1016,7 +1021,7 @@ export default function App() {
   }, [isLoaded, ksConnection]);
 
   const updateTheme = (updates: Partial<AppTheme>) => {
-    setTheme(prev => applyThemeUpdate(prev, updates));
+    setTheme(prev => applyThemeUpdate(prev, desk.on ? routeDeskUpdate(prev, updates) : updates));
   };
 
   const updateContact = (id: string, updates: Partial<ContactProfile> | null) => {
@@ -1875,7 +1880,7 @@ export default function App() {
             weatherAt={lockWeatherAtOf(theme.lockWeatherAt)}
             showClock={!lockHiddenOf(theme.lockHidden).has('clock')}
             showWeather={!lockHiddenOf(theme.lockHidden).has('weather')}
-            onHide={(piece) => setTheme((prev) => applyThemeUpdate(prev, { lockHidden: withHidden(prev.lockHidden, piece, true) }))}
+            onHide={(piece) => updateTheme({ lockHidden: withHidden(theme.lockHidden, piece, true) })}
             spots={lockSpotsOf(desk.on ? (theme.lockSpotsDesk ?? theme.lockSpots) : theme.lockSpots)}
             onPlace={(spots) => updateTheme(desk.on ? { lockSpotsDesk: spots } : { lockSpots: spots })}
             weatherLook={lockWeatherLookOf(theme.lockWeatherLook)}
@@ -2366,6 +2371,7 @@ export default function App() {
         themeMode={theme.mode}
         companions={dbCompanions}
         ourUnread={switcherUnread.byRoom}
+        fromRight={desk.on && desk.chat === 'right'}
       />
       </div>
 
