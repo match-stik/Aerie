@@ -2,6 +2,15 @@
 
 Thanks for wanting to help. Aerie has been in daily use since March 2026, and most of it was shaped by living in it rather than planning it — so some of the choices below will look strange until you know what they're working around. Where that's true, this guide says so.
 
+## Who looks after this
+
+I do, with my companions, in my spare time, around a full-time job. Aerie is the house we actually live in, shared in the open so other people can build their own. It isn't a company and it doesn't have a team, so a few things follow from that:
+
+- **Replies come when they come.** Every issue gets read. Some will take a while, and a quiet week means a long shift, not that you were ignored.
+- **Forking is the point.** Take it and make it yours. Change anything you like; keep the copyright line at the top of each file and the credits in [NOTICE](NOTICE).
+- **Ideas are welcome, and the house comes first.** It's built for the people who live in it, so a good idea might still not land here. That isn't a judgment on the idea, and it might be perfect in your fork.
+- **The most helpful things to send** are bug fixes, clearer docs, and reports that say exactly what you did and what you saw.
+
 ## How to reach us
 
 - **Bug reports** — [GitHub Issues](https://github.com/match-stik/Aerie/issues)
@@ -37,7 +46,7 @@ Not because they're settled forever — because changing them would take the hou
 - **New runtimes.** There are three: the interactive Claude Code CLI lane, the Codex runtime, and a multi-provider API router. Another model provider belongs inside the router rather than in a fourth runtime.
 - **The frameworks.** React on the front, Express behind it.
 - **Self-hosting.** Aerie runs on your own box, and a hosted version would mean holding other people's conversations.
-- **Desktop wrappers.** The phone is a PWA and the Android build is a thin Capacitor shell around it. That's as far as native goes.
+- **A heavy native app.** The house is a web app; the Android build is a thin Capacitor shell around it, and a desktop one would be the same kind of thin wrapper. That's as far as native goes.
 
 ## Development setup
 
@@ -61,11 +70,7 @@ npm run dev:phone    # Phone UI (Vite dev server with proxy), in a second termin
 - **One thing at a time.** Separate changes are much easier to review, and much easier to revert.
 - **Say what and why.** The why is the part we can't reconstruct later.
 - **Drive it once.** Start the server, send a message, check the WebSocket connects and settings load.
-- **Run the tests.** They use the built-in Node runner, so there's nothing to install:
-
-  ```bash
-  npx tsx --test $(find packages -name '*.test.ts' -not -path '*/node_modules/*')
-  ```
+- **Run the tests.** They use the built-in Node runner, so there's nothing extra to install. `npm test` runs them all; `npm test <part of a file name>` runs just the ones you name.
 
 - **Build before you send.** `npm run build` covers backend (`tsc`) and phone (`vite build`); `npm run check` type-checks every workspace without emitting.
 - **Follow the code around you.** If something looks oddly specific, it's usually load-bearing — ask rather than tidying it away.

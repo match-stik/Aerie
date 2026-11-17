@@ -15,7 +15,7 @@ Open a [GitHub Security Advisory](https://github.com/match-stik/Aerie/security/a
 - Steps to reproduce
 - Impact assessment (what an attacker could do)
 
-We'll acknowledge within 48 hours and aim to patch critical issues within 7 days.
+Aerie is looked after by one person in her spare time, not a company, so there's no promised turnaround. I'll answer as soon as I can, and a real security problem goes ahead of everything else.
 
 ## Security model
 
@@ -58,7 +58,7 @@ None of this is telemetry, but it is traffic you should know about:
 ## Keys
 
 - Keys you enter in Settings are kept in the database, not in your files. Most are write-only from the app: they can be set or cleared and never read back. A few are readable by design because the phone itself uses them: ElevenLabs, Giphy, the Cortex address and token, and the Lovense developer token. Any setting whose name ends in `api_key`, `token`, `secret` or `password` is never handed to the settings screen.
-- The keys are stored in plain text in `data/aerie.db`. Keep `data/` readable only by Aerie's account (`chmod 700 data`), and keep backups of it as private as the keys in it.
+- The keys are stored in plain text in `data/aerie.db`. A new house makes `data/` readable only by the account that runs it; on a house set up before that, run `chmod 700 data` once. Keep backups of it as private as the keys in it.
 
 ### What to watch for
 
