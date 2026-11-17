@@ -1,12 +1,13 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import 'dotenv/config';
+import { DEV_SERVER_ORIGINS, devOriginsAllowed } from './services/dev-origins.js';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import { createServer } from 'http';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, mkdirSync } from 'fs';
+import { chmodSync, existsSync, mkdirSync } from 'fs';
 import { loadConfig, updateConfigValue, getAerieConfig } from './config.js';
 import { initDb, deleteExpiredSessions, getAllConfig } from './services/db.js';
 import { loadVectorCache } from './services/vector-cache.js';
@@ -55,11 +56,15 @@ const HOST = config.server.host;
 const INTERNAL_PORT = config.server.internal_port;
 const DB_PATH = config.server.db_path;
 
-// Ensure data directory exists
+// Ensure data directory exists. A new one is made readable by this user only,
+// and so is a new database file below (third outside audit, Nov 17 2026: they
+// were 0755 and 0644, leaving the conversation readable to other accounts on
+// the machine). An existing house's folder is left exactly as it is.
 const dataDir = dirname(DB_PATH);
 if (!existsSync(dataDir)) {
-  mkdirSync(dataDir, { recursive: true });
+  mkdirSync(dataDir, { recursive: true, mode: 0o700 });
 }
+const dbIsNew = !existsSync(DB_PATH);
 
 // Ensure files directory exists
 const filesDir = join(dataDir, 'files');
@@ -70,6 +75,9 @@ if (!existsSync(filesDir)) {
 // Initialize database
 console.log('Initializing database...');
 const db = initDb(DB_PATH);
+if (dbIsNew) {
+  try { chmodSync(DB_PATH, 0o600); } catch { /* a filesystem without modes */ }
+}
 deleteExpiredSessions();
 console.log('Database initialized');
 
@@ -109,7 +117,7 @@ app.set('trust proxy', 'loopback');
 // Environment-conditional origins
 const IS_DEV = process.env.NODE_ENV !== 'production';
 const corsOrigins: string[] = [...config.cors.origins, `http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
-if (IS_DEV) corsOrigins.push('http://localhost:5173', 'http://localhost:5174');
+if (devOriginsAllowed()) corsOrigins.push(...DEV_SERVER_ORIGINS);
 
 // data:/blob: — the image-upload path fetch()es a data: URL to turn it
 // into a blob before posting it; the emoji creator does the same with a

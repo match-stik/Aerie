@@ -158,9 +158,12 @@ Save the file. Your companion reads this every time it responds.
 ## Step 7: Build and Start
 
 ```bash
+npm run vendor
 npm run build
 npm start
 ```
+
+`npm run vendor` fetches three small files that the Artifacts viewer and the Story Shelf need. You only need it once, and again if a later update says so.
 
 You should see:
 ```

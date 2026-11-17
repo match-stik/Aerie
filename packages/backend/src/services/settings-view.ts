@@ -20,9 +20,19 @@ export function settingsForClient(config: Record<string, unknown>): Record<strin
   return out;
 }
 
+/**
+ * Settings that name a program the house will later run. Whoever can write one
+ * chooses what runs on the machine, so they are set in aerie.yaml or by hand on
+ * the box, never through the settings door (third outside audit, Nov 17 2026).
+ * A new setting of this kind ends in _bin or _path and runs something; add it
+ * here by name if it doesn't.
+ */
+const PROGRAM_SETTING_KEYS = new Set(['image_gen.codex_bin', 'image_gen.antigravity_bin', 'videos.ytdlp_path']);
+
 /** Keys the generic settings door (PUT /api/settings) must never write. */
 export function isGuardedSettingKey(key: string): boolean {
   const k = key.trim().toLowerCase();
-  return k.startsWith('secret:') || k.startsWith('security.') || k.startsWith('auth.') || k === 'app_settings';
+  return k.startsWith('secret:') || k.startsWith('security.') || k.startsWith('auth.') || k === 'app_settings'
+    || PROGRAM_SETTING_KEYS.has(k) || k.endsWith('_bin');
 }
 

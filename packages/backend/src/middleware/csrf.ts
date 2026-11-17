@@ -128,7 +128,11 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
       secFetchSite: req.get('sec-fetch-site'),
       origin: req.get('origin'),
       host: req.get('host'),
-      forwardedHost: req.get('x-forwarded-host'),
+      // A forwarded host only means something when a proxy in front set it.
+      // A house with no password has no proxy to trust, so the header is
+      // ignored there (third outside audit, Nov 17 2026: adding it let a
+      // cross-site request through on a no-password house).
+      forwardedHost: hasPassword ? req.get('x-forwarded-host') : undefined,
     });
     if (verdict) {
       if (mode === 'enforce') {

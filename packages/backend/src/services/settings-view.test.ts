@@ -27,3 +27,13 @@ test('a key stored outside the secrets prefix is left out too', () => {
   const out = settingsForClient({ 'image_gen.openai_api_key': 'sk-dummy', 'image_gen.backend': 'codex', 'cortex.token': 't' });
   assert.deepEqual(out, { 'image_gen.backend': 'codex' });
 });
+
+test('the settings door refuses a setting that names a program to run', async () => {
+  const { isGuardedSettingKey } = await import('./settings-view.js');
+  for (const k of ['image_gen.codex_bin', 'image_gen.antigravity_bin', 'videos.ytdlp_path', 'Videos.YTDLP_PATH', 'anything.new_bin']) {
+    assert.equal(isGuardedSettingKey(k), true, k);
+  }
+  for (const k of ['voice.local_stt_url', 'videos.max_seconds', 'image_gen.backend']) {
+    assert.equal(isGuardedSettingKey(k), false, k);
+  }
+});

@@ -50,6 +50,7 @@ git clone https://github.com/match-stik/Aerie.git aerie
 cd aerie
 npm install
 node scripts/setup.mjs    # asks a few questions and writes your settings
+npm run vendor            # fetches three small viewer files the Artifacts and Story Shelf need
 npm run build
 npm start
 ```
@@ -266,9 +267,8 @@ aerie/
 ## Development
 
 ```bash
-npm run dev:all          # Backend + phone (Vite dev server)
-npm run dev              # Backend only (hot reload)
-npm run dev:phone        # Phone Vite dev server only
+npm run dev              # Backend with hot reload, in one terminal
+npm run dev:phone        # Phone Vite dev server, in another
 ```
 
 ## Keeping it running

@@ -126,7 +126,6 @@ export async function generateViaCodex(input: GenerateInput): Promise<GenerateRe
   const bin = codexBin();
   const env = {
     ...process.env,
-    PATH: `/opt/node/bin:${process.env.PATH || ''}`,
     HOME: process.env.HOME || homedir(),
   };
 

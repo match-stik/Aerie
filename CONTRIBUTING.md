@@ -53,8 +53,7 @@ With hot reload:
 
 ```bash
 npm run dev          # Backend (tsx watch)
-npm run dev:phone    # Phone UI (Vite dev server with proxy)
-npm run dev:all      # Both at once
+npm run dev:phone    # Phone UI (Vite dev server with proxy), in a second terminal
 ```
 
 ## Sending a PR

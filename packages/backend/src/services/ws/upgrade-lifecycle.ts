@@ -6,6 +6,7 @@ import type { WebSocketServer } from 'ws';
 import { getAerieConfig } from '../../config.js';
 import { getWebSession } from '../db.js';
 import { allowedHostsFrom, openHouseHostAllowed } from '../../middleware/open-house.js';
+import { DEV_SERVER_ORIGINS, devOriginsAllowed } from '../dev-origins.js';
 
 const COOKIE_NAME = 'aerie_session';
 
@@ -13,8 +14,7 @@ function getAllowedOrigins(): string[] {
   const config = getAerieConfig();
   const port = config.server.port;
   const origins = new Set<string>([
-    'http://localhost:5173',
-    'http://localhost:5174',
+    ...(devOriginsAllowed() ? DEV_SERVER_ORIGINS : []),
     `http://localhost:${port}`,
     `http://127.0.0.1:${port}`,
     'capacitor://localhost',
