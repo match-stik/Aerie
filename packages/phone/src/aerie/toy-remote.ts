@@ -29,7 +29,7 @@
 import { useSyncExternalStore } from 'react';
 import type { ToyPhoneState, ToyPhoneToy, ToyRemoteAck, ToyRemoteCommand, ToyRemotePlaying } from '@aerie/shared';
 import { api } from './api';
-import { LovenseToys, hasToyBridge, motorsFor, presetsFor, stopAllToys, type LovenseToy } from './lovense-toys';
+import { LovenseToys, hasToyBridge, motorsFor, onCloudRoad, presetsFor, stopAllToys, type LovenseToy } from './lovense-toys';
 import { startToyConnectWatch } from './toy-connect';
 import { admitCommand } from '../lib/toy-command-admit';
 import { batteryFields, createBatteryWatch, type BatteryReading } from '../lib/toy-battery';
@@ -481,11 +481,13 @@ export function takeBack(): void {
   if (!ownerHands) void nativeStop().catch(() => {});
 }
 
-/** Their person's stop, from anywhere that is not the Toys page's own button: every toy
- *  and every motor through the native stop and its hold, and the remote back
- *  in their person's hands. */
+/** Their person's stop, from anywhere that is not the Toys page's own button:
+ *  every toy and every motor through the native stop and its hold. Red also
+ *  takes the remote back; a plain STOP leaves it with the companions, so Take
+ *  it back is the one that closes it. */
 export function ownerStop(by: 'stop' | 'red' = 'stop'): void {
-  closeGate(by, false);
+  if (by === 'red') closeGate(by, false);
+  else endPlayback(false);
   void nativeStop().catch(() => {});
 }
 
@@ -557,7 +559,12 @@ async function report(): Promise<void> {
 export function startToyRemote(): void {
   if (started || typeof window === 'undefined') return;
   started = true;
-  const hasBridge = hasToyBridge();
+  // On the Lovense app road (a screen with no Android app) a lane's command
+  // goes from the house to Lovense directly, so this page never takes one
+  // off the socket: their phone may be answering them too, and a command
+  // played twice is a command played wrong. Their own hands on this page still
+  // reach the toys through the same bridge.
+  const hasBridge = hasToyBridge() && !onCloudRoad();
   setSnap({ bridge: hasBridge, away: typeof document !== 'undefined' && document.hidden }, false);
   if (!hasBridge) return;
   // Their person taps on Connect are followed from here, the Toys page open or not.
@@ -571,10 +578,10 @@ export function startToyRemote(): void {
     if (away) endPlayback(true);
     setSnap({ away }, true);
   });
-  // Any stop, the Toys page's button included, takes the remote back.
+  // Any stop, the Toys page's button included, ends what is playing. It no
+  // longer takes the remote back; Take it back and red do.
   void LovenseToys.addListener('stopped', () => {
-    if (snap.gate === 'open') closeGate('stop', false);
-    else endPlayback(false);
+    endPlayback(false);
   });
   void LovenseToys.addListener('connection', (c) => {
     scheduleReport();

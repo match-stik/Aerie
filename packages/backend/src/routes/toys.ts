@@ -7,6 +7,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { recordPhoneState, recordToyAck } from '../services/toy-remote.js';
+import { cloudDisconnect, cloudLink, cloudPlayByHand, cloudStatus, cloudStopNow, cloudToys, setCloudOpen } from '../services/lovense-cloud.js';
 import { deletePattern, listPatterns, patternName, renamePattern, savePattern, shapePattern } from '../services/toy-patterns.js';
 import multer from 'multer';
 import { saveFile } from '../services/files.js';
@@ -26,6 +27,51 @@ router.post('/state', (req, res) => {
 
 router.post('/ack', (req, res) => {
   res.json({ ok: true, matched: recordToyAck(req.body) });
+});
+
+// The Lovense app road, from the Toys page (any screen, the laptop included):
+// where it stands, the link to the QR picture they scan in the Lovense Remote
+// app, one look at what that app holds, handing the remote over or taking it
+// back, their stop, and Disconnect, which also makes the old link worthless.
+// Nothing here runs on a timer; every call to Lovense is one they pressed.
+router.get('/cloud', (_req, res) => {
+  res.json(cloudStatus());
+});
+
+router.post('/cloud/link', async (_req, res) => {
+  const out = await cloudLink();
+  res.status(out.ok ? 200 : 400).json(out);
+});
+
+router.post('/cloud/check', async (_req, res) => {
+  res.json(await cloudToys());
+});
+
+router.post('/cloud/hand', async (req, res) => {
+  const open = req.body?.open === true;
+  await setCloudOpen(open);
+  res.json({ ok: true, ...cloudStatus() });
+});
+
+// STOP stops the toys and leaves the remote handed over, the same as on the
+// Android page; Take it back
+// closes the road.
+router.post('/cloud/stop', async (_req, res) => {
+  res.json(await cloudStopNow());
+});
+
+// Their own hands on this road, from the Toys page on a screen with no Android
+// bridge: the orbs, sliders, shelf, presets and sounds, gathered by the page
+// into a few sends a second. It is the person themselves, so it does not wait
+// on the gate.
+router.post('/cloud/play', async (req, res) => {
+  const out = await cloudPlayByHand(req.body ?? {});
+  res.status(out.ok || out.slow || out.offline ? 200 : 400).json(out);
+});
+
+router.post('/cloud/disconnect', async (_req, res) => {
+  await cloudDisconnect();
+  res.json({ ok: true, ...cloudStatus() });
 });
 
 // The pattern shelf, from the Toys page: everything on it (steps included,

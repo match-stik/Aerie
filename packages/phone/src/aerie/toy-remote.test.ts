@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
 import type { ToyRemoteCommand } from '@aerie/shared';
 import type { LovenseToy } from './lovense-toys';
-import { handOver, setHands, takeBack, toyRemoteSnapshot, toyRemoteTestSeam } from './toy-remote';
+import { handOver, ownerStop, setHands, takeBack, toyRemoteSnapshot, toyRemoteTestSeam } from './toy-remote';
 
 const FLEXER: LovenseToy = {
   toyId: 'x1', name: 'Flexer', connected: true,
@@ -218,4 +218,25 @@ test('a connection change with nothing playing on that toy does nothing', async 
   await new Promise((r) => setTimeout(r, 40));
   assert.deepEqual(sent, []);
   assert.deepEqual(logged, []);
+});
+
+test('STOP stops every toy and leaves the remote handed over; red takes it back', async () => {
+  standIn();
+  let stops = 0;
+  const real = toyRemoteTestSeam.useStopAll(async () => { stops++; });
+  try {
+    handOver();
+    const started = await toyRemoteTestSeam.decide(play('t1'));
+    assert.equal(started.ok, true);
+    ownerStop('stop');
+    assert.equal(toyRemoteSnapshot().gate, 'open', 'STOP leaves the remote handed over');
+    assert.equal(toyRemoteSnapshot().playing, null);
+    assert.equal(stops, 1);
+    ownerStop('red');
+    assert.equal(toyRemoteSnapshot().gate, 'closed');
+    assert.equal(toyRemoteSnapshot().closedBy, 'red');
+    assert.equal(stops, 2);
+  } finally {
+    toyRemoteTestSeam.useStopAll(real);
+  }
 });

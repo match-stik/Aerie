@@ -17,7 +17,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Hand } from 'lucide-react';
 import { ownerStop, takeBack, useToyRemote } from '../aerie/toy-remote';
-import { stopAllToys } from '../aerie/lovense-toys';
+import { onCloudRoad, stopAllToys } from '../aerie/lovense-toys';
 import { stopOwn, useOwnPlay } from '../aerie/own-play';
 import { ownerForCompanion } from '../lib/orb-field';
 import { clampPillPoint, parsePillPoint, samePillBox, type PillBox, type PillPoint } from '../lib/pill-position';
@@ -51,7 +51,9 @@ export function ToyRemotePill({ hidden = false }: { hidden?: boolean }) {
   // It also shows while something their person started is playing, so leaving the Toys
   // page never leaves them without a stop.
   const own = useOwnPlay().playing;
-  const visible = !hidden && !!remote.bridge && (remote.gate === 'open' || !!own);
+  // On the Lovense app road this page takes no lane commands (remote.bridge
+  // stays false), but their own play still gets the pill.
+  const visible = !hidden && ((!!remote.bridge && remote.gate === 'open') || ((!!remote.bridge || onCloudRoad()) && !!own));
 
   // The frame carries the safe areas as padding, which is the one place the
   // browser turns them into pixels.
@@ -210,7 +212,7 @@ export function ToyRemotePill({ hidden = false }: { hidden?: boolean }) {
               onClick={() => ownerStop('stop')}
               className="ml-0.5 flex items-center gap-1 rounded-[var(--shape-control)] px-3 py-1 text-xs font-bold tracking-wide transition-transform active:scale-95"
               style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
-              aria-label="Stop every toy and take the remote back"
+              aria-label="Stop every toy"
             >
               <Hand size={13} /> STOP
             </button>

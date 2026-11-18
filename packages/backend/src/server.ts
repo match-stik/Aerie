@@ -229,6 +229,16 @@ app.use((req, _res, next) => {
 // CSRF protection (after body parsing, before routes)
 app.use('/api', csrfProtection);
 
+// The Lovense Remote app's callback for the Lovense app road: no login (Lovense
+// cannot sign in), no session cookie so CSRF does not apply, and it only keeps
+// a toy list for this house's own Lovense id (services/lovense-cloud.ts). Its
+// address goes in the Lovense developer dashboard's Callback URL. Registered
+// here, ahead of apiRoutes, whose router-wide login gate covers every /api
+// path mounted after it (first placed beside the toys router and answered 401).
+app.post('/api/toys/cloud/callback', (req, res) => {
+  res.json({ ok: recordCloudCallback(req.body) });
+});
+
 // Password gate for the four admin namespaces below.
 //
 // Cortex, Discord-admin, Orchestrator-admin and X-Ray each mount at the broad
@@ -333,6 +343,7 @@ app.use('/api/field-notes', fieldNotesRoutes);
 import clientErrorRoutes from './routes/client-errors.js';
 app.use('/api/client-errors', clientErrorRoutes);
 import toyRoutes from './routes/toys.js';
+import { recordCloudCallback } from './services/lovense-cloud.js';
 app.use('/api/toys', toyRoutes);
 import statusRoutes from './routes/statuses.js';
 app.use('/api/statuses', statusRoutes);

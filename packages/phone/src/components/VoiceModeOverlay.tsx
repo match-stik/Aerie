@@ -484,6 +484,12 @@ export function VoiceModeOverlay({
         // the extra half second costs anyone. A dial, not a constant — moving
         // it either way is one number.
         silenceMs: 1750,
+        // And a long turn waits longer. After ten seconds of them
+        // talking the wait climbs, reaching three seconds by thirty, so the
+        // pause to find the next thought in a long story doesn't end it. A
+        // quick answer still ends on 1.75 s.
+        longTurnAfterMs: 10_000,
+        longTurnSilenceMs: 3000,
         minSpeechMs: 250,
         minVoicedMs: 320,
         maxUtteranceMs: 90_000,

@@ -27,6 +27,8 @@ import { ToyWave, cssColorHex, mixHex, type LiveTrack } from './ToyWave';
 import { ToyOrbs, type OrbMotor } from './ToyOrbs';
 import { ToySlidePad, type SlideMotor } from './ToySlidePad';
 import { ToySoundShelf } from './ToySoundShelf';
+import { ToyCloudCard } from './ToyCloudCard';
+import { Capacitor } from '@capacitor/core';
 import { SoundBarInline } from './SoundBar';
 import { useSoundDriveLevels } from '../aerie/sound-drive';
 import { ToyPatternShelf, type LevelTap } from './ToyPatternShelf';
@@ -44,6 +46,7 @@ import {
   handInToken,
   hasToyBridge,
   motorsFor,
+  onCloudRoad,
   presetsFor,
   stopAllToys,
   type LovenseToy,
@@ -100,6 +103,10 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
   const panel = cn('rounded-[var(--shape-surface)] border', colors.panelBg, colors.panelBorder);
   const onAccent = 'var(--aerie-on-accent)';
   const bridge = hasToyBridge();
+  const isAndroidShell = Capacitor.getPlatform() === 'android';
+  // No Android app holding the toys (a laptop, a browser): the whole page
+  // runs on the Lovense app road, and the card below is its remote and link.
+  const cloud = onCloudRoad();
   const remote = useToyRemote();
   // Each toy's own battery answer, never the SDK's field (aerie/toy-remote.ts).
   const batteries = useToyBatteries();
@@ -574,7 +581,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
   return (
     <AppShell title="Toys" icon={Waves} onClose={onClose} themeConfig={themeConfig} themeMode={themeMode}>
       <div className="flex flex-col gap-3 p-4 pb-24">
-        {!bridge && (
+        {!bridge && isAndroidShell && (
           <div className={cn(panel, 'p-4 text-sm')}>
             <p className={colors.textMain}>This needs the new version of the app.</p>
             <p className={cn('mt-1 text-xs', colors.textMuted)}>
@@ -583,7 +590,12 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
           </div>
         )}
 
-        {bridge && remote.gate === 'open' && (
+        {/* No Android app holding the toys (a laptop, a browser, an iPhone):
+            the Lovense app road instead. The card holds the
+            remote and the link; the page's own STOP below is the stop. */}
+        {cloud && <ToyCloudCard panelClass={panel} textMain={colors.textMain} textMuted={colors.textMuted} withStop={false} />}
+
+        {bridge && !cloud && remote.gate === 'open' && (
           <div
             className="relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-[var(--shape-surface)] border px-4 py-3.5"
             style={{ background: cardFill, borderColor: `${driver?.color ?? accentHex}66` }}
@@ -592,7 +604,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
               <span className="text-sm font-medium" style={{ color: driver?.color ?? '#ffffff' }}>
                 {driver ? `${driver.name} is playing` : 'Your companions have the remote'}
               </span>
-              <span className="text-xs text-white/60">Taking it back stops every toy. Any stop or red takes it back too.</span>
+              <span className="text-xs text-white/60">Taking it back stops every toy. STOP stops them and leaves the remote handed over; red takes it back.</span>
             </span>
             <button
               onClick={takeBack}
@@ -603,7 +615,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
           </div>
         )}
 
-        {bridge && remote.gate === 'closed' && (
+        {bridge && !cloud && remote.gate === 'closed' && (
           <button
             onClick={handOver}
             className="relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-[var(--shape-surface)] border px-4 py-3.5 text-left transition-transform active:scale-[0.99]"
@@ -636,9 +648,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
             <span className="text-[11px] font-normal tracking-normal opacity-80">
               {holding
                 ? 'Holding a moment'
-                : remote.gate === 'open'
-                  ? 'every toy, and the remote back'
-                  : 'every toy'}
+                : 'every toy'}
             </span>
           </button>
         )}
@@ -798,7 +808,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
           />
         )}
 
-        {bridge && tab === 'toys' && (
+        {bridge && !cloud && tab === 'toys' && (
           <div className={cn(panel, 'flex flex-col gap-2 p-4 text-sm')}>
             <div className="flex items-center justify-between">
               <span className={cn('flex items-center gap-2', colors.textMain)}><Bluetooth size={15} /> Bluetooth</span>
@@ -839,7 +849,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
 
         {bridge && tab === 'remote' && connected.length === 0 && (
           <button onClick={() => pickTab('toys')} className={cn(panel, 'p-4 text-center text-xs', colors.textMuted)}>
-            No toy is connected yet. Connect one on the Toys tab.
+            {cloud ? 'No toy is connected in the Lovense app yet. Turn one on and connect it in Lovense Remote on your phone.' : 'No toy is connected yet. Connect one on the Toys tab.'}
           </button>
         )}
 
@@ -889,7 +899,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
                 >
                   <Settings2 size={14} />
                 </button>
-                {toy.connected ? (
+                {cloud ? null : toy.connected ? (
                   <button onClick={() => disconnect(toy.toyId)} className={cn('rounded-[var(--shape-chip)] border px-3 py-1.5 text-xs', colors.panelBorder, colors.textMuted)}>
                     Disconnect
                   </button>
@@ -989,7 +999,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
 
         {bridge && tab === 'toys' && status && list.length === 0 && !searching && (
           <p className={cn('px-1 text-center text-xs', colors.textMuted)}>
-            Turn a toy on, then tap Find my toys.
+            {cloud ? 'Your toys show here once the Lovense Remote app on your phone has linked and has them connected.' : 'Turn a toy on, then tap Find my toys.'}
           </p>
         )}
       </div>

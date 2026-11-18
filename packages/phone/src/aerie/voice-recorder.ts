@@ -8,6 +8,7 @@ import { send } from './socket';
 import { setState } from './store';
 import { VAD_WORKLET_SOURCE } from './vad-worklet';
 import { isHandsFreeCall, isPageHidden, shouldHoldLineBetweenTurns } from './mic-hold';
+import { requiredSilenceMs } from './turn-silence';
 
 export type VoiceRecordingMode = 'dictation' | 'conversation';
 
@@ -15,6 +16,10 @@ export interface VoiceRecordingOptions {
   mode?: VoiceRecordingMode;
   autoStopOnSilence?: boolean;
   silenceMs?: number;
+  /** After this much speaking, the silence that ends the turn starts to grow (see turn-silence.ts). */
+  longTurnAfterMs?: number;
+  /** The longest silence a long turn waits for before it ends. Unset keeps silenceMs for every turn. */
+  longTurnSilenceMs?: number;
   minSpeechMs?: number;
   /**
    * Total voiced time a capture must accumulate before it is worth sending.
@@ -258,7 +263,11 @@ function beginVoiceActivityDetection(
     if (
       heardSpeech
       && now - speechStartedAt >= minSpeechMs
-      && now - lastSpeechAt >= silenceMs
+      && now - lastSpeechAt >= requiredSilenceMs(lastSpeechAt - speechStartedAt, {
+        baseMs: silenceMs,
+        longTurnAfterMs: options.longTurnAfterMs,
+        longTurnSilenceMs: options.longTurnSilenceMs,
+      })
     ) {
       // A gust, a bump or a truck passing can clear the threshold for a few
       // frames without a word in it. Drop that clip rather than handing the

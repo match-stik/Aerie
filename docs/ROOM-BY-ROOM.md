@@ -185,9 +185,10 @@ time**; the page tells you if it doesn't have it.
 
 ### Toys
 
-Lovense toys, through the Android app only, in four tabs. Nothing reaches a toy
-until you tap **Hand over the remote**, and **Take it back**, any stop or the
-red **STOP** ends it at once.
+Lovense toys, through the Android app, in four tabs. Nothing reaches a toy
+until you tap **Hand over the remote**. **STOP** stops every toy at once and
+leaves the remote handed over; **Take it back** (or red) stops them and closes
+it.
 
 **Remote** is live control: orbs you press and drag (higher is stronger), or
 faders, and the line each toy draws as it plays.
@@ -202,6 +203,23 @@ rooms. **Let the sound drive the toys** turns it into motion.
 **Toys** finds and connects your toys over Bluetooth (**Find my toys**), and
 each toy's gear sets its strength, its own patterns and its light. You'll need
 your own Lovense developer token ([LOVENSE.md](../packages/phone/android/LOVENSE.md)).
+
+On a screen with no Android app holding the toys (a laptop, a browser, an
+iPhone), the whole page runs on the Lovense app road: your toys stay connected
+to the Lovense Remote app on your phone, and the house reaches them through
+Lovense's servers. The orbs, sliders, Patterns, a toy's own patterns and Sounds
+all work the same, with every move gathered into a few sends a second so
+Lovense is never flooded. The **Through the Lovense app** card at the top holds
+the link: **Get link** shows the code to scan in Lovense Remote (and its link,
+to open on your phone; pressed again inside a minute it shows the same one),
+**Check** asks once whether the Lovense app is answering, **Hand over the
+remote** opens the road to your companions, **Take it back** stops the toys and
+closes it, and **Disconnect** makes the old link worthless. The page's STOP
+stops every toy. Toys connect and disconnect in Lovense Remote itself, and show
+on the page as they do. Nothing checks Lovense in the background, and the road
+your companions use closes by itself after two quiet hours. It uses the same
+Lovense developer token, kept on your server and never in the app; every copy
+of Aerie needs its own.
 
 ### The Shelf
 

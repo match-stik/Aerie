@@ -14,10 +14,16 @@
 //
 // The developer token is read from the house when it is needed and handed
 // straight to the SDK; the app file never carries it.
+//
+// On a screen with no Android app (a laptop, a browser), the same bridge is
+// the Lovense app road instead (aerie/lovense-cloud-bridge.ts): every move
+// goes through the house to Lovense to the Lovense Remote app on their phone,
+// and the token stays on the house.
 
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { apiFetch } from './api';
 import { toySettings } from '../lib/toy-settings';
+import { createCloudBridge } from './lovense-cloud-bridge';
 
 export interface LovenseToy {
   toyId: string;
@@ -81,8 +87,28 @@ const rawToys = registerPlugin<LovenseToysBridge>('LovenseToys');
  *  toy passes through their strength setting for that motor here, the one
  *  place they all leave from (lib/toy-settings.ts), so nothing reaches them
  *  stronger than they set it, whoever sent it. */
+let cloudBridge: LovenseToysBridge | null = null;
+function cloud(): LovenseToysBridge {
+  if (!cloudBridge) {
+    const json = async (res: Response) => ((res.headers.get('content-type') || '').includes('application/json') ? res.json() : null);
+    cloudBridge = createCloudBridge({
+      get: async (url) => json(await apiFetch(url)),
+      post: async (url, body) => json(await apiFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })),
+    }) as unknown as LovenseToysBridge;
+  }
+  return cloudBridge;
+}
+
+/** True on a screen with no Android app: the Toys page reaches their toys
+ *  through the Lovense Remote app on their phone instead of Bluetooth. An
+ *  Android app too old to carry the bridge is told to update instead. */
+export function onCloudRoad(): boolean {
+  return Capacitor.getPlatform() !== 'android';
+}
+
 export const LovenseToys: LovenseToysBridge = new Proxy(rawToys, {
-  get(target, prop) {
+  get(_raw, prop) {
+    const target = onCloudRoad() ? cloud() : rawToys;
     if (prop === 'command') {
       return (options: { toyId: string; command: string; level?: number }) =>
         target.command(options.level === undefined ? options : { ...options, level: toySettings.scale(options.toyId, options.command, options.level) });
@@ -92,10 +118,12 @@ export const LovenseToys: LovenseToysBridge = new Proxy(rawToys, {
   },
 });
 
-/** True only inside an installed app new enough to carry the toy bridge. An
- *  older app, or the page in a browser, gets false and is told to update. */
+/** True inside an installed app new enough to carry the toy bridge, and on
+ *  any screen with no Android app (the Lovense app road). An older Android
+ *  app gets false and is told to update. */
 export function hasToyBridge(): boolean {
-  return Capacitor.getPlatform() === 'android' && Capacitor.isPluginAvailable('LovenseToys');
+  if (onCloudRoad()) return true;
+  return Capacitor.isPluginAvailable('LovenseToys');
 }
 
 /** Their person's stop. Never debounced, never queued behind anything on this side. */
@@ -108,6 +136,8 @@ export async function stopAllToys(): Promise<{ stopped: number; holdMs: number }
  *  false with a reason the page can say plainly when there is none. */
 export async function handInToken(): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (!hasToyBridge()) return { ok: false, reason: 'This app does not have the toy bridge yet.' };
+  // The Lovense app road never brings the token to the page; the house keeps it.
+  if (onCloudRoad()) return { ok: true };
   const res = await apiFetch('/api/secrets/lovense_developer_token');
   if (res.status === 404) return { ok: false, reason: 'No Lovense developer token in Secrets yet.' };
   if (!res.ok) return { ok: false, reason: `The house would not hand over the token (${res.status}).` };

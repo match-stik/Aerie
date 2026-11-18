@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { isLocalhost } from './local.js';
 import { commandFromLane, describeToyCommand, relayToyCommand, toyRemoteStatus } from '../../services/toy-remote.js';
+import { cloudIsOpen, cloudStatus, relayToCloud } from '../../services/lovense-cloud.js';
 import { expandPatternAsk, savePattern, shapePattern, shelfForLane } from '../../services/toy-patterns.js';
 import { readStatuses, setStatus, SHARED, OWNER } from '../../services/statuses.js';
 import { readFavorites, addFavorite, removeFavorite, isKnownCard } from '../../services/favorites.js';
@@ -111,7 +112,9 @@ router.get('/internal/toys', (req, res) => {
     res.status(403).json({ error: 'Localhost only' });
     return;
   }
-  res.json(toyRemoteStatus());
+  // cloud: the Lovense app road (services/lovense-cloud.ts). When it is open,
+  // every ask goes that way instead of to the Android app.
+  res.json({ ...toyRemoteStatus(), cloud: cloudStatus() });
 });
 
 router.post('/internal/toys', async (req, res) => {
@@ -130,8 +133,11 @@ router.post('/internal/toys', async (req, res) => {
     return;
   }
   const said = describeToyCommand(shaped.command);
-  const ack = await relayToyCommand(shaped.command);
-  console.log(`[Toys] ${shaped.command.companion}: ${said} -> ${ack.ok ? 'taken' : ack.reason}`);
+  // They opened the Lovense app road (a desktop, no Android phone holding the
+  // toys): the ask goes to Lovense's servers instead of to their phone.
+  const viaCloud = cloudIsOpen();
+  const ack = viaCloud ? await relayToCloud(shaped.command) : await relayToyCommand(shaped.command);
+  console.log(`[Toys] ${shaped.command.companion}: ${said}${viaCloud ? ' (Lovense app road)' : ''} -> ${ack.ok ? 'taken' : ack.reason}`);
   res.json({ ...ack, said });
 });
 

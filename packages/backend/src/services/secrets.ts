@@ -132,7 +132,7 @@ export const SECRETS: SecretDef[] = [
     name: 'lovense_developer_token',
     label: 'Lovense developer token',
     category: 'integration',
-    hint: 'lovense.com → Developer Dashboard → Developer Token. Lets the phone app reach your toys over Bluetooth directly.',
+    hint: 'lovense.com → Developer Dashboard → Developer Token. Lets the Android app reach your toys over Bluetooth directly, and any other screen reach them through the Lovense Remote app. Kept on the server; every copy of Aerie needs its own.',
   },
   // This box reaches GitHub over SSH, which can clone and push but cannot ask
   // a question — Dependabot alerts, and everything else about a repository's
