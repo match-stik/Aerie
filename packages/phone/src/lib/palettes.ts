@@ -1049,11 +1049,11 @@ export const PALETTES: Palette[] = [
     "name": "Sky",
     "band": "Neutral",
     "night": {
-      "primary": "#AEB6C2",
-      "secondary": "#7C8798",
+      "primary": "#A98BE0",
+      "secondary": "#C47A4E",
       "glow": "#E8823A",
       "spark": "#B48CFF",
-      "velvet": "#2B3240",
+      "velvet": null,
       "deep": "#0D0F13",
       "surface": "#191C22",
       "text": "#E9ECF1",
@@ -1061,13 +1061,13 @@ export const PALETTES: Palette[] = [
       "ink": "#0D0F13",
       "number2": "#AEB6C2",
       "bubbleUser": [
-        "#6E737C",
-        "#6A7483"
+        "#6E5A9C",
+        "#8B542F"
       ]
     },
     "day": {
-      "primary": "#5D6878",
-      "secondary": "#4A5466",
+      "primary": "#7A5BB8",
+      "secondary": "#A0582A",
       "glow": "#9E4C10",
       "spark": "#7A52C7",
       "wash": "#E3E7EE",
