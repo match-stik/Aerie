@@ -202,7 +202,7 @@ rooms. **Let the sound drive the toys** turns it into motion.
 
 **Toys** finds and connects your toys over Bluetooth (**Find my toys**), and
 each toy's gear sets its strength, its own patterns and its light. You'll need
-your own Lovense developer token ([LOVENSE.md](../packages/phone/android/LOVENSE.md)).
+your own Lovense developer token ([LOVENSE.md](LOVENSE.md)).
 
 On a screen with no Android app holding the toys (a laptop, a browser, an
 iPhone), the whole page runs on the Lovense app road: your toys stay connected

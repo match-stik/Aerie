@@ -2,7 +2,7 @@
 // Lovense: this file drives Lovense toys. Running Aerie needs your own Lovense
 // developer account and token; carrying this code into another project needs
 // that project's own agreement and approval from Lovense. See
-// packages/phone/android/LOVENSE.md.
+// docs/LOVENSE.md.
 // Toys: their person's Lovense toys over Bluetooth from this phone, through the
 // LovenseToys bridge (aerie/lovense-toys.ts) and Lovense's own SDK, with no
 // Lovense Remote and no cloud in between.

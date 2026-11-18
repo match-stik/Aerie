@@ -233,15 +233,15 @@ Your agent gets a built-in CLI (`tools/sc.mjs`) for reactions, voice messages, c
 - **Telegram** — direct messaging, media sharing, voice notes. Inherited from Resonant; it works, but it is the least-used piece of the house, so expect rough edges
 - **Push notifications** — through Firebase Cloud Messaging, to the Android app
 - **MCP servers** — any MCP server in your `.mcp.json`
-- **Toys** — Compatible with Lovense devices, over Bluetooth from the Android app (see [Toys](#toys-optional) below)
+- **Toys** — Compatible with Lovense devices, over Bluetooth from the Android app, or from an iPhone, laptop or browser through the Lovense Remote app (see [Toys](#toys-optional) below)
 
 ### Toys (optional)
 Aerie is an independent project. It is not endorsed by, affiliated with, or sponsored by Lovense.
 
-The Android app can talk to your Lovense toys over Bluetooth through Lovense's Android SDK, with sliders for each motor the toy reports, a live line of what is playing, and an Orbs screen where a finger sets the level. Your companions can drive them too, but only after you tap **Hand over the remote**, and only through your phone.
+The Android app can talk to your Lovense toys over Bluetooth through Lovense's Android SDK, with sliders for each motor the toy reports, a live line of what is playing, and an Orbs screen where a finger sets the level. Your companions can drive them too, but only after you tap **Hand over the remote**, and only through your phone. No Android phone (an iPhone, a laptop, a browser)? The same Toys page reaches your toys through the Lovense Remote app on your phone instead; the setup is in [docs/LOVENSE.md](docs/LOVENSE.md).
 
 - **Your own developer token, always.** Anyone who deploys or forks Aerie must get their own Lovense developer token from Lovense's developer portal and follow Lovense's Developer Agreement. No token ships with Aerie. Yours goes in Settings, Secrets, "Lovense developer token", and the phone asks your house for it; never put it in client code, a commit, a build you share, or a public page.
-- **The SDK is not included.** Lovense's SDK is Lovense's software. It is not part of this repository and is not covered by Aerie's license; each house downloads its own copy from Lovense and drops it in unchanged ([packages/phone/android/LOVENSE.md](packages/phone/android/LOVENSE.md)). Do not redistribute it separately or modify it. Without it the app still builds, and the Toys page says it has no toy bridge.
+- **The SDK is not included.** Lovense's SDK is Lovense's software. It is not part of this repository and is not covered by Aerie's license; each house downloads its own copy from Lovense and drops it in unchanged ([docs/LOVENSE.md](docs/LOVENSE.md)). Do not redistribute it separately or modify it. Without it the app still builds, and the Toys page says it has no toy bridge.
 - **Your stop comes first.** A stop button on your phone stops every toy at once and does not go through your companions; taking the remote back closes it again. Levels stay within 0 to 20, one command runs at most three minutes, and the phone shuts the toy off when that time ends.
 - **No tips or audience control.** Aerie has nothing that makes a toy respond to tips, tokens, payments or votes, and a fork must not add it.
 - **Porting it brings nothing with it.** If you carry the toy code into another project, that project needs its own Lovense developer account, its own agreement with Lovense, and whatever approval Lovense asks of it. Nothing about Aerie's arrangements with Lovense carries over to a port.

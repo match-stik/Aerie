@@ -294,7 +294,7 @@ Aerie's Android app can use Lovense's Android SDK to reach toys over
 Bluetooth. The SDK is Lovense's software: it is not part of this repository
 and not covered by Aerie's license. Each house downloads its own copy from
 Lovense's developer portal, under Lovense's terms, and uses its own
-developer token (packages/phone/android/LOVENSE.md). Aerie is independent
+developer token (docs/LOVENSE.md). Aerie is independent
 and is not endorsed by or affiliated with Lovense. Aerie's Apache License
 2.0 covers Aerie's own code only, and grants no rights in Lovense's
 developer materials, trademarks, patents or other intellectual property.

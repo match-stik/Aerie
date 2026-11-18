@@ -40,7 +40,7 @@ These are only for running a companion on an API provider instead of Claude Code
 
 **GitHub token** (`GITHUB_TOKEN`). Lets the house read your own repository's security alerts. A fine-grained, read-only token with Contents, Metadata and Dependabot alerts is enough. Goes in Integrations → Secrets.
 
-**Lovense developer token.** Only for the toys in the Android app, and always your own. Get it from Lovense's developer dashboard and read the Toys section of the [README](../README.md#toys-optional) and [LOVENSE.md](../packages/phone/android/LOVENSE.md) first. Goes in Integrations → Secrets.
+**Lovense developer token.** Only for the toys in the Android app, and always your own. Get it from Lovense's developer dashboard and read the Toys section of the [README](../README.md#toys-optional) and [LOVENSE.md](../docs/LOVENSE.md) first. Goes in Integrations → Secrets.
 
 ## Picture-making
 

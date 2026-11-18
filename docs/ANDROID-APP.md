@@ -19,7 +19,7 @@ four separate places — see the end of this page.
 | Your companions calling you | A notification that stays up until you answer or swipe it away; Answer opens the call. | A real incoming call screen with Answer and Decline, full screen on a locked phone. |
 | Android Auto | No. | Aerie on the car's screen: the latest replies, voice notes and read-aloud played through the car, and a tile to start or end a call. A sideloaded app only shows up after you turn on Android Auto's developer settings and allow unknown sources there. |
 | Places (Thresholds) | You can pin a place and open what was left there while Aerie is open and you're standing in it. | Opening a place's note when you arrive with Aerie closed (geofencing, with the always-on location grant). |
-| Lovense toys | No. | Connecting to the toys over Bluetooth, through Lovense's SDK on your own developer token. See LOVENSE.md. |
+| Lovense toys | No. | Connecting to the toys over Bluetooth, through Lovense's SDK on your own developer token. See [LOVENSE.md](LOVENSE.md). |
 | Screening Room following your show | You set the clock by hand. | Following what's playing on your phone automatically (it reads the phone's media sessions, nothing else). |
 | Spotify | Yes, if Spotify is already open somewhere: your phone, a computer or the web player. | Waking Spotify itself when it's closed. |
 | The back gesture | Yes. The browser's back (and Android's back gesture, which the browser receives) steps back one screen at a time, the same as in the app, and leaves Aerie only from the home screen. | Putting Aerie away at the home screen instead of leaving it. |

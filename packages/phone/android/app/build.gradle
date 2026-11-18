@@ -91,7 +91,7 @@ dependencies {
     // Lovense's Android SDK, for toys over Bluetooth with no Lovense Remote in
     // between (LovenseToysPlugin). It is NOT shipped with the kit: it is
     // Lovense's software, downloaded from their developer portal by each house
-    // (see packages/phone/android/LOVENSE.md). With a lovense-*.aar in
+    // (see docs/LOVENSE.md). With a lovense-*.aar in
     // app/libs the toy bridge is built in; without one the app builds without
     // it and the Toys page says the app has no toy bridge.
     if (hasLovenseSdk) {

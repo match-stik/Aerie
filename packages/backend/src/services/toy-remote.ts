@@ -2,7 +2,7 @@
 // Lovense: this file drives Lovense toys. Running Aerie needs your own Lovense
 // developer account and token; carrying this code into another project needs
 // that project's own agreement and approval from Lovense. See
-// packages/phone/android/LOVENSE.md.
+// docs/LOVENSE.md.
 // The house's half of the road from a lane to their person's toys.
 //
 // A lane asks on the loopback door (POST /api/internal/toys). The ask is
@@ -39,7 +39,7 @@ export const TOY_ACK_WAIT_MS = 8_000;
 /** Steps a single track may hold. */
 const MAX_STEPS = 600;
 /** The longest one command may run: Lovense's three minutes, which every copy
- *  of the kit keeps (packages/phone/android/LOVENSE.md). There is no setting
+ *  of the kit keeps (docs/LOVENSE.md). There is no setting
  *  that raises it here. Every command still ends on its own at its length, and
  *  their stop, Take it back, red and leaving the app still end it at once. */
 export function toyRemoteMaxMs(): number {

@@ -1,5 +1,9 @@
 # Lovense toys (optional)
 
+On an Android phone the toys connect to the app itself, below. On any other
+screen (an iPhone, a laptop, a browser) they connect through the Lovense
+Remote app instead: see [Without an Android phone holding the toys](#without-an-android-phone-holding-the-toys-an-iphone-a-laptop-a-browser).
+
 The phone app can talk to Lovense toys over Bluetooth itself, through
 Lovense's Android SDK, with no Lovense Remote in between. The SDK is
 Lovense's software, so it does not ship with this kit: each house downloads
@@ -11,7 +15,7 @@ has no toy bridge.
    for their SDK there.
 2. Download the Android SDK (1.6.0 is the version this bridge was built
    against) from https://developer.lovense.com/docs/native-sdks/android-native-sdk.html.
-3. Take `lovense.aar` out of the zip and put it in `app/libs/` as
+3. Take `lovense.aar` out of the zip and put it in `packages/phone/android/app/libs/` as
    `lovense-1.6.0.aar`. Any `lovense-*.aar` there is picked up, and git
    ignores it, so it never gets committed.
 4. Build the APK as usual. The toy bridge is compiled in only when that file
@@ -24,7 +28,7 @@ Nothing reaches a toy until you tap "Hand over the remote" on the Toys
 page. STOP stops every toy and leaves the remote handed over; Take it back
 stops them and closes it.
 
-## Without an Android phone holding the toys (a laptop, a browser)
+## Without an Android phone holding the toys (an iPhone, a laptop, a browser)
 
 On any other screen the Toys page reaches the toys through the Lovense
 Remote app on your own phone, by Lovense's Standard API by server. No SDK

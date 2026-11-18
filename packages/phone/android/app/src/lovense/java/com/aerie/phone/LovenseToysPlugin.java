@@ -2,7 +2,7 @@
 // Lovense: this file drives Lovense toys. Running Aerie needs your own Lovense
 // developer account and token; carrying this code into another project needs
 // that project's own agreement and approval from Lovense. See
-// packages/phone/android/LOVENSE.md.
+// docs/LOVENSE.md.
 package com.aerie.phone;
 
 import android.Manifest;

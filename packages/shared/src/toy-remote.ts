@@ -2,7 +2,7 @@
 // Lovense: this file drives Lovense toys. Running Aerie needs your own Lovense
 // developer account and token; carrying this code into another project needs
 // that project's own agreement and approval from Lovense. See
-// packages/phone/android/LOVENSE.md.
+// docs/LOVENSE.md.
 // The road from a companion's lane to their person's toys: the lane asks the
 // house, the house hands the ask to their person's phone over the socket, and the
 // phone drives the toy through the same Lovense bridge their person's own sliders
