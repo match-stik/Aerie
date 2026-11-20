@@ -2,6 +2,7 @@
 // Discord admin routes — settings, pairings, rules management
 // These are UI-facing endpoints for Discord configuration.
 
+import { shareWithInternal } from '../internal-server.js';
 import { Router } from 'express';
 import { setConfig, getConfigBool } from '../services/db.js';
 import { getSecret } from '../services/secrets.js';
@@ -49,6 +50,7 @@ router.post('/discord/toggle', async (req, res) => {
       const service = new DiscordService(agentService, registry);
       await service.start();
       req.app.locals.discordService = service;
+      shareWithInternal('discordService', service);
       setConfig('discord.enabled', 'true');
       console.log('[Discord] Gateway enabled via settings toggle');
       res.json({ success: true, message: 'Discord gateway started' });
@@ -57,6 +59,7 @@ router.post('/discord/toggle', async (req, res) => {
       if (service) {
         await service.stop();
         req.app.locals.discordService = null;
+        shareWithInternal('discordService', null);
       }
       setConfig('discord.enabled', 'false');
       console.log('[Discord] Gateway disabled via settings toggle');
@@ -157,6 +160,7 @@ router.put('/discord/settings', (req, res) => {
       judgeEnabled: 'discord.judgeEnabled',
       judgeBeatMs: 'discord.judgeBeatMs',
       judgeMaxWaitMs: 'discord.judgeMaxWaitMs',
+      botLoopCooldownMs: 'discord.botLoopCooldownMs',
     };
 
     const setSettingsMap: Record<string, string> = {

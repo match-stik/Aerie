@@ -620,6 +620,21 @@ const HOLD_INSTRUCTIONS_MS = 60_000;
  * says the file was re-read fresh is no longer true, so it says where the walls
  * that moved are instead, and they ride on the end.
  */
+/**
+ * On Windows the launch goes through cmd.exe (the claude.cmd shim needs a
+ * shell), and cmd does not honour the quoting quoteForWindowsShell writes: a
+ * `"` inside a wall closes cmd's quote and a following `&` runs a second
+ * command (fourth outside audit, Nov 20 2026). The held walls are memory
+ * text, written by whoever wrote the walls, so on Windows they go into a file
+ * beside the room and the command line carries only a fixed sentence pointing
+ * at it. Empty stays empty.
+ */
+export function heldNoteByFile(path: string, note: string, write: (p: string, text: string) => void = (p, t) => writeFileSync(p, t, 'utf8')): string {
+  if (!note) return '';
+  write(path, note);
+  return 'The walls that moved while the house was down are written out in io/.held-walls.md in this folder. Read that file now; what it says replaces the older copies of those walls above.';
+}
+
 export function resumePromptWithHeld(base: string, note: string): string {
   if (!note) return base;
   const said = base.replace(
@@ -1522,7 +1537,7 @@ export class HeartbeatSession {
       sessionId: this.sessionId!,
       resuming,
       freshPrompt: INITIAL_PROMPT,
-      resumePrompt: resumePromptWithHeld(resumePrompt, heldNote),
+      resumePrompt: resumePromptWithHeld(resumePrompt, IS_WIN ? heldNoteByFile(this.ioPath('.held-walls.md'), heldNote) : heldNote),
       autocompactTokens: autocompactFor(this.model, getConfig('heartbeat.autocompact_tokens')),
     });
     const child = spawn('claude', IS_WIN ? args.map(quoteForWindowsShell) : args, {

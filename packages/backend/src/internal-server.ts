@@ -39,8 +39,21 @@ function publicPort(): number {
 /** Loopback only. Never bind this to anything reachable off the box. */
 const INTERNAL_HOST = '127.0.0.1';
 
+// The internal app's locals, so a service swapped on the public app later
+// (the Discord gateway switched off and on from settings) reaches this app
+// too. Before this, the switch put a new service on the public app only, and
+// our own door to say something in Discord answered 'not running' while the
+// bot was answering people fine.
+let liveInternalLocals: Record<string, unknown> | null = null;
+
+/** Put a live service on the internal app as well as the public one. */
+export function shareWithInternal(key: string, value: unknown): void {
+  if (liveInternalLocals) liveInternalLocals[key] = value;
+}
+
 export function createInternalApp(locals: Record<string, unknown> = {}): express.Express {
   const internalApp = express();
+  liveInternalLocals = internalApp.locals as Record<string, unknown>;
   // The internal routes read req.app.locals for live services (voiceService,
   // telegramService, orchestrator, ...). When these routes moved off the
   // public app onto this one, the locals did not move with them — so every

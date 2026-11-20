@@ -19,6 +19,9 @@ import {
   setBotLoopClock,
   MAX_CONSECUTIVE_BOT_REPLIES,
   BOT_LOOP_COOLDOWN_MS,
+  setBotLoopCooldownMs,
+  botLoopCooldownMs,
+  cooldownEndsAt,
 } from './bot-loop.js';
 
 const CHANNEL = 'channel-a';
@@ -199,4 +202,25 @@ test('a held turn never shows a typing indicator', () => {
   const guard = source.indexOf('if (!quiet) {');
   const typing = source.indexOf('sendTyping()');
   assert.ok(guard > 0 && typing > guard, 'sendTyping should sit inside the not-held branch');
+});
+
+test('the cool-off is a setting, never under a minute, and says when it ends', () => {
+  resetBotLoopCounters();
+  let clock = 50_000;
+  setBotLoopClock(() => clock);
+  setBotLoopCooldownMs(5 * 60_000);
+  assert.equal(botLoopCooldownMs(), 5 * 60_000);
+  setBotLoopCooldownMs(1_000);
+  assert.equal(botLoopCooldownMs(), 60_000, 'shorter than a minute is held at a minute');
+  setBotLoopCooldownMs(Number.NaN);
+  assert.equal(botLoopCooldownMs(), BOT_LOOP_COOLDOWN_MS);
+
+  setBotLoopCooldownMs(120_000);
+  assert.equal(cooldownEndsAt('timed'), null, 'an open room has no end time');
+  for (let i = 0; i < MAX_CONSECUTIVE_BOT_REPLIES; i++) noteApproved('timed', true);
+  assert.equal(cooldownEndsAt('timed'), 50_000 + 120_000);
+  clock += 120_000;
+  assert.equal(botLoopExhausted('timed'), false);
+  assert.equal(cooldownEndsAt('timed'), null);
+  resetBotLoopCounters();
 });

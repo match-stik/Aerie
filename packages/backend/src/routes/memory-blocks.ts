@@ -5,6 +5,13 @@ import * as memoryBlocks from '../services/memory-blocks.js';
 import { findNeighbors } from '../services/memory-neighbors.js';
 import { getMemoryExtractionStatus, runMemoryExtraction } from '../services/memory-extraction.js';
 import type { AgentService } from '../services/agent.js';
+import multer from 'multer';
+import { mkdirSync, readFileSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { PROJECT_ROOT, getAerieConfig } from '../config.js';
+import { importConversations, parseExport, readExportFile, type ImportProgress } from '../services/conversation-import.js';
+import { embed, vectorToBuffer } from '../services/embeddings.js';
+import { saveConversation } from '../services/cortex.js';
 
 const router = Router();
 
@@ -28,6 +35,71 @@ router.get('/memory/blocks/:scope/:label', (req, res) => {
   const block = memoryBlocks.getBlock(req.params.scope, req.params.label);
   if (!block) return res.status(404).json({ error: 'Block not found' });
   res.json(block);
+});
+
+// Old chats back word for word: a ChatGPT or Claude export (the zip as
+// downloaded, or the conversations.json inside it) is read on this machine,
+// cut into passages and added to the whisper's index, with each whole chat on
+// Cortex's shelf. No model reads it and no key is needed. It runs in the
+// background; the status route says how far along it is.
+const UPLOAD_DIR = join(PROJECT_ROOT, 'data', 'uploads-tmp');
+const exportUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => { mkdirSync(UPLOAD_DIR, { recursive: true }); cb(null, UPLOAD_DIR); },
+    filename: (_req, _file, cb) => cb(null, `export-${Date.now()}`),
+  }),
+  limits: { fileSize: 1024 * 1024 * 1024 },
+});
+
+interface ConversationImportJob {
+  state: 'reading' | 'importing' | 'done' | 'failed';
+  file: string;
+  startedAt: string;
+  finishedAt: string | null;
+  progress: ImportProgress | null;
+  error: string | null;
+}
+let conversationJob: ConversationImportJob | null = null;
+
+router.post('/memory/import/conversations', exportUpload.single('file'), (req, res) => {
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'No file. Send the export zip, or the conversations.json inside it.' });
+  if (conversationJob && (conversationJob.state === 'reading' || conversationJob.state === 'importing')) {
+    try { unlinkSync(file.path); } catch { /* already gone */ }
+    return res.status(409).json({ error: 'An import is already running.', job: conversationJob });
+  }
+  const job: ConversationImportJob = { state: 'reading', file: file.originalname, startedAt: new Date().toISOString(), finishedAt: null, progress: null, error: null };
+  conversationJob = job;
+  res.json({ job });
+  void (async () => {
+    try {
+      const bytes = readFileSync(file.path);
+      const person = String(req.body?.person || getAerieConfig().identity?.user_name || 'You');
+      const convs = parseExport(readExportFile(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), file.originalname), { person });
+      job.state = 'importing';
+      job.progress = { conversations: convs.length, done: 0, skipped: 0, passages: 0, shelved: 0 };
+      job.progress = await importConversations(convs, {
+        embed, vectorToBuffer,
+        shelve: async (title, content, summary) => {
+          const out = await saveConversation(title, content, 'archive', summary);
+          return /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i.exec(String(out))?.[1] ?? null;
+        },
+        onProgress: (p) => { job.progress = p; },
+      });
+      job.state = 'done';
+    } catch (err) {
+      job.state = 'failed';
+      job.error = err instanceof Error ? err.message : String(err);
+      console.warn(`[conversation-import] ${job.error}`);
+    } finally {
+      job.finishedAt = new Date().toISOString();
+      try { unlinkSync(file.path); } catch { /* already gone */ }
+    }
+  })();
+});
+
+router.get('/memory/import/conversations/status', (_req, res) => {
+  res.json({ job: conversationJob });
 });
 
 router.get('/memory/extraction/status', (_req, res) => {

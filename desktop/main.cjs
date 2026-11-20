@@ -10,7 +10,7 @@
 // app is built for one house, otherwise the address typed in on first run,
 // kept in the app's own folder. Nothing about any house is written in here.
 
-const { app, BrowserWindow, ipcMain, shell, session, Menu, Tray, nativeImage, net, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, session, Menu, Tray, nativeImage, net, clipboard, dialog } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -40,15 +40,38 @@ function writeJson(file, value) {
 }
 
 /** A house address that is only ever http(s), with nothing after the host. */
+// Plain http is only for an address that never leaves this machine or the
+// private network (a tailnet, a home LAN), where nobody between can read or
+// change what comes back; anything on the open internet has to be https,
+// because this app runs whatever the address serves and installs updates from
+// it (fourth outside audit, Nov 20 2026).
+function privateHost(hostname) {
+  const h = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (h === 'localhost' || h === '::1' || h.endsWith('.local') || h.endsWith('.ts.net')) return true;
+  const m = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(h);
+  if (!m) return false;
+  const a = Number(m[1]); const b = Number(m[2]);
+  return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31) || (a === 100 && b >= 64 && b <= 127);
+}
+
 function cleanUrl(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
   try {
     const url = new URL(value.trim().includes('://') ? value.trim() : `https://${value.trim()}`);
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-    return url.origin;
+    if (url.protocol === 'https:') return url.origin;
+    if (url.protocol === 'http:' && privateHost(url.hostname)) return url.origin;
+    return null;
   } catch {
     return null;
   }
+}
+
+/** A question asked by the app itself, not the page: a page cannot answer it. */
+async function askHer(message, detail, yes) {
+  const win = BrowserWindow.getAllWindows()[0];
+  const options = { type: 'question', buttons: [yes, 'Cancel'], defaultId: 1, cancelId: 1, noLink: true, message, detail };
+  const { response } = win ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options);
+  return response === 0;
 }
 
 function houseUrl() {
@@ -103,9 +126,19 @@ async function wakeSpotify() {
 
 ipcMain.handle('aerie:wake-spotify', () => wakeSpotify());
 
-ipcMain.handle('aerie:set-house', (_event, value) => {
+// The page the app is showing can ask to point the app somewhere else. Only
+// the app's own setup page (a file on this laptop) may do that without asking;
+// any other page gets a question from the app itself first, so a page the
+// house shows cannot quietly move their laptop to another address (fourth
+// outside audit, Nov 20 2026).
+ipcMain.handle('aerie:set-house', async (event, value) => {
   const url = cleanUrl(value);
   if (!url) return { ok: false };
+  const from = (event.senderFrame && event.senderFrame.url) || '';
+  if (!from.startsWith('file:')) {
+    const yes = await askHer('Open a different house?', `Something on the page asked to point this app at ${url}. Only say yes if you just asked for that.`, 'Open it');
+    if (!yes) return { ok: false, error: 'Not changed.' };
+  }
   writeJson(configFile(), { url });
   const win = BrowserWindow.getAllWindows()[0];
   if (win) void win.loadURL(url);
@@ -195,6 +228,10 @@ ipcMain.handle('aerie:install-update', async () => {
   if (!house) return { ok: false, error: 'No house address.' };
   if (process.platform !== 'win32') return { ok: false, error: 'Updating from Settings is for Windows; rebuild the app here instead.' };
   const fail = (message) => { updateNote(`FAILED ${message}`); return { ok: false, error: message }; };
+  // Asked by the app, not the page, so a page cannot start an install on its
+  // own; and never from a plain-http house on the open internet (cleanUrl).
+  const yes = await askHer('Install the update?', `This replaces the Aerie app with the copy ${house} is offering, and restarts it.`, 'Install');
+  if (!yes) return { ok: false, error: 'Not installed.' };
   try {
     fs.mkdirSync(app.getPath('userData'), { recursive: true });
     fs.writeFileSync(updateLogFile(), `${new Date().toISOString()} START from ${app.getVersion()}\r\n`);

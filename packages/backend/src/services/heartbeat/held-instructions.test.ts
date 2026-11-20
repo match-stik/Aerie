@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { lastInjectedClaudeMd, planHold, HELD_NOTE_MAX_BYTES } from './held-instructions.js';
-import { INTERRUPT_RESUME_PROMPT, RESUME_PROMPT, resumePromptWithHeld } from './supervisor.js';
+import { INTERRUPT_RESUME_PROMPT, RESUME_PROMPT, heldNoteByFile, resumePromptWithHeld } from './supervisor.js';
 
 function md(walls: Record<string, string>, house = '# House\nrules\n'): string {
   const blocks = Object.entries(walls)
@@ -97,4 +97,13 @@ test('the room copy is the newest one, found from the end across windows', () =>
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('on Windows the held walls go to a file and the command line carries only a fixed sentence (fourth outside audit, Nov 20 2026)', () => {
+  const written: Record<string, string> = {};
+  const wall = 'a wall with " & calc.exe & " in it';
+  const said = heldNoteByFile('io/.held-walls.md', wall, (p, t) => { written[p] = t; });
+  assert.equal(written['io/.held-walls.md'], wall);
+  assert.ok(!said.includes('"') && !said.includes('&'), 'nothing from the wall reaches the command line');
+  assert.equal(heldNoteByFile('x', '', () => { throw new Error('no write for nothing'); }), '');
 });

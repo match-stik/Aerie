@@ -118,12 +118,8 @@ export function stageAfterMessages(desk: Desk, osState: string, lastRoom: string
  * laptop these read from theme.deskScreen and are written there, falling back
  * to the phone's own until the laptop has its own.
  */
-export const DESK_SCREEN_KEYS = [
-  'homeWidgets', 'homeQuietScroll', 'homeQuietLine', 'homeCardStyle', 'homeCompanionsCard', 'homeQuietCard',
-  'dockIconCards', 'dockCardBacks',
-  'lockHidden', 'lockShow', 'lockShortcuts', 'lockFace', 'lockClockSize', 'lockCards', 'lockCardBacks',
-  'lockWeatherLook', 'lockSpotify', 'lockSpotifyLook',
-] as const;
+export { DESK_SCREEN_KEYS } from '@aerie/shared';
+import { DESK_SCREEN_KEYS } from '@aerie/shared';
 export type DeskScreenKey = typeof DESK_SCREEN_KEYS[number];
 
 /** The theme as the laptop's screen sees it: its own screen choices over the shared ones. */

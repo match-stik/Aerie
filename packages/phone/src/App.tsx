@@ -613,6 +613,7 @@ export default function App() {
   const authenticated = useAerie((s) => s.auth.authenticated);
   const { isLoaded, settingsHydrated } = useSettingsSync({
     theme: savedTheme, setTheme, contacts, setContacts, appSettings, setAppSettings, authenticated,
+    screen: desk.on ? 'desk' : 'phone',
     onContactSaveFailed: (message) => {
       setError(message);
       setTimeout(() => setError(null), 5000);

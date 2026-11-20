@@ -20,6 +20,8 @@ export interface DiscordConfigValues {
   judgeBeatMs: number;
   /** The longest a beat waits on somebody else's typing. */
   judgeMaxWaitMs: number;
+  /** How long a room stays shut after three bot turns in a row (bot-loop.ts). */
+  botLoopCooldownMs: number;
 }
 
 const DEFAULTS = {
@@ -32,6 +34,7 @@ const DEFAULTS = {
   judgeEnabled: true,
   judgeBeatMs: 60000,
   judgeMaxWaitMs: 180000,
+  botLoopCooldownMs: 180000,
 };
 
 export function getDiscordConfig(): DiscordConfigValues {
@@ -47,6 +50,7 @@ export function getDiscordConfig(): DiscordConfigValues {
     judgeEnabled: getConfigBool('discord.judgeEnabled', DEFAULTS.judgeEnabled),
     judgeBeatMs: getConfigNumber('discord.judgeBeatMs', DEFAULTS.judgeBeatMs),
     judgeMaxWaitMs: getConfigNumber('discord.judgeMaxWaitMs', DEFAULTS.judgeMaxWaitMs),
+    botLoopCooldownMs: getConfigNumber('discord.botLoopCooldownMs', DEFAULTS.botLoopCooldownMs),
   };
 }
 

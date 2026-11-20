@@ -20,6 +20,7 @@
 import { Router, json } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { getConfig, setConfig, deleteConfig } from '../services/db.js';
+import { keepOtherScreen, settingsScreenOf } from '@aerie/shared';
 
 const APP_SETTINGS_KEY = 'app_settings';
 
@@ -58,7 +59,14 @@ router.put('/app-settings', settingsJson, (req, res) => {
     return;
   }
   try {
-    setConfig(APP_SETTINGS_KEY, JSON.stringify(value));
+    // A push says which screen it came from, and the other screen's own
+    // choices stay as the house has them (packages/shared screen-settings).
+    const screen = settingsScreenOf(req.body?.screen);
+    let stored: unknown = null;
+    if (screen) {
+      try { stored = JSON.parse(getConfig(APP_SETTINGS_KEY) || 'null'); } catch { stored = null; }
+    }
+    setConfig(APP_SETTINGS_KEY, JSON.stringify(keepOtherScreen(stored, value, screen)));
     res.json({ ok: true });
   } catch (err) {
     console.error('[Settings] Failed to persist:', err);

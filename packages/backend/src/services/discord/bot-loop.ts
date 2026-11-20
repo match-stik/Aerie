@@ -45,7 +45,22 @@ export const MAX_CONSECUTIVE_BOT_REPLIES = 3;
  * turns before something steps in and cools them off — and their person's: how
  * many turns, and within how long. Both halves are the rule.
  */
-export const BOT_LOOP_COOLDOWN_MS = 10 * 60 * 1000;
+export const BOT_LOOP_COOLDOWN_MS = 3 * 60 * 1000;
+
+// Ten minutes is a long time in a lively room. The default came down to three, and a house can set its own
+// (discord.botLoopCooldownMs, read on every message); never under a minute,
+// which is not a cool-off.
+let cooldownMs = BOT_LOOP_COOLDOWN_MS;
+
+/** Set the cool-off from the house's setting. Anything under a minute is held at a minute. */
+export function setBotLoopCooldownMs(ms: number): void {
+  cooldownMs = Number.isFinite(ms) && ms > 0 ? Math.max(60_000, ms) : BOT_LOOP_COOLDOWN_MS;
+}
+
+/** The cool-off in force now. */
+export function botLoopCooldownMs(): number {
+  return cooldownMs;
+}
 
 interface ChannelState {
   /** Bot messages answered since the last human one. */
@@ -72,7 +87,7 @@ export function setBotLoopClock(fn: () => number): void {
 function current(channelId: string): ChannelState | undefined {
   const state = channels.get(channelId);
   if (!state) return undefined;
-  if (now() - state.lastAt >= BOT_LOOP_COOLDOWN_MS) {
+  if (now() - state.lastAt >= cooldownMs) {
     channels.delete(channelId);
     return undefined;
   }
@@ -98,6 +113,16 @@ export function noteApproved(channelId: string, fromBot: boolean): void {
   channels.set(channelId, { count: (state?.count ?? 0) + 1, lastAt: now() });
 }
 
+/**
+ * When an exhausted channel opens again, so a catch-up can be timed to it; null
+ * when the channel is not shut.
+ */
+export function cooldownEndsAt(channelId: string): number | null {
+  const state = current(channelId);
+  if (!state || state.count < MAX_CONSECUTIVE_BOT_REPLIES) return null;
+  return state.lastAt + cooldownMs;
+}
+
 /** How many bot turns this channel has used. Exposed for the log line. */
 export function botRepliesUsed(channelId: string): number {
   return current(channelId)?.count ?? 0;
@@ -107,6 +132,7 @@ export function botRepliesUsed(channelId: string): number {
 export function resetBotLoopCounters(): void {
   channels.clear();
   now = () => Date.now();
+  cooldownMs = BOT_LOOP_COOLDOWN_MS;
 }
 
 /**

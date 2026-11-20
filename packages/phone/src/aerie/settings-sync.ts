@@ -92,12 +92,14 @@ export async function storeInlinePicture(dataUrl: string): Promise<string | null
   }
 }
 
-export async function pushServerSettings(blob: ServerSettingsBlob): Promise<boolean> {
+// `screen` says which screen pushed, so the house keeps the other screen's own
+// choices as it has them (packages/shared screen-settings.ts).
+export async function pushServerSettings(blob: ServerSettingsBlob, screen?: 'phone' | 'desk'): Promise<boolean> {
   try {
     const res = await apiFetch('/api/app-settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: blob }),
+      body: JSON.stringify({ settings: blob, ...(screen ? { screen } : {}) }),
     });
     return res.ok;
   } catch {

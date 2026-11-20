@@ -259,11 +259,29 @@ pm2 status
 pm2 monit    # Live CPU/memory monitor
 ```
 
-### Backup Database
+### Backing up the house
+
+Everything the house keeps lives in `data/` plus `aerie.yaml`: the database, uploaded files, pictures, stickers, the companions' instruction files. Copying `aerie.db` on its own is not a backup. The database runs in WAL mode, so its newest writes sit in `aerie.db-wal` beside it, and a plain `cp` of a running database can come back stale or torn; and a database without `data/files` brings back the words and loses the pictures.
+
+The safe copy is the whole folder, with the house stopped:
 
 ```bash
-cp ~/aerie/data/aerie.db ~/aerie-backup-$(date +%Y%m%d).db
+pm2 stop aerie
+tar -czf ~/aerie-backup-$(date +%Y%m%d).tar.gz -C ~/aerie data aerie.yaml
+pm2 start aerie
 ```
+
+If you'd rather not stop it, take the database with SQLite's own online backup (consistent while the house runs) and copy the rest beside it:
+
+```bash
+sqlite3 ~/aerie/data/aerie.db ".backup '$HOME/aerie-db-$(date +%Y%m%d).db'"
+```
+
+Three things to know about any copy:
+
+- **It holds every key in plain text.** API keys, bot tokens and live logins are in the database and the password is in `aerie.yaml`. Whoever can read a backup can open the house, so keep backups somewhere only you can read.
+- **Keep one somewhere else.** A copy on the same server, or a provider snapshot in the same account, does not survive losing that server or that account.
+- **Restore one once.** Unpack it into an empty folder on another machine and start it there. A backup that has never been restored is a hope.
 
 ## Troubleshooting
 

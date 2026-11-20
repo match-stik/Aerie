@@ -252,3 +252,15 @@ test('owner messages on Discord go home, never into the room\'s own channel thre
   assert.ok(source.includes('if (newest && newest.id === getDiscordThreadId(channelId)) {'), 'and it skips the room thread');
   assert.equal(source.split('homeThreadFrom(channelId)').length - 1, 4, 'owner, mention, held-ping and pairing-request routing all go through it');
 });
+
+test('the catch-up shows what was said while quiet, with ids to react to, and the three ways to answer', async () => {
+  const { catchUpBanner } = await import('./judge.js');
+  const banner = catchUpBanner([
+    { id: '123456789012345678', author: 'Spencer&Nox', text: 'Leave the hammer marks in.\nPolishing freezes it.' },
+    { id: '123456789012345679', author: 'Silas Ashbourne', text: 'Noted.' },
+  ]);
+  assert.match(banner, /\[id 123456789012345678\] Spencer&Nox: Leave the hammer marks in\. Polishing freezes it\./);
+  assert.match(banner, /\[SILENT\]/);
+  assert.match(banner, /\[react:<id> <emoji>\]/);
+  assert.match(banner, /ONE|single message that brings something NEW/);
+});

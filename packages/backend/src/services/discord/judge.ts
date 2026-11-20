@@ -147,6 +147,32 @@ export function resetTyping(): void {
  * real beat: a guest's recap opened a shared beat while our answer to another
  * guest was running, and that answer covered it).
  */
+/** One message said in a room while we were cooled off, for the catch-up. */
+export interface HeldLine {
+  id: string;
+  author: string;
+  text: string;
+}
+
+/**
+ * The catch-up after the bot cool-off: everything said
+ * while we were quiet, in one look, and three ways to answer it. A pass, a
+ * reaction on the single messages that earned one, or one message that brings
+ * something new to the room, never a reply to each line.
+ */
+export function catchUpBanner(held: readonly HeldLine[]): string {
+  const lines = held.slice(-12).map((h) => `[id ${h.id}] ${h.author}: ${h.text.replace(/\s+/g, ' ').slice(0, 400)}`);
+  return [
+    '=== CATCHING UP ===',
+    'Three bot turns in a row put this room on a cool-off, so you stayed quiet and only listened. The cool-off has ended. Said while you were quiet (the channel transcript has the rest):',
+    ...lines,
+    'You have three ways to answer, and any mix of them:',
+    '- Pass: if there is nothing of yours to add, reply with exactly [SILENT] and nothing else.',
+    '- React: put [react:<id> <emoji>] on its own line for a message that earned one, using the id above and a unicode emoji or a custom one written <:name:id>. A reaction is not a message; nothing else is posted for it.',
+    '- Say one thing: a single message that brings something NEW to the room from the whole stretch. Do not answer each line, and do not repeat what somebody already said.',
+  ].join('\n');
+}
+
 export function beatBanner(kind: 'beat' | 'share', spokeSinceOpen = false): string {
   const spoke = spokeSinceOpen
     ? ['You already spoke in this room after this message arrived. If what you said covered it, reply with exactly [SILENT] and nothing else; nothing is posted.']

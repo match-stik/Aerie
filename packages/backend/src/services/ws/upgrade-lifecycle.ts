@@ -67,7 +67,7 @@ export function registerWebSocketUpgradeHandler(server: HTTPServer, wss: WebSock
     // A house with no password answers only its own address: a rebinding page
     // sends a matching Origin and Host, so only the Host itself tells it apart
     // (middleware/open-house.ts).
-    if (!appPassword && !openHouseHostAllowed(request.headers.host, allowedHostsFrom(getAerieConfig().cors.origins))) {
+    if (!appPassword && !openHouseHostAllowed(request.headers.host, allowedHostsFrom(getAerieConfig().cors.origins), request.headers as Record<string, unknown>)) {
       socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
       socket.destroy();
       return;

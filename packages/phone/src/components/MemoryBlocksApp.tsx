@@ -8,6 +8,7 @@ import { Paginator, usePaged } from './Paginator';
 import { cn } from '../lib/utils';
 import { useBackHandler } from '../lib/use-back-handler';
 import { HouseSelect } from './HouseSelect';
+import { ConversationImportPanel } from './ConversationImportPanel';
 
 interface MemoryBlocksAppProps {
   onClose: () => void;
@@ -16,7 +17,7 @@ interface MemoryBlocksAppProps {
   embedded?: boolean;
 }
 
-type Tab = 'blocks' | 'create' | 'operations';
+type Tab = 'blocks' | 'create' | 'operations' | 'import';
 
 interface MemoryBlock {
   scope: string;
@@ -254,6 +255,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
     { id: 'blocks', label: 'Blocks' },
     { id: 'create', label: 'Create' },
     { id: 'operations', label: 'Ops' },
+    { id: 'import', label: 'Import' },
   ];
 
   const scopeBadge = (scope: string) => (
@@ -542,6 +544,13 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
               Rethink
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Bring old chats back, word for word */}
+      {tab === 'import' && (
+        <div className="space-y-4">
+          <ConversationImportPanel colors={colors} />
         </div>
       )}
     </AppShell>

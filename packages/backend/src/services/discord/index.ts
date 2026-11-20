@@ -24,12 +24,15 @@ import { discordTurnAudience } from '../turn-audience.js';
 import { buildRulesContext } from './rules.js';
 import { DISCORD_CONFIG, getDiscordConfig } from './config.js';
 import { splitResponse, formatChannelHistory, getDiscordThreadId, fenceUntrustedTranscript, roomPictures } from './utils.js';
-import { botLoopExhausted } from './bot-loop.js';
+import { botLoopExhausted, cooldownEndsAt, setBotLoopCooldownMs } from './bot-loop.js';
+import { extractReactionMarkers, reactArgument } from './reaction-markers.js';
 import {
   judgeCall,
   judgeInputOf,
   beatShouldWait,
   beatBanner,
+  catchUpBanner,
+  type HeldLine,
   noteTyping,
   noteSpoke,
   latestTypingIn,
@@ -77,8 +80,11 @@ function companionNames(): string[] {
 
 /** Everything a reply needs once the message it answers is stored. */
 interface ReplyTurn {
-  /** 'answer' now, or a beat that has run ('beat' may pass, 'share' answers). */
-  kind: 'answer' | 'beat' | 'share';
+  /** 'answer' now, or a beat that has run ('beat' may pass, 'share' answers),
+   *  or the catch-up when a bot cool-off ends ('catchup' may pass or react). */
+  kind: 'answer' | 'beat' | 'share' | 'catchup';
+  /** For a catch-up: what was said while the room was cooled off. */
+  held?: HeldLine[];
   batch: MessageBatch;
   threadId: string;
   threadName: string;
@@ -178,6 +184,8 @@ export class DiscordService {
   private started = false;
   /** One open beat per room at most (see judge.ts). */
   private beats = new Map<string, PendingBeat>();
+  /** One catch-up per room, waiting for its bot cool-off to end. */
+  private catchUps = new Map<string, { turn: ReplyTurn; held: HeldLine[]; timer: ReturnType<typeof setTimeout> }>();
   /** When we last posted in each room, so a beat knows whether we already spoke after it opened. */
   private lastSpokeAt = new Map<string, number>();
 
@@ -369,6 +377,7 @@ export class DiscordService {
 
       // Run preflight checks (a held ping never asks them; it is not a turn).
       // A bot turn the judge is holding is not counted yet (see preflight).
+      setBotLoopCooldownMs(judgeConfig.botLoopCooldownMs);
       const result = holdForHer
         ? { allowed: true, reason: heldGate.reason }
         : await preflight(batch, this.pairingService, { countBotTurn: judged === 'answer' });
@@ -431,7 +440,10 @@ export class DiscordService {
 
       // Something is being answered here now, so an open beat in this room
       // folds into it: this turn reads the same transcript the beat would have.
-      if (!quiet) this.cancelBeat(channelId, `folded into the answer to ${firstMessage.author.username}`);
+      if (!quiet) {
+        this.cancelBeat(channelId, `folded into the answer to ${firstMessage.author.username}`);
+        this.cancelCatchUp(channelId, `folded into the answer to ${firstMessage.author.username}`);
+      }
 
       // Touch owner's activity if they're the sender
       if (isOwner) {
@@ -670,6 +682,23 @@ export class DiscordService {
         });
       }
 
+      // A bot heard during the cool-off is caught up on when it ends, once,
+      // with everything said in the meantime.
+      if (cooledOff && !ownerMention && firstMessage.author.bot && botLoopExhausted(channelId)) {
+        this.openCatchUp({
+          kind: 'catchup',
+          batch,
+          threadId,
+          threadName,
+          storedContent,
+          incomingMsgId: incomingMsg.id,
+          incomingSequence: incomingMsg.sequence,
+          isOwner,
+          userId,
+          channelId,
+        }, batch.messages.map((m) => ({ id: m.id, author: displayNameOf(m), text: m.content || '(a sticker or picture)' })));
+      }
+
       // A message about their person wakes their phone: the one kind of heard message
       // that does. Through sendIfOffline, so it stays quiet while their person is already
       // looking at the app. Not awaited: a push is a network round trip, and
@@ -764,7 +793,11 @@ export class DiscordService {
     const historyContext = batch.channelHistory
       ? `\n\n${fenceUntrustedTranscript(batch.channelHistory)}`
       : '';
-    const beatContext = turn.kind === 'answer' ? '' : `${beatBanner(turn.kind, turn.spokeSinceOpen)}\n\n`;
+    const beatContext = turn.kind === 'answer'
+      ? ''
+      : turn.kind === 'catchup'
+        ? `${catchUpBanner(turn.held ?? [])}\n\n`
+        : `${beatBanner(turn.kind, turn.spokeSinceOpen)}\n\n`;
     const platformContext = `${platformGuidance}\n\n${beatContext}${rulesContext}${historyContext}`;
 
     // Extract image attachment URLs from batch messages
@@ -824,7 +857,7 @@ export class DiscordService {
     this.stats.messagesProcessed++;
 
     // Process through AgentService
-    const response = await this.agentService.processMessage(
+    let response = await this.agentService.processMessage(
       threadId,
       storedContent,
       { name: threadName, type: 'named' },
@@ -851,6 +884,22 @@ export class DiscordService {
     if (response && isQueueRefusal(response)) {
       console.warn(`[Discord] Not posting a queue refusal to ${channelId}: ${response.trim()}`);
       return;
+    }
+
+    // Reactions written into the reply go on before anything is posted, and
+    // come out of the text (reaction-markers.ts). Same channel only.
+    if (response) {
+      const marked = extractReactionMarkers(response);
+      if (marked.reactions.length > 0) {
+        await this.applyReactions(lastMessage, marked.reactions);
+        const rest = marked.text.trim();
+        if (!rest || rest === '[SILENT]') {
+          // A reaction is not a turn: nobody answers one, so it can't feed a loop.
+          console.log(`[Discord] Reacted ${marked.reactions.length} time(s) in ${channelId}, nothing else said`);
+          return;
+        }
+        response = rest;
+      }
     }
 
     if (!response || response.trim() === '' || response === '[No response]') {
@@ -1026,6 +1075,86 @@ export class DiscordService {
       timer: setTimeout(() => void this.fireBeat(turn.channelId), beatMs),
     });
     console.log(`[Discord] Beat opened in ${turn.channelId} (${turn.kind}, ${Math.round(beatMs / 1000)}s) for ${turn.batch.firstMessage.author.username}`);
+  }
+
+  /**
+   * A bot heard while its room was cooled off. One catch-up per room, timed to
+   * the moment the cool-off ends; a later held message joins it.
+   */
+  private openCatchUp(turn: ReplyTurn, held: HeldLine[]): void {
+    const open = this.catchUps.get(turn.channelId);
+    if (open) {
+      open.turn = turn;
+      open.held.push(...held);
+      return;
+    }
+    const endsAt = cooldownEndsAt(turn.channelId) ?? Date.now();
+    const wait = Math.max(1000, endsAt - Date.now() + 1500);
+    this.catchUps.set(turn.channelId, { turn, held: [...held], timer: setTimeout(() => void this.fireCatchUp(turn.channelId), wait) });
+    console.log(`[Discord] Catch-up set in ${turn.channelId} for when the cool-off ends (${Math.round(wait / 1000)}s)`);
+  }
+
+  private cancelCatchUp(channelId: string, why: string): void {
+    const open = this.catchUps.get(channelId);
+    if (!open) return;
+    clearTimeout(open.timer);
+    this.catchUps.delete(channelId);
+    console.log(`[Discord] Catch-up in ${channelId} closed: ${why}`);
+  }
+
+  /** The cool-off is over: read the room fresh and hand the lane everything said in it. */
+  private async fireCatchUp(channelId: string): Promise<void> {
+    const open = this.catchUps.get(channelId);
+    if (!open) return;
+    const stillShut = cooldownEndsAt(channelId);
+    if (stillShut !== null && stillShut > Date.now()) {
+      open.timer = setTimeout(() => void this.fireCatchUp(channelId), stillShut - Date.now() + 1500);
+      return;
+    }
+    this.catchUps.delete(channelId);
+    const turn: ReplyTurn = { ...open.turn, held: open.held };
+    const key = `${channelId}:beat`;
+    if (this.processing.has(key)) {
+      console.log(`[Discord] A beat is already answering in ${channelId}; the catch-up folds into it`);
+      return;
+    }
+    this.processing.add(key);
+    try {
+      try {
+        const channel = turn.batch.lastMessage.channel;
+        if ('messages' in channel) {
+          const historyLimit = Math.max(getAerieConfig().discord.history_limit || 10, 15);
+          const history = await (channel as TextChannel).messages.fetch({ limit: historyLimit });
+          const ordered = [...history.values()].reverse();
+          const room = roomPictures(ordered, new Set(turn.batch.messages.map((m) => m.id)), this.client.user?.id);
+          turn.batch.roomImageUrls = room.urls;
+          turn.batch.channelHistory = formatChannelHistory(ordered, room.ids);
+        }
+      } catch (err) {
+        console.warn('[Discord] Could not fetch channel history for the catch-up:', err);
+      }
+      console.log(`[Discord] Cool-off over in ${channelId}; catching up on ${turn.held?.length ?? 0} message(s)`);
+      await this.generateAndReply(turn);
+    } catch (error) {
+      console.error('[Discord] Catch-up error:', error);
+      this.stats.errors++;
+    } finally {
+      this.processing.delete(key);
+    }
+  }
+
+  /** Put the reply's reactions on, each on a message in this same channel. A miss is logged, never thrown. */
+  private async applyReactions(anchor: DiscordMessage, reactions: { messageId: string; emoji: string }[]): Promise<void> {
+    const channel = anchor.channel;
+    if (!('messages' in channel)) return;
+    for (const r of reactions.slice(0, 10)) {
+      try {
+        const target = await (channel as TextChannel).messages.fetch(r.messageId);
+        await target.react(reactArgument(r.emoji));
+      } catch (err) {
+        console.warn(`[Discord] Could not react ${r.emoji} to ${r.messageId}: ${(err as Error).message}`);
+      }
+    }
   }
 
   private cancelBeat(channelId: string, why: string): void {

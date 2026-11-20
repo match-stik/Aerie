@@ -15,7 +15,7 @@ import { guardTheme } from './theme-guard';
 import { inlineWallpapers, swapWallpapers } from './wallpaper-files';
 import type { AppSettings, AppTheme, ContactProfile } from '../types';
 
-export function useSettingsSync({ theme, setTheme, contacts, setContacts, appSettings, setAppSettings, authenticated, onContactSaveFailed }: {
+export function useSettingsSync({ theme, setTheme, contacts, setContacts, appSettings, setAppSettings, authenticated, onContactSaveFailed, screen }: {
   theme: AppTheme;
   setTheme: Dispatch<SetStateAction<AppTheme>>;
   contacts: Record<string, ContactProfile>;
@@ -24,7 +24,11 @@ export function useSettingsSync({ theme, setTheme, contacts, setContacts, appSet
   setAppSettings: Dispatch<SetStateAction<AppSettings>>;
   authenticated: boolean;
   onContactSaveFailed: (message: string) => void;
+  /** Which screen this is, so a push leaves the other screen's own choices alone. */
+  screen: 'phone' | 'desk';
 }) {
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
   const [isLoaded, setIsLoaded] = useState(false);
   // Goes true once we've reconciled local state with whatever the server
   // had stored. Until then, we don't push changes back — would race the
@@ -165,7 +169,7 @@ export function useSettingsSync({ theme, setTheme, contacts, setContacts, appSet
     if (!isLoaded || !authenticated) return;
     if (!serverSettingsHydrated.current) return;
     const t = setTimeout(() => {
-      void pushServerSettings({ theme, contacts, appSettings, extras: collectLocalExtras() });
+      void pushServerSettings({ theme, contacts, appSettings, extras: collectLocalExtras() }, screenRef.current);
     }, 1000);
     return () => clearTimeout(t);
   }, [theme, contacts, appSettings, isLoaded, authenticated]);

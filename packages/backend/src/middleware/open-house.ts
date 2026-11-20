@@ -7,7 +7,8 @@
 //   0.0.0.0 or a network address with no password publishes every route, keys
 //   included, to the network.
 // - It answers only requests whose Host names this machine or one of the
-//   configured cors.origins. A page in a browser on this machine can point its
+//   configured cors.origins, and never one that came through a proxy or
+//   tunnel. A page in a browser on this machine can point its
 //   own hostname at 127.0.0.1 (DNS rebinding) and read the answers as its own;
 //   its Host header still names the page's site, which is how it is told apart.
 //
@@ -32,7 +33,22 @@ export function allowedHostsFrom(origins: ReadonlyArray<string>): Set<string> {
   return hosts;
 }
 
-export function openHouseHostAllowed(host: string | undefined, allowed: ReadonlySet<string>): boolean {
+// Headers a proxy or tunnel adds. A house with no password has nothing in
+// front of it, so a request carrying one came through a tunnel or proxy
+// somebody pointed at it, and a tunnel makes the house reachable from
+// anywhere whatever Host it sends. The listed cors.origins only ever meant
+// another name for this machine (fourth outside audit, Nov 20 2026: a public
+// address added to cors.origins on a no-password house behind a tunnel opened
+// every route with no login, and the refusal message suggested doing it).
+const PROXY_HEADERS = ['x-forwarded-for', 'x-forwarded-host', 'forwarded', 'x-real-ip', 'cf-connecting-ip', 'true-client-ip', 'tailscale-user-login'];
+
+export function cameThroughProxy(headers: Record<string, unknown> | undefined): boolean {
+  if (!headers) return false;
+  return PROXY_HEADERS.some((h) => headers[h] !== undefined);
+}
+
+export function openHouseHostAllowed(host: string | undefined, allowed: ReadonlySet<string>, headers?: Record<string, unknown>): boolean {
+  if (cameThroughProxy(headers)) return false;
   if (!host) return true; // HTTP/1.0 with no Host: not a browser
   if (LOOPBACK_HOST.test(host)) return true;
   return allowed.has(host.toLowerCase());
@@ -41,11 +57,11 @@ export function openHouseHostAllowed(host: string | undefined, allowed: Readonly
 /** Express middleware: only acts while no password is set. */
 export function openHouseGuard(hasPassword: () => boolean, allowed: ReadonlySet<string>) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (hasPassword() || openHouseHostAllowed(req.headers.host, allowed)) {
+    if (hasPassword() || openHouseHostAllowed(req.headers.host, allowed, req.headers as Record<string, unknown>)) {
       next();
       return;
     }
     console.warn(`[open-house] refused ${req.method} ${req.originalUrl} — host ${req.headers.host}`);
-    res.status(421).json({ error: 'This house has no password, so it only answers its own address. Set a password, or add this address to cors.origins.' });
+    res.status(421).json({ error: 'This house has no password, so it only answers this machine directly. To reach it from anywhere else, through a tunnel or another device, set a password first.' });
   };
 }

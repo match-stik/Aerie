@@ -178,3 +178,14 @@ test('a doubled slash does not get past the guard', async () => {
     server.close();
   }
 });
+
+test('a service switched on later on the public app reaches the internal app too', async () => {
+  const { createInternalApp, shareWithInternal } = await import('./internal-server.js');
+  const app = createInternalApp({ discordService: null });
+  assert.equal(app.locals.discordService, null);
+  const svc = { sayInChannel: async () => ({ ok: true }) };
+  shareWithInternal('discordService', svc);
+  assert.equal(app.locals.discordService, svc);
+  shareWithInternal('discordService', null);
+  assert.equal(app.locals.discordService, null);
+});

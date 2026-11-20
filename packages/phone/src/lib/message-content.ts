@@ -56,6 +56,10 @@ export function parseMessageContent(
   // emotes). New ingests also resolve mentions server-side via cleanContent.
   // Emote tokens are drawn on every message, ours included: our Discord
   // replies carry them too, sometimes on a '# ' line (lib/discord-emotes.ts).
+  // A reaction a Discord reply put on somebody's message ([react:<id> <emoji>],
+  // services/discord/reaction-markers.ts) is not words; it goes on in the
+  // channel and never shows here.
+  textContent = textContent.replace(/^[ \t]*\[react:\s*\d{15,22}\s+[^\]\n]{1,64}\][ \t]*(?:\n|$)/gm, '').trim();
   textContent = discordEmotesToMarkdown(textContent);
   if (message.via && textContent.includes('<')) {
     textContent = textContent

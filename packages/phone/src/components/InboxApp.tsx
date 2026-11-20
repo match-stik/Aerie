@@ -36,6 +36,8 @@ interface Drop {
 //
 // This one cannot become a plain `image/*` the way the reference picker did:
 // the Inbox takes audio, pdf, zip and docx on purpose.
+const INBOX_MAX_BYTES = 10 * 1024 * 1024;
+
 const ACCEPT = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp',
   'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'audio/mp4', 'audio/x-m4a',
@@ -74,6 +76,11 @@ export function InboxApp({ onClose, themeConfig, themeMode, embedded }: InboxApp
       const id = `drop-${++dropSeq}`;
       setDrops((prev) => [{ id, name: file.name, size: file.size, status: 'uploading' }, ...prev]);
       try {
+        // The file door takes 10 MB (MAX_FILE_SIZE in services/files.ts). A
+        // bigger one used to sit spinning with no answer, so it is refused here, before it sets off.
+        if (file.size > INBOX_MAX_BYTES) {
+          throw new Error(`Too big for the Inbox (${(file.size / 1024 / 1024).toFixed(1)} MB; it takes 10 MB). A chat export goes in Memory, Import.`);
+        }
         const form = new FormData();
         form.append('file', file, file.name);
         const res = await apiFetch('/api/files', { method: 'POST', body: form });
