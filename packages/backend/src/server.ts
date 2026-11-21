@@ -23,6 +23,7 @@ import { DiscordService } from './services/discord/index.js';
 import { TelegramService } from './services/telegram/index.js';
 import { rateLimiter, securityHeaders } from './middleware/security.js';
 import { csrfProtection } from './middleware/csrf.js';
+import { scheduleSealedBackups } from './routes/api/backup.js';
 import apiRoutes, { initCcRoutes } from './routes/api.js';
 import pressRoutes from './routes/press.js';
 import mediaRoutes from './routes/media.js';
@@ -523,6 +524,10 @@ const orchestrator = new Orchestrator(agentService, pushService);
 if (orchestratorEnabled) {
   orchestrator.start();
 }
+
+// The sealed nightly backup (routes/api/backup.ts): only runs once the laptop
+// app has handed over a public key.
+scheduleSealedBackups(config.identity.timezone);
 
 // The Archivist — periodic per-companion memory extraction from threads
 startMemoryExtraction(agentService);

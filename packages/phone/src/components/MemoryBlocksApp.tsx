@@ -326,9 +326,9 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
       {tab === 'blocks' && (
         <div className="space-y-2">
           {isLoading ? (
-            <div className="text-center py-8 opacity-50">Loading blocks...</div>
+            <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-center py-8 text-sm', colors.textMuted)}>Loading blocks…</div>
           ) : blocks.length === 0 ? (
-            <div className="text-center py-8 opacity-50">No memory blocks yet</div>
+            <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-center py-8 text-sm', colors.textMuted)}>No memory blocks yet</div>
           ) : selectedBlock ? (
             <div className={cn('p-4 rounded-lg border', colors.panelBorder, colors.panelBg)}>
               <div className="flex items-center justify-between mb-3">

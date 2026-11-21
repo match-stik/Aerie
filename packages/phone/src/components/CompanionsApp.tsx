@@ -339,7 +339,7 @@ export function CompanionsApp({
         )}
 
         {loading ? (
-          <div className={cn('text-center py-8 text-sm', colors.textMuted)}>Loading...</div>
+          <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-center py-8 text-sm', colors.textMuted)}>Loading…</div>
         ) : (
           <>
             {error && (

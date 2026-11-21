@@ -153,12 +153,16 @@ export interface AppTheme {
   lockCards?: 'dark' | 'light' | 'auto';
   // The home widgets, and the quiet line on the dock (lib/home-widgets.ts).
   // Unset is none, so the home screen stays as it was.
-  homeWidgets?: ('companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music')[];
+  homeWidgets?: ('companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music' | 'quiet')[];
   // The clock widget's look (homeClockLookOf in lib/lock-clock.ts).
   // The home Spotify widget's look, like the lock card's (Nov 8 2026).
   homeSpotifyLook?: 'bar' | 'cover' | 'slim';
   /** The Weather widget's look on the home screen. */
   homeWeatherLook?: 'card' | 'big' | 'line' | 'pill';
+  /** The clock's size on the laptop's wall (lib/home-widgets.ts DESK_CLOCK_SIZES, Nov 21 2026). */
+  homeClockSizeDesk?: 's' | 'm' | 'l';
+  /** The note's size on the laptop's wall (lib/home-widgets.ts DESK_NOTE_SIZES, Nov 21 2026). */
+  homeNoteSizeDesk?: 's' | 'm' | 'l';
   homeClockLook?: 'stacked' | 'classic' | 'serif' | 'outline' | 'analog' | 'script' | 'words' | 'ring';
   // Where each widget sits on the four-wide grid once any has been moved: its
   // left column and its bottom row, row 0 nearest the dock. Unset is the way
@@ -168,10 +172,16 @@ export interface AppTheme {
   homeWidgetPlaces?: Partial<Record<'companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music', { col: number; row: number }>>;
   /** The laptop wall's places (Nov 15 2026), on DESK_COLS columns, kept apart from the phone's. */
   homeWidgetPlacesDesk?: Partial<Record<'companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music', { col: number; row: number }>>;
+  /** The laptop wall's places in quarter columns, the quiet line among them (lib/home-widgets.ts deskPlacesOf, Nov 21 2026); homeWidgetPlacesDesk is the older whole-column copy, read once and moved over. */
+  /** The laptop wall's places, quarter columns and rows in halves of thirds (Nov 21 2026, later the same night); homeWidgetStepsDesk is read once and moved over. */
+  homeWidgetGridDesk?: Partial<Record<'companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music' | 'quiet', { col: number; row: number }>>;
+  homeWidgetStepsDesk?: Partial<Record<'companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music' | 'quiet', { col: number; row: number }>>;
   homeQuietLine?: boolean;
   // The Bubbles switches (lib/bubble-look.ts). Unset is the bubbles as they
   // always looked: faces on, the other three off.
   bubbleFaces?: boolean;
+  /** The faces' size beside the bubbles on the laptop, in pixels (lib/desk.ts deskFaceSizeOf). */
+  bubbleFaceSizeDesk?: number;
   bubbleNames?: boolean;
   bubbleEdges?: boolean;
   bubbleQuietActions?: boolean;

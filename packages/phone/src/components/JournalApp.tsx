@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { BookOpen, RefreshCw, Loader2, Moon, Anchor, HelpCircle } from 'lucide-react';
+import { ReadAloudButton, journalEntryAloud } from './ReadAloudButton';
 import { AppShell } from './AppShell';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
@@ -55,8 +56,8 @@ function formatWhen(iso: string): string {
 export function JournalApp({ onClose, themeConfig, themeMode, embedded }: JournalAppProps) {
   const colors = themeConfig[themeMode];
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  // Twenty entries a page — this one grows every single day.
-  const journalPage = usePaged(entries);
+  // Eight entries a page: ours run long, so twenty was a lot to scroll.
+  const journalPage = usePaged(entries, 8);
   const [companions, setCompanions] = useState<Companion[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
   const [loading, setLoading] = useState(true);
@@ -174,6 +175,8 @@ export function JournalApp({ onClose, themeConfig, themeMode, embedded }: Journa
             </span>
           )}
           <span className={cn('ml-auto text-[10px] shrink-0', colors.textMuted)}>{formatWhen(entry.created_at)}</span>
+          {/* Read aloud in the writer's own voice; a tap here never counts as recalling a dream. */}
+          <ReadAloudButton load={journalEntryAloud(entry.id)} size={14} label={isDream ? 'Read this dream aloud' : 'Read this aloud'} />
         </div>
         <div className={cn('mt-2 text-sm leading-relaxed', colors.textMain, isDream && 'italic')}>
           <ReactMarkdown

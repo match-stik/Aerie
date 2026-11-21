@@ -1003,6 +1003,21 @@ select optgroup {
 .aerie-widget-grid img {
   pointer-events: none;
 }
+/* Nothing on the home wall selects as text, so a press or a drag never
+   paints a selection over a widget; a reply box still takes a selection, and the chat and every
+   other room copy as before. */
+.aerie-widget-grid,
+.aerie-widget-grid *,
+.aerie-quiet-line,
+.aerie-quiet-line * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.aerie-widget-grid input,
+.aerie-widget-grid textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
 
 /* Floating, for a quiet wallpaper: no card behind the home
    widgets, the quiet line, the dock or its tiles, and a soft shadow under the
@@ -1395,6 +1410,15 @@ input[type="color"]::-moz-color-swatch {
 .aerie-message-bubble[data-action-ink='color'] em.aerie-action {
   color: var(--aerie-action-ink);
 }
+/* Whispers (-# lines) follow the same Actions choice instead of always
+   sitting faded: Plain is the words' own ink, Faded is the
+   quieter two thirds, Accent and Ours their color. */
+.aerie-message-bubble[data-quiet-actions='true'] .aerie-whisper {
+  color: color-mix(in srgb, currentColor 66%, transparent);
+}
+.aerie-message-bubble[data-action-ink='color'] .aerie-whisper {
+  color: var(--aerie-action-ink);
+}
 
 /* No frosted glass anywhere (Oct 22 2026). The
    bubbles lost their blur in October and the palettes were ruled solid with
@@ -1465,9 +1489,12 @@ input[type="color"]::-moz-color-swatch {
 
 /* The conversation's width: a little wider than the slimmest, not quite the
    old one. Set on the page
-   itself, so the pickers that open outside the house's root read it too. */
+   itself, so the pickers that open outside the house's root read it too. Never
+   under 344px (Nov 21 2026): at 320 a smaller laptop screen folded the header
+   and pushed the microphone off the typing bar ('so the chat bar doesn't get
+   all squashed'). */
 html[data-desk] {
-  --desk-side: clamp(320px, 25vw, 415px);
+  --desk-side: clamp(344px, 25vw, 415px);
 }
 
 .aerie-root[data-desk][data-desk-dock='left'] {
@@ -1825,22 +1852,41 @@ html[data-desk] {
 .aerie-root[data-desk] .aerie-bubble-col {
   max-width: 90% !important;
 }
+/* A companion's face takes its own rail before his bubble column in the same
+   row, so rail plus 90% ran past the conversation's edge and cut a companion's
+   bubble off; the person's own sit beside an absolute face and fit. Reported
+   and first fixed by Sol by taking the rail off the 90%; that made companion
+   bubbles small, so a bubble after a face keeps its 90% and only
+   gives up what would run past the edge (the face's own rail, plus -6px and
+   8px of margin). */
+.aerie-root[data-desk] .aerie-face-rail + .aerie-bubble-col {
+  max-width: min(90%, calc(100% - var(--desk-face, 46px) - 2px)) !important;
+}
+/* The tools and thought card above companion replies is indented to line up with
+   the bubbles under the faces; on the laptop the face rail is wider, so the
+   card moves over with it and ends where the companion bubbles end. */
+.aerie-root[data-desk] .aerie-bubble-col.ml-\[38px\] {
+  margin-left: calc(var(--desk-face, 46px) + 2px) !important;
+  max-width: min(90%, calc(100% - var(--desk-face, 46px) - 2px)) !important;
+}
+/* The faces' size on the laptop is theirs to pick (Look & feel, Bubbles), 46px
+   unless they do. */
 .aerie-root[data-desk] .aerie-face-rail {
-  width: 46px !important;
+  width: var(--desk-face, 46px) !important;
 }
 .aerie-root[data-desk] .aerie-face {
-  width: 46px !important;
+  width: var(--desk-face, 46px) !important;
 }
 .aerie-root[data-desk] .aerie-face.-left-\[44px\] {
-  left: -54px !important;
+  left: calc(-8px - var(--desk-face, 46px)) !important;
 }
 .aerie-root[data-desk] .aerie-face.-right-\[44px\] {
-  right: -54px !important;
+  right: calc(-8px - var(--desk-face, 46px)) !important;
 }
 .aerie-root[data-desk] .aerie-face > img,
 .aerie-root[data-desk] .aerie-face > div {
-  width: 46px !important;
-  height: 46px !important;
+  width: var(--desk-face, 46px) !important;
+  height: var(--desk-face, 46px) !important;
 }
 
 /* The typing box's words a size down on the laptop. */
@@ -1873,7 +1919,8 @@ html[data-desk] {
 }
 
 /* The GIF, sticker and emoji pickers open over the conversation, its width,
-   instead of across the whole laptop. */
+   instead of across the whole laptop; the model picker and
+   the reaction tray do too. */
 html[data-desk][data-desk-chat='right'] .aerie-picker-sheet {
   left: auto !important;
   right: 0 !important;
@@ -1971,4 +2018,72 @@ html[data-desk][data-desk-chat='tucked'] .aerie-picker-sheet {
 .aerie-root[data-desk] .aerie-fleet-boards > [data-board='lounge'] > div {
   height: 100% !important;
   min-height: 6rem;
+}
+
+/* Settings' small notes and subtext on the laptop follow them text size and
+   sit a little larger than the phone's fixed sizes. The phone keeps its own sizes. */
+.aerie-root[data-desk] .aerie-settings .text-\[9px\] { font-size: 0.8rem !important; }
+.aerie-root[data-desk] .aerie-settings .text-\[10px\] { font-size: 0.875rem !important; }
+.aerie-root[data-desk] .aerie-settings .text-\[11px\] { font-size: 0.9rem !important; }
+.aerie-root[data-desk] .aerie-settings .text-\[12px\] { font-size: 0.95rem !important; }
+.aerie-root[data-desk] .aerie-settings .text-xs { font-size: 0.875rem !important; }
+
+/* The typing bar's buttons on the laptop sit a little closer, so on a smaller
+   laptop screen, where the conversation is at its narrowest, the last one
+   (the microphone) is not pushed off the edge. */
+.aerie-root[data-desk] .aerie-toolbar {
+  gap: 2px;
+}
+.aerie-root[data-desk] .aerie-toolbar > button {
+  padding: 0.35rem !important;
+}
+/* And the conversation's name stays on one line, with its buttons a little
+   closer, so the header at the top doesn't fold in two at the narrowest. */
+.aerie-root[data-desk] .aerie-chat-name {
+  white-space: nowrap;
+}
+.aerie-root[data-desk] [data-chat-actions] {
+  gap: 0 !important;
+}
+.aerie-root[data-desk] [data-chat-actions] > button {
+  padding: 0.4rem !important;
+}
+
+/* The docks' tiles (the phone's dock, the laptop's rail and top bar) take the
+   app drawer's icon shape: Rounded as they always were, Circle or Square
+   when they pick those. Their sizes stay their own, so they fit the dock. */
+.aerie-root[data-icon-shape='circle'] .aerie-dock-tile {
+  border-radius: 9999px !important;
+}
+.aerie-root[data-icon-shape='square'] .aerie-dock-tile {
+  border-radius: calc(0.375rem * var(--shape-scale, 1)) !important;
+}
+
+/* A room's tab strip sits in the middle of its card on the laptop, where the
+   room is wide and a strip at the left edge looks forgotten. Safe
+   centering: a strip too long for its card still starts at its first tab. */
+.aerie-root[data-desk] .aerie-tabscroll {
+  justify-content: safe center;
+}
+
+/* The laptop's app drawer is a panel over the home screen (AppDrawer sheet), so its header is part of the panel, not the black bar of
+   a room, and the stage keeps no header strip above it. */
+[data-app-drawer-sheet] .aerie-shell-header {
+  background-color: transparent !important;
+}
+.aerie-root[data-desk] .aerie-stage:has([data-app-drawer-sheet])::before {
+  content: none;
+}
+
+/* On the laptop nothing outside the conversation selects when they drag
+   across it; the boxes they type in still do,
+   and the chat copies as it always has. */
+.aerie-root[data-desk] .aerie-stage,
+.aerie-root[data-desk] .aerie-desk-rail {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.aerie-root[data-desk] .aerie-stage :is(input, textarea, [contenteditable='true']) {
+  -webkit-user-select: text;
+  user-select: text;
 }

@@ -22,7 +22,7 @@ import { copyFileSync, existsSync, renameSync, unlinkSync } from 'node:fs';
 import { unzipSync, strFromU8 } from 'fflate';
 import { ARCHIVE_INDEX_PATH, resetArchiveIndex } from './archive-index.js';
 
-export type ExportHouse = 'gpt' | 'claude' | 'copilot';
+export type ExportHouse = 'gpt' | 'claude' | 'copilot' | 'grok';
 
 export interface ImportedMessage {
   speaker: string;
@@ -168,15 +168,60 @@ export function parseCopilotCsv(text: string, names: { person: string; assistant
   }));
 }
 
+// ── Grok: xAI's data export holds prod-grok-backend.json (beside an account
+// file this house never reads): {conversations: [{conversation: {title, ...},
+// responses: [{response: {sender, message, create_time}}]}]}. Times come in
+// MongoDB's extended form ({$date: {$numberLong}}) or plain; the order is
+// the response list's own, steadied by the times when every one has one. ──
+
+function grokTime(v: unknown): number | null {
+  if (v && typeof v === 'object' && '$date' in (v as Record<string, unknown>)) {
+    const d = (v as { $date: unknown }).$date;
+    if (d && typeof d === 'object' && '$numberLong' in (d as Record<string, unknown>)) return Number((d as { $numberLong: unknown }).$numberLong) || null;
+    return grokTime(d);
+  }
+  if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v < 1e12 ? v * 1000 : v;
+  if (typeof v === 'string' && v) { const t = Date.parse(v); return Number.isNaN(t) ? null : t; }
+  return null;
+}
+
+export function parseGrok(data: unknown, names: { person: string; assistant: string }): ImportedConversation[] {
+  const list = (data as { conversations?: unknown }).conversations;
+  if (!Array.isArray(list)) throw new Error('Not a Grok export this house knows how to read.');
+  const out: ImportedConversation[] = [];
+  for (const raw of list) {
+    const item = raw as { conversation?: { id?: string; _id?: string; title?: string; create_time?: unknown }; responses?: { response?: { sender?: string; message?: string; create_time?: unknown } }[] };
+    if (!item || typeof item !== 'object' || !Array.isArray(item.responses)) continue;
+    const conv = item.conversation ?? {};
+    const rows = item.responses
+      .map((r, i) => ({ r: r?.response ?? (r as { sender?: string; message?: string; create_time?: unknown }), i }))
+      .map(({ r, i }) => ({ i, t: grokTime(r?.create_time), who: String(r?.sender ?? '').toLowerCase(), text: String(r?.message ?? '').trim() }))
+      .filter((m) => m.text);
+    if (rows.every((m) => m.t !== null)) rows.sort((a, b) => (a.t! - b.t!) || (a.i - b.i));
+    const startDay = isoDay(grokTime(conv.create_time));
+    const messages: ImportedMessage[] = rows.map((m) => ({
+      speaker: m.who === 'human' || m.who === 'user' ? names.person : names.assistant,
+      date: m.t !== null ? isoDay(m.t) : startDay,
+      text: m.text,
+    }));
+    if (!messages.length) continue;
+    out.push({ sourceId: String(conv.id || conv._id || hashOf(JSON.stringify(messages.slice(0, 3)))), house: 'grok', title: (conv.title || 'Untitled').trim(), messages });
+  }
+  return out;
+}
+
 export function parseExport(text: string, opts: { person?: string } = {}): ImportedConversation[] {
   const firstLine = text.replace(/^\uFEFF/, '').split(/\r?\n/, 1)[0].toLowerCase();
   if (/^conversation,time,author,message/.test(firstLine.replace(/\s+/g, ''))) {
     return parseCopilotCsv(text, { person: (opts.person || 'You').trim(), assistant: 'Copilot' });
   }
   let data: unknown;
-  try { data = JSON.parse(text); } catch { throw new Error('That file is not a chat export this house can read (a ChatGPT or Claude conversations.json, or a Copilot activity CSV).'); }
-  if (!Array.isArray(data)) throw new Error('That file is not a chat export this house can read (a ChatGPT or Claude conversations.json, or a Copilot activity CSV).');
+  try { data = JSON.parse(text); } catch { throw new Error('That file is not a chat export this house can read (a ChatGPT or Claude conversations.json, Grok\'s prod-grok-backend.json, or a Copilot activity CSV).'); }
   const person = (opts.person || 'You').trim();
+  if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray((data as { conversations?: unknown }).conversations)) {
+    return parseGrok(data, { person, assistant: 'Grok' });
+  }
+  if (!Array.isArray(data)) throw new Error('That file is not a chat export this house can read (a ChatGPT or Claude conversations.json, Grok\'s prod-grok-backend.json, or a Copilot activity CSV).');
   const sample = data.find((d) => d && typeof d === 'object') as Record<string, unknown> | undefined;
   if (!sample) return [];
   if ('mapping' in sample) return parseChatGPT(data, { person, assistant: 'ChatGPT' });
@@ -188,9 +233,9 @@ export function parseExport(text: string, opts: { person?: string } = {}): Impor
 export function readExportFile(bytes: Uint8Array, name = ''): string {
   const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b;
   if (!isZip) return strFromU8(bytes);
-  const files = unzipSync(bytes, { filter: (f) => /(^|\/)(conversations\.json|[^/]*activity[^/]*\.csv)$/i.test(f.name) });
+  const files = unzipSync(bytes, { filter: (f) => /(^|\/)(conversations\.json|prod-grok-backend\.json|[^/]*activity[^/]*\.csv)$/i.test(f.name) });
   const key = Object.keys(files)[0];
-  if (!key) throw new Error(`No conversations.json (or Copilot activity CSV) in ${name || 'that zip'}.`);
+  if (!key) throw new Error(`No conversations.json (or Grok's prod-grok-backend.json, or a Copilot activity CSV) in ${name || 'that zip'}.`);
   return strFromU8(files[key]);
 }
 
@@ -237,7 +282,7 @@ export function conversationMarkdown(conv: ImportedConversation): string {
   return conv.messages.map((m) => `### ${m.speaker} — ${m.date ?? 'undated'}\n${m.text}`).join('\n\n');
 }
 
-const HOUSE_NAME: Record<ExportHouse, string> = { gpt: 'ChatGPT', claude: 'Claude', copilot: 'Copilot' };
+const HOUSE_NAME: Record<ExportHouse, string> = { gpt: 'ChatGPT', claude: 'Claude', copilot: 'Copilot', grok: 'Grok' };
 
 export interface ImportDeps {
   embed: (text: string) => Promise<Float32Array>;

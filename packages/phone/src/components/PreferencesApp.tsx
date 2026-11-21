@@ -290,7 +290,7 @@ export function PreferencesApp({ onClose, themeConfig, themeMode, embedded }: Pr
   if (loading) {
     return (
       <AppShell embedded={embedded} title="Preferences" icon={SlidersHorizontal} onClose={onClose} themeConfig={themeConfig} themeMode={themeMode}>
-        <div className={cn('text-xs py-6 text-center', colors.textMuted)}>Loading preferences…</div>
+        <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>Loading preferences…</div>
       </AppShell>
     );
   }

@@ -435,7 +435,7 @@ export function ModelPill({ themeConfig, themeMode, threadModel }: ModelPillProp
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-              className={cn('fixed inset-x-0 bottom-0 z-50 max-h-[75%] flex flex-col rounded-t-3xl border-t', colors.panelBg, colors.panelBorder)}
+              className={cn('aerie-picker-sheet fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[520px] max-h-[75%] flex flex-col rounded-t-3xl border-t', colors.panelBg, colors.panelBorder)}
             >
               <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-2">
                 <span className={cn('text-sm font-semibold', colors.textMain)}>Model</span>
@@ -612,11 +612,14 @@ export function ModelPill({ themeConfig, themeMode, threadModel }: ModelPillProp
                       <button
                         onClick={() => selectModel(m)}
                         className="flex flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left min-w-0"
-                        style={isActive ? { background: themeMode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)' } : undefined}
+                        // The model in use wears the house's selected fill with its
+                        // own ink, like every chosen chip, instead of accent ink on
+                        // a faint row.
+                        style={isActive ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                       >
                         <span
-                          className={cn('flex-1 truncate text-sm', colors.textMain)}
-                          style={{ color: isActive ? colors.accent : undefined }}
+                          className={cn('flex-1 truncate text-sm', !isActive && colors.textMain)}
+                          style={isActive ? { color: 'var(--aerie-on-accent)', fontWeight: 600 } : undefined}
                         >
                           {m.name}
                         </span>

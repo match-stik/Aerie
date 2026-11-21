@@ -39,7 +39,9 @@ export const BODY_FONTS: { id: BodyFont; name: string; stack: string }[] = [
   { id: 'mono', name: 'JetBrains Mono', stack: '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace' },
 ];
 
-export const FONT_SCALE_MIN = 0.9;
+// 0.8 since Nov 21 2026, when the laptop got its own text size and had been
+// sitting at 0.85 (DESK_TEXT_SCALE in lib/desk.ts).
+export const FONT_SCALE_MIN = 0.8;
 export const FONT_SCALE_MAX = 1.2;
 /** Titles have their own size on top of the root size. */
 export const TITLE_SCALE_MIN = 0.8;

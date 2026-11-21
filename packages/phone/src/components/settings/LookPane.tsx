@@ -11,6 +11,8 @@ import { BubbleSkin, SKINNED } from "../BubbleSkin";
 import { drawerIconPx, drawerLookOf, drawerTileStyle } from "../../lib/drawer-look";
 import { BODY_FONTS, FONT_SCALE_MAX, FONT_SCALE_MIN, TITLE_FONTS, TITLE_SCALE_MAX, TITLE_SCALE_MIN, bodyStack, fontsOf, titleStack } from "../../lib/fonts";
 import { AppLabel } from "../AppLabel";
+import { useDesk } from "../../lib/use-desk";
+import { DESK_FACE_SIZES, deskFaceSizeOf } from "../../lib/desk";
 import type { SettingsState } from './use-settings-state';
 
 // A stand-in companion for the bubble preview: a neutral name and color, not
@@ -19,6 +21,9 @@ const SAMPLE_COMPANION = { slug: "cedar", name: "Cedar", color: "#0d9488" };
 
 export function LookPane({ s }: { s: SettingsState }) {
   const { oursPreviewRef, minePreviewRef, activeTheme, colors, zoom, theme, appSettings, onThemeChange, onSettingsChange, ownerName, emojiPacks } = s;
+  // On the laptop the faces are their own size, and the preview draws them at it.
+  const onDesk = useDesk(theme).on;
+  const face = onDesk ? deskFaceSizeOf(theme.bubbleFaceSizeDesk) : 36;
   const shapePreviewRef = React.useRef<HTMLSpanElement>(null);
   return (
     <>
@@ -151,8 +156,18 @@ export function LookPane({ s }: { s: SettingsState }) {
                 </button>
               ))}
             </div>
-            {/* Names and typing dots the same way as the rings: House is the
-                companions' own colors, Theme is the theme's ink. */}
+            {/* The faces' size on the laptop. */}
+            {onDesk && (
+              <div className="flex items-center gap-2">
+                <span className={cn("w-20 shrink-0 text-[11px] font-bold", colors.textMain)}>Face size</span>
+                {DESK_FACE_SIZES.map((px, i) => (
+                  <button key={px} onClick={() => onThemeChange({ bubbleFaceSizeDesk: px })} className={cn("flex-1", tailChip(face === px))} style={tailStyle(face === px)}>
+                    {["S", "M", "L"][i]}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Names and typing dots the same way as the rings: House is the companions' own colors, Theme is the theme's ink. */}
             {([
               ["Names", "bubbleNameColors", look.nameColors],
               ["Dots", "bubbleDotColors", look.dotColors],
@@ -170,7 +185,7 @@ export function LookPane({ s }: { s: SettingsState }) {
           {/* A sample companion bubble, drawn by the same rules the chat uses. */}
           {/* Faces pinned to the bubble's own edge, as the chat does. */}
           <div className="flex gap-2 pt-1" aria-hidden="true">
-            {look.faces && <span className="w-9 shrink-0" />}
+            {look.faces && <span className="shrink-0" style={{ width: face }} />}
             <span className="flex min-w-0 flex-col items-start">
               {look.names && look.tailOurs === "top" && (
                 <span className="mb-1 ml-0.5 text-[10px] font-semibold uppercase" style={{ letterSpacing: "0.16em", color: sampleName }}>{SAMPLE_COMPANION.name}</span>
@@ -180,7 +195,7 @@ export function LookPane({ s }: { s: SettingsState }) {
                 {look.faces && (
                   <span
                     className={cn("absolute -left-[44px] h-9 w-9 rounded-full border-2 flex items-center justify-center text-sm", look.tailOurs === "bottom" ? "bottom-0" : "top-0.5", look.rings === "theme" && "aerie-theme-ring")}
-                    style={look.rings === "theme" ? undefined : { borderColor: SAMPLE_COMPANION.color, background: "rgba(127,127,127,0.15)" }}
+                    style={{ ...(look.rings === "theme" ? {} : { borderColor: SAMPLE_COMPANION.color, background: "rgba(127,127,127,0.15)" }), width: face, height: face, left: -(face + 8) }}
                   >{SAMPLE_COMPANION.name.charAt(0)}</span>
                 )}
                 {look.tailShape === "swoop" && (
@@ -221,8 +236,8 @@ export function LookPane({ s }: { s: SettingsState }) {
                   const themed = look.rings === "theme";
                   const pin = cn("absolute -right-[44px] h-9 w-9 rounded-full border-2", look.tailMine === "bottom" ? "bottom-0" : "top-0.5", themed && "aerie-theme-ring");
                   return appSettings.userAvatar
-                    ? <img src={appSettings.userAvatar} alt="" className={cn(pin, "object-cover")} style={themed ? undefined : { borderColor: ring }} />
-                    : <span className={pin} style={themed ? undefined : { borderColor: ring, background: "rgba(127,127,127,0.15)" }} />;
+                    ? <img src={appSettings.userAvatar} alt="" className={cn(pin, "object-cover")} style={{ ...(themed ? {} : { borderColor: ring }), width: face, height: face, right: -(face + 8) }} />
+                    : <span className={pin} style={{ ...(themed ? {} : { borderColor: ring, background: "rgba(127,127,127,0.15)" }), width: face, height: face, right: -(face + 8) }} />;
                 })()}
                 {look.tailShape === "swoop" && (
                   <BubbleSkin bubbleRef={minePreviewRef} right top={look.tailMine === "top"} paintClass={colors.userBubbleBg} />
@@ -243,7 +258,7 @@ export function LookPane({ s }: { s: SettingsState }) {
                 {timePill("mine", "shrink-0")}
               </span>
             </span>
-            {look.faces && <span className="w-9 shrink-0" />}
+            {look.faces && <span className="shrink-0" style={{ width: face }} />}
           </div>
         </section>
         {/* How many apps sit in a row of the drawer;

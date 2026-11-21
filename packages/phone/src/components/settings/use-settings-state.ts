@@ -89,7 +89,7 @@ export function useSettingsState({
     : colors.accent;
   const [activeTab, setActiveTab] = useState<"appearance" | "data">("appearance");
   // Personalize: four doors instead of one long scroll. null is the tile page.
-  const [pane, setPane] = useState<null | "theme" | "look" | "home" | "you" | "lock" | "laptop">(null);
+  const [pane, setPane] = useState<null | "theme" | "look" | "home" | "you" | "lock">(null);
   // The back gesture inside a door goes to the doors, like the card at the top
   // and from the doors it closes Settings. Settings answers every back press
   // while it is open, so App asks it first.

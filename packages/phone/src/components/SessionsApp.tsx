@@ -110,6 +110,7 @@ export function SessionsApp({ onClose, themeConfig, themeMode, embedded }: Sessi
     load();
   }, []);
 
+  // Every line here sits on a card, the waiting and empty ones too.
   const card = cn('rounded-2xl border p-3', colors.panelBg, colors.panelBorder);
 
   return (
@@ -131,11 +132,11 @@ export function SessionsApp({ onClose, themeConfig, themeMode, embedded }: Sessi
       }
     >
       {loading ? (
-        <div className={cn('text-xs py-6 text-center', colors.textMuted)}>Loading sessions…</div>
+        <div className={cn(card, 'text-xs py-6 text-center', colors.textMuted)}>Loading sessions…</div>
       ) : error ? (
-        <div className="text-xs py-6 text-center" style={{ color: colors.accent, opacity: 0.8 }}>{error}</div>
+        <div className={cn(card, 'text-xs py-6 text-center')} style={{ color: colors.accent }}>{error}</div>
       ) : sessions.length === 0 ? (
-        <div className={cn('text-xs py-6 text-center', colors.textMuted)}>No sessions found.</div>
+        <div className={cn(card, 'text-xs py-6 text-center', colors.textMuted)}>No sessions found.</div>
       ) : (
         <div className="space-y-2">
           {sessionsPage.visible.map((s) => (

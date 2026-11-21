@@ -31,6 +31,7 @@ import {
 import { RecentGalleryRail } from './studio/RecentGalleryRail';
 import { StudioGalleryView } from './studio/StudioGalleryView';
 import { ZoomableImage } from './ZoomableImage';
+import { FlipArrows, useFlip } from './studio/ViewerFlip';
 
 export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
   const colors = themeConfig[themeMode];
@@ -119,6 +120,8 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
   // does; the picture viewer and the backends sheet close first when open.
   useBackHandler(viewMode !== 'generate', () => setViewMode('generate'));
   useBackHandler(viewMode === 'generate' && section === 'create' && viewingImage !== null, () => setViewingImage(null));
+  // Previous and next through the Recent tray while a picture is open big.
+  const flip = useFlip<GeneratedImage>(history, viewMode === 'generate' && section === 'create' ? viewingImage : null, setViewingImage);
   useBackHandler(showSettings, () => setShowSettings(false));
 
   const focusPrompt = () => {
@@ -469,12 +472,14 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
           >
             <div className="flex items-center justify-between p-4" style={{ paddingTop: 'calc(var(--sat) + 0.75rem)' }}>
               <button type="button" onClick={() => setViewingImage(null)} className="rounded-full bg-white/10 p-2"><X className="h-5 w-5" /></button>
+              <span className="text-xs text-white/60">{flip.position}</span>
               <button type="button" onClick={() => handleDownload(viewingImage)} className="rounded-full bg-white/10 p-2"><Download className="h-4 w-4" /></button>
             </div>
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
+            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
               {viewingImage.mediaType === 'video'
                 ? <video src={viewingImage.src} className="max-h-full max-w-full" controls loop playsInline autoPlay />
-                : <ZoomableImage src={viewingImage.src} alt={viewingImage.prompt} className="rounded-xl" />}
+                : <ZoomableImage src={viewingImage.src} alt={viewingImage.prompt} className="rounded-xl" onSwipe={flip.go} />}
+              <FlipArrows hasPrev={flip.hasPrev} hasNext={flip.hasNext} go={flip.go} />
             </div>
             <div className="space-y-3 border-t border-white/10 p-4 pb-[calc(var(--sab)+1rem)]">
               <p className="max-h-24 overflow-y-auto whitespace-pre-wrap text-sm">{viewingImage.prompt}</p>

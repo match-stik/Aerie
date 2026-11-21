@@ -142,5 +142,9 @@ export function canDraw(emoji: string): boolean {
 
 /** The ones from a list this phone can draw, in the same order. */
 export function drawable(list: string[]): string[] {
+  // On the laptop the house brings its own emoji font (App.tsx, public/fonts/
+  // noto-color-emoji), which draws every emoji the trays carry, so nothing
+  // needs leaving out there whatever Windows' own font knows (Nov 21 2026).
+  if (typeof document !== 'undefined' && document.getElementById('aerie-emoji-font')) return list;
   return list.filter(canDraw);
 }

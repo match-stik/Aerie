@@ -508,9 +508,9 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
           {/* Entries */}
           <div className="space-y-2">
             {isLoading ? (
-              <div className="text-center py-8 opacity-50">Loading memories...</div>
+              <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-center py-8 text-sm', colors.textMuted)}>Loading memories…</div>
             ) : displayEntries.length === 0 ? (
-              <div className="text-center py-8 opacity-50">
+              <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-center py-8 text-sm', colors.textMuted)}>
                 {searchResults !== null ? 'No results found' : 'No memories yet'}
               </div>
             ) : (

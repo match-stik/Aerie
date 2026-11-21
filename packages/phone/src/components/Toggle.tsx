@@ -37,7 +37,7 @@ export function Toggle({ on, onClick, disabled, colors, ariaLabel }: ToggleProps
       aria-pressed={on}
       aria-label={ariaLabel}
       className={cn(
-        'relative h-[22px] w-10 rounded-full border transition-colors shrink-0',
+        'relative h-[22px] w-[40px] rounded-full border transition-colors shrink-0',
         'disabled:opacity-50 disabled:cursor-not-allowed',
       )}
       style={{
@@ -46,7 +46,7 @@ export function Toggle({ on, onClick, disabled, colors, ariaLabel }: ToggleProps
       }}
     >
       <span
-        className="absolute top-[2px] left-[2px] h-4 w-4 rounded-full transition-transform"
+        className="absolute top-[2px] left-[2px] h-[16px] w-[16px] rounded-full transition-transform"
         style={{
           background: on ? '#fff' : 'rgba(127,127,127,0.55)',
           transform: on ? 'translateX(20px)' : 'translateX(0)',

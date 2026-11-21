@@ -62,11 +62,11 @@ export function SkillsApp({ onClose, themeConfig, themeMode, embedded }: SkillsA
       }
     >
       {loading ? (
-        <div className={cn('text-xs py-6 text-center', colors.textMuted)}>Loading skills…</div>
+        <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>Loading skills…</div>
       ) : error ? (
-        <div className="text-xs py-6 text-center" style={{ color: colors.accent, opacity: 0.8 }}>{error}</div>
+        <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center')} style={{ color: colors.accent }}>{error}</div>
       ) : skills.length === 0 ? (
-        <div className={cn('text-xs py-6 text-center', colors.textMuted)}>No skills found in the agent workspace.</div>
+        <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>No skills found in the agent workspace.</div>
       ) : (
         <div className="space-y-2">
           {skills.map((skill) => (

@@ -88,7 +88,8 @@ export function CompactionsApp({ themeConfig, themeMode }: Props) {
         This is every time it has happened.
       </div>
 
-      <div className="flex items-center justify-between">
+      {/* On a card like everything else on the page, not floating. */}
+      <div className={cn('flex items-center justify-between rounded-2xl border py-2 pl-3 pr-2', colors.panelBg, colors.panelBorder)}>
         <span className={cn('text-xs', colors.textMuted)}>
           {loading ? 'Reading…' : `${rows.length} ${rows.length === 1 ? 'compaction' : 'compactions'}`}
         </span>

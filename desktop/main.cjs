@@ -10,13 +10,19 @@
 // app is built for one house, otherwise the address typed in on first run,
 // kept in the app's own folder. Nothing about any house is written in here.
 
-const { app, BrowserWindow, ipcMain, shell, session, Menu, Tray, nativeImage, net, clipboard, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, session, Menu, Tray, nativeImage, net, clipboard, Notification } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const backupKey = require('./backup-key.cjs');
 
 /** Windows ties notifications to this id; the installer's Start menu entry carries the same one. */
 const APP_ID = 'com.aerie.desktop';
+// The toast activator Windows calls when a notification is clicked, kept the
+// same every run and written into the Start menu shortcut, so a click on one of
+// ours, even after it has gone into the corner's list, brings the window
+// forward, the way other chat apps' notifications do.
+const TOAST_CLSID = '{6F2B7C1E-4A3D-4E8B-9C21-AE51D0F7B3C4}';
 
 /** Read by the house to tell this app apart from a browser on the same laptop. */
 const AGENT_MARK = `AerieDesktop/${app.getVersion()}`;
@@ -66,12 +72,47 @@ function cleanUrl(value) {
   }
 }
 
-/** A question asked by the app itself, not the page: a page cannot answer it. */
-async function askHer(message, detail, yes) {
-  const win = BrowserWindow.getAllWindows()[0];
-  const options = { type: 'question', buttons: [yes, 'Cancel'], defaultId: 1, cancelId: 1, noLink: true, message, detail };
-  const { response } = win ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options);
-  return response === 0;
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/**
+ * A question asked by the app itself, not the page: a page cannot answer it.
+ * It is the app's own little window in the house's dark and ember, not
+ * Windows' grey message box. Its buttons are links the app catches before they go anywhere,
+ * and nothing from the house is loaded into it.
+ */
+function askHer(message, detail, yes, { no = 'Cancel', big = null } = {}) {
+  return new Promise((resolve) => {
+    const parent = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed() && w.isVisible()) || null;
+    const ask = new BrowserWindow({
+      width: 460, height: big ? 340 : 210, useContentSize: true, resizable: false, minimizable: false, maximizable: false,
+      frame: false, show: false, modal: !!parent, parent: parent || undefined, backgroundColor: '#1a1416', title: 'Aerie',
+      webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, javascript: false },
+    });
+    let done = false;
+    const finish = (answer) => { if (done) return; done = true; resolve(answer); if (!ask.isDestroyed()) ask.close(); };
+    const caught = (event, url) => { event.preventDefault(); finish(url === 'https://answer.aerie.invalid/yes'); };
+    ask.webContents.on('will-navigate', caught);
+    ask.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    ask.on('closed', () => finish(false));
+    const body = escapeHtml(detail).replace(/\n/g, '<br>');
+    const html = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<style>
+  html,body{margin:0;height:100%;background:#1a1416;color:#f2e6e1;font:14px/1.5 Georgia,'Times New Roman',serif;-webkit-user-select:none;user-select:none}
+  body{display:flex;flex-direction:column;box-sizing:border-box;padding:22px 24px 20px;border:1px solid #3a2a2f;border-radius:0}
+  .bar{-webkit-app-region:drag;height:10px;margin:-22px -24px 12px}
+  h1{margin:0 0 10px;font-size:17px;font-weight:600;letter-spacing:.01em}
+  .big{margin:4px 0 14px;padding:14px 10px;border-radius:14px;background:#24191c;border:1px solid #4a2f36;text-align:center;font:600 20px/1.4 Consolas,'Courier New',monospace;letter-spacing:.08em;-webkit-user-select:text;user-select:text}
+  p{margin:0;color:#cdb9b2;font-size:13px;flex:1;overflow:auto}
+  .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  a{display:inline-block;padding:9px 18px;border-radius:999px;text-decoration:none;font-weight:600;font-size:13px;-webkit-app-region:no-drag}
+  .no{color:#e8d8d2;border:1px solid #4a3a3f}
+  .yes{color:#fff4ef;background:linear-gradient(90deg,#8a2f39,#5f3a50);border:1px solid #9a4450}
+  a:hover{filter:brightness(1.12)}
+</style></head><body><div class="bar"></div><h1>${escapeHtml(message)}</h1>${big ? `<div class="big">${escapeHtml(big)}</div>` : ''}<p>${body}</p>
+<div class="row"><a class="no" href="https://answer.aerie.invalid/no">${escapeHtml(no)}</a><a class="yes" href="https://answer.aerie.invalid/yes">${escapeHtml(yes)}</a></div></body></html>`;
+    void ask.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+    ask.once('ready-to-show', () => ask.show());
+  });
 }
 
 function houseUrl() {
@@ -147,6 +188,131 @@ ipcMain.handle('aerie:set-house', async (event, value) => {
 
 // ---- the window, the tray, and the app itself ----
 
+// ---- the sealed backup ----
+// The house seals a copy of its database every night to a key only this
+// laptop's phrase can open (services/sealed-backup.ts in the backend), and
+// this app brings the newest copy home whenever it is open, keeping three in
+// Documents\Aerie Backups. Setting it up makes a phrase here, shows it once to
+// be written on paper, and hands the house only the public half. The phrase is
+// never saved anywhere; losing it means the copies cannot be opened.
+
+const BACKUPS_KEPT = 3;
+const BACKUP_EVERY_MS = 6 * 60 * 60 * 1000;
+let backupBusy = false;
+
+function backupDir() {
+  return path.join(app.getPath('documents'), 'Aerie Backups');
+}
+
+/** The house's login cookie, sent by hand: the app's own fetches carry no cookies on their own. */
+async function houseHeaders(house) {
+  const cookies = await session.defaultSession.cookies.get({ url: house });
+  const cookie = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+  return cookie ? { Cookie: cookie } : {};
+}
+
+async function houseJson(house, method, route, body) {
+  const headers = { ...(await houseHeaders(house)), ...(body ? { 'Content-Type': 'application/json' } : {}) };
+  const res = await net.fetch(`${house}/api${route}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  let data = null;
+  try { data = await res.json(); } catch { /* not JSON */ }
+  return { ok: res.ok, status: res.status, data };
+}
+
+function backupsOnDisk() {
+  try {
+    return fs.readdirSync(backupDir())
+      .filter((n) => /^aerie-backup-.*\.sealed$/.test(n))
+      .map((name) => ({ name, at: fs.statSync(path.join(backupDir(), name)).mtimeMs }))
+      .sort((a, b) => b.at - a.at);
+  } catch {
+    return [];
+  }
+}
+
+function backupNote(text) {
+  const config = readJson(configFile()) || {};
+  writeJson(configFile(), { ...config, backupNote: `${new Date().toLocaleString()}: ${text}` });
+  if (tray) tray.setToolTip(`Aerie\nBackup: ${text}`);
+  makeTrayMenu();
+}
+
+/** Bring the house's newest sealed copy home if it is not here yet. */
+async function fetchBackup({ quiet } = { quiet: true }) {
+  const house = houseUrl();
+  const config = readJson(configFile()) || {};
+  if (!house || !config.backupSetUp || backupBusy) return;
+  backupBusy = true;
+  try {
+    const status = await houseJson(house, 'GET', '/backup/status');
+    if (status.status === 401) { if (!quiet) backupNote('sign in to the house in the window first'); return; }
+    const latest = status.ok && status.data ? status.data.latest : null;
+    if (!latest) { backupNote(status.data && status.data.lastError ? `the house could not make one (${status.data.lastError})` : 'none made yet'); return; }
+    if (!/^aerie-backup-[\w-]+\.sealed$/.test(latest.name)) return;
+    fs.mkdirSync(backupDir(), { recursive: true });
+    const final = path.join(backupDir(), latest.name);
+    if (fs.existsSync(final) && fs.statSync(final).size === latest.bytes) { if (!quiet) backupNote(`up to date (${latest.name})`); return; }
+    const res = await net.fetch(`${house}/api/backup/latest`, { headers: await houseHeaders(house) });
+    if (!res.ok || !res.body) { backupNote(`the house answered ${res.status}`); return; }
+    const part = `${final}.part`;
+    const out = fs.createWriteStream(part);
+    const reader = res.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!out.write(Buffer.from(value))) await new Promise((r) => out.once('drain', r));
+    }
+    await new Promise((resolve, reject) => out.end((err) => (err ? reject(err) : resolve())));
+    if (fs.statSync(part).size !== latest.bytes) { fs.rmSync(part, { force: true }); backupNote('the download came up short; trying again later'); return; }
+    fs.renameSync(part, final);
+    for (const old of backupsOnDisk().slice(BACKUPS_KEPT)) fs.rmSync(path.join(backupDir(), old.name), { force: true });
+    backupNote(`saved ${latest.name}`);
+  } catch (error) {
+    backupNote(`could not reach the house (${error instanceof Error ? error.message : String(error)})`);
+  } finally {
+    backupBusy = false;
+  }
+}
+
+/** Make a phrase, show it once, hand the house the public half, and take the first copy. */
+async function setUpBackups() {
+  const house = houseUrl();
+  if (!house) return;
+  const config = readJson(configFile()) || {};
+  const first = await askHer(
+    config.backupSetUp ? 'Make a new backup phrase?' : 'Set up backups on this laptop?',
+    `The house will seal a copy of its database every night that only a phrase made here can open, and this app keeps the newest ${BACKUPS_KEPT} in Documents\\Aerie Backups.\n\nYou will be shown the phrase once. Write it on paper. It is never saved on this laptop or sent to the house, and without it no backup can be opened.`
+      + (config.backupSetUp ? '\n\nA new phrase means new backups open with the new one; the copies already here still need the old one.' : ''),
+    'Show me the phrase',
+  );
+  if (!first) return;
+  const phrase = backupKey.newPhrase();
+  const wrote = await askHer('Your backup phrase', 'Write this on paper now, exactly as shown, and keep it somewhere safe. 0 and O, 1 and I or L count as the same when you type it back.', 'I wrote it down', { big: phrase });
+  if (!wrote) return;
+  const publicKey = backupKey.publicKeyFromPhrase(phrase).toString('base64');
+  const set = await houseJson(house, 'POST', '/backup/key', { publicKey });
+  if (!set.ok) { backupNote(set.status === 401 ? 'sign in to the house in the window, then set up again' : `the house answered ${set.status}`); return; }
+  writeJson(configFile(), { ...(readJson(configFile()) || {}), backupSetUp: true });
+  backupNote('set up; making the first copy');
+  const made = await houseJson(house, 'POST', '/backup/now');
+  if (!made.ok) { backupNote(`the house could not make one (${made.data && made.data.error ? made.data.error : made.status})`); return; }
+  await fetchBackup({ quiet: false });
+}
+
+async function backUpNow() {
+  const house = houseUrl();
+  if (!house) return;
+  backupNote('the house is making a copy');
+  const made = await houseJson(house, 'POST', '/backup/now');
+  if (!made.ok) { backupNote(made.status === 401 ? 'sign in to the house in the window first' : `the house could not make one (${made.data && made.data.error ? made.data.error : made.status})`); return; }
+  await fetchBackup({ quiet: false });
+}
+
+function startBackupFetches() {
+  setTimeout(() => void fetchBackup(), 2 * 60 * 1000);
+  setInterval(() => void fetchBackup(), BACKUP_EVERY_MS);
+}
+
 let mainWindow = null;
 let tray = null;
 /** True once they chose Quit; until then closing the window only tucks it by the clock. */
@@ -156,33 +322,79 @@ function showWindow() {
   if (!mainWindow) return;
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
-  mainWindow.focus();
+  // Windows keeps a background app from taking the front, so a notification
+  // click only flashed the taskbar. Holding the window on
+  // top for a moment while it asks for focus is what lets it come forward.
+  if (process.platform === 'win32') {
+    mainWindow.setAlwaysOnTop(true);
+    mainWindow.moveTop();
+    mainWindow.focus();
+    setTimeout(() => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setAlwaysOnTop(false); }, 300);
+  } else {
+    mainWindow.focus();
+  }
+}
+
+/** One line in the house's log from the app itself, so what happened on the laptop can be read without them opening anything. */
+function tellHouse(where, message) {
+  const house = houseUrl();
+  if (!house) return;
+  void net.fetch(`${house}/api/client-errors`, {
+    method: 'POST',
+    session: session.defaultSession,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ where: `laptop-${where}`, message: String(message).slice(0, 500), stack: '', componentStack: '' }),
+  }).catch(() => {});
 }
 
 function makeTray() {
   if (tray) return;
   tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'icon.png')).resize({ width: 32, height: 32 }));
   tray.setToolTip('Aerie');
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Open Aerie', click: showWindow },
-    { type: 'separator' },
-    { label: 'Quit', click: () => { quitting = true; app.quit(); } },
-  ]));
+  const note = (readJson(configFile()) || {}).backupNote;
+  if (note) tray.setToolTip(`Aerie\nBackup: ${note.replace(/^[^:]*?: /, '')}`);
+  makeTrayMenu();
   tray.on('click', showWindow);
 }
 
-ipcMain.handle('aerie:show', () => { showWindow(); return true; });
+function makeTrayMenu() {
+  if (!tray) return;
+  const config = readJson(configFile()) || {};
+  const backups = config.backupSetUp
+    ? [
+      { label: 'Back up now', click: () => void backUpNow() },
+      { label: 'Open the backups folder', click: () => { fs.mkdirSync(backupDir(), { recursive: true }); void shell.openPath(backupDir()); } },
+      { label: config.backupNote ? `Last: ${config.backupNote}`.slice(0, 90) : 'Nothing brought home yet', enabled: false },
+      { type: 'separator' },
+      { label: 'Make a new phrase…', click: () => void setUpBackups() },
+    ]
+    : [{ label: 'Set up backups…', click: () => void setUpBackups() }];
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Open Aerie', click: showWindow },
+    { label: 'Backups', submenu: backups },
+    { type: 'separator' },
+    { label: 'Quit', click: () => { quitting = true; app.quit(); } },
+  ]));
+}
+
+ipcMain.handle('aerie:show', () => { tellHouse('notify-click', 'the page asked to come forward'); showWindow(); return true; });
+
+// Windows only reports an entry as on when it is asked with the SAME args it
+// was written with: asked bare, an entry made with --hidden reads as off, so
+// the switch flipped itself back every time. Every read and write uses this.
+const LOGIN_ITEM = { args: ['--hidden'] };
+const startsWithWindows = () => app.getLoginItemSettings(LOGIN_ITEM).openAtLogin;
 
 ipcMain.handle('aerie:about', () => ({
   version: app.getVersion(),
-  startWithWindows: process.platform === 'win32' ? app.getLoginItemSettings().openAtLogin : null,
+  startWithWindows: process.platform === 'win32' ? startsWithWindows() : null,
   lastUpdate,
 }));
 
 ipcMain.handle('aerie:start-with-windows', (_event, on) => {
   if (process.platform !== 'win32') return null;
-  app.setLoginItemSettings({ openAtLogin: Boolean(on), args: ['--hidden'] });
-  return app.getLoginItemSettings().openAtLogin;
+  app.setLoginItemSettings({ openAtLogin: Boolean(on), ...LOGIN_ITEM });
+  return startsWithWindows();
 });
 
 /** Is the house holding a newer installer than this app? */
@@ -398,6 +610,7 @@ function ensureShortcuts() {
   const link = {
     target: process.execPath,
     appUserModelId: APP_ID,
+    toastActivatorClsid: TOAST_CLSID,
     description: 'Aerie',
     ...(fs.existsSync(icon) ? { icon, iconIndex: 0 } : {}),
   };
@@ -414,7 +627,7 @@ function ensureShortcuts() {
   }
   // A start-with-Windows entry names the exe's path, so a moved folder gets it refreshed.
   try {
-    if (app.getLoginItemSettings().openAtLogin) app.setLoginItemSettings({ openAtLogin: true, args: ['--hidden'] });
+    if (startsWithWindows()) app.setLoginItemSettings({ openAtLogin: true, ...LOGIN_ITEM });
   } catch {
     // Left as it was.
   }
@@ -554,12 +767,25 @@ if (finishAt !== -1) {
 } else {
   app.on('second-instance', showWindow);
   app.on('before-quit', () => { quitting = true; });
-  if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
+  if (process.platform === 'win32') {
+    app.setAppUserModelId(APP_ID);
+    try { app.setToastActivatorCLSID(TOAST_CLSID); } catch { /* the old random one, clicks then only work while a toast is up */ }
+  }
 
   app.userAgentFallback = `${app.userAgentFallback} ${AGENT_MARK}`;
 
   app.whenReady().then(() => {
     readLastUpdate();
+    // Any click on one of our notifications, live or from the corner's list,
+    // or one that started the app, brings the window forward.
+    if (process.platform === 'win32' && typeof Notification.handleActivation === 'function') {
+      try {
+        Notification.handleActivation((details) => {
+          tellHouse('notify-click', `activated (${details && details.type ? details.type : 'click'}), window ${mainWindow && mainWindow.isVisible() ? 'open' : 'tucked'}`);
+          showWindow();
+        });
+      } catch (err) { tellHouse('notify-click', `handleActivation unavailable: ${err}`); }
+    }
     // The finished update's download, unpacked copy and the new copy's profile.
     setTimeout(() => { try { fs.rmSync(updateWorkDir(), { recursive: true, force: true }); } catch { /* next start */ } }, 15_000);
     Menu.setApplicationMenu(null);
@@ -582,6 +808,7 @@ if (finishAt !== -1) {
     ensureShortcuts();
     makeTray();
     createWindow();
+    startBackupFetches();
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
   });
 

@@ -17,3 +17,19 @@ export function useDesk(theme: { deskLayout?: unknown; deskDock?: unknown; deskC
   const { deskLayout, deskDock, deskChat } = theme;
   return useMemo(() => deskOf({ deskLayout, deskDock, deskChat }, width), [deskLayout, deskDock, deskChat, width]);
 }
+
+/**
+ * The laptop's lock screen is the whole window, so a preview of it is drawn
+ * at the window's size; undefined on the phone, where previews keep the
+ * phone's shape.
+ */
+export function useDeskScreen(theme: { deskLayout?: unknown; deskDock?: unknown; deskChat?: unknown }): { width: number; height: number } | undefined {
+  const on = useDesk(theme).on;
+  const [size, setSize] = useState(() => (typeof window === 'undefined' ? { width: 0, height: 0 } : { width: window.innerWidth, height: window.innerHeight }));
+  useEffect(() => {
+    const onResize = () => setSize({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return on && size.width > 0 && size.height > 0 ? size : undefined;
+}

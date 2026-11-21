@@ -26,7 +26,10 @@ export function ZoomableImage({
   src,
   alt,
   className,
+  onSwipe,
 }: {
+  /** A sideways swipe while the picture is not zoomed: -1 back, 1 forward. */
+  onSwipe?: (dir: -1 | 1) => void;
   src: string;
   alt?: string;
   className?: string;
@@ -42,6 +45,9 @@ export function ZoomableImage({
   // dblclick. Both toggled the zoom, so it went in and straight back out — which
   // is exactly what a tap-to-zoom looked like from the outside.
   const lastTouchAtRef = useRef(0);
+  // Where a one-finger touch began, for a swipe to the next picture. Cleared
+  // the moment a second finger lands, so a pinch is never read as a swipe.
+  const swipeRef = useRef<{ x: number; y: number } | null>(null);
 
   const clamp = (pos: { x: number; y: number }, atScale: number) => {
     const el = imgRef.current;
@@ -112,6 +118,7 @@ export function ZoomableImage({
         lastTouchAtRef.current = Date.now();
         if (e.touches.length === 1) {
           lastPointRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          swipeRef.current = scale <= 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
           // Double tap to zoom, the way every photo viewer does it.
           const now = Date.now();
           if (now - lastTapRef.current < 300) {
@@ -121,6 +128,7 @@ export function ZoomableImage({
             lastTapRef.current = now;
           }
         } else if (e.touches.length === 2) {
+          swipeRef.current = null;
           // The first finger of a pinch already came through as a single touch. Left
           // seeded, a second pinch inside 300ms reads as a double tap and undoes itself.
           lastTapRef.current = 0;
@@ -145,7 +153,14 @@ export function ZoomableImage({
           lastDistRef.current = dist;
         }
       }}
-      onTouchEnd={() => {
+      onTouchEnd={(e) => {
+        const start = swipeRef.current;
+        swipeRef.current = null;
+        if (start && onSwipe && scale <= 1 && e.changedTouches.length === 1) {
+          const dx = e.changedTouches[0].clientX - start.x;
+          const dy = e.changedTouches[0].clientY - start.y;
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) onSwipe(dx < 0 ? 1 : -1);
+        }
         lastTouchAtRef.current = Date.now();
         lastPointRef.current = null;
         lastDistRef.current = null;

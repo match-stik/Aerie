@@ -18,6 +18,9 @@ interface AppDrawerProps {
   columns?: DrawerColumns;
   /** Their person's tile choices (lib/drawer-look.ts); unset is the drawer as it always looked. */
   look?: DrawerLook;
+  /** On the laptop: a panel that rises over the home screen, like the widget
+   *  sheet, instead of a whole room. */
+  sheet?: boolean;
 }
 
 // Sparse grid of launchable apps. Cells can be empty so the user can
@@ -25,7 +28,7 @@ interface AppDrawerProps {
 // odd count. Edit mode unlocks drag-to-move; dropping a tile onto an
 // empty slot moves it there (origin slot becomes empty), dropping onto
 // a filled slot swaps the two. Tap-to-open is suppressed while editing.
-export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns = 4, look = DEFAULT_DRAWER_LOOK }: AppDrawerProps) {
+export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns = 4, look = DEFAULT_DRAWER_LOOK, sheet = false }: AppDrawerProps) {
   const tileStyle = drawerTileStyle(look) as React.CSSProperties;
   const iconPx = drawerIconPx(look);
   const label = (text: string) => look.labels === 'hidden'
@@ -161,17 +164,25 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns 
       // Named so the wide layout can keep the grid from spreading across a
       // whole laptop (index.css, Aerie Desk).
       data-app-drawer=""
-      className={cn('absolute inset-0 z-40 flex flex-col', colors.textMain)}
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.05, transition: { duration: 0.25 } }}
+      data-app-drawer-sheet={sheet ? '' : undefined}
+      className={cn('absolute inset-0 z-40 flex flex-col', sheet && 'items-center justify-end', colors.textMain)}
+      initial={sheet ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+      animate={sheet ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+      exit={sheet ? { opacity: 0, transition: { duration: 0.2 } } : { opacity: 0, scale: 1.05, transition: { duration: 0.25 } }}
       // Still mounted at z-40 through the fade, over a Messages app at z-10
       // that is already painted and tappable. Leaving means leaving.
-      style={{ pointerEvents: present ? undefined : 'none' }}
+      style={{ pointerEvents: present ? undefined : 'none', ...(sheet ? { background: 'rgba(0,0,0,0.45)' } : null) }}
+      onClick={sheet ? () => { if (!editing) onClose(); } : undefined}
     >
+      <div
+        className={cn(sheet ? cn('flex max-h-[85vh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-3xl border border-b-0', colors.panelBorder) : 'contents')}
+        style={sheet ? { background: 'var(--aerie-surface-strong)' } : undefined}
+        onClick={sheet ? (e) => e.stopPropagation() : undefined}
+      >
+      {sheet && <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full" style={{ background: 'var(--aerie-hairline)' }} />}
       <header
-        className={cn('aerie-shell-header flex items-center gap-2 px-3 pb-3', colors.pageBg)}
-        style={{ paddingTop: 'calc(var(--sat) + 0.75rem)' }}
+        className={cn('aerie-shell-header flex items-center gap-2 px-3 pb-3', !sheet && colors.pageBg)}
+        style={{ paddingTop: sheet ? '0.5rem' : 'calc(var(--sat) + 0.75rem)', ...(sheet ? { background: 'transparent' } : null) }}
       >
         {/* Back to home — a normal header back arrow like every other app.
             The X is reserved for exiting edit mode, never for closing the
@@ -320,6 +331,8 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns 
           })}
         </div>
         )}
+      </div>
+
       </div>
 
       {/* Floating ghost — follows the pointer while dragging. */}

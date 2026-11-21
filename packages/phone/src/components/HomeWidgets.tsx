@@ -16,9 +16,17 @@ import { wakeSpotify } from '../aerie/spotify-wake';
 import { reportFromLaptop } from '../lib/laptop-app';
 import {
   GRID_COLS,
-  deskColsFor,
-  DESK_COL_PX,
+  deskSubColsFor,
+  DESK_COL_PARTS,
+  DESK_ROW_PARTS,
   HOME_WIDGETS,
+  WALL_PIECES,
+  deskSizes,
+  deskSubColPx,
+  deskSubRowPx,
+  DESK_CLOCK_SIZES,
+  DESK_NOTE_SIZES,
+  type HomeClockSize,
   latestCompanionNote,
   layoutHeight,
   fitWidgets,
@@ -32,12 +40,13 @@ import {
   waitingLetter,
   type HomeWidget,
   type Layout,
+  type Sizes,
   type Spot,
   HOME_WEATHER_LOOKS,
   type HomeWeatherLook,
 } from '../lib/home-widgets';
 import { resolveNoteColor, paperFor, noteInk } from '../lib/note-colors';
-import { haptic } from '../lib/utils';
+import { cn, haptic } from '../lib/utils';
 import { liveStatus } from '../lib/statuses';
 import { HOME_WORD } from '../lib/presence-word';
 import { StatusIcon } from './Statuses';
@@ -392,9 +401,14 @@ function WeatherWidget({ onOpen, onLight = false, look = 'card' }: { onOpen: () 
 
 interface LetterRow { author: string; hidden: boolean; state: string; written_at: string }
 
-function LetterWidget({ companions, onOpen }: { companions: WidgetCompanion[]; onOpen: () => void }) {
+/** The letter waiting for them from one of us, if any, kept current. Read
+ *  once for the whole wall, so a letter piece with nothing to show takes no
+ *  room at all rather than holding an invisible square they could neither see
+ *  nor find to take off. */
+function useWaitingLetter(companions: WidgetCompanion[], on: boolean): LetterRow | null {
   const [letters, setLetters] = useState<LetterRow[]>([]);
   useEffect(() => {
+    if (!on) return;
     let gone = false;
     const load = () => apiFetch('/api/letters').then((r) => (r.ok ? r.json() : [])).then((rows) => {
       const list = Array.isArray(rows) ? rows : Array.isArray(rows?.letters) ? rows.letters : [];
@@ -403,9 +417,12 @@ function LetterWidget({ companions, onOpen }: { companions: WidgetCompanion[]; o
     load();
     const timer = setInterval(load, 60_000);
     return () => { gone = true; clearInterval(timer); };
-  }, []);
+  }, [on]);
   const slugs = new Set(companions.map((c) => c.slug.toLowerCase()));
-  const letter = waitingLetter(letters.filter((l) => slugs.has(String(l.author).toLowerCase())), null);
+  return on ? waitingLetter(letters.filter((l) => slugs.has(String(l.author).toLowerCase())), null) : null;
+}
+
+function LetterWidget({ companions, letter, onOpen }: { companions: WidgetCompanion[]; letter: LetterRow | null; onOpen: () => void }) {
   if (!letter) return null;
   const from = companions.find((c) => c.slug.toLowerCase() === letter.author.toLowerCase());
   return (
@@ -572,9 +589,96 @@ const ROW_PX = (76 - GAP_PX * (ROW_PARTS - 1)) / ROW_PARTS;
 
 interface Lifted { id: HomeWidget; dx: number; dy: number; to: Spot }
 
-/** The widgets switched on, each in its place on a four-wide grid whose rows
- *  count up from the dock (lib/home-widgets.ts). Holding one lifts it; a
- *  dashed box shows where it will land, it lands exactly there, and
+/** Where a piece's drawing sits inside its full box: left and top inset, width and height. */
+interface Ink { l: number; t: number; w: number; h: number }
+type InkMap = Partial<Record<HomeWidget, Ink>>;
+
+/** How wide or tall `n` cells are, gaps between them included. */
+const spanPx = (n: number, cell: number) => n * cell + (n - 1) * GAP_PX;
+
+/** The cells a piece needs for what it draws: never more than its full size, never less than one. */
+function trimmedSizes(full: Sizes, ink: InkMap, colPx: number, rowPx: number): Sizes {
+  const out: Sizes = { ...full };
+  for (const [id, box] of Object.entries(ink) as [HomeWidget, Ink][]) {
+    const f = full[id];
+    if (!f || !box) continue;
+    out[id] = {
+      cols: Math.max(1, Math.min(f.cols, Math.ceil((box.w + GAP_PX - 0.5) / (colPx + GAP_PX)))),
+      rows: Math.max(1, Math.min(f.rows, Math.ceil((box.h + GAP_PX - 0.5) / (rowPx + GAP_PX)))),
+    };
+  }
+  return out;
+}
+
+const paints = (color: string) => {
+  const m = color.match(/rgba?\(([^)]+)\)/);
+  if (!m) return color !== 'transparent' && color !== '';
+  const parts = m[1].split(/[ ,/]+/).filter(Boolean);
+  return parts.length < 4 || parseFloat(parts[3]) > 0.02;
+};
+
+/** The box around everything a piece actually paints (words, pictures, icons,
+ *  and anything with a fill, border or shadow), measured inside its full box
+ *  in the wall's own pixels. Null when nothing is drawn yet. */
+function inkOf(root: HTMLElement): Ink | null {
+  const base = root.getBoundingClientRect();
+  const scale = root.offsetWidth > 0 ? base.width / root.offsetWidth : 1;
+  if (!(scale > 0)) return null;
+  let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+  const add = (x: DOMRect) => {
+    if (x.width < 1 || x.height < 1) return;
+    l = Math.min(l, x.left); t = Math.min(t, x.top); r = Math.max(r, x.right); b = Math.max(b, x.bottom);
+  };
+  const walk = (el: Element) => {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return;
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'img' || tag === 'svg' || tag === 'canvas' || tag === 'video' || tag === 'input' || tag === 'textarea') { add(el.getBoundingClientRect()); return; }
+    if (paints(cs.backgroundColor) || cs.backgroundImage !== 'none' || cs.boxShadow !== 'none'
+      || (parseFloat(cs.borderTopWidth) > 0 && paints(cs.borderTopColor)) || (parseFloat(cs.borderBottomWidth) > 0 && paints(cs.borderBottomColor))) add(el.getBoundingClientRect());
+    for (const n of Array.from(el.childNodes)) {
+      if (n.nodeType === Node.TEXT_NODE) {
+        if (!n.textContent?.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        for (const x of Array.from(range.getClientRects())) add(x);
+      } else if (n.nodeType === Node.ELEMENT_NODE) walk(n as Element);
+    }
+  };
+  for (const child of Array.from(root.children)) walk(child);
+  if (!Number.isFinite(l)) return null;
+  // Only what falls inside the full box counts (a scrolling line runs past it).
+  const L = Math.max(0, (l - base.left) / scale), T = Math.max(0, (t - base.top) / scale);
+  const R = Math.min(root.offsetWidth, (r - base.left) / scale), B = Math.min(root.offsetHeight, (b - base.top) / scale);
+  if (R <= L || B <= T) return null;
+  return { l: Math.floor(L), t: Math.floor(T), w: Math.ceil(R - Math.floor(L)), h: Math.ceil(B - Math.floor(T)) };
+}
+
+/** The union of what a piece has drawn before and draws now. */
+function widen(old: Ink | undefined, now: Ink): Ink {
+  if (!old) return now;
+  const l = Math.min(old.l, now.l), t = Math.min(old.t, now.t);
+  return { l, t, w: Math.max(old.l + old.w, now.l + now.w) - l, h: Math.max(old.t + old.h, now.t + now.h) - t };
+}
+const sameInk = (a: Ink | undefined, b: Ink) => !!a && a.l === b.l && a.t === b.t && a.w === b.w && a.h === b.h;
+
+// Kept on this laptop, per look, so the wall is the same shape tomorrow.
+// The second record: the first could hold drawings merged across looks.
+const INK_KEY = 'aerie.desk-wall-ink-3';
+function readInk(looks: string): InkMap {
+  try { return (JSON.parse(localStorage.getItem(INK_KEY) || '{}') as Record<string, InkMap>)[looks] ?? {}; } catch { return {}; }
+}
+function saveInk(looks: string, ink: InkMap) {
+  try {
+    const all = JSON.parse(localStorage.getItem(INK_KEY) || '{}') as Record<string, InkMap>;
+    all[looks] = ink;
+    localStorage.setItem(INK_KEY, JSON.stringify(all));
+  } catch { /* the wall still works, only unremembered */ }
+}
+
+/** The widgets they have on, each in its place on a four-wide grid whose rows
+ *  count up from the dock (lib/home-widgets.ts). Holding one lifts it (Oct 14
+ *  2026); a dashed box shows where it will land, it lands exactly there, and
  *  anything it covers moves to the nearest open place. */
 export function HomeWidgets({
   widgets,
@@ -584,11 +688,15 @@ export function HomeWidgets({
   notePalette,
   themeMode = 'dark',
   clockLook = 'stacked',
+  clockSize = 's',
+  noteSize = 's',
   spotifyLook = 'bar',
   weatherLook = 'card',
   onOpenAppId,
   onPlace,
   cols: colsProp = GRID_COLS,
+  quietScroll = false,
+  cardsKey = '',
 }: {
   widgets: HomeWidget[];
   spots: Layout;
@@ -597,23 +705,36 @@ export function HomeWidgets({
   notePalette: string[];
   themeMode?: 'light' | 'dark';
   clockLook?: HomeClockLook;
+  /** The clock's size on the laptop's wall. */
+  clockSize?: HomeClockSize;
+  /** The note's size on the laptop's wall. */
+  noteSize?: HomeClockSize;
   spotifyLook?: LockSpotifyLook;
   weatherLook?: HomeWeatherLook;
   onOpenAppId: (id: string) => void;
   onPlace?: (layout: Record<HomeWidget, Spot>) => void;
   /** Columns on the board: the phone's four, or 'auto' for the laptop wall,
-   *  which holds as many phone-width columns as fit (deskColsFor). */
+   *  which holds as many quarter columns as fit (deskSubColsFor). */
   cols?: number | 'auto';
+  /** The quiet line's scroll, when it stands on the laptop wall. */
+  quietScroll?: boolean;
+  /** Which cards are on, so a piece's measured drawing is kept per card choice. */
+  cardsKey?: string;
 }) {
   const grid = useRef<HTMLDivElement>(null);
+  const desk = colsProp === 'auto';
+  // A grid row: the phone's third, or half of one on the laptop wall.
+  const rowPx = desk ? deskSubRowPx(GAP_PX) : ROW_PX;
   // The laptop wall counts its columns off its own width, kept current.
-  const [autoCols, setAutoCols] = useState(GRID_COLS);
-  const cols = colsProp === 'auto' ? autoCols : colsProp;
+  // On the laptop this counts quarter columns, so the wall runs nearly edge to edge.
+  const [autoCols, setAutoCols] = useState(GRID_COLS * DESK_COL_PARTS);
+  // On the laptop the wall counts in quarter columns (lib/home-widgets.ts).
+  const cols = desk ? autoCols : colsProp;
   useLayoutEffect(() => {
     if (colsProp !== 'auto') return;
     const box = grid.current?.parentElement;
     if (!box) return;
-    const read = () => { setAutoCols(deskColsFor(box.getBoundingClientRect().width, GAP_PX)); };
+    const read = () => { setAutoCols(deskSubColsFor(box.getBoundingClientRect().width, GAP_PX)); };
     read();
     const ro = new ResizeObserver(read);
     ro.observe(box);
@@ -627,7 +748,22 @@ export function HomeWidgets({
   const [roomRows, setRoomRows] = useState(0);
   const hold = useRef({ mouse: false, lift: null as (() => void) | null, timer: 0, id: null as HomeWidget | null, x: 0, y: 0, lastX: 0, lastY: 0, fromX: 0, fromY: 0, grabX: 0, grabY: 0, pointer: -1, dragging: false, droppedAt: 0, rows: 0 });
 
-  const sizes = lookSizes({ spotify: spotifyLook, weather: weatherLook });
+  const deskClock = DESK_CLOCK_SIZES[clockSize] ?? DESK_CLOCK_SIZES.s;
+  const deskNote = DESK_NOTE_SIZES[noteSize] ?? DESK_NOTE_SIZES.s;
+  const fullSizes = desk ? deskSizes({ ...lookSizes({ spotify: spotifyLook, weather: weatherLook }), clock: { cols: deskClock.cols, rows: deskClock.rows }, note: { cols: deskNote.cols, rows: deskNote.rows } }) : lookSizes({ spotify: spotifyLook, weather: weatherLook });
+  // On the laptop each piece holds only the wall it actually draws, so a card
+  // switched off leaves no padding around it: its body is drawn at its full size, the part with
+  // nothing painted on it is measured off, and the piece takes the cells its
+  // drawing needs. The largest drawing a piece has had is kept, so a song
+  // starting never makes the Spotify piece grow into its neighbor.
+  const looksKey = `${spotifyLook}|${weatherLook}|${clockLook}|${desk ? `${clockSize}${noteSize}` : ''}|${cardsKey}`;
+  // Kept with the looks it was measured under. A change of look or size
+  // must never measure the new drawing into the old one's record: that
+  // merged a Small clock's drawing with a Large one's, and the clock held
+  // twice the room it draws.
+  const [inkStore, setInkStore] = useState<{ key: string; map: InkMap }>(() => ({ key: looksKey, map: desk ? readInk(looksKey) : {} }));
+  const ink = !desk ? {} : inkStore.key === looksKey ? inkStore.map : readInk(looksKey);
+  const sizes = desk ? trimmedSizes(fullSizes, ink, deskSubColPx(GAP_PX), rowPx) : fullSizes;
   // How many rows fit between the grid's bottom edge (which never moves) and
   // just under the status bar, kept current, so nothing is ever drawn up off
   // the top of the screen.
@@ -643,7 +779,7 @@ export function HomeWidgets({
     // on the stage) counts as the top, not only the phone's status bar.
     const sat = parseFloat(getComputedStyle(home ?? document.documentElement).getPropertyValue('--sat')) || 0;
     const room = (g.getBoundingClientRect().bottom - (box?.top ?? 0)) / (scale || 1) - (sat + 12);
-    return Math.max(0, Math.floor((room + GAP_PX) / (ROW_PX + GAP_PX)));
+    return Math.max(0, Math.floor((room + GAP_PX) / (rowPx + GAP_PX)));
   };
   useLayoutEffect(() => {
     const g = grid.current;
@@ -665,7 +801,36 @@ export function HomeWidgets({
     document.addEventListener('focusout', letGo);
     return () => { window.clearTimeout(later); window.removeEventListener('resize', read); document.removeEventListener('focusout', letGo); };
   });
-  const { layout, shown, noRoom } = fitWidgets(widgets, spots, sizes, fitRows, cols);
+  const letter = useWaitingLetter(companions, widgets.includes('letter'));
+  const present = letter ? widgets : widgets.filter((w) => w !== 'letter');
+  const { layout, shown, noRoom } = fitWidgets(present, spots, sizes, fitRows, cols);
+  // Measure what each piece draws, after every render and whenever anything
+  // inside the wall changes, but never while one is being carried.
+  const inkBoxes = useRef(new Map<HomeWidget, HTMLDivElement>());
+  const measureInk = useRef<() => void>(() => {});
+  measureInk.current = () => {
+    if (!desk || liftedRef.current) return;
+    let next: InkMap | null = null;
+    for (const [id, el] of inkBoxes.current) {
+      const box = inkOf(el);
+      if (!box) continue;
+      const merged = widen(ink[id], box);
+      if (!sameInk(ink[id], merged)) { next = next ?? { ...ink }; next[id] = merged; }
+    }
+    if (next) { setInkStore({ key: looksKey, map: next }); saveInk(looksKey, next); }
+    else if (inkStore.key !== looksKey) setInkStore({ key: looksKey, map: ink });
+  };
+  useLayoutEffect(() => { measureInk.current(); });
+  useEffect(() => {
+    const g = grid.current;
+    if (!desk || !g || typeof MutationObserver === 'undefined') return;
+    let timer = 0;
+    const later = () => { window.clearTimeout(timer); timer = window.setTimeout(() => measureInk.current(), 200); };
+    const watch = new MutationObserver(later);
+    watch.observe(g, { subtree: true, childList: true, characterData: true });
+    g.addEventListener('load', later, true);
+    return () => { window.clearTimeout(timer); watch.disconnect(); g.removeEventListener('load', later, true); };
+  }, [desk]);
   const show = (next: Lifted | null) => { liftedRef.current = next; setLifted(next); };
   const stopTimer = () => { if (hold.current.timer) { window.clearTimeout(hold.current.timer); hold.current.timer = 0; } };
   useEffect(() => stopTimer, []);
@@ -678,9 +843,9 @@ export function HomeWidgets({
     const size = sizeOf(id, sizes);
     const colW = (g.width - GAP_PX * (cols - 1)) / cols;
     const left = clientX - hold.current.grabX - g.left;
-    const bottom = clientY - hold.current.grabY + size.rows * ROW_PX + (size.rows - 1) * GAP_PX;
+    const bottom = clientY - hold.current.grabY + size.rows * rowPx + (size.rows - 1) * GAP_PX;
     const col = Math.round(left / (colW + GAP_PX));
-    const row = Math.round((g.bottom - bottom) / (ROW_PX + GAP_PX));
+    const row = Math.round((g.bottom - bottom) / (rowPx + GAP_PX));
     return {
       col: Math.min(cols - size.cols, Math.max(0, col)),
       row: Math.max(0, Math.min(Math.max(0, hold.current.rows - size.rows), row)),
@@ -747,7 +912,7 @@ export function HomeWidgets({
       const from = layout[id];
       if (to && (to.col !== from.col || to.row !== from.row)) {
         haptic(55);
-        onPlace(placeWidget(layout, shown, id, to, h.rows, sizes, cols));
+        onPlace(placeWidget(layout, shown, id, to, h.rows, sizes, cols, desk));
       }
     },
     // Losing hold of the pointer mid-drag (a screenshot tool or another window
@@ -779,7 +944,7 @@ export function HomeWidgets({
     return () => window.removeEventListener('blur', onBlur);
   });
   if (widgets.length === 0) return null;
-  const labelOf = (id: HomeWidget) => HOME_WIDGETS.find((w) => w.id === id)!.label;
+  const labelOf = (id: HomeWidget) => WALL_PIECES.find((w) => w.id === id)!.label;
   // While one is carried the grid reaches up to the top of the room, so the
   // empty space above is somewhere to put it; its bottom edge stays put.
   const height = Math.max(layoutHeight(layout, sizes), lifted ? roomRows : 0);
@@ -800,9 +965,9 @@ export function HomeWidgets({
         // The laptop wall's columns are a phone column wide exactly, the wall
         // only as wide as they make it and centered, so every widget keeps
         // the shape it has on their phone.
-        gridTemplateColumns: colsProp === 'auto' ? `repeat(${cols}, ${DESK_COL_PX}px)` : `repeat(${cols}, minmax(0, 1fr))`,
-        ...(colsProp === 'auto' ? { width: cols * DESK_COL_PX + (cols - 1) * GAP_PX, marginInline: 'auto' } : null),
-        gridTemplateRows: `repeat(${height}, ${ROW_PX}px)`,
+        gridTemplateColumns: desk ? `repeat(${cols}, ${deskSubColPx(GAP_PX)}px)` : `repeat(${cols}, minmax(0, 1fr))`,
+        ...(desk ? { width: cols * deskSubColPx(GAP_PX) + (cols - 1) * GAP_PX, marginInline: 'auto' } : null),
+        gridTemplateRows: `repeat(${height}, ${rowPx}px)`,
       }}
       data-carrying={lifted ? '' : undefined}
     >
@@ -824,8 +989,11 @@ export function HomeWidgets({
       )}
       {shown.map((id) => {
         const carried = lifted?.id === id;
+        const full = fullSizes[id] ?? sizeOf(id);
+        const trim = desk ? ink[id] : undefined;
         const cell: React.CSSProperties = {
           ...area(id, layout[id]),
+          ...(desk ? { position: 'relative', overflow: 'clip', overflowClipMargin: 10 } as React.CSSProperties : {}),
           touchAction: onPlace ? 'none' : undefined,
           borderRadius: 18,
           ...(lifted && !carried ? { outline: '1px dashed var(--aerie-hairline)', outlineOffset: 3 } : {}),
@@ -838,12 +1006,29 @@ export function HomeWidgets({
         };
         let body: React.ReactNode = null;
         if (id === 'companions') body = <CompanionsWidget companions={companions} customEmojis={customEmojis} onOpen={() => onOpenAppId('messages')} />;
-        if (id === 'note') body = <NoteWidget companions={companions} palette={notePalette} mode={themeMode} onOpen={() => onOpenAppId('notes')} />;
+        if (id === 'note') body = desk && deskNote.zoom !== 1
+          ? (
+            // The note at its own phone size, scaled from there, so it stays the
+            // square it is at Small rather than stretching to the wider spot
+            //.
+            <div style={{ position: 'absolute', left: 0, top: 0, width: spanPx(2 * DESK_COL_PARTS, deskSubColPx(GAP_PX)), height: spanPx(6 * DESK_ROW_PARTS, rowPx), transform: `scale(${deskNote.zoom})`, transformOrigin: 'top left' }}>
+              <NoteWidget companions={companions} palette={notePalette} mode={themeMode} onOpen={() => onOpenAppId('notes')} />
+            </div>
+          )
+          : <NoteWidget companions={companions} palette={notePalette} mode={themeMode} onOpen={() => onOpenAppId('notes')} />;
         if (id === 'weather') body = <WeatherWidget onOpen={() => onOpenAppId('weather')} onLight={themeMode === 'light'} look={weatherLook} />;
-        if (id === 'letter') body = <LetterWidget companions={companions} onOpen={() => onOpenAppId('letters')} />;
+        if (id === 'letter') body = <LetterWidget companions={companions} letter={letter} onOpen={() => onOpenAppId('letters')} />;
         if (id === 'day') body = <DayWidget />;
-        if (id === 'clock') body = <ClockWidget look={clockLook} />;
+        if (id === 'clock') body = desk && deskClock.zoom !== 1
+          ? (
+            // The phone's clock drawn larger, in a box the size it takes up.
+            <div style={{ position: 'absolute', left: 0, top: 0, width: spanPx(2 * DESK_COL_PARTS, deskSubColPx(GAP_PX)), height: spanPx(3 * DESK_ROW_PARTS, rowPx), transform: `scale(${deskClock.zoom})`, transformOrigin: 'top left' }}>
+              <ClockWidget look={clockLook} />
+            </div>
+          )
+          : <ClockWidget look={clockLook} />;
         if (id === 'music') body = <MusicWidget onOpen={() => onOpenAppId('spotify')} look={spotifyLook} />;
+        if (id === 'quiet') body = <div className="flex h-full items-center"><QuietLine big companions={companions} scroll={quietScroll} onOpen={() => onOpenAppId('messages')} /></div>;
         return (
           <div
             key={id}
@@ -853,7 +1038,23 @@ export function HomeWidgets({
             style={cell}
             {...handlers(id)}
           >
-            {body}
+            {desk ? (
+              <div
+                ref={(el) => { if (el) inkBoxes.current.set(id, el); else inkBoxes.current.delete(id); }}
+                style={{
+                  position: 'absolute',
+                  // The drawing stands on the bottom of the cells it holds,
+                  // centered across them, so two pieces side by side on the
+                  // same row share one bottom line.
+                  left: trim ? (spanPx(sizes[id]!.cols, deskSubColPx(GAP_PX)) - trim.w) / 2 - trim.l : 0,
+                  top: trim ? spanPx(sizes[id]!.rows, rowPx) - trim.h - trim.t : 0,
+                  width: spanPx(full.cols, deskSubColPx(GAP_PX)),
+                  height: spanPx(full.rows, rowPx),
+                }}
+              >
+                {body}
+              </div>
+            ) : body}
           </div>
         );
       })}
@@ -862,7 +1063,7 @@ export function HomeWidgets({
 }
 
 /** One line of the latest reply riding on top of the dock. */
-export function QuietLine({ companions, onOpen, scroll = false }: { companions: WidgetCompanion[]; onOpen: () => void; scroll?: boolean }) {
+export function QuietLine({ companions, onOpen, scroll = false, big = false }: { companions: WidgetCompanion[]; onOpen: () => void; scroll?: boolean; /** The laptop's bigger line. */ big?: boolean }) {
   const { last } = useLatestReply();
   const now = useNow(30_000);
   if (!last) return null;
@@ -870,11 +1071,11 @@ export function QuietLine({ companions, onOpen, scroll = false }: { companions: 
   if (!line) return null;
   return (
     <button type="button" onClick={onOpen} className="aerie-quiet-line flex w-full items-center gap-2 rounded-[var(--shape-surface)] px-3 py-2 text-left" style={surface}>
-      <Faces companions={companions} size={18} />
+      <Faces companions={companions} size={big ? 22 : 18} />
       {scroll
-        ? <Ticker className="flex-1 text-xs">{line.text}</Ticker>
-        : <span className="min-w-0 flex-1 truncate text-xs">{line.text}</span>}
-      <span className="text-[10px]" style={{ color: 'var(--aerie-text-muted)' }}>{ageLabel(Date.parse(last.created_at), now)}</span>
+        ? <Ticker className={cn('flex-1', big ? 'text-sm' : 'text-xs')}>{line.text}</Ticker>
+        : <span className={cn('min-w-0 flex-1 truncate', big ? 'text-sm' : 'text-xs')}>{line.text}</span>}
+      <span className={big ? 'text-[11px]' : 'text-[10px]'} style={{ color: 'var(--aerie-text-muted)' }}>{ageLabel(Date.parse(last.created_at), now)}</span>
     </button>
   );
 }
@@ -888,15 +1089,28 @@ export function WidgetSheet({
   onClose,
   clockLook = 'stacked',
   onClockLook,
+  clockSize,
+  onClockSize,
+  noteSize,
+  onNoteSize,
   spotifyLook = 'bar',
   onSpotifyLook,
   weatherLook = 'card',
   onWeatherLook,
+  deskWall = false,
 }: {
   widgets: HomeWidget[];
   quietLine: boolean;
+  /** On the laptop, where the quiet line stands on the wall. */
+  deskWall?: boolean;
   clockLook?: HomeClockLook;
   onClockLook?: (look: HomeClockLook) => void;
+  /** The clock's size, on the laptop's wall only. */
+  clockSize?: HomeClockSize;
+  onClockSize?: (size: HomeClockSize) => void;
+  /** The note's size, on the laptop's wall only. */
+  noteSize?: HomeClockSize;
+  onNoteSize?: (size: HomeClockSize) => void;
   spotifyLook?: LockSpotifyLook;
   onSpotifyLook?: (look: LockSpotifyLook) => void;
   weatherLook?: HomeWeatherLook;
@@ -909,9 +1123,11 @@ export function WidgetSheet({
     ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', border: '1px solid transparent' }
     : { background: 'var(--aerie-surface-strong)', color: 'var(--aerie-text)', border: '1px solid var(--aerie-hairline)' };
   return (
-    <div className="absolute inset-0 z-50 flex items-end" onClick={onClose} style={{ background: 'rgba(0,0,0,0.45)' }}>
+    <div className="absolute inset-0 z-50 flex items-end justify-center" onClick={onClose} style={{ background: 'rgba(0,0,0,0.45)' }}>
+      {/* A phone's width at most, so on the laptop it doesn't stretch across
+          the room. */}
       <div
-        className="max-h-[85vh] w-full space-y-2 overflow-y-auto overscroll-contain rounded-t-3xl p-4"
+        className="max-h-[85vh] w-full max-w-[520px] space-y-2 overflow-y-auto overscroll-contain rounded-t-3xl p-4"
         style={{ background: 'var(--aerie-surface-strong)', color: 'var(--aerie-text)', paddingBottom: 'calc(var(--sab, 0px) + 1rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -923,6 +1139,15 @@ export function WidgetSheet({
           // Each widget's looks sit right under it, once it is on.
           const looks: React.ReactNode =
             !on ? null
+            : w.id === 'note' && noteSize && onNoteSize ? (
+              <div className="grid grid-cols-3 gap-1.5 px-1">
+                {(['s', 'm', 'l'] as HomeClockSize[]).map((size, i) => (
+                  <button key={size} type="button" onClick={() => onNoteSize(size)} className="rounded-xl px-2 py-1.5 text-[11px] font-semibold" style={row(noteSize === size)} aria-pressed={noteSize === size}>
+                    {['Small', 'Medium', 'Large'][i]}
+                  </button>
+                ))}
+              </div>
+            )
             : w.id === 'music' && onSpotifyLook ? (
               <div className="grid grid-cols-3 gap-1.5 px-1">
                 {([['bar', 'Bar'], ['cover', 'Record'], ['slim', 'Slim']] as [LockSpotifyLook, string][]).map(([id, label]) => (
@@ -942,6 +1167,7 @@ export function WidgetSheet({
               </div>
             )
             : w.id === 'clock' && onClockLook ? (
+              <>
               <div className="grid grid-cols-4 gap-1.5 px-1">
                 {HOME_CLOCK_LOOKS.map((look) => (
                   <button key={look} type="button" onClick={() => onClockLook(look)} className="rounded-xl px-2 py-1.5 text-[11px] font-semibold capitalize" style={row(clockLook === look)} aria-pressed={clockLook === look}>
@@ -949,6 +1175,17 @@ export function WidgetSheet({
                   </button>
                 ))}
               </div>
+              {/* Its size, three across like Spotify's looks, on the laptop's wall only. */}
+              {clockSize && onClockSize && (
+                <div className="grid grid-cols-3 gap-1.5 px-1">
+                  {(['s', 'm', 'l'] as HomeClockSize[]).map((size, i) => (
+                    <button key={size} type="button" onClick={() => onClockSize(size)} className="rounded-xl px-2 py-1.5 text-[11px] font-semibold" style={row(clockSize === size)} aria-pressed={clockSize === size}>
+                      {['Small', 'Medium', 'Large'][i]}
+                    </button>
+                  ))}
+                </div>
+              )}
+              </>
             )
             : null;
           return (
@@ -967,7 +1204,7 @@ export function WidgetSheet({
         <button type="button" onClick={() => onQuietLine(!quietLine)} className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left" style={row(quietLine)}>
           <span className="flex flex-col">
             <span className="text-sm font-semibold">Quiet line</span>
-            <span className="text-[11px] opacity-75">One line of the latest reply, riding on the dock</span>
+            <span className="text-[11px] opacity-75">{deskWall ? 'One line of the latest reply, on the wall with the widgets' : 'One line of the latest reply, riding on the dock'}</span>
           </span>
         </button>
       </div>

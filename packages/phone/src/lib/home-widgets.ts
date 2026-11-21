@@ -4,7 +4,7 @@
 
 import { Cells, GRID_COLS, gridHeight, keepPlaces, placeOnGrid, type GridSpot } from './grid-place.js';
 
-export type HomeWidget = 'companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music';
+export type HomeWidget = 'companions' | 'note' | 'weather' | 'letter' | 'day' | 'clock' | 'music' | 'quiet';
 
 /** How many grid rows make one of the rows the widgets used to come in (theirs,
  *  Nov 8 2026: the slim Spotify bar took a whole row, so nothing could sit
@@ -23,6 +23,18 @@ export const HOME_WIDGETS: readonly { id: HomeWidget; label: string; cols: numbe
   { id: 'clock', label: 'Clock', cols: 2, rows: 3, hint: 'The time, in the look you pick' },
   { id: 'music', label: 'Spotify', cols: 4, rows: 3, hint: 'What is playing, with its buttons' },
 ];
+
+/** Everything that can stand on the grid: them widgets, and on the laptop the
+ *  quiet line too, which there is a piece of the wall they can carry anywhere,
+ *  the top included. It has its own switch, so it
+ *  is never in the widget lists. */
+export const WALL_PIECES: readonly { id: HomeWidget; label: string; cols: number; rows: number; hint: string }[] = [
+  ...HOME_WIDGETS,
+  { id: 'quiet', label: 'The quiet line', cols: 4, rows: 2, hint: 'One line of the latest reply' },
+];
+/** On the laptop the quiet line runs longer, a column more on each
+ *  side than the phone's. */
+export const DESK_QUIET = { cols: 6, rows: 2 } as const;
 
 /** A widget whose look changes its size, by id. */
 export type Sizes = Partial<Record<HomeWidget, { cols: number; rows: number }>>;
@@ -88,6 +100,54 @@ export const DESK_COLS = 24;
  *  wall is the square it is on their phone. The wall's columns are
  *  exactly this wide and the wall sits centered in the room. */
 export const DESK_COL_PX = 76;
+/** The laptop wall moves things in quarter columns: each phone column is four narrow
+ *  ones with the usual gap between them, so a widget is exactly the width it
+ *  is on their phone and steps across in a quarter of a column. */
+export const DESK_COL_PARTS = 4;
+/** And rows in halves of the phone's thirds, so two pieces side by side can
+ *  be brought level. */
+export const DESK_ROW_PARTS = 2;
+/** How tall the phone's row is; a third of the 76px row the widgets were drawn for. */
+export function phoneRowPx(gap = 12): number {
+  return (76 - gap * (ROW_PARTS - 1)) / ROW_PARTS;
+}
+export function deskSubColPx(gap = 12): number {
+  return (DESK_COL_PX - gap * (DESK_COL_PARTS - 1)) / DESK_COL_PARTS;
+}
+export function deskSubRowPx(gap = 12): number {
+  return (phoneRowPx(gap) - gap * (DESK_ROW_PARTS - 1)) / DESK_ROW_PARTS;
+}
+/** Every piece's size on the laptop wall: its phone size, columns in quarters and rows in halves. */
+export function deskSizes(base: Sizes): Sizes {
+  const out: Sizes = {};
+  for (const w of WALL_PIECES) {
+    const s = base[w.id] ?? (w.id === 'quiet' ? DESK_QUIET : w);
+    out[w.id] = { cols: s.cols * DESK_COL_PARTS, rows: s.rows * DESK_ROW_PARTS };
+  }
+  return out;
+}
+/** The laptop wall's places, columns in quarters and rows in halves. Places
+ *  saved on the coarser counts before (homeWidgetStepsDesk, quarter columns and
+ *  whole thirds; homeWidgetPlacesDesk, whole columns) are moved onto it, so
+ *  nothing on the wall jumps. */
+export function deskPlacesOf(grid: unknown, steps: unknown, oldPlaces: unknown): Layout {
+  const maxRow = 40 * ROW_PARTS * DESK_ROW_PARTS;
+  if (grid && typeof grid === 'object') return homeSpotsOf(grid, maxRow, DESK_COLS * DESK_COL_PARTS);
+  const out: Layout = {};
+  if (steps && typeof steps === 'object') {
+    for (const [id, s] of Object.entries(homeSpotsOf(steps, undefined, DESK_COLS * DESK_COL_PARTS)) as [HomeWidget, Spot][]) out[id] = { col: s.col, row: s.row * DESK_ROW_PARTS };
+    return out;
+  }
+  for (const [id, s] of Object.entries(homeSpotsOf(oldPlaces, undefined, DESK_COLS)) as [HomeWidget, Spot][]) out[id] = { col: s.col * DESK_COL_PARTS, row: s.row * DESK_ROW_PARTS };
+  return out;
+}
+/** How many quarter columns a wall this wide holds: as many as fit, so the
+ *  wall reaches to within one narrow step of the room's edges, never fewer than the
+ *  phone's four columns and never more than DESK_COLS. */
+export function deskSubColsFor(width: number, gap = 12): number {
+  const step = deskSubColPx(gap) + gap;
+  return Math.max(GRID_COLS * DESK_COL_PARTS, Math.min(DESK_COLS * DESK_COL_PARTS, Math.floor((width + gap) / step)));
+}
 /** How many columns a wall this wide holds, never fewer than the phone's four. */
 export function deskColsFor(width: number, gap = 12): number {
   return Math.max(GRID_COLS, Math.min(DESK_COLS, Math.floor((width + gap) / (DESK_COL_PX + gap))));
@@ -107,14 +167,14 @@ export type Spot = GridSpot;
 
 export type Layout = Partial<Record<HomeWidget, Spot>>;
 
-export const sizeOf = (id: HomeWidget, sizes: Sizes = {}): { cols: number; rows: number } => sizes[id] ?? HOME_WIDGETS.find((w) => w.id === id)!;
+export const sizeOf = (id: HomeWidget, sizes: Sizes = {}): { cols: number; rows: number } => sizes[id] ?? WALL_PIECES.find((w) => w.id === id)!;
 
 /** The saved places. Anything malformed is no place, and that widget
  *  gets the first open one. */
 export function homeSpotsOf(value: unknown, maxRow = 40 * ROW_PARTS, width = GRID_COLS): Layout {
   const out: Layout = {};
   if (!value || typeof value !== 'object') return out;
-  for (const w of HOME_WIDGETS) {
+  for (const w of WALL_PIECES) {
     const s = (value as Record<string, unknown>)[w.id] as { col?: unknown; row?: unknown } | undefined;
     if (!s || typeof s !== 'object') continue;
     const { col, row } = s;
@@ -147,7 +207,9 @@ function packedFromTop(order: readonly HomeWidget[], sizes: Sizes, width = GRID_
   const cells = new Cells(width);
   const top: { id: HomeWidget; col: number; row: number; rows: number }[] = [];
   for (const id of order) {
-    const { cols, rows } = sizeOf(id, sizes);
+    // Never wider than the grid, or no row would ever hold it.
+    const { cols: wide, rows } = sizeOf(id, sizes);
+    const cols = Math.min(wide, width);
     let placed = false;
     for (let r = 0; !placed; r++) {
       for (let c = 0; c + cols <= width; c++) {
@@ -212,8 +274,8 @@ export function layoutHeight(layout: Layout, sizes: Sizes = {}): number {
  *  (kept inside the grid's four columns and above the dock), everything it
  *  doesn't cover stays put, and anything it does cover moves to the open
  *  place nearest where it was. */
-export function placeWidget(layout: Record<HomeWidget, Spot>, order: readonly HomeWidget[], id: HomeWidget, to: Spot, rowLimit: number, sizes: Sizes = {}, width = GRID_COLS): Record<HomeWidget, Spot> {
-  return placeOnGrid(layout, order, id, to, rowLimit, (w) => sizeOf(w, sizes), ROW_PARTS, width);
+export function placeWidget(layout: Record<HomeWidget, Spot>, order: readonly HomeWidget[], id: HomeWidget, to: Spot, rowLimit: number, sizes: Sizes = {}, width = GRID_COLS, stay = false): Record<HomeWidget, Spot> {
+  return placeOnGrid(layout, order, id, to, rowLimit, (w) => sizeOf(w, sizes), ROW_PARTS, width, stay);
 }
 
 interface NoteLike { id: string | number; text: string; color: string; timestamp: string; sender: string | null }
@@ -272,6 +334,9 @@ export function replyLines(content: string, max = 2): ReplyLine[] {
     const action = /^\*[^*].*\*$/.test(line);
     const text = (line.startsWith('-# ') ? line.slice(3) : line).replace(/\*/g, '').trim();
     if (!text) continue;
+    // A line that is only stickers or custom emojis has no words to show; it
+    // came out as its raw ::code::.
+    if (/^(?:\s*(?:::[\w-]+::|<a?:\w+:\d+>|:[\w-]+:))+\s*$/.test(text)) continue;
     out.push({ text, action });
     if (out.length >= max) break;
   }
@@ -287,3 +352,24 @@ export function skyWord(code: number): string {
   if (code <= 77 || code === 85 || code === 86) return 'Snow';
   return 'Storms';
 }
+
+/** The clock on the laptop's wall in three sizes. Each is the phone's clock
+ *  drawn larger, in a box big enough for it; the wall then keeps only what it
+ *  draws. */
+export type HomeClockSize = 's' | 'm' | 'l';
+export const DESK_CLOCK_SIZES: Record<HomeClockSize, { cols: number; rows: number; zoom: number }> = {
+  s: { cols: 2, rows: 3, zoom: 1 },
+  m: { cols: 3, rows: 5, zoom: 1.5 },
+  l: { cols: 4, rows: 7, zoom: 2 },
+};
+export function homeClockSizeOf(value: unknown): HomeClockSize {
+  return value === 'm' || value === 'l' ? value : 's';
+}
+
+/** The note on the laptop's wall in the same three sizes, bigger to read
+ * . */
+export const DESK_NOTE_SIZES: Record<HomeClockSize, { cols: number; rows: number; zoom: number }> = {
+  s: { cols: 2, rows: 6, zoom: 1 },
+  m: { cols: 3, rows: 8, zoom: 1.25 },
+  l: { cols: 3, rows: 9, zoom: 1.5 },
+};

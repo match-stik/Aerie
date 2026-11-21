@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React from "react";
-import { X, Palette, Upload, Check, Plus, Minus, Settings as SettingsIcon, UserRound, Shapes, Home, ChevronLeft, Laptop } from "lucide-react";
+import { X, Palette, Upload, Check, Plus, Minus, Settings as SettingsIcon, UserRound, Shapes, Home, ChevronLeft } from "lucide-react";
 import { AppShell } from "./AppShell";
 import Cropper from "react-easy-crop";
 import { cn } from "../lib/utils";
@@ -12,16 +12,16 @@ import { LockPane } from './settings/LockPane';
 import { YouPane } from './settings/YouPane';
 import { LookPane } from './settings/LookPane';
 import { HomePane } from './settings/HomePane';
-import { LaptopPane } from './settings/LaptopPane';
 import { DataPane } from './settings/DataPane';
 import { deskRoomAspect, deskWindowAspect } from '../lib/use-room-aspect';
-import { useDesk } from '../lib/use-desk';
+import { useDesk, useDeskScreen } from '../lib/use-desk';
 
 export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
   const s = useSettingsState(props);
   // On the desktop, Home and Lock edit the desktop's own screen (lib/desk.ts
   // DESK_SCREEN_KEYS), so the tiles say so.
   const onDesk = useDesk(props.theme).on;
+  const deskScreen = useDeskScreen(props.theme);
   const { activeTheme, colors, resolvedAccent, activeTab, setActiveTab, pane, setPane, cropImageSrc, setCropImageSrc, cropTarget, isSaving, crop, setCrop, zoom, setZoom, onCropComplete, handleSaveCrop, handleUseOriginal, theme, onClose } = s;
   return (
     <AppShell
@@ -30,6 +30,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
       onClose={onClose}
       themeConfig={activeTheme}
       themeMode={theme.mode}
+      bodyClassName="aerie-settings"
     >
       <div>
         {cropImageSrc && (
@@ -69,7 +70,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
                   // past the crop edge either.
                   minZoom={1}
                   maxZoom={10}
-                  aspect={cropTarget === "avatar" ? 1 : cropTarget === "desk" ? deskRoomAspect() : cropTarget === "desklock" ? deskWindowAspect() : 9 / 16}
+                  aspect={cropTarget === "avatar" ? 1 : cropTarget === "desk" || (onDesk && cropTarget !== "lockscreen") ? deskRoomAspect() : cropTarget === "desklock" || (onDesk && cropTarget === "lockscreen") ? deskWindowAspect() : 9 / 16}
                   cropShape={cropTarget === "avatar" ? "round" : "rect"}
                   onCropChange={setCrop}
                   onCropComplete={onCropComplete}
@@ -196,7 +197,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
                   {([
                     { id: "theme", label: "Theme", hint: "Night & day, palettes, notes", Icon: Palette },
                     { id: "look", label: "Look & feel", hint: "Shape, bubbles, font, send button", Icon: Shapes },
-                    { id: "home", label: "Home", hint: onDesk ? "This desktop's own widgets and cards" : "Wallpapers and the dock", Icon: Home },
+                    { id: "home", label: "Home", hint: onDesk ? "This laptop's wallpapers, slideshow and widgets" : "Wallpapers and the dock", Icon: Home },
                     { id: "you", label: "You", hint: "Avatar, ring, names", Icon: UserRound },
                   ] as const).map(({ id, label, hint, Icon }) => (
                     <button
@@ -217,30 +218,18 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
                   >
                     <span className="flex flex-col gap-1">
                       <span className={cn("text-sm font-bold", colors.textMain)}>Lock screen</span>
-                      <span className={cn("text-[11px] leading-snug", colors.textMuted)}>{onDesk ? "This desktop's own clock, pieces and shortcuts" : "Clock faces, shortcuts and more"}</span>
+                      <span className={cn("text-[11px] leading-snug", colors.textMuted)}>{onDesk ? "This laptop's own clock, pieces and shortcuts" : "Clock faces, shortcuts and more"}</span>
                     </span>
                     <LockPreview
                       face={lockFaceOf(theme.lockFace)}
                       position={lockPositionOf(theme.lockClockPosition)}
                       size={lockSizeOf(theme.lockClockSize)}
                       wallpaper={theme.lockScreenWallpaper || theme.wallpaper}
-                      width={64}
+                      width={deskScreen ? 120 : 64}
+                      screen={deskScreen}
                       at={lockClockAtOf(theme.lockClockAt, lockFaceOf(theme.lockFace))}
                       showClock={!lockHiddenOf(theme.lockHidden).has('clock')}
                     />
-                  </button>
-                  {/* The house on a wide screen. It is on
-                      the phone's page too, since the look travels between
-                      them and they may want to set one from the other. */}
-                  <button
-                    onClick={() => setPane("laptop")}
-                    className={cn("col-span-2 flex items-center justify-between gap-4 p-4 rounded-2xl border text-left transition-transform active:scale-[0.98]", colors.panelBg, colors.panelBorder)}
-                  >
-                    <span className="flex flex-col gap-1">
-                      <span className={cn("text-sm font-bold", colors.textMain)}>Desktop</span>
-                      <span className={cn("text-[11px] leading-snug", colors.textMuted)}>Wide-screen layout, the dock, slideshow pace</span>
-                    </span>
-                    <Laptop size={24} style={{ color: "var(--aerie-accent)" }} />
                   </button>
                 </div>
               )}
@@ -260,7 +249,6 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = (props) => {
               {pane === 'you' && <YouPane s={s} />}
               {pane === 'look' && <LookPane s={s} />}
               {pane === 'home' && <HomePane s={s} />}
-              {pane === 'laptop' && <LaptopPane s={s} />}
             </>
           )}
 

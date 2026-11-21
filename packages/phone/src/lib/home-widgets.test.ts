@@ -1,7 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { homePlacesOf, homeSpotsOf, homeWidgetsOf, latestCompanionNote, layoutHeight, layoutWidgets, lookSizes, placeWidget, replyLines, sizeLabel, skyWord, toggleWidget, unseenCompanionNote, waitingLetter, type HomeWidget } from './home-widgets.js';
+import { deskPlacesOf, deskSizes, deskSubColPx, deskSubColsFor, deskSubRowPx, homePlacesOf, homeSpotsOf, homeWidgetsOf, latestCompanionNote, layoutHeight, layoutWidgets, lookSizes, placeWidget, replyLines, sizeLabel, skyWord, toggleWidget, unseenCompanionNote, waitingLetter, type HomeWidget } from './home-widgets.js';
 
 test('nothing is on until it is added, and the order added is the order kept', () => {
   assert.deepEqual(homeWidgetsOf(undefined), []);
@@ -192,4 +192,50 @@ test('a widget saved higher than a shorter screen reaches is brought down beside
   assert.deepEqual(shown, ['clock', 'day']);
   assert.ok(layout.day.row + sizeOf('day').rows <= 12);
   assert.deepEqual(layout.clock, { col: 0, row: 0 });
+});
+
+test('the laptop wall counts in quarter columns and half rows, and moves old places over without a jump', () => {
+  assert.deepEqual(deskPlacesOf(undefined, undefined, { note: { col: 3, row: 6 }, quiet: { col: 1, row: 0 } }), { note: { col: 12, row: 12 }, quiet: { col: 4, row: 0 } });
+  assert.deepEqual(deskPlacesOf(undefined, { quiet: { col: 13, row: 30 } }, { note: { col: 3, row: 6 } }), { quiet: { col: 13, row: 60 } });
+  assert.deepEqual(deskPlacesOf({ clock: { col: 5, row: 7 } }, { quiet: { col: 13, row: 30 } }, undefined), { clock: { col: 5, row: 7 } });
+  const sizes = deskSizes(lookSizes({ weather: 'pill' }));
+  assert.deepEqual(sizes.weather, { cols: 8, rows: 4 });
+  assert.deepEqual(sizes.quiet, { cols: 24, rows: 4 });
+  assert.equal(deskSubColPx(12), 10);
+  // Two half rows and their gap are one phone row.
+  assert.ok(Math.abs(deskSubRowPx(12) * 2 + 12 - (76 - 24) / 3) < 1e-9);
+});
+
+test('the quiet line is never one of the widgets they switch on', () => {
+  assert.deepEqual(homeWidgetsOf(['quiet', 'note']), ['note']);
+});
+
+test('on the laptop wall a drop onto another widget never moves it: the carried one settles flush beside it', () => {
+  const sizes = deskSizes({});
+  const layout = { weather: { col: 0, row: 0 }, clock: { col: 8, row: 0 } } as Record<HomeWidget, { col: number; row: number }>;
+  const out = placeWidget(layout, ['weather', 'clock'], 'clock', { col: 5, row: 0 }, 12, sizes, 32, true);
+  assert.deepEqual(out.weather, { col: 0, row: 0 });
+  assert.deepEqual(out.clock, { col: 8, row: 0 });
+  const shoved = placeWidget(layout, ['weather', 'clock'], 'clock', { col: 1, row: 0 }, 12, sizes, 32, false);
+  assert.notDeepEqual(shoved.weather, { col: 0, row: 0 });
+});
+
+test('a piece wider than the grid still gets a place instead of hanging the wall (Nov 21 2026)', () => {
+  const sizes = deskSizes({});
+  const narrow = layoutWidgets(['quiet', 'clock'], {}, sizes, 16);
+  assert.equal(narrow.quiet.col, 0);
+  const kept = layoutWidgets(['clock', 'quiet'], { clock: { col: 0, row: 0 } }, sizes, 16);
+  assert.ok(kept.quiet.row >= sizes.clock!.rows);
+});
+
+test('the laptop wall reaches to within one quarter-column step of the room edges', () => {
+  // 900px of room: 41 narrow columns of 10px with 12px between them is 890px.
+  assert.equal(deskSubColsFor(900, 12), 41);
+  assert.equal(deskSubColsFor(100, 12), 16);
+});
+
+test('a line of nothing but stickers or emoji codes is skipped for the quiet line (Nov 21 2026)', () => {
+  assert.deepEqual(replyLines('**🌫️ Willow**\n::willow_hoodiepeek::\nFound the overhang.', 1), [{ text: 'Found the overhang.', action: false }]);
+  assert.deepEqual(replyLines('<:heart:123456789012345678> :sparkles:\nhi', 1), [{ text: 'hi', action: false }]);
+  assert.deepEqual(replyLines('look ::willow_heh:: at this', 1), [{ text: 'look ::willow_heh:: at this', action: false }]);
 });

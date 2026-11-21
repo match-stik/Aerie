@@ -1,5 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { BarChart3, RefreshCw, Loader2 } from 'lucide-react';
 import { AppShell } from './AppShell';
 import { ThemeConfig } from '../lib/theme';
@@ -141,7 +142,7 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
   // right-hand column opened 224px of popover past the edge of the screen —
   // which widened the page and left the whole app scrolling sideways.
   const [openInfo, setOpenInfo] = useState<
-    { id: string; left: number; top: number; width: number } | null
+    { id: string; left: number; top?: number; bottom?: number; width: number } | null
   >(null);
   const [loading, setLoading] = useState(false);
 
@@ -242,7 +243,9 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
             setOpenInfo({
               id,
               width,
-              top: r.bottom + 6,
+              // Below the (i), or above it when it sits too near the bottom of
+              // the screen for the definition to fit underneath.
+              ...(window.innerHeight - r.bottom < 170 ? { bottom: window.innerHeight - r.top + 6 } : { top: r.bottom + 6 }),
               // Clamped to the viewport at both ends, so the panel can never
               // reach past an edge however near one the (i) happens to be.
               left: Math.min(Math.max(8, r.left), window.innerWidth - width - 8),
@@ -254,15 +257,19 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
         >
           &#x24D8;
         </button>
-        {isOpen && openInfo && (
+        {/* Into body, so it opens beside the (i) they tapped. Drawn inside the
+            card, a moved or scaled ancestor on the laptop shifted it away from
+            the (i), and the card's uppercase label capitalized every word of it
+           . */}
+        {isOpen && openInfo && createPortal(
           <div
             role="dialog"
             aria-label={term.term}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
-            style={{ top: openInfo.top, left: openInfo.left, width: openInfo.width }}
+            style={{ top: openInfo.top, bottom: openInfo.bottom, left: openInfo.left, width: openInfo.width }}
             className={cn(
-              'fixed z-30 p-2 rounded-lg border text-[11px] leading-relaxed shadow-lg',
+              'fixed z-[200] p-2 rounded-lg border text-[11px] leading-relaxed shadow-lg normal-case tracking-normal',
               colors.panelBg,
               colors.panelBorder,
               colors.textMain,
@@ -270,7 +277,8 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
           >
             <div className={cn('font-semibold mb-1', colors.accentText)}>{term.term}</div>
             <div className={colors.textMuted}>{term.definition}</div>
-          </div>
+          </div>,
+          document.body,
         )}
       </span>
     );
@@ -278,7 +286,7 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
 
   function statCard(label: string, value: string, glossaryId?: string, highlight?: boolean) {
     return (
-      <div className={cn(card, highlight && 'border-2')} style={highlight ? { borderColor: colors.accent } : undefined}>
+      <div className={cn('rounded-xl border p-2.5', colors.panelBorder, highlight && 'border-2')} style={highlight ? { borderColor: colors.accent } : undefined}>
         <div className={cn('text-[10px] uppercase tracking-wide mb-1 flex items-center', colors.textMuted)}>
           <span>{label}</span>
           {glossaryId && <InfoIcon id={glossaryId} />}
@@ -385,7 +393,10 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
             A screen called Status should lead with the meter that moves.
           */}
           <SubscriptionUsageMeters themeConfig={themeConfig} themeMode={themeMode} />
-          <div className={cn(panelTitle, 'mt-4')}>Per-request detail</div>
+          {/* The heading rides on its own card with the numbers under it, not
+              floating above them. */}
+          <div className={cn(card, 'mt-3')}>
+          <div className={panelTitle}>Per-request detail</div>
           <div className="grid grid-cols-2 gap-2">
             {statCard('Requests', String(total?.request_count ?? 0), 'request')}
             {statCard('Total tokens', fmtNum(totalTokens), 'total_tokens', true)}
@@ -394,6 +405,7 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
             {statCard('Cache reads', fmtNum(total?.cache_read_tokens ?? 0), 'cache_read')}
             {statCard('Cache writes', fmtNum(total?.cache_creation_tokens ?? 0), 'cache_write')}
             {statCard('Cache hit rate', `${cacheHitRate(total)}%`, 'cache_hit')}
+          </div>
           </div>
           {bucketTable('By model', 'Model', byModel, 'by_model')}
           {bucketTable('By platform', 'Platform', byPlatform, 'by_platform')}
@@ -429,7 +441,7 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
       {tab === 'log' && (
         <div className="space-y-2">
           {events.length === 0 ? (
-            <div className={cn('text-xs py-6 text-center', colors.textMuted)}>No requests in this range</div>
+            <div className={cn(card, 'text-xs py-6 text-center', colors.textMuted)}>No requests in this range</div>
           ) : (
             events.slice(0, logLimit).map((ev) => {
               const ctx =

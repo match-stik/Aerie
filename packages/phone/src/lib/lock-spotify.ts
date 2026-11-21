@@ -37,6 +37,9 @@ const LONGEST_WAIT_MS = 3 * 60 * 60 * 1000;
  * length; null when nothing should wait (paused, or no numbers: the house does
  * not send them yet, see SpotifyNowView).
  */
+/** How often the card looks again while a song plays, so a closed Spotify is noticed. */
+export const PLAYING_CHECK_MS = 30_000;
+
 export function songEndsInMs(view: SpotifyNowView | null): number | null {
   if (!view?.playing || !view.track) return null;
   const { progressMs, durationMs } = view;
@@ -92,7 +95,12 @@ export function createLockSpotify(
     seen = read;
     cancel();
     if (stopped) return;
-    const wait = songEndsInMs(read?.ok ? read.data : null);
+    // While a song plays, it also looks again every half minute: closing the
+    // Spotify app mid-song was only noticed at the song's end or a press of
+    // pause.
+    const view = read?.ok ? read.data : null;
+    const end = songEndsInMs(view);
+    const wait = view?.playing && view.track ? Math.min(end ?? PLAYING_CHECK_MS, PLAYING_CHECK_MS) : end;
     if (wait === null) return;
     timer = hands.setTimeout(() => {
       timer = null;

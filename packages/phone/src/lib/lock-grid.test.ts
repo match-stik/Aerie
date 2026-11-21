@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { keepPlaces, placeOnGrid } from './grid-place.js';
-import { cellsFor, defaultLockSpot, drawnLeft, fromSteps, lockSpotsOf, LOCK_GRID_PIECES, LOCK_STEPS, rowsIn, spotForBox, toSteps, type LockGridPiece } from './lock-grid.js';
+import { cellsFor, defaultLockSpot, deskLockColsFor, drawnLeft, fromSteps, lockSpotsOf, LOCK_GRID_PIECES, LOCK_STEPS, rowsIn, spotForBox, toSteps, type LockGridPiece } from './lock-grid.js';
 
 const colW = 80; // a 380-wide grid: four columns of 80 and three gaps of 12... close enough to their phone
 
@@ -16,11 +16,17 @@ test('a piece takes the cells its box needs, and saved places are read carefully
   assert.deepEqual(cellsFor(30, 30, colW), { cols: 2, rows: 6 });
   assert.deepEqual(cellsFor(120, 16, colW), { cols: 6, rows: 4 });
   assert.deepEqual(cellsFor(170, 160, colW), { cols: 8, rows: 24 });
-  // A saved place may sit on a quarter column; anything else malformed is no place.
+  // A saved place may sit any fraction of the way across (the laptop saves
+  // finer than quarters) and on a quarter row; anything else malformed is no place.
   assert.deepEqual(
     lockSpotsOf({ clock: { col: 1, row: 20 }, weather: { col: 1.25, row: 1.75 }, note: { col: 1.1, row: 0 }, spotify: { col: 'x', row: 1 }, messages: { col: 0, row: 0.3 }, nonsense: { col: 0, row: 0 } }),
-    { clock: { col: 1, row: 20 }, weather: { col: 1.25, row: 1.75 } },
+    { note: { col: 1.1, row: 0 }, clock: { col: 1, row: 20 }, weather: { col: 1.25, row: 1.75 } },
   );
+  // The laptop counts the same place in its own finer steps, and back.
+  assert.deepEqual(toSteps({ col: 1.25, row: 4.5 }, 16), { col: 20, row: 18 });
+  assert.deepEqual(fromSteps({ col: 20, row: 18 }, 16), { col: 1.25, row: 4.5 });
+  assert.equal(deskLockColsFor(1416), 16);
+  assert.equal(deskLockColsFor(200), 4);
   assert.deepEqual(toSteps({ col: 1.25, row: 4.5 }), { col: 5, row: 18 });
   assert.deepEqual(fromSteps({ col: 5, row: 18 }), { col: 1.25, row: 4.5 });
   assert.equal(rowsIn(600), 83);

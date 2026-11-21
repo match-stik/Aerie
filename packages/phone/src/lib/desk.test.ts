@@ -15,8 +15,9 @@ test('a wide window with nothing chosen is the Study: rail on the left, the comp
   assert.deepEqual(deskOf({}, 1440), { on: true, rail: true, dock: 'left', chat: 'right' });
 });
 
-test('choosing the phone keeps the phone on a wide window', () => {
-  assert.deepEqual(deskOf({ deskLayout: 'phone' }, 1440), PHONE_DESK);
+test('a laptop left on the old Phone layout gets the Study', () => {
+  assert.deepEqual(deskOf({ deskLayout: 'phone' }, 1440), { on: true, rail: true, dock: 'left', chat: 'right' });
+  assert.equal(deskLayoutOf('phone'), 'study');
 });
 
 test('each choice is read, and anything unknown falls back to the Study as drawn', () => {
@@ -68,21 +69,42 @@ test('a room shape is said in plain numbers', () => {
   assert.match(aspectWords(960 / 690), /^1\.39 : 1, about 7 by 5$/);
 });
 
-test("the desktop's screen choices sit apart from the phone's, and the shared look stays shared", async () => {
-  const { deskScreenTheme, routeDeskUpdate } = await import('./desk');
-  const phone = { homeWidgets: ['companions', 'note'], lockFace: 'serif', mode: 'dark', deskScreen: undefined as Record<string, unknown> | undefined };
-  // Nothing chosen on the desktop yet: it shows what the phone shows.
-  assert.deepEqual(deskScreenTheme(phone).homeWidgets, ['companions', 'note']);
-  // A screen choice made on the desktop goes into deskScreen; the theme's mode is shared.
-  const upd = routeDeskUpdate(phone, { homeWidgets: ['weather'], mode: 'light' } as never) as Record<string, unknown>;
-  assert.equal(upd.mode, 'light');
-  assert.equal('homeWidgets' in upd, false);
-  assert.deepEqual(upd.deskScreen, { homeWidgets: ['weather'] });
-  const after = { ...phone, ...upd } as typeof phone;
-  assert.deepEqual(after.homeWidgets, ['companions', 'note'], 'the phone keeps its widgets');
-  assert.deepEqual(deskScreenTheme(after).homeWidgets, ['weather'], 'the desktop shows its own');
-  // Clearing a choice on the desktop is kept as its own unset, not the phone's value.
-  const cleared = { ...after, ...(routeDeskUpdate(after, { lockFace: undefined } as never) as object) } as typeof phone;
+test("every setting is the laptop's own or the phone's own, the look included", async () => {
+  const { deskScreenTheme, routeDeskUpdate, seedDeskScreen, foldDeskView, DESK_SEEDED } = await import('./desk');
+  const phone = { homeWidgets: ['companions', 'note'], lockFace: 'serif', mode: 'dark', id: 'pal-ember', wallpaper: '/api/files/a', deskWallpaper: '/api/files/room', deskDock: 'top', deskScreen: { homeWidgets: ['weather'] } as Record<string, unknown> | undefined };
+  // The first copy: the phone's settings, its old room picture as the wallpaper, its own earlier choices on top.
+  const seeded = seedDeskScreen(phone as never) as unknown as typeof phone;
+  assert.ok(seeded);
+  assert.equal(seeded.deskScreen![DESK_SEEDED], true);
+  assert.equal(seeded.deskScreen!.wallpaper, '/api/files/room');
+  assert.deepEqual(seeded.deskScreen!.homeWidgets, ['weather']);
+  assert.equal(seeded.deskScreen!.mode, 'dark');
+  assert.equal('deskDock' in seeded.deskScreen!, false, 'what the laptop owns outright stays at the top');
+  assert.equal(seedDeskScreen(seeded as never), null, 'copied once');
+  // A change on the laptop, the mode and palette included, never touches the phone's.
+  const upd = routeDeskUpdate(seeded, { mode: 'light', id: 'pal-sky', deskDock: 'left' } as never) as Record<string, unknown>;
+  const after = { ...seeded, ...upd } as typeof phone;
+  assert.equal(after.mode, 'dark');
+  assert.equal(after.id, 'pal-ember');
+  assert.equal(after.deskDock, 'left');
+  assert.equal(deskScreenTheme(after).mode, 'light');
+  assert.equal(deskScreenTheme(after).id, 'pal-sky');
+  // Clearing a choice on the laptop is its own unset, not the phone's value.
+  const view = deskScreenTheme(after);
+  const cleared = foldDeskView(after, view, { ...view, lockFace: undefined } as never);
   assert.equal(deskScreenTheme(cleared).lockFace, undefined);
   assert.equal(cleared.lockFace, 'serif');
+});
+
+test("the laptop's text and send button are its own, starting at the laptop's text size", async () => {
+  const { deskAppView, routeDeskAppUpdate, seedDeskApp, DESK_TEXT_SCALE } = await import('./desk');
+  const app = { fontScale: 1.1, fontBody: 'geist', userAvatar: 'me.png' } as Record<string, unknown>;
+  const seeded = seedDeskApp(app)!;
+  assert.deepEqual(seeded.deskApp, { fontScale: DESK_TEXT_SCALE, fontBody: 'geist' });
+  assert.equal(seedDeskApp(seeded), null);
+  const upd = routeDeskAppUpdate(seeded, { fontScale: 0.95, userAvatar: 'new.png' });
+  const after = { ...seeded, ...upd };
+  assert.equal(after.fontScale, 1.1, "the phone's text size is untouched");
+  assert.equal(after.userAvatar, 'new.png', 'the avatar is shared');
+  assert.equal(deskAppView(after).fontScale, 0.95);
 });

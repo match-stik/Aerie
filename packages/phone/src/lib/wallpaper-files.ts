@@ -33,6 +33,9 @@ function setsOf(theme: AppTheme): WallpaperSet[] {
     const filed = theme.modeWallpapers?.[mode];
     if (filed) sets.push(filed);
   }
+  // The laptop's own copy of the theme carries its own wallpapers (lib/desk.ts).
+  const desk = theme.deskScreen as unknown as AppTheme | undefined;
+  if (desk && typeof desk === 'object') sets.push(...setsOf(desk));
   return sets;
 }
 
@@ -70,6 +73,8 @@ export function swapWallpapers(theme: AppTheme, links: ReadonlyMap<string, strin
     }
     next.modeWallpapers = filed;
   }
+  const desk = theme.deskScreen as unknown as AppTheme | undefined;
+  if (desk && typeof desk === 'object') next.deskScreen = swapWallpapers(desk, links) as unknown as AppTheme['deskScreen'];
   return next;
 }
 

@@ -7,10 +7,15 @@ import { SetupSync } from "../SetupSync";
 import { AppUpdate } from "../AppUpdate";
 import { ClaudeCodeUpdate } from "../ClaudeCodeUpdate";
 import { Toggle } from "../Toggle";
+import { LaptopAppSettings } from "./LaptopPane";
+import { useDesk } from "../../lib/use-desk";
 import type { SettingsState } from './use-settings-state';
 
 export function DataPane({ s }: { s: SettingsState }) {
   const { activeTheme, colors, handlePushToggle, theme, appSettings } = s;
+  // The phone's own app is not shown on the laptop, and the laptop's is not
+  // shown on the phone.
+  const onDesk = useDesk(theme).on;
   return (
     <>
     {/* Backend & Worker URLs */}
@@ -55,7 +60,11 @@ export function DataPane({ s }: { s: SettingsState }) {
         with the shell and nothing ever called them, so installing a
         new build meant typing the URL by hand. Stays silent unless
         the native layer actually moved. */}
-    <AppUpdate themeConfig={activeTheme} themeMode={theme.mode} />
+    {!onDesk && <AppUpdate themeConfig={activeTheme} themeMode={theme.mode} />}
+
+    {/* The laptop app's own version, update and Start with Windows; it
+        draws nothing anywhere but inside the laptop app. */}
+    <LaptopAppSettings s={s} />
 
     {/* The Claude Code the lanes run, updated from here (ClaudeCodeUpdate.tsx). */}
     <ClaudeCodeUpdate themeConfig={activeTheme} themeMode={theme.mode} />

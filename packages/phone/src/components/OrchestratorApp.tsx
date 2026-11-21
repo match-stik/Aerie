@@ -681,7 +681,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
       }
     >
       {loading && tasks.length === 0 ? (
-        <div className={cn('text-xs py-6 text-center', colors.textMuted)}>Loading…</div>
+        <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>Loading…</div>
       ) : (
         <>
           {wake.length > 0 && (

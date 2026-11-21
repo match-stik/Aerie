@@ -56,3 +56,13 @@ test('the bytes of an inline picture come back as they were written', async () =
   assert.deepEqual([...new Uint8Array(await blob.arrayBuffer())], [0, 1, 2, 255]);
   assert.equal(inlineToBlob('/api/files/abc'), null);
 });
+
+test("the laptop's own wallpapers move into the file store too", async () => {
+  const { inlineWallpapers: inl, swapWallpapers: swp } = await import('./wallpaper-files.js');
+  const pic = 'data:image/png;base64,AAAA';
+  const theme = { wallpaper: '/api/files/a', deskScreen: { wallpaper: pic, modeWallpapers: { light: { wallpapers: [pic] } } } } as never;
+  assert.deepEqual(inl(theme), [pic]);
+  const out = swp(theme, new Map([[pic, '/api/files/b']])) as unknown as { deskScreen: { wallpaper: string; modeWallpapers: { light: { wallpapers: string[] } } } };
+  assert.equal(out.deskScreen.wallpaper, '/api/files/b');
+  assert.deepEqual(out.deskScreen.modeWallpapers.light.wallpapers, ['/api/files/b']);
+});

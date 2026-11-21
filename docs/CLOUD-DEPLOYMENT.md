@@ -283,6 +283,20 @@ Three things to know about any copy:
 - **Keep one somewhere else.** A copy on the same server, or a provider snapshot in the same account, does not survive losing that server or that account.
 - **Restore one once.** Unpack it into an empty folder on another machine and start it there. A backup that has never been restored is a hope.
 
+#### The sealed nightly backup, kept on a laptop
+
+If you use the Windows laptop app, it can keep the off-server copy for you. From its tray icon, choose **Backups > Set up backups**. The app makes a recovery phrase on the laptop, shows it once for you to write on paper, and hands the house only the public half of the key. From then on the house seals a copy of its database every night at 4:20 (its own timezone) with logins left out, keeps the newest two in `data/backups/sealed`, and the laptop app brings the newest home whenever it is open, keeping three in `Documents\Aerie Backups`.
+
+Nothing on the server can open those files, including anyone who breaks into it; only the phrase can. The phrase is never saved anywhere, so if it is lost, the copies are too. A sealed backup holds the database only (every word, every wall, every setting and key); pictures and uploads are big and are left to the server's own whole-disk backups.
+
+To open one, on a machine with the house built:
+
+```bash
+node tools/backup/open-backup.mjs aerie-backup-<date>.sealed restored.db
+```
+
+It asks for the phrase, refuses a wrong one or a changed or cut-short file, and writes `restored.db`. To put it back: stop the house, keep the old `data/aerie.db` somewhere, put `restored.db` in its place (delete any `aerie.db-wal` and `aerie.db-shm` beside it), and start the house. Sign in again afterwards.
+
 ## Troubleshooting
 
 ### "Not logged in" errors

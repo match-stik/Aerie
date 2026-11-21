@@ -41,8 +41,17 @@ export function lockSpanPx(steps: number, colW: number): number {
 }
 
 /** A saved place (columns and rows, maybe in quarters) as the grid counts it (quarter steps), and back. */
-export const toSteps = (s: GridSpot): GridSpot => ({ col: Math.round(s.col * 4), row: Math.round(s.row * 4) });
-export const fromSteps = (s: GridSpot): GridSpot => ({ col: s.col / 4, row: s.row / 4 });
+/* A place is always saved in the phone's four columns (a fraction of the way
+   across); a grid with more columns, the laptop's, counts it in its own finer
+   steps. `cols` is how many columns the grid has. */
+export const toSteps = (s: GridSpot, cols = GRID_COLS): GridSpot => ({ col: Math.round(s.col * cols), row: Math.round(s.row * 4) });
+export const fromSteps = (s: GridSpot, cols = GRID_COLS): GridSpot => ({ col: s.col / cols, row: s.row / 4 });
+
+/** How many columns the laptop's lock screen holds: about a phone column's
+ *  width each, so a piece steps across in a quarter of one. Never fewer than the phone's four. */
+export function deskLockColsFor(width: number): number {
+  return Math.max(GRID_COLS, Math.floor((width + LOCK_GAP_PX) / (76 + LOCK_GAP_PX)));
+}
 
 /** The places they saved, read back carefully: anything malformed is no place. */
 export function lockSpotsOf(value: unknown): Partial<Record<LockGridPiece, GridSpot>> {
@@ -51,7 +60,8 @@ export function lockSpotsOf(value: unknown): Partial<Record<LockGridPiece, GridS
   for (const id of LOCK_GRID_PIECES) {
     const s = (value as Record<string, unknown>)[id] as { col?: unknown; row?: unknown } | undefined;
     if (!s || typeof s !== 'object') continue;
-    if (typeof s.col !== 'number' || !Number.isInteger(s.col * 4) || typeof s.row !== 'number' || !Number.isInteger(s.row * 4)) continue;
+    // Across, any fraction of the way (the laptop saves finer than quarters); up and down in quarter rows.
+    if (typeof s.col !== 'number' || !Number.isFinite(s.col) || typeof s.row !== 'number' || !Number.isInteger(s.row * 4)) continue;
     const col = s.col as number;
     const row = s.row as number;
     if (col < 0 || col >= GRID_COLS || row < 0 || row > 200) continue;
@@ -64,8 +74,8 @@ export function lockSpotsOf(value: unknown): Partial<Record<LockGridPiece, GridS
  *  across (counted as quarter steps, always an even number of them, which is
  *  what lets any piece center) and rows up to hold it, at least one of each,
  *  never wider than the grid. */
-export function cellsFor(width: number, height: number, colW: number): GridSize {
-  const halves = Math.min(GRID_COLS * 2, Math.max(1, Math.ceil((width + LOCK_GAP_PX - 0.5) / (2 * lockStepPx(colW)))));
+export function cellsFor(width: number, height: number, colW: number, gridCols = GRID_COLS): GridSize {
+  const halves = Math.min(gridCols * 2, Math.max(1, Math.ceil((width + LOCK_GAP_PX - 0.5) / (2 * lockStepPx(colW)))));
   const cols = halves * 2;
   const rows = Math.max(1, Math.ceil((height + LOCK_GAP_PX - 0.5) / LOCK_ROW_STEP_PX));
   return { cols, rows };
@@ -99,9 +109,9 @@ export function rowsIn(height: number): number {
  *  the top (or just above the cards for the dateline face), the weather in
  *  the top right. */
 /* Counted in quarter steps, like everything else inside the grid. */
-export function defaultLockSpot(id: LockGridPiece, size: GridSize, maxRows: number, face: string): GridSpot {
+export function defaultLockSpot(id: LockGridPiece, size: GridSize, maxRows: number, face: string, steps = LOCK_STEPS): GridSpot {
   const top = Math.max(0, maxRows - size.rows);
-  if (id === 'clock') return { col: Math.floor((LOCK_STEPS - size.cols) / 2), row: face === 'dateline' ? 48 : top };
-  if (id === 'weather') return { col: LOCK_STEPS - size.cols, row: top };
+  if (id === 'clock') return { col: Math.floor((steps - size.cols) / 2), row: face === 'dateline' ? 48 : top };
+  if (id === 'weather') return { col: steps - size.cols, row: top };
   return { col: 0, row: 0 };
 }

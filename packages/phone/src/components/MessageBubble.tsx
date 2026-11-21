@@ -752,7 +752,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                           <span className={cn('block', isStickerOnly(children) && 'text-center')}>{children}</span>
                         ),
                         // Discord-style "-# whisper" subtext (preprocessed to h6 above)
-                        h6: ({ children }) => <span className="block text-[11px] leading-snug opacity-60 italic">{children}</span>,
+                        h6: ({ children }) => <span className="aerie-whisper block text-[11px] leading-snug italic">{children}</span>,
                         pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
                         a: ({ node, href, children, ...props }) => {
                           const safeHref = resolveMessageHref(href, window.location.href);
@@ -1143,7 +1143,7 @@ export function MessageBubble({ message, onReact, onBookmark, onDelete, onEdit, 
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', stiffness: 360, damping: 32 }}
                 className={cn(
-                  'fixed inset-x-0 bottom-0 z-50 max-h-[60%] flex flex-col rounded-t-3xl border-t',
+                  'aerie-picker-sheet fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[520px] max-h-[60%] flex flex-col rounded-t-3xl border-t',
                   colors.panelBg,
                   colors.panelBorder,
                   colors.textMain,

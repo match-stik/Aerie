@@ -67,7 +67,7 @@ export function ConversationImportPanel({ colors }: Props) {
       <div className="text-sm space-y-1">
         <div className="font-medium">Bring old chats back, word for word</div>
         <div className={cn('text-xs', colors.textMuted)}>
-          Pick a ChatGPT or Claude data export (the zip they email you, or the conversations.json inside it), or a Copilot activity export (the CSV). The house cuts every chat into passages on its own machine, with no model reading them and no key needed, so the exact words can come back in conversation. Running the same export twice adds nothing. If the zip is very big and won't send, unzip it and pick just the conversations.json inside.
+          Pick a ChatGPT, Claude or Grok data export (the zip they email you, or the conversations.json inside it, or Grok's prod-grok-backend.json), or a Copilot activity export (the CSV). The house cuts every chat into passages on its own machine, with no model reading them and no key needed, so the exact words can come back in conversation. Running the same export twice adds nothing. If the zip is very big and won't send, unzip it and pick just the conversations.json inside.
         </div>
       </div>
       <input ref={inputRef} type="file" accept=".zip,.json,.csv,application/zip,application/json,text/csv" className="hidden" onChange={(e) => { void onPick(e.target.files); e.target.value = ''; }} />

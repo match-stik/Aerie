@@ -52,6 +52,7 @@ export {
   loadThreadAround,
   loadThreads,
   loadOlderMessages,
+  loadNewerMessages,
   switchThread,
   createThread,
   pinThread,

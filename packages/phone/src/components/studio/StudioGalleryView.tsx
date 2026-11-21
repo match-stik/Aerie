@@ -19,6 +19,7 @@ import {
 import type {
   GalleryCastGroup, GalleryGroups, GeneratedImage, RefDrawer, StudioFolder, ThemeMode,
 } from './types';
+import { FlipArrows, useFlip } from './ViewerFlip';
 import { ZoomableImage } from '../ZoomableImage';
 import { HouseSelect } from '../HouseSelect';
 
@@ -130,6 +131,8 @@ export function StudioGalleryView({
   // Back closes the top sheet first: the cast editor or folder picker, then the
   // picture being viewed, before the gallery itself.
   useBackHandler(viewing !== null, () => setViewing(null));
+  // Previous and next while a picture is open, through everything loaded here.
+  const flip = useFlip<GeneratedImage>(items, viewing, setViewing);
   useBackHandler(castEditor !== null, () => setCastEditor(null));
   useBackHandler(showBulkFolderPicker, () => { if (!movingSelection) setShowBulkFolderPicker(false); });
   const galleryRequestRef = useRef(0);
@@ -606,7 +609,7 @@ export function StudioGalleryView({
         <div className={cn('flex items-center justify-between rounded-2xl border px-3 py-2.5 shadow-lg backdrop-blur-md', colors.panelBg, colors.panelBorder)}>
           <div>
             <p className={cn('text-sm font-semibold', colors.textMain)}>{collection.kind === 'recent' ? 'Newest creations' : `${total} ${total === 1 ? 'creation' : 'creations'}`}</p>
-            <p className={cn('text-[10px]', colors.textMuted)}>{collection.kind === 'recent' ? 'The latest 30 only' : (hasMore ? 'Loading them all' : 'All of them')}</p>
+            <p className={cn('text-[10px]', colors.textMuted)}>{collection.kind === 'recent' ? `The latest ${items.length}` : (hasMore ? 'Loading them all' : 'All of them')}</p>
           </div>
           <button
             type="button"
@@ -756,15 +759,17 @@ export function StudioGalleryView({
         <div className="absolute inset-0 z-40 flex flex-col bg-black/95 text-white">
           <div className="flex items-center justify-between p-4" style={{ paddingTop: 'calc(var(--sat) + 0.75rem)' }}>
             <button type="button" onClick={() => setViewing(null)} className="rounded-full bg-white/10 p-2"><X className="h-5 w-5" /></button>
+            <span className="text-xs text-white/60">{flip.position}</span>
             <div className="flex gap-2">
               <button type="button" onClick={() => onDownload(viewing)} className="rounded-full bg-white/10 p-2" title="Download"><Download className="h-4 w-4" /></button>
               <button type="button" onClick={() => void deleteImage(viewing)} className="rounded-full bg-red-500/20 p-2 text-red-300" title="Delete"><Trash2 className="h-4 w-4" /></button>
             </div>
           </div>
-          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
+          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
             {viewing.mediaType === 'video'
               ? <video src={viewing.src} className="max-h-full max-w-full" controls loop playsInline autoPlay />
-              : <ZoomableImage src={viewing.src} alt={viewing.prompt} className="rounded-xl" />}
+              : <ZoomableImage src={viewing.src} alt={viewing.prompt} className="rounded-xl" onSwipe={flip.go} />}
+            <FlipArrows hasPrev={flip.hasPrev} hasNext={flip.hasNext} go={flip.go} />
           </div>
           <div className="space-y-3 border-t border-white/10 bg-black/85 p-4 pb-[calc(var(--sab)+1rem)]">
             <p className="max-h-24 overflow-y-auto whitespace-pre-wrap text-sm">{viewing.prompt || 'No prompt stored for this asset.'}</p>

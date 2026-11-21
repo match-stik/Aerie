@@ -4,6 +4,7 @@ import { Image as ImageIcon, Upload } from "lucide-react";
 import { APPS } from "../../lib/apps";
 import { cn } from "../../lib/utils";
 import { LockPreview } from "../LockClock";
+import { useDeskScreen } from "../../lib/use-desk";
 import { lockSpotifyLookOf, lockSpotifyOf, type LockSpotifyLook } from "../../lib/lock-spotify";
 import { lockCardBacksOf, lockCardsOf, type LockCardChoice } from "../../lib/lock-cards";
 import { lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, withHidden, lockWeatherLookOf, type LockFace, type LockPiece, type LockShow, type LockSize, type LockWeatherLook } from "../../lib/lock-clock";
@@ -11,6 +12,17 @@ import type { SettingsState } from './use-settings-state';
 
 export function LockPane({ s }: { s: SettingsState }) {
   const { colors, lockCorner, setLockCorner, nameOf, handleImageUpload, theme, onThemeChange } = s;
+  const deskScreen = useDeskScreen(theme);
+  // The notes here are written for whoever opens them, on whichever screen
+  //.
+  const device = deskScreen ? 'laptop' : 'phone';
+  // The middle of the laptop's lock screen, in the window's own shape and a
+  // little over half its size, so every face up to XL fits and the picture
+  // behind it doesn't change as the size does.
+  const faceSample = deskScreen ? { width: Math.round(deskScreen.width * 0.58), height: Math.round(deskScreen.height * 0.58) } : undefined;
+  // On the laptop the clock choices are a sample of each face rather than the
+  // whole window, so the faces are big enough to tell apart and the size
+  // picked shows.
   return (
     <>
     {(() => {
@@ -49,11 +61,13 @@ export function LockPane({ s }: { s: SettingsState }) {
           <div className="flex gap-6 items-center">
             <div
               className={cn(
-                "w-24 h-32 shrink-0 rounded-[calc(24px*var(--shape-scale,1))] border-2 border-dashed flex items-center justify-center overflow-hidden relative group transition-all duration-500",
+                deskScreen ? "w-44 rounded-[calc(14px*var(--shape-scale,1))]" : "w-24 h-32 rounded-[calc(24px*var(--shape-scale,1))]",
+                "shrink-0 border-2 border-dashed flex items-center justify-center overflow-hidden relative group transition-all duration-500",
                 colors.panelBg,
                 colors.panelBorder,
                 "hover:border-opacity-50",
               )}
+              style={deskScreen ? { aspectRatio: `${deskScreen.width} / ${deskScreen.height}` } : undefined}
             >
               <label className="absolute inset-0 cursor-pointer z-10">
                 <input
@@ -108,7 +122,7 @@ export function LockPane({ s }: { s: SettingsState }) {
         {/* The clock and everything about it in one place. */}
         <section className={cn("space-y-4 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
           <h3 className={cn("micro-label", colors.accentText)}>Clock</h3>
-          <div className="grid grid-cols-3 gap-3">
+          <div className={cn("grid gap-3", deskScreen ? "grid-cols-2" : "grid-cols-3")}>
             {FACES.map((f) => (
               <button
                 key={f.id}
@@ -120,7 +134,7 @@ export function LockPane({ s }: { s: SettingsState }) {
                   className="rounded-[18px] p-[3px]"
                   style={{ background: face === f.id ? 'var(--aerie-selected-fill)' : 'transparent' }}
                 >
-                  <LockPreview face={f.id} position={position} size={size} wallpaper={wallpaper} width={88} at={lockClockAtOf(theme.lockClockAt, f.id)} />
+                  <LockPreview face={f.id} position={position} size={size} wallpaper={wallpaper} width={deskScreen ? 236 : 88} screen={faceSample} at={lockClockAtOf(theme.lockClockAt, f.id)} />
                 </span>
                 <span className={chip(face === f.id)} style={chipStyle(face === f.id)}>{f.label}</span>
                 <span className={cn("text-[10px] leading-snug", colors.textMuted)}>{f.hint}</span>
@@ -138,7 +152,7 @@ export function LockPane({ s }: { s: SettingsState }) {
           <h3 className={cn("micro-label pt-1", colors.accentText)}>On the lock screen</h3>
           <div className="grid grid-cols-2 gap-2">
             {([[true, "Show"], [false, "Hide"]] as [boolean, string][]).map(([on, label]) => (
-              <button key={label} onClick={() => onThemeChange({ lockHidden: withHidden(theme.lockHidden, "clock", on) })} className={chip(!hidden.has("clock") === on)} style={chipStyle(!hidden.has("clock") === on)} aria-pressed={!hidden.has("clock") === on}>
+              <button key={label} onClick={() => onThemeChange({ lockHidden: withHidden(theme.lockHidden, "clock", !on) })} className={chip(!hidden.has("clock") === on)} style={chipStyle(!hidden.has("clock") === on)} aria-pressed={!hidden.has("clock") === on}>
                 {label}
               </button>
             ))}
@@ -147,7 +161,7 @@ export function LockPane({ s }: { s: SettingsState }) {
         <section className={cn("space-y-3 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
           <h3 className={cn("micro-label", colors.accentText)}>Weather</h3>
           <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
-            Its look on the lock screen. Weather comes from where your phone is.
+            How the weather looks on the lock screen. It's the weather wherever this {device} is.
           </p>
           <div className="grid grid-cols-4 gap-1.5">
             {([["pill", "Pill"], ["line", "Line"], ["big", "Big"], ["card", "Card"]] as [LockWeatherLook, string][]).map(([id, label]) => (
@@ -159,7 +173,7 @@ export function LockPane({ s }: { s: SettingsState }) {
           <h3 className={cn("micro-label pt-1", colors.accentText)}>On the lock screen</h3>
           <div className="grid grid-cols-2 gap-2">
             {([[true, "Show"], [false, "Hide"]] as [boolean, string][]).map(([on, label]) => (
-              <button key={label} onClick={() => onThemeChange({ lockHidden: withHidden(theme.lockHidden, "weather", on) })} className={chip(!hidden.has("weather") === on)} style={chipStyle(!hidden.has("weather") === on)} aria-pressed={!hidden.has("weather") === on}>
+              <button key={label} onClick={() => onThemeChange({ lockHidden: withHidden(theme.lockHidden, "weather", !on) })} className={chip(!hidden.has("weather") === on)} style={chipStyle(!hidden.has("weather") === on)} aria-pressed={!hidden.has("weather") === on}>
                 {label}
               </button>
             ))}
@@ -171,7 +185,7 @@ export function LockPane({ s }: { s: SettingsState }) {
           <h3 className={cn("micro-label", colors.accentText)}>Cards</h3>
           <h3 className={cn("micro-label pt-1", colors.accentText)}>Who's written you</h3>
           <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
-            A card on the lock screen when there's something new. Names keeps the words off it, for when your phone is face up at work.
+            A card on the lock screen when a new message comes in. Names shows only who it's from, so the words stay private if someone else can see your screen. Nothing leaves the card off.
           </p>
           <div className="grid grid-cols-3 gap-2">
             {([["names", "Names"], ["first-line", "First line"], ["nothing", "Nothing"]] as [LockShow, string][]).map(([id, label]) => (
@@ -271,7 +285,7 @@ export function LockPane({ s }: { s: SettingsState }) {
         <section className={cn("space-y-3 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
           <h3 className={cn("micro-label", colors.accentText)}>Layout</h3>
           <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
-            Hold any piece until it lifts, the clock, the weather, Spotify or a card, and drag it: a dashed box shows exactly where it will land. A piece let go of near another settles flush against it, and one dropped right on top of another sends that one to the nearest open spot. Drag the clock or the weather up to the top to hide it, and show it again from its own section above.
+            Press and hold any piece until it lifts, the clock, the weather, Spotify or a card, and drag it: a dashed box shows exactly where it will land. A piece let go of near another settles flush against it, and one dropped right on top of another sends that one to the nearest open spot. Drag the clock or the weather up to the top to hide it, and show it again from its own section above.
           </p>
           {(placed || movedAt || weatherMoved) && (
             <button onClick={() => onThemeChange({ lockSpots: undefined, lockSpotsDesk: undefined, lockClockAt: undefined, lockWeatherAt: undefined })} className={cn(chip(false), "w-full")}>

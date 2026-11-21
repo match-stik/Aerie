@@ -33,6 +33,15 @@ export class Cells {
 /** The open place nearest to a spot, counted in cells; ties go to the lower
  *  row, then the left. Searches up to rowLimit rows and past it if it must. */
 export function nearestOpen(cells: Cells, cols: number, rows: number, near: GridSpot, rowLimit: number, width = GRID_COLS): GridSpot {
+  // A piece wider than the grid never fits anywhere, and searching for it
+  // never ended: it was the laptop wall hanging (Nov 21 2026), its first
+  // measure being a phone's four columns while the quiet line wanted six.
+  // It goes at the left edge on a row of its own above everything instead.
+  if (cols > width) {
+    let top = 0;
+    for (let r = 0; r < Math.max(rowLimit, rows) + 400; r++) for (let c = 0; c < width; c++) if (!cells.fits(c, r, 1, 1)) top = r + 1;
+    return { col: 0, row: top };
+  }
   let best: GridSpot | null = null;
   let bestD = Infinity;
   for (let limit = Math.max(rowLimit, rows); ; limit += 4) {
@@ -98,6 +107,10 @@ export function placeOnGrid<K extends string>(
   sizeOf: (id: K) => GridSize,
   snapRows = 3,
   width = GRID_COLS,
+  /** Nothing else ever moves (the laptop wall): a drop onto another piece puts
+   *  the carried one in the open place nearest where it was let go, which is
+   *  flush against whatever it touched. */
+  stay = false,
 ): Record<K, GridSpot> {
   const { cols, rows } = sizeOf(id);
   const target = {
@@ -119,6 +132,19 @@ export function placeOnGrid<K extends string>(
       if (clear(target.row + d)) { target.row += d; break; }
       if (clear(target.row - d)) { target.row -= d; break; }
     }
+  }
+  if (stay && !clear(target.row)) {
+    const others = new Cells(width);
+    const kept: Partial<Record<K, GridSpot>> = {};
+    for (const other of order) {
+      if (other === id || !layout[other]) continue;
+      const o = layout[other];
+      const size = sizeOf(other);
+      others.take(o.col, o.row, size.cols, size.rows);
+      kept[other] = o;
+    }
+    kept[id] = nearestOpen(others, cols, rows, target, rowLimit, width);
+    return kept as Record<K, GridSpot>;
   }
   const cells = new Cells(width);
   cells.take(target.col, target.row, cols, rows);

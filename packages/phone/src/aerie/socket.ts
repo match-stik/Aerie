@@ -230,6 +230,7 @@ function showLocalNotification(title: string, body: string): void {
   // A tap brings the house forward; in the laptop app (desktop/main.cjs)
   // that also brings its window back from beside the clock.
   note.onclick = () => {
+    tell('clicked');
     const laptop = (window as { aerieDesktop?: { show?: () => Promise<unknown> } }).aerieDesktop;
     if (laptop && typeof laptop.show === 'function') void laptop.show();
     else window.focus();
@@ -1021,6 +1022,7 @@ export async function loadThread(threadId: string): Promise<void> {
     if (requestId !== threadLoadRequest || getState().activeThreadId !== threadId) return;
 
     const mergedMessages = mergeThreadSnapshot(messages, getState().messages, threadId);
+    aroundTail = null;
     setState({ messages: mergedMessages, loadingThread: false, isViewingAround: false });
     // After messages load, clear stale streaming state — catches the case
     // where visibility fired before reconnect completed
@@ -1057,6 +1059,7 @@ export async function loadThreadAround(threadId: string, messageId: string, wind
     const data = await res.json();
     const messages: Message[] = data.messages || [];
     if (requestId !== threadLoadRequest || getState().activeThreadId !== threadId) return;
+    aroundTail = messages.length > 0 ? messages[messages.length - 1] : null;
     setState({ messages, loadingThread: false, isViewingAround: true });
     if (messages.length > 0) {
       const last = messages[messages.length - 1];
@@ -1079,6 +1082,51 @@ export async function loadThreadAround(threadId: string, messageId: string, wind
 // whole visit; and the request had no timeout, so one that never answered
 // held the loading guard forever. Now a failure answers true (try again on the
 // next scroll) and the request gives up after 20 s.
+// The newest message of the window a search jump loaded, moved down as
+// loadNewerMessages pages in what came after it. Kept apart from the list's
+// own last message because a live message can land at the bottom of a jumped
+// window, with everything between the two still unloaded.
+let aroundTail: Message | null = null;
+
+/**
+ * After a search jump the list is a window in the middle of the thread, and
+ * scrolling down stopped at its last message; only the jump-to-latest button
+ * got past it. This pages in what comes after, the way loadOlderMessages pages
+ * in what came before. It asks with around= on the window's last message,
+ * which the house already answers, and keeps only what is newer. Once nothing
+ * newer comes back the list has met the live end and is an ordinary thread
+ * again. Returns whether there may be more below.
+ */
+export async function loadNewerMessages(threadId: string): Promise<boolean> {
+  const tail = aroundTail;
+  if (!tail || !getState().isViewingAround) return false;
+  try {
+    const res = await apiFetch(`/api/threads/${threadId}/messages?around=${encodeURIComponent(tail.id)}&limit=50`, {
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) throw new Error('Failed to load newer messages');
+    const data = await res.json();
+    const newer: Message[] = (data.messages || []).filter((m: Message) => m.sequence > tail.sequence);
+    if (getState().activeThreadId !== threadId || aroundTail !== tail) return false;
+    if (newer.length === 0) {
+      aroundTail = null;
+      setState({ isViewingAround: false });
+      return false;
+    }
+    aroundTail = newer[newer.length - 1];
+    setState((st) => {
+      const existing = new Set(st.messages.map((message) => message.id));
+      const fresh = newer.filter((message) => !existing.has(message.id));
+      const merged = [...st.messages, ...fresh].sort((a, b) => a.sequence - b.sequence);
+      return { messages: merged };
+    });
+    return true;
+  } catch (err) {
+    console.error('Failed to load newer messages:', err);
+    return true;
+  }
+}
+
 export async function loadOlderMessages(threadId: string): Promise<boolean> {
   const current = getState().messages;
   if (current.length === 0) return false;

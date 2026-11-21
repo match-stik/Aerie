@@ -216,9 +216,9 @@ export function CanvasApp({ onClose, themeConfig, themeMode }: CanvasAppProps) {
         )}
 
         {loading ? (
-          <div className={cn('text-xs py-6 text-center', colors.textMuted)}>Loading…</div>
+          <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>Loading…</div>
         ) : list.length === 0 ? (
-          <div className={cn('text-xs py-6 text-center', colors.textMuted)}>No canvases yet.</div>
+          <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>No canvases yet.</div>
         ) : (
           <div className="space-y-2">
             {list.map((c) => (

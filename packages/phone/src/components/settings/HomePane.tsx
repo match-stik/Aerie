@@ -5,10 +5,20 @@ import { APPS, migrateAppIds } from "../../lib/apps";
 import { cn } from "../../lib/utils";
 import { Toggle } from "../Toggle";
 import { HOME_WIDGETS, homeCardStyleOf, homeWidgetsOf, sizeLabel, toggleWidget, type HomeCardStyle } from "../../lib/home-widgets";
+import { SLIDESHOW_PACES, paceLabel, slideshowSecondsOf } from "../../lib/slideshow";
+import { aspectWords } from "../../lib/desk";
+import { useDesk } from "../../lib/use-desk";
+import { useRoomAspect } from "../../lib/use-room-aspect";
+import { LaptopDockSettings } from "./LaptopPane";
 import type { SettingsState } from './use-settings-state';
 
 export function HomePane({ s }: { s: SettingsState }) {
   const { colors, nameOf, handleImageUpload, removeSlideshowImage, theme, appSettings, onThemeChange, onSettingsChange, onClose } = s;
+  // On the laptop every choice here is the laptop's own (lib/desk.ts), its pictures are cropped to the room's shape, and the
+  // phone's dock is not shown: the laptop's own dock is chosen right here.
+  const onDesk = useDesk(theme).on;
+  const room = useRoomAspect();
+  const pace = slideshowSecondsOf(theme.slideshowSeconds);
   return (
     <>
     {/* A wallpaper for each mode. */}
@@ -132,8 +142,13 @@ export function HomePane({ s }: { s: SettingsState }) {
                   colors.textMuted,
                 )}
               >
-                Home Screen Background
+                {onDesk ? "The laptop's background" : "Home Screen Background"}
               </p>
+              {onDesk && room && (
+                <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
+                  The room is {room.width} by {room.height} right now ({aspectWords(room.width / room.height)}). A new picture is cropped to that shape, so you choose what shows, and it fills the room without stretching. Moving the conversation changes the shape.
+                </p>
+              )}
               {theme.wallpaper && (
                 <button
                   onClick={() =>
@@ -215,6 +230,35 @@ export function HomePane({ s }: { s: SettingsState }) {
                 );
               })}
             </div>
+            {/* The pace and order sit with the pictures they move. */}
+            <div className="space-y-1.5">
+              <span className={cn("text-xs font-bold", colors.textMain)}>Change every</span>
+              <div className="grid grid-cols-4 gap-2">
+                {SLIDESHOW_PACES.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => onThemeChange({ slideshowSeconds: p })}
+                    aria-pressed={pace === p}
+                    className={cn("px-2 py-2 rounded-[var(--shape-control)] border text-[11px] font-bold uppercase tracking-widest", colors.panelBorder, colors.textMain)}
+                    style={pace === p ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
+                  >
+                    {paceLabel(p)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex flex-col">
+                <span className={cn("text-xs font-bold", colors.textMain)}>Shuffle</span>
+                <span className={cn("text-[10px]", colors.textMuted)}>Any picture next, instead of the order you added them</span>
+              </span>
+              <Toggle
+                on={theme.slideshowShuffle === true}
+                onClick={() => onThemeChange({ slideshowShuffle: !theme.slideshowShuffle })}
+                colors={colors}
+                ariaLabel="Shuffle the slideshow"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -252,7 +296,7 @@ export function HomePane({ s }: { s: SettingsState }) {
         >
           <span className="flex flex-col">
             <span className="text-xs font-bold">Quiet line</span>
-            <span className="text-[10px] opacity-75">One line of our latest reply, just above the dock</span>
+            <span className="text-[10px] opacity-75">One line of the latest reply, just above the dock</span>
           </span>
         </button>
         {/* Full, snug or none. */}
@@ -320,13 +364,14 @@ export function HomePane({ s }: { s: SettingsState }) {
       </div>
     </section>
 
-    {/* Dock apps */}
+    {/* Dock apps. On the laptop its own dock, where it sits and the
+        conversation's place are chosen here too. */}
     <section className={cn("space-y-3 p-4 rounded-2xl border", colors.panelBg, colors.panelBorder)}>
       <h3 className={cn("micro-label", colors.accentText)}>
-        Home dock
+        {onDesk ? "Dock" : "Home dock"}
       </h3>
       <p className={cn("text-[10px] leading-relaxed", colors.textMuted)}>
-        Up to 4 apps. The App Drawer launcher is always last.
+        {onDesk ? "The laptop's own dock, and how it sits on your wallpaper." : "Up to 4 apps. The App Drawer launcher is always last."}
       </p>
       {/* The dock's cards, separate from the widgets'. Unset follows the
           widgets' switch, which is how it worked before the split. */}
@@ -354,7 +399,8 @@ export function HomePane({ s }: { s: SettingsState }) {
           </span>
         </button>
       )}
-      <div className="grid grid-cols-2 gap-2">
+      {onDesk && <LaptopDockSettings s={s} />}
+      {!onDesk && <div className="grid grid-cols-2 gap-2">
         {[...APPS].filter((a) => a.id !== 'settings').sort((a, b) => a.name.localeCompare(b.name)).map((app) => {
           const current = migrateAppIds(appSettings.dockAppIds ?? APPS.filter((x) => x.dock).map((x) => x.id));
           const isOn = current.includes(app.id);
@@ -382,20 +428,11 @@ export function HomePane({ s }: { s: SettingsState }) {
             </button>
           );
         })}
-      </div>
+      </div>}
 
-      {/* Apply Settings + Version */}
+      {/* The version. There was an Apply Settings button here that only
+          closed Settings: every choice saves the moment it is made. */}
       <div className="pt-4 flex flex-col items-center gap-3">
-        <button
-          onClick={onClose}
-          className="w-full py-3 rounded-2xl font-bold text-sm transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]"
-          style={{
-            background: 'var(--aerie-selected-fill)',
-            color: 'var(--aerie-on-accent)',
-          }}
-        >
-          Apply Settings
-        </button>
         <div
           className={cn(
             "text-[10px] font-mono tracking-widest uppercase opacity-40",

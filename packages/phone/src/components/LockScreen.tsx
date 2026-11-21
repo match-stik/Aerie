@@ -92,10 +92,21 @@ interface LockScreenProps {
   weatherLook?: LockWeatherLook;
   /** The cards' tint (lib/lock-cards.ts lockCardBacksOf); off, they float. */
   cardBacks?: boolean;
+  /** On the laptop, where the wide cards are a card's width. */
+  desk?: boolean;
 }
 
-export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcuts, onOpenApp, show, unread, faces, messagesApp, writers = [], notesApp, spotify = true, spotifyApp, spotifyLook = 'bar', cards = 'dark', clockAt = null, weatherAt = null, showClock = true, showWeather = true, onHide, spots = {}, onPlace, weatherLook = 'pill', cardBacks = true }: LockScreenProps) {
+/** A wide lock card's width on the laptop. */
+const DESK_LOCK_CARD_PX = 400;
+
+export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcuts, onOpenApp, show, unread, faces, messagesApp, writers = [], notesApp, spotify = true, spotifyApp, spotifyLook = 'bar', cards = 'dark', clockAt = null, weatherAt = null, showClock = true, showWeather = true, onHide, spots = {}, onPlace, weatherLook = 'pill', cardBacks = true, desk = false }: LockScreenProps) {
   const [time, setTime] = useState(new Date());
+  // On the laptop the cards that run the phone's full width (who's written,
+  // the note, the Spotify bar) are a card's width instead of the whole
+  // window's, so they sit and move like the rest.
+  const cardsFor = (items: React.ComponentProps<typeof LockGrid>['items']) => !desk ? items : items.map((it) => it.full
+    ? { ...it, full: false, node: <div style={{ width: DESK_LOCK_CARD_PX, maxWidth: '100%' }}>{it.node}</div> }
+    : it);
   const weather = useWeather();
   const controls = useAnimation();
 
@@ -156,12 +167,14 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
           written, a note on the fridge, and what is playing. Holding one
           lifts it; nothing slides out of anything's way. */}
       <LockGrid
+        fine={desk}
+        sizeKey={`${face}|${size}|${weatherLook}|${spotifyLook}`}
         face={face}
         saved={spots}
         legacy={{ clock: clockAt, weather: weatherAt }}
         onPlace={onPlace}
         onHide={onHide ? (id) => { if (id === 'clock' || id === 'weather') onHide(id); } : undefined}
-        items={[
+        items={cardsFor([
           { id: 'messages', present: messagesCardUp, full: true, node: (
           <button
             type="button"
@@ -222,7 +235,7 @@ export function LockScreen({ onUnlock, wallpaper, face, position, size, shortcut
           ) },
           { id: 'clock', present: showClock, hideable: true, node: <ClockFaceBody face={face} size={size} now={time} /> },
           { id: 'weather', present: !!weather && showWeather, hideable: true, node: weather ? <WeatherBody weather={weather} look={weatherLook} backs={cardBacks} /> : null },
-        ]}
+        ])}
       />
 
       {/* The two corner shortcuts. Each opens its app straight away. */}

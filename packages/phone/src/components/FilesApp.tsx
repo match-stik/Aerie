@@ -330,9 +330,9 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
       </div>
 
       {loading ? (
-        <div className={cn('text-xs py-6 text-center', colors.textMuted)}>Loading files…</div>
+        <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>Loading files…</div>
       ) : filtered.length === 0 ? (
-        <div className={cn('text-xs py-6 text-center', colors.textMuted)}>
+        <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>
           {filter === 'orphan' ? 'No orphaned files.' : filter === 'all' ? 'No files uploaded yet.' : `No ${filter} files.`}
         </div>
       ) : (

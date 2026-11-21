@@ -11,7 +11,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { haptic } from '../lib/utils';
 import { GRID_COLS, keepPlaces, placeOnGrid, type GridSize, type GridSpot } from '../lib/grid-place';
-import { cellsFor, defaultLockSpot, drawnLeft, fromSteps, LOCK_GAP_PX, LOCK_GRID_PIECES, LOCK_ROW_STEP_PX, LOCK_STEPS, lockSpanPx, rowsIn, spotForBox, toSteps, type LockGridPiece } from '../lib/lock-grid';
+import { cellsFor, defaultLockSpot, deskLockColsFor, drawnLeft, fromSteps, LOCK_GAP_PX, LOCK_GRID_PIECES, LOCK_ROW_STEP_PX, lockSpanPx, rowsIn, spotForBox, toSteps, type LockGridPiece } from '../lib/lock-grid';
 import type { ClockAt } from '../lib/lock-clock';
 
 export interface LockGridItem {
@@ -39,6 +39,8 @@ export function LockGrid({
   face,
   onPlace,
   onHide,
+  fine = false,
+  sizeKey = '',
 }: {
   items: LockGridItem[];
   /** The places they saved (theme.lockSpots). */
@@ -50,6 +52,11 @@ export function LockGrid({
   face: string;
   onPlace?: (spots: Record<LockGridPiece, GridSpot>) => void;
   onHide?: (id: LockGridPiece) => void;
+  /** The laptop: as many columns as the window holds (lib/lock-grid.ts deskLockColsFor). */
+  fine?: boolean;
+  /** The looks the pieces are drawn in (face, size, weather, Spotify); each
+   *  piece keeps the widest and tallest it has drawn under them. */
+  sizeKey?: string;
 }) {
   const grid = useRef<HTMLDivElement>(null);
   const els = useRef(new Map<LockGridPiece, HTMLDivElement>());
@@ -99,13 +106,21 @@ export function LockGrid({
     return () => ro.disconnect();
   });
 
-  const colW = frame ? (frame.w - LOCK_GAP_PX * (GRID_COLS - 1)) / GRID_COLS : 0;
+  const cols = fine && frame ? deskLockColsFor(frame.w) : GRID_COLS;
+  const steps = cols * 4;
+  const colW = frame ? (frame.w - LOCK_GAP_PX * (cols - 1)) / cols : 0;
   const maxRows = frame ? rowsIn(frame.h) : 1;
   const byId = new Map(items.map((i) => [i.id, i]));
+  // A piece holds the room of the widest it has drawn in these looks, so a
+  // clock whose words get shorter as the minutes change keeps its spot and
+  // its middle instead of hopping.
+  const widest = widestFor(fine ? `desk|${sizeKey}` : sizeKey, boxes);
   const sizeOf = (id: LockGridPiece): GridSize => {
-    const b = boxes[id] ?? { w: 0, h: 0 };
-    const cells = cellsFor(b.w, b.h, colW);
-    return byId.get(id)?.full ? { cols: LOCK_STEPS, rows: cells.rows } : cells;
+    const now = boxes[id] ?? { w: 0, h: 0 };
+    const most = widest[id];
+    const b = most && now.w > 0 ? { w: Math.max(now.w, most.w), h: Math.max(now.h, most.h) } : now;
+    const cells = cellsFor(b.w, b.h, colW, cols);
+    return byId.get(id)?.full ? { cols: steps, rows: cells.rows } : cells;
   };
   const shown = LOCK_GRID_PIECES.filter((id) => {
     const it = byId.get(id);
@@ -115,7 +130,19 @@ export function LockGrid({
 
   // Them old free spots, turned into cells for a piece that has no cell yet.
   const wanted: Partial<Record<LockGridPiece, GridSpot>> = {};
-  for (const [id, s] of Object.entries(saved) as [LockGridPiece, GridSpot][]) wanted[id] = toSteps(s);
+  for (const [id, s] of Object.entries(saved) as [LockGridPiece, GridSpot][]) {
+    // A piece that draws wider than when they put it down (the Spotify card
+    // once a song is playing) slides left along its own row to fit, instead
+    // of being sent to the nearest open place up the screen.
+    const at = toSteps(s, cols);
+    const b = boxes[id];
+    // And one that draws taller than when they put it down near the top grows
+    // down from there instead of up past the top of the screen, where it would
+    // ride up under the window's own buttons.
+    wanted[id] = frame && b
+      ? { col: Math.max(0, Math.min(at.col, steps - sizeOf(id).cols)), row: Math.max(0, Math.min(at.row, maxRows - sizeOf(id).rows)) }
+      : at;
+  }
   if (frame) {
     for (const id of ['clock', 'weather'] as const) {
       const at = legacy[id];
@@ -125,10 +152,10 @@ export function LockGrid({
       const top = at.y * frame.fh - b.h / 2 - frame.top;
       const size = sizeOf(id);
       const s = spotForBox(left, top, size, b.w, b.h, colW, frame.h);
-      wanted[id] = { col: Math.min(LOCK_STEPS - size.cols, Math.max(0, s.col)), row: Math.min(Math.max(0, maxRows - size.rows), Math.max(0, s.row)) };
+      wanted[id] = { col: Math.min(steps - size.cols, Math.max(0, s.col)), row: Math.min(Math.max(0, maxRows - size.rows), Math.max(0, s.row)) };
     }
   }
-  const layout = frame ? keepPlaces(shown, wanted, sizeOf, maxRows, (id) => defaultLockSpot(id, sizeOf(id), maxRows, face), LOCK_STEPS) : ({} as Record<LockGridPiece, GridSpot>);
+  const layout = frame ? keepPlaces(shown, wanted, sizeOf, maxRows, (id) => defaultLockSpot(id, sizeOf(id), maxRows, face, steps), steps) : ({} as Record<LockGridPiece, GridSpot>);
 
   const show = (next: Lift | null) => { liftRef.current = next; setLift(next); };
   const stopTimer = () => { if (hold.current.timer) { window.clearTimeout(hold.current.timer); hold.current.timer = 0; } };
@@ -143,10 +170,10 @@ export function LockGrid({
     const size = sizeOf(id);
     const b = boxes[id] ?? { w: 0, h: 0 };
     const s = spotForBox(left, top, size, b.w, b.h, colW, frame.h);
-    const want = { col: Math.min(LOCK_STEPS - size.cols, Math.max(0, s.col)), row: Math.min(Math.max(0, maxRows - size.rows), Math.max(0, s.row)) };
+    const want = { col: Math.min(steps - size.cols, Math.max(0, s.col)), row: Math.min(Math.max(0, maxRows - size.rows), Math.max(0, s.row)) };
     // Where it will really sit, after a near miss snaps flush against a
     // neighbor, so the outline never promises a spot the drop won't keep.
-    const to = layout[id] ? placeOnGrid(layout, shown, id, want, maxRows, sizeOf, SNAP_STEPS, LOCK_STEPS)[id] : want;
+    const to = layout[id] ? placeOnGrid(layout, shown, id, want, maxRows, sizeOf, SNAP_STEPS, steps)[id] : want;
     const inStrip = clientY <= g.top - 4;
     if (!inStrip) h.armed = true;
     const over = !!byId.get(id)?.hideable && !!onHide && h.armed && inStrip;
@@ -206,9 +233,9 @@ export function LockGrid({
       const from = layout[id];
       if (from && (from.col !== done.to.col || from.row !== done.to.row)) {
         haptic(55);
-        const next = placeOnGrid(layout, shown, id, done.to, maxRows, sizeOf, SNAP_STEPS, LOCK_STEPS);
+        const next = placeOnGrid(layout, shown, id, done.to, maxRows, sizeOf, SNAP_STEPS, steps);
         const out = {} as Record<LockGridPiece, GridSpot>;
-        for (const [k, v] of Object.entries(next) as [LockGridPiece, GridSpot][]) out[k] = fromSteps(v);
+        for (const [k, v] of Object.entries(next) as [LockGridPiece, GridSpot][]) out[k] = fromSteps(v, cols);
         onPlace(out);
       }
     },
@@ -308,4 +335,26 @@ export function LockGrid({
       )}
     </>
   );
+}
+
+type Box = { w: number; h: number };
+const WIDEST_KEY = 'aerie.lock-piece-widest';
+/** The widest and tallest each piece has drawn under these looks, kept on this
+ *  device and grown by whatever it draws now. */
+function widestFor(key: string, boxes: Partial<Record<LockGridPiece, Box>>): Partial<Record<LockGridPiece, Box>> {
+  let all: Record<string, Partial<Record<LockGridPiece, Box>>> = {};
+  try { all = JSON.parse(localStorage.getItem(WIDEST_KEY) || '{}'); } catch { all = {}; }
+  const mine = { ...(all[key] ?? {}) };
+  let grew = false;
+  for (const [id, b] of Object.entries(boxes) as [LockGridPiece, Box][]) {
+    if (!b || !(b.w > 0) || !(b.h > 0)) continue;
+    const had = mine[id];
+    const w = Math.ceil(Math.max(had?.w ?? 0, b.w)), h = Math.ceil(Math.max(had?.h ?? 0, b.h));
+    if (!had || w !== had.w || h !== had.h) { mine[id] = { w, h }; grew = true; }
+  }
+  if (grew) {
+    all[key] = mine;
+    try { localStorage.setItem(WIDEST_KEY, JSON.stringify(all)); } catch { /* still right for this visit */ }
+  }
+  return mine;
 }

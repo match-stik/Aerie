@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { SpotifyNowView } from '@aerie/shared';
-import { SONG_END_SLACK_MS, createLockSpotify, liftLockCard, lockSpotifyOf, lockSpotifyTrack, songEndsInMs } from './lock-spotify';
+import { PLAYING_CHECK_MS, SONG_END_SLACK_MS, createLockSpotify, liftLockCard, lockSpotifyOf, lockSpotifyTrack, songEndsInMs } from './lock-spotify';
 import { LockSpotifyCardView } from '../components/LockSpotifyCard';
 import type { PressState } from '../components/spotify/SpotifyViews';
 
@@ -92,7 +92,7 @@ test('it reads when the lock screen shows and when the phone wakes, and nothing 
   assert.equal(fake.reads(), 0, 'nothing reads before the lock screen shows');
   await lock.start();
   assert.equal(fake.reads(), 1, 'one read when it shows');
-  assert.equal(wound.timers.size, 0, 'without the song numbers nothing waits');
+  assert.deepEqual(wound.waits(), [PLAYING_CHECK_MS], 'without the song numbers it still looks again while a song plays');
   await lock.look();
   assert.equal(fake.reads(), 2, 'one more when the phone wakes');
   assert.deepEqual(fake.asked, ['GET /api/spotify/now', 'GET /api/spotify/now'], 'only what is playing is read');
@@ -106,10 +106,20 @@ test('once more when the song should end, and the wait goes with the lock screen
   const wound = windup();
   const lock = createLockSpotify(fake.fetcher, wound.hands);
   await lock.start();
-  assert.deepEqual(wound.waits(), [140_000 + SONG_END_SLACK_MS], 'one wait, until a moment after the song ends');
+  assert.deepEqual(wound.waits(), [PLAYING_CHECK_MS], 'one wait, the half-minute look, sooner than the song ends');
   wound.fire();
-  await until(() => fake.reads() === 2 && wound.timers.size === 1, 'the read at the song end, and the next song its own wait');
-  assert.deepEqual(wound.waits(), [179_000 + SONG_END_SLACK_MS], "the next song's wait, in place of the last");
+  await until(() => fake.reads() === 2 && wound.timers.size === 1, 'the next read, and its own wait');
+  assert.deepEqual(wound.waits(), [PLAYING_CHECK_MS], 'one wait in place of the last');
+  lock.stop();
+  assert.equal(wound.timers.size, 0, 'the lock screen going away cancels the wait');
+});
+
+test('a song ending sooner than the half-minute look is read at its end', async () => {
+  const fake = house([() => json(playing(SONG, { progressMs: 190_000, durationMs: 200_000 }))]);
+  const wound = windup();
+  const lock = createLockSpotify(fake.fetcher, wound.hands);
+  await lock.start();
+  assert.deepEqual(wound.waits(), [10_000 + SONG_END_SLACK_MS], 'the song end, when it comes first');
   lock.stop();
   assert.equal(wound.timers.size, 0, 'the lock screen going away cancels the wait');
 });

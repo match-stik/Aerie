@@ -52,7 +52,7 @@ import { THEMES, liveTheme, PALETTE_TILES, contrastTextColor, onAccentInk, resol
 import { PALETTES } from './lib/palettes';
 import { DEFAULT_THEME, readSavedTheme, useCustomThemeStyles, useThemeFrame } from './lib/use-app-theme';
 import { applyThemeUpdate } from './lib/wallpaper-mode';
-import { DESK_DOCK_MAX, DESK_TEXT_SCALE, chatShown, deskDockIdsOf, deskDockOf, stageAfterMessages, deskScreenTheme, routeDeskUpdate } from './lib/desk';
+import { DESK_DOCK_MAX, DESK_SEEDED, chatShown, deskDockIdsOf, deskDockOf, stageAfterMessages, deskScreenTheme, foldDeskView, seedDeskScreen, deskAppView, routeDeskAppUpdate, seedDeskApp, deskFaceSizeOf } from './lib/desk';
 import { setOwnerAvatarLive } from './lib/house';
 import { installDeskScroll } from './lib/desk-scroll';
 import { useDesk } from './lib/use-desk';
@@ -86,6 +86,7 @@ import {
   loadThread,
   loadThreadAround,
   loadOlderMessages,
+  loadNewerMessages,
   useAerie,
   markRead,
   unlockVoicePlayback,
@@ -111,7 +112,7 @@ import { StatusSheet, StatusIcon } from './components/Statuses';
 import { homeClockLookOf, lockClockAtOf, lockFaceOf, lockHiddenOf, lockPositionOf, lockShortcutsOf, lockShowOf, lockSizeOf, lockWeatherAtOf, lockWeatherLookOf, withHidden } from './lib/lock-clock';
 import { lockSpotsOf } from './lib/lock-grid';
 import { useLockUnread } from './aerie/lock-unread';
-import { homePlacesOf, homeSpotsOf, DESK_COLS, homeWidgetsOf, homeCardStyleOf, homeWeatherLookOf } from './lib/home-widgets';
+import { homePlacesOf, deskPlacesOf, homeClockSizeOf, homeWidgetsOf, homeCardStyleOf, homeWeatherLookOf } from './lib/home-widgets';
 import { bubbleInks, bubbleLookOf, mixHex } from './lib/bubble-look';
 import { drawerLookOf } from './lib/drawer-look';
 import { bodyStack, fontsOf, titleStack } from './lib/fonts';
@@ -232,6 +233,9 @@ const reportSearchJump = searchJumpReporter((body) => {
 
 export default function App() {
   const [osState, setOsState] = useState<OsScreen>('locked');
+  // On the laptop, Apps rises over the room they are in rather than closing it,
+  // so a journal entry being read aloud keeps reading under it.
+  const [drawerOver, setDrawerOver] = useState(false);
   // Where the Messages chat header back button returns to — 'home' unless
   // Messages was launched from the app drawer.
   const [messagesReturnTo, setMessagesReturnTo] = useState<'home' | 'appdrawer'>('home');
@@ -447,6 +451,23 @@ export default function App() {
   // backend already answers the question — the header just never asked.
   // A label, not a lock: the user is still free to stay.
   const [isTreehouseThread, setIsTreehouseThread] = useState(false);
+  // An archived thread opened from the picker without putting it back is not
+  // in the thread list, so the header said No thread; it says its own name now,
+  // marked archived, so they can see which table it is without it coming back
+  // into the list.
+  const [archivedOpen, setArchivedOpen] = useState<{ id: string; name: string } | null>(null);
+  useEffect(() => {
+    if (activeThread || !ksActiveThreadId || isTreehouseThread || archivedOpen?.id === ksActiveThreadId) return;
+    let gone = false;
+    void apiFetch('/api/threads/archived')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { threads?: { id: string; name: string }[] } | null) => {
+        const found = data?.threads?.find((t) => t.id === ksActiveThreadId);
+        if (!gone && found) setArchivedOpen({ id: found.id, name: found.name });
+      })
+      .catch(() => {});
+    return () => { gone = true; };
+  }, [activeThread, ksActiveThreadId, isTreehouseThread, archivedOpen?.id]);
   const [treehouseJumpTo, setTreehouseJumpTo] = useState<string | null>(null);
   useEffect(() => {
     if (!ksActiveThreadId) { setIsTreehouseThread(false); return; }
@@ -620,6 +641,16 @@ export default function App() {
     },
   });
 
+  // The laptop's first copy of every setting: taken once, after the house's settings have arrived, so it is
+  // a copy of what the phone really has and not of a stale local one.
+  useEffect(() => {
+    if (!desk.on || !settingsHydrated) return;
+    setTheme((prev) => (seedDeskScreen(prev as never) as unknown as typeof prev | null) ?? prev);
+    setAppSettings((prev) => (seedDeskApp(prev as never) as unknown as typeof prev | null) ?? prev);
+  }, [desk.on, settingsHydrated]);
+  // What the laptop reads for its text and send button: its own over the phone's.
+  const appView = useMemo(() => (desk.on ? deskAppView(appSettings as never) as unknown as typeof appSettings : appSettings), [desk.on, appSettings]);
+
   // A native crash cannot report itself — the session cookie is HttpOnly, so
   // the dying process has nothing to authenticate with. The shell leaves the
   // report on the device and this hands it over once we are logged in again.
@@ -719,6 +750,10 @@ export default function App() {
   // Also: when the user scrolls near the top, page in the previous 50 messages
   // so threads with thousands of rows aren't capped at the first slice.
   const loadingOlderRef = useRef(false);
+  const loadingNewerRef = useRef(false);
+  const pagingNewerUntil = useRef(0);
+  const viewingAroundRef = useRef(false);
+  viewingAroundRef.current = ksIsViewingAround;
   const hasMoreOlderRef = useRef(true);
   useEffect(() => {
     // Reset paging guards whenever the active thread changes.
@@ -760,6 +795,25 @@ export default function App() {
             loadingOlderRef.current = false;
           });
       }
+
+      // Within 600px of the bottom of a search jump's window, page in what
+      // came after it (loadNewerMessages). Appending below them keeps them
+      // place, so nothing needs restoring; the arrival effect is told to
+      // leave the scroll alone for this page.
+      if (
+        viewingAroundRef.current &&
+        !pendingJumpMessageId.current &&
+        !loadingNewerRef.current &&
+        ksActiveThreadId &&
+        container.scrollHeight - container.scrollTop - container.clientHeight < 600
+      ) {
+        loadingNewerRef.current = true;
+        pagingNewerUntil.current = Date.now() + 60_000;
+        loadNewerMessages(ksActiveThreadId).finally(() => {
+          loadingNewerRef.current = false;
+          pagingNewerUntil.current = Date.now() + 1500;
+        });
+      }
     };
     onScroll();
     container.addEventListener('scroll', onScroll, { passive: true });
@@ -794,12 +848,16 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (osState !== 'messages') { setChatFull(false); return; }
+    // The conversation is showing whenever chatOn says so: on the laptop it
+    // sits beside every room, not only in Messages, and keying this on
+    // Messages alone left it never 'full' there, so scrolling up never paged
+    // in anything older.
+    if (!chatOn) { setChatFull(false); return; }
     if (chatFull) return;
     let second = 0;
     const first = requestAnimationFrame(() => { second = requestAnimationFrame(() => setChatFull(true)); });
     return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
-  }, [osState, chatFull]);
+  }, [chatOn, chatFull]);
   // The rest arrives above their place: hold the view at the newest line.
   useLayoutEffect(() => {
     if (!chatFull || pendingJumpMessageId.current) return;
@@ -872,6 +930,9 @@ export default function App() {
   // stopped moving, and lets go the moment they touch it.
   useEffect(() => {
     if (!chatOn || pendingJumpMessageId.current) return;
+    // A page of newer messages below a search jump is not a new message: it
+    // keeps them where they are reading, or it would chase the window to the end.
+    if (Date.now() < pagingNewerUntil.current) return;
     if (!(pinnedToBottom.current || isNearBottom() || Date.now() < forceScrollWindow.current)) return;
     scrollToBottom(false, true);
     keepAtBottom();
@@ -1039,7 +1100,14 @@ export default function App() {
   }, [isLoaded, ksConnection]);
 
   const updateTheme = (updates: Partial<AppTheme>) => {
-    setTheme(prev => applyThemeUpdate(prev, desk.on ? routeDeskUpdate(prev, updates) : updates));
+    // On the laptop the change is made to its own view and folded back into
+    // its own copy (lib/desk.ts), so the day-and-night swap and everything
+    // else work on the laptop's settings and never on the phone's.
+    setTheme(prev => {
+      if (!desk.on) return applyThemeUpdate(prev, updates);
+      const view = deskScreenTheme(prev);
+      return foldDeskView(prev, view, applyThemeUpdate(view, updates));
+    });
   };
 
   const updateContact = (id: string, updates: Partial<ContactProfile> | null) => {
@@ -1080,7 +1148,7 @@ export default function App() {
   };
 
   const updateAppSettings = (updates: Partial<typeof appSettings>) => {
-    setAppSettings(prev => ({ ...prev, ...updates }));
+    setAppSettings(prev => ({ ...prev, ...(desk.on ? routeDeskAppUpdate(prev as never, updates as never) : updates) }));
   };
 
   // The whole thread, from the house. It used to write out only the messages this phone had loaded,
@@ -1525,9 +1593,9 @@ export default function App() {
   // The rooms that read their face outside props (the Radar, Bingo, the shelf)
   // read the live one, not a local copy that can go stale (lib/house.ts).
   setOwnerAvatarLive(isLoaded ? { url: appSettings.userAvatar, color: appSettings.userAvatarColor } : null);
-  const houseFonts = fontsOf(appSettings, activeTheme.fontFamily);
-  // The laptop reads at its own size, the smallest; the phone keeps their slider.
-  const textScale = desk.on ? DESK_TEXT_SCALE : houseFonts.scale;
+  const houseFonts = fontsOf(appView, activeTheme.fontFamily);
+  // The laptop reads at its own size, the smallest; the phone keeps them slider.
+  const textScale = houseFonts.scale;
   // Sideways rows of tabs follow the wheel and a mouse drag on the laptop.
   useEffect(() => (desk.on ? installDeskScroll() : undefined), [desk.on]);
   // The pickers open on the page itself, outside .aerie-root, so the layout
@@ -1544,11 +1612,25 @@ export default function App() {
       delete root.dataset.deskDock;
     }
   }, [desk.on, desk.chat, desk.dock]);
+  // The emoji font for the laptop (public/fonts/noto-color-emoji), so emoji
+  // a phone draws do not go missing on a laptop. Split by range, so only what is shown downloads.
+  useEffect(() => {
+    if (!desk.on || document.getElementById('aerie-emoji-font')) return;
+    const link = document.createElement('link');
+    link.id = 'aerie-emoji-font';
+    link.rel = 'stylesheet';
+    link.href = '/fonts/noto-color-emoji/emoji.css';
+    document.head.appendChild(link);
+  }, [desk.on]);
   useEffect(() => {
     const root = document.documentElement.style;
     root.fontSize = `${Math.round(16 * textScale * 100) / 100}px`;
-    root.setProperty('--font-title', titleStack(houseFonts.title));
-    root.setProperty('--font-body', bodyStack(houseFonts.body));
+    // The house's own emoji font last in every stack: on the laptop it is
+    // loaded (below), so Windows draws the emoji their phone does instead of a
+    // box where its own font is older; on the phone it is never loaded and
+    // the name is passed over.
+    root.setProperty('--font-title', `${titleStack(houseFonts.title)}, 'Aerie Emoji'`);
+    root.setProperty('--font-body', `${bodyStack(houseFonts.body)}, 'Aerie Emoji'`);
     root.setProperty('--title-scale', String(houseFonts.titleScale));
   }, [textScale, houseFonts.title, houseFonts.body, houseFonts.titleScale]);
 
@@ -1827,16 +1909,18 @@ export default function App() {
       // The wide layout's switches, read by the Aerie Desk section of
       // index.css. None of them is set on the phone, and with none set the
       // stage and the side below are not boxes at all (display: contents).
+      // The app drawer's icon shape, which the docks' tiles follow too.
+      data-icon-shape={drawerLookOf(theme).shape}
       data-desk={desk.on ? 'study' : undefined}
       data-desk-dock={desk.on ? desk.dock : undefined}
       data-desk-chat={desk.on ? (desk.chat ?? 'tucked') : undefined}
       data-desk-full={desk.on && osState === 'locked' ? '' : undefined}
       data-desk-table={tableOnDesk ? '' : undefined}
-      style={{ paddingBottom: 'var(--sab)', fontFamily: 'var(--font-body)' }}
+      style={{ paddingBottom: 'var(--sab)', fontFamily: 'var(--font-body)', ...(desk.on ? { ['--desk-face' as string]: `${deskFaceSizeOf(theme.bubbleFaceSizeDesk)}px` } : null) }}
     >
       {customThemeStyles && <style>{customThemeStyles}</style>}
       {/* Global Wallpaper Layer */}
-      <div className="aerie-wallpaper-layer absolute inset-0 z-0 pointer-events-none overflow-hidden"><AppBackground theme={desk.on && theme.deskWallpaper ? { ...theme, wallpaper: theme.deskWallpaper, slideshowEnabled: false } : theme} /></div>
+      <div className="aerie-wallpaper-layer absolute inset-0 z-0 pointer-events-none overflow-hidden"><AppBackground theme={desk.on && theme.deskWallpaper && !savedTheme.deskScreen?.[DESK_SEEDED] ? { ...theme, wallpaper: theme.deskWallpaper, slideshowEnabled: false } : theme} /></div>
 
       {/* Aerie auth gate — overlays everything when a passcode is required */}
       <AerieLoginGate />
@@ -1860,10 +1944,14 @@ export default function App() {
           // Settings sits on the stage over whatever room is under it; a rail
           // click is them leaving it for somewhere else.
           current={showSettings ? 'settings' : osState}
-          onOpenApp={(app) => { setShowSettings(false); openApp(app); }}
-          onHome={() => { setShowSettings(false); setOsState('home'); }}
-          onOpenDrawer={() => { setShowSettings(false); setOsState('appdrawer'); }}
-          onLock={() => { setShowSettings(false); setOsState('locked'); }}
+          onOpenApp={(app) => { setShowSettings(false); setDrawerOver(false); openApp(app); }}
+          onHome={() => { setShowSettings(false); setDrawerOver(false); setOsState('home'); }}
+          onOpenDrawer={() => {
+            setShowSettings(false);
+            if (osState === 'home' || osState === 'appdrawer') setOsState('appdrawer');
+            else setDrawerOver(true);
+          }}
+          onLock={() => { setShowSettings(false); setDrawerOver(false); setOsState('locked'); }}
           messagesBadge={chatOn ? 0 : homeUnread.count}
           cardBacks={(theme.dockCardBacks ?? theme.homeCardBacks) !== false}
           iconCards={theme.dockIconCards === true}
@@ -1879,7 +1967,7 @@ export default function App() {
           <LockScreen 
             key="locked" 
             onUnlock={() => setOsState('home')} 
-            wallpaper={(desk.on && theme.deskLockWallpaper) || theme.lockScreenWallpaper || theme.wallpaper} 
+            wallpaper={(desk.on && !savedTheme.deskScreen?.[DESK_SEEDED] && theme.deskLockWallpaper) || theme.lockScreenWallpaper || theme.wallpaper} 
             face={lockFaceOf(theme.lockFace)}
             position={lockPositionOf(theme.lockClockPosition)}
             size={lockSizeOf(theme.lockClockSize)}
@@ -1904,6 +1992,7 @@ export default function App() {
             onPlace={(spots) => updateTheme(desk.on ? { lockSpotsDesk: spots } : { lockSpots: spots })}
             weatherLook={lockWeatherLookOf(theme.lockWeatherLook)}
             cardBacks={lockCardBacksOf(theme.lockCardBacks)}
+            desk={desk.on}
           />
         )}
         {osState === 'home' && !showSettings && (
@@ -1918,10 +2007,12 @@ export default function App() {
             messagesBadge={homeUnread.count}
             dockApps={dockApps}
             widgets={homeWidgetsOf(theme.homeWidgets)}
-            widgetSpots={desk.on ? homeSpotsOf(theme.homeWidgetPlacesDesk, undefined, DESK_COLS) : homePlacesOf(theme.homeWidgetPlaces, theme.homeWidgetSpots)}
+            widgetSpots={desk.on ? deskPlacesOf(theme.homeWidgetGridDesk, theme.homeWidgetStepsDesk, theme.homeWidgetPlacesDesk) : homePlacesOf(theme.homeWidgetPlaces, theme.homeWidgetSpots)}
             deskWall={desk.on}
             quietLine={!!theme.homeQuietLine}
             clockLook={homeClockLookOf(theme.homeClockLook)}
+            clockSize={homeClockSizeOf(theme.homeClockSizeDesk)}
+            noteSize={homeClockSizeOf(theme.homeNoteSizeDesk)}
             spotifyLook={lockSpotifyLookOf(theme.homeSpotifyLook)}
             weatherLook={homeWeatherLookOf(theme.homeWeatherLook)}
             cardBacks={homeCardStyleOf(theme) !== 'none'}
@@ -1947,6 +2038,7 @@ export default function App() {
             themeMode={theme.mode}
             columns={drawerColumnsOf(theme.drawerColumns)}
             look={drawerLookOf(theme)}
+            sheet={desk.on}
           />
         )}
         {PlainApp && (
@@ -2166,7 +2258,7 @@ export default function App() {
                 <motion.div initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}>
                   {/* The chat's name and the thread's name in the theme's own ink, like the
                       words in the bubbles below them. */}
-                  <h1 className="text-lg sm:text-xl italic tracking-tight leading-none" style={{ color: 'var(--aerie-text)' }}>
+                  <h1 className="aerie-chat-name text-lg sm:text-xl italic tracking-tight leading-none" style={{ color: 'var(--aerie-text)' }}>
                     {isTreehouseThread ? 'The Treehouse' : (appSettings.groupChatName || 'Aerie')}
                   </h1>
                   {isTreehouseThread && (
@@ -2266,7 +2358,7 @@ export default function App() {
               style={{ color: 'var(--aerie-text)' }}
               onClick={() => setShowThreadSwitcher(true)}
             >
-              {activeThread ? activeThread.name : isTreehouseThread ? 'The Treehouse' : 'No thread'}
+              {activeThread ? activeThread.name : isTreehouseThread ? 'The Treehouse' : archivedOpen && archivedOpen.id === ksActiveThreadId ? `${archivedOpen.name} · archived` : 'No thread'}
               <ChevronLeft size={12} className="-rotate-90 opacity-60" />
             </button>
             <ModelPill themeConfig={activeTheme} themeMode={theme.mode} threadModel={activeThread?.model ?? null} />
@@ -2363,7 +2455,7 @@ export default function App() {
         themeMode={theme.mode}
         customEmojis={appSettings.customEmojis}
         emojiPacks={emojiPacks}
-        sendIconId={appSettings.sendIconId}
+        sendIconId={appView.sendIconId}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
         threadId={ksActiveThreadId}
@@ -2435,10 +2527,22 @@ export default function App() {
           over the rail and the chat. */}
       <div className="aerie-stage">
       <AnimatePresence>
+        {drawerOver && desk.on && (
+          <AppDrawer
+            key="appdrawer-over"
+            onClose={() => setDrawerOver(false)}
+            onOpenApp={(app) => { setDrawerOver(false); openApp(app); }}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+            columns={drawerColumnsOf(theme.drawerColumns)}
+            look={drawerLookOf(theme)}
+            sheet
+          />
+        )}
         {showSettings && (
           <SettingsDashboard
             theme={theme}
-            appSettings={appSettings}
+            appSettings={appView}
             ownerName={ownerName}
             emojiPacks={emojiPacks}
             onThemeChange={updateTheme}

@@ -462,6 +462,7 @@ export function LockPreview({
   width,
   at = null,
   showClock = true,
+  screen,
 }: {
   face: LockFace;
   position: LockPosition;
@@ -472,22 +473,28 @@ export function LockPreview({
   at?: ClockAt | null;
   /** False when the clock is tucked away, so the live preview matches. */
   showClock?: boolean;
+  /** The screen it is a copy of; the phone's unless given. The laptop's lock
+   *  screen is its whole window, so its previews are drawn at the window's
+   *  size and shape. */
+  screen?: { width: number; height: number };
 }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(timer);
   }, []);
-  const scale = width / PREVIEW_W;
+  const w = screen && screen.width > 0 && screen.height > 0 ? screen.width : PREVIEW_W;
+  const h = screen && screen.width > 0 && screen.height > 0 ? screen.height : PREVIEW_H;
+  const scale = width / w;
   return (
     <div
       className="relative overflow-hidden bg-black"
-      style={{ width, height: PREVIEW_H * scale, borderRadius: 14 * (width / 96) }}
+      style={{ width, height: h * scale, borderRadius: screen ? 8 : 14 * (width / 96) }}
       aria-hidden="true"
     >
       <div
         className="absolute left-0 top-0"
-        style={{ width: PREVIEW_W, height: PREVIEW_H, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+        style={{ width: w, height: h, transform: `scale(${scale})`, transformOrigin: 'top left' }}
       >
         {wallpaper ? (
           <div className="absolute inset-0 bg-cover bg-center opacity-60" style={{ backgroundImage: `url(${wallpaper})` }} />

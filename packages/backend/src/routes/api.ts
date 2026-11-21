@@ -9,6 +9,7 @@ import uploadsRoutes from './api/uploads.js';
 import canvasesRoutes from './api/canvases.js';
 import pushRoutes from './api/push.js';
 import artifactsRoutes from './api/artifacts.js';
+import backupRoutes from './api/backup.js';
 import { Router } from 'express';
 import { settingsForClient, isGuardedSettingKey } from '../services/settings-view.js';
 import { fileIdsInUse } from '../services/file-references.js';
@@ -357,6 +358,7 @@ router.use(uploadsRoutes);
 router.use(canvasesRoutes);
 router.use(pushRoutes);
 router.use(artifactsRoutes);
+router.use(backupRoutes);
 
 export async function initCcRoutes() {
   try {

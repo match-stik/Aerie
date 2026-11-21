@@ -145,7 +145,7 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
                 components={{
                   p: ({ children }) => <span className={cn('block', isStickerOnly(children) && 'text-center')}>{children}</span>,
                   // Discord-style "-# whisper" subtext (preprocessed to h6 above)
-                  h6: ({ children }) => <span className="block text-[11px] leading-snug opacity-60 italic">{children}</span>,
+                  h6: ({ children }) => <span className="aerie-whisper block text-[11px] leading-snug italic">{children}</span>,
                   pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
                   img: ({ src, alt }) => {
                     // Sticker refs: alt starts with "sticker:" and src is the resolved URL.

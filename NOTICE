@@ -286,6 +286,10 @@ model's tokenizer file, checked in so the embedding tests can run from a
 fresh clone. The model's weights are not in this repository; each house
 fetches them on first use, under the same license.
 
+Noto Color Emoji (packages/phone/public/fonts/noto-color-emoji) is
+Copyright 2021 Google Inc., licensed under the SIL Open Font License 1.1;
+the license is beside the font files as OFL.txt.
+
 ================================================================
 Lovense Android SDK — not included
 ================================================================

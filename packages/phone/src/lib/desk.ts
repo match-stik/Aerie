@@ -29,8 +29,9 @@ export interface Desk {
 /** The phone, as it always was. */
 export const PHONE_DESK: Desk = { on: false, rail: false, dock: 'left', chat: null };
 
-export function deskLayoutOf(value: unknown): DeskLayout {
-  return value === 'phone' ? 'phone' : 'study';
+/** Always the Study now: the stretched Phone layout came out, so a laptop left on it gets the Study. */
+export function deskLayoutOf(_value: unknown): DeskLayout {
+  return 'study';
 }
 
 export function deskDockOf(value: unknown): DeskDock {
@@ -84,9 +85,9 @@ export function deskChatOf(value: unknown): DeskChat {
   return value === 'left' || value === 'tucked' ? value : 'right';
 }
 
-/** What the window gets: the Study on a wide one unless they chose the phone, the phone on a narrow one whatever they chose. */
+/** What the window gets: the Study on a wide one, the phone on a narrow one. */
 export function deskOf(theme: { deskLayout?: unknown; deskDock?: unknown; deskChat?: unknown }, width: number): Desk {
-  if (!(width >= DESK_MIN_WIDTH) || deskLayoutOf(theme.deskLayout) === 'phone') return PHONE_DESK;
+  if (!(width >= DESK_MIN_WIDTH)) return PHONE_DESK;
   const chat = deskChatOf(theme.deskChat);
   const dock = deskDockOf(theme.deskDock);
   return { on: true, rail: dock === 'left', dock, chat: chat === 'tucked' ? null : chat };
@@ -113,33 +114,117 @@ export function stageAfterMessages(desk: Desk, osState: string, lastRoom: string
 }
 
 /**
- * What is on the screen, kept apart on the laptop. Which widgets and lock pieces show and how their cards
- * look; the look of the house (theme, bubbles, colors) stays shared. On the
- * laptop these read from theme.deskScreen and are written there, falling back
- * to the phone's own until the laptop has its own.
+ * Every setting is the laptop's own. The laptop's copy of the
+ * theme lives in theme.deskScreen and its text and send button in
+ * appSettings.deskApp (@aerie/shared screen-settings); keys it owns outright
+ * (deskDock and the rest) stay at the top. The first time the laptop opens
+ * after the split it takes a copy of everything the phone has, so nothing
+ * jumps, and from then on the two never touch.
  */
-export { DESK_SCREEN_KEYS } from '@aerie/shared';
-import { DESK_SCREEN_KEYS } from '@aerie/shared';
-export type DeskScreenKey = typeof DESK_SCREEN_KEYS[number];
+export { DESK_SCREEN_KEYS, APP_SCREEN_KEYS, isDeskOwnThemeKey } from '@aerie/shared';
+import { APP_SCREEN_KEYS, isDeskOwnThemeKey } from '@aerie/shared';
 
-/** The theme as the laptop's screen sees it: its own screen choices over the shared ones. */
-export function deskScreenTheme<T extends { deskScreen?: Record<string, unknown> }>(theme: T): T {
+/** Marks a deskScreen that already holds a whole copy of the phone's theme. */
+export const DESK_SEEDED = '__own';
+
+type WithDesk = { deskScreen?: Record<string, unknown> };
+
+/** The theme as the laptop sees it: its own copy over the phone's. */
+export function deskScreenTheme<T extends WithDesk>(theme: T): T {
   const own = theme.deskScreen;
   if (!own) return theme;
   const out: Record<string, unknown> = { ...theme };
   // null is the laptop's own 'unset' (a cleared choice), kept because JSON drops undefined.
-  for (const k of DESK_SCREEN_KEYS) if (k in own) out[k] = own[k] === null ? undefined : own[k];
+  for (const [k, v] of Object.entries(own)) {
+    if (k === DESK_SEEDED || isDeskOwnThemeKey(k)) continue;
+    out[k] = v === null ? undefined : v;
+  }
   return out as T;
 }
 
-/** A change made on the laptop: its screen choices go into theme.deskScreen, everything else as it came. */
-export function routeDeskUpdate<T extends { deskScreen?: Record<string, unknown> }>(prev: T, updates: Partial<T>): Partial<T> {
-  const screen: Record<string, unknown> = {};
+/**
+ * The saved theme after the laptop's view of it changed from `view` to
+ * `next`: what the laptop owns outright goes to the top, everything else into
+ * its own copy, and the phone's settings are left as they were.
+ */
+export function foldDeskView<T extends WithDesk>(prev: T, view: T, next: T): T {
+  const own: Record<string, unknown> = { ...(prev.deskScreen ?? {}) };
+  const top: Record<string, unknown> = {};
+  const keys = new Set([...Object.keys(view as object), ...Object.keys(next as object)]);
+  for (const k of keys) {
+    if (k === 'deskScreen') continue;
+    const before = (view as Record<string, unknown>)[k];
+    const after = (next as Record<string, unknown>)[k];
+    if (before === after) continue;
+    if (isDeskOwnThemeKey(k)) top[k] = after;
+    else own[k] = after === undefined ? null : after;
+  }
+  return { ...prev, ...top, deskScreen: own } as T;
+}
+
+/** A change made on the laptop, as the old routing callers made it. */
+export function routeDeskUpdate<T extends WithDesk>(prev: T, updates: Partial<T>): Partial<T> {
+  const view = deskScreenTheme(prev);
+  const folded = foldDeskView(prev, view, { ...view, ...updates } as T);
+  const out: Record<string, unknown> = { deskScreen: folded.deskScreen };
+  for (const [k, v] of Object.entries(updates)) if (isDeskOwnThemeKey(k)) out[k] = v;
+  return out as Partial<T>;
+}
+
+/**
+ * The laptop's first copy: everything the phone has, its old room and lock
+ * pictures as its wallpaper, and whatever it had already chosen for itself on
+ * top. Null when it already has its copy.
+ */
+export function seedDeskScreen<T extends WithDesk & Record<string, unknown>>(theme: T): T | null {
+  if (theme.deskScreen && theme.deskScreen[DESK_SEEDED] === true) return null;
+  const own: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(theme)) {
+    if (isDeskOwnThemeKey(k) || v === undefined) continue;
+    own[k] = v;
+  }
+  const t = theme as Record<string, unknown>;
+  if (typeof t.deskWallpaper === 'string' && t.deskWallpaper) own.wallpaper = t.deskWallpaper;
+  if (typeof t.deskLockWallpaper === 'string' && t.deskLockWallpaper) own.lockScreenWallpaper = t.deskLockWallpaper;
+  for (const [k, v] of Object.entries(theme.deskScreen ?? {})) if (!isDeskOwnThemeKey(k)) own[k] = v;
+  own[DESK_SEEDED] = true;
+  return { ...theme, deskScreen: own };
+}
+
+type AppLike = Record<string, unknown> & { deskApp?: Record<string, unknown> };
+
+/** The app settings as the laptop sees them: its own text and send button over the phone's. */
+export function deskAppView<T extends AppLike>(settings: T): T {
+  const own = settings.deskApp;
+  if (!own) return settings;
+  const out: Record<string, unknown> = { ...settings };
+  for (const k of APP_SCREEN_KEYS) if (k in own) out[k] = own[k] === null ? undefined : own[k];
+  return out as T;
+}
+
+/** A settings change made on the laptop: its text and send button go into deskApp, everything else as it came. */
+export function routeDeskAppUpdate<T extends AppLike>(prev: T, updates: Partial<T>): Partial<T> {
+  const own: Record<string, unknown> = {};
   const rest: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(updates)) {
-    if ((DESK_SCREEN_KEYS as readonly string[]).includes(k)) screen[k] = v === undefined ? null : v;
+    if ((APP_SCREEN_KEYS as readonly string[]).includes(k)) own[k] = v === undefined ? null : v;
     else rest[k] = v;
   }
-  if (Object.keys(screen).length === 0) return updates;
-  return { ...rest, deskScreen: { ...(prev.deskScreen ?? {}), ...screen } } as Partial<T>;
+  if (Object.keys(own).length === 0) return updates;
+  return { ...rest, deskApp: { ...(prev.deskApp ?? {}), ...own } } as Partial<T>;
+}
+
+/** The laptop's first text and send button: the phone's, at the laptop's smaller text size. Null when it has its own. */
+export function seedDeskApp<T extends AppLike>(settings: T): T | null {
+  if (settings.deskApp) return null;
+  const own: Record<string, unknown> = {};
+  for (const k of APP_SCREEN_KEYS) if (settings[k] !== undefined) own[k] = settings[k];
+  own.fontScale = DESK_TEXT_SCALE;
+  return { ...settings, deskApp: own };
+}
+
+/** The faces beside the bubbles on the laptop, in pixels; 46 unless they pick. */
+export const DESK_FACE_SIZES = [40, 46, 54] as const;
+export function deskFaceSizeOf(value: unknown): number {
+  return (DESK_FACE_SIZES as readonly number[]).includes(value as number) ? (value as number) : 46;
 }

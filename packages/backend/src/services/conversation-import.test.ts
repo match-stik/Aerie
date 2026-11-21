@@ -125,3 +125,36 @@ test('Copilot: the activity CSV, newest first, reads back in order with quoted c
   // The same file a second time gives the same ids, so a re-import is skipped.
   assert.deepEqual(parseExport(csv).map((c) => c.sourceId), convs.map((c) => c.sourceId));
 });
+
+const GROK_EXPORT = {
+  conversations: [{
+    conversation: { id: 'gk-1', title: 'Painting a lighthouse', create_time: '2026-03-01T20:00:00Z' },
+    // Listed out of order on purpose: the times put them back.
+    responses: [
+      { response: { _id: 'r2', sender: 'ASSISTANT', message: 'Here is a lighthouse at dusk, warm light in the lamp room.', create_time: { $date: { $numberLong: '1772395260000' } } } },
+      { response: { _id: 'r1', sender: 'human', message: 'Paint me a lighthouse at dusk.', create_time: { $date: { $numberLong: '1772395200000' } } } },
+      { response: { _id: 'r3', sender: 'assistant', message: '', create_time: { $date: { $numberLong: '1772395300000' } } } },
+    ],
+  }],
+  projects: [],
+};
+
+test('Grok: prod-grok-backend.json reads in time order, as picked or inside the zip, and its account file is never read', () => {
+  const direct = parseExport(JSON.stringify(GROK_EXPORT), { person: 'Sam' });
+  assert.equal(direct.length, 1);
+  assert.equal(direct[0].house, 'grok');
+  assert.equal(direct[0].sourceId, 'gk-1');
+  assert.deepEqual(direct[0].messages.map((m) => `${m.speaker}: ${m.text}`), [
+    'Sam: Paint me a lighthouse at dusk.',
+    'Grok: Here is a lighthouse at dusk, warm light in the lamp room.',
+  ]);
+  assert.equal(direct[0].messages[0].date, '2026-03-01');
+  const zip = zipSync({
+    'ttl/30d/export_data/abc/prod-mc-auth-mgmt-api.json': strToU8(JSON.stringify({ secret: 'never read' })),
+    'ttl/30d/export_data/abc/prod-grok-backend.json': strToU8(JSON.stringify(GROK_EXPORT)),
+  });
+  const fromZip = readExportFile(zip, 'grok.zip');
+  assert.ok(!fromZip.includes('never read'));
+  assert.equal(parseExport(fromZip)[0].title, 'Painting a lighthouse');
+  assert.throws(() => parseExport(JSON.stringify({ secret: 'x' })), /not a chat export/);
+});

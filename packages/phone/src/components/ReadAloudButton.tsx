@@ -21,6 +21,16 @@ export function storyPageAloud(bookId: string, pageId: string): Loader {
   };
 }
 
+/** A journal entry or a dream, read in its writer's voice. */
+export function journalEntryAloud(entryId: string): Loader {
+  return async (signal) => {
+    const res = await apiFetch(`/api/journal/${encodeURIComponent(entryId)}/tts`, { method: 'POST', signal });
+    const body = await res.json().catch(() => null) as { url?: unknown; error?: unknown } | null;
+    if (!res.ok || !body || typeof body.url !== 'string') throw new Error(typeof body?.error === 'string' ? body.error : 'The read-aloud did not come back');
+    return [body.url];
+  };
+}
+
 export function ReadAloudButton({ load, className, size = 15, label = 'Read aloud' }: { load: Loader; className?: string; size?: number; label?: string }) {
   const [state, setState] = useState<'idle' | 'loading' | 'playing'>('idle');
   const controller = useRef<AbortController | null>(null);

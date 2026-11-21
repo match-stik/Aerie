@@ -49,6 +49,10 @@ interface HomeScreenProps {
   stickyNoteColors?: string[];
   /** The Clock widget's look (homeClockLookOf in lib/lock-clock.ts). */
   clockLook?: import('../lib/lock-clock').HomeClockLook;
+  /** The clock's size on the laptop's wall. */
+  clockSize?: import('../lib/home-widgets').HomeClockSize;
+  /** The note's size on the laptop's wall. */
+  noteSize?: import('../lib/home-widgets').HomeClockSize;
   spotifyLook?: import('../lib/lock-spotify').LockSpotifyLook;
   weatherLook?: import('../lib/home-widgets').HomeWeatherLook;
   /** The cards behind the widgets, the dock and its tiles (Settings > Home,
@@ -85,6 +89,8 @@ export function HomeScreen({
   customEmojis,
   stickyNoteColors,
   clockLook = 'stacked',
+  clockSize = 's',
+  noteSize = 's',
   spotifyLook = 'bar',
   weatherLook = 'card',
   cardBacks = true,
@@ -246,18 +252,24 @@ export function HomeScreen({
         onContextMenu={(e) => e.preventDefault()}
       >
         <HomeWidgets
-          widgets={widgets}
+          // On the laptop the quiet line stands on the wall with the widgets,
+          // so they can carry it anywhere, the top included.
+          widgets={deskWall && quietLine ? [...widgets, 'quiet'] : widgets}
+          quietScroll={quietScroll}
+          cardsKey={`${cardBacks}|${cardSnug}|${companionsCard}|${quietCard}`}
           spots={widgetSpots}
           companions={companions}
           customEmojis={customEmojis}
           notePalette={notePalette}
           themeMode={themeMode}
           clockLook={clockLook}
+          clockSize={clockSize}
+          noteSize={noteSize}
           spotifyLook={spotifyLook}
           weatherLook={weatherLook}
           onOpenAppId={openById}
           cols={deskWall ? 'auto' : undefined}
-          onPlace={(layout) => onThemeChange(deskWall ? { homeWidgetPlacesDesk: layout } : { homeWidgetPlaces: layout })}
+          onPlace={(layout) => onThemeChange(deskWall ? { homeWidgetGridDesk: layout } : { homeWidgetPlaces: layout })}
         />
       </div>
 
@@ -274,7 +286,7 @@ export function HomeScreen({
         className={cn("absolute bottom-4 left-0 right-0 flex flex-col items-center gap-2 px-3 transition-opacity duration-150", typingInWidget && "pointer-events-none opacity-0")}
         aria-hidden={typingInWidget || undefined}
       >
-        {quietLine && (
+        {quietLine && !deskWall && (
           <div className="w-full max-w-[380px]">
             <QuietLine companions={companions} scroll={quietScroll} onOpen={() => openById('messages')} />
           </div>
@@ -333,9 +345,14 @@ export function HomeScreen({
         <WidgetSheet
           widgets={widgets}
           quietLine={quietLine}
+          deskWall={deskWall}
           onToggle={(id) => onThemeChange({ homeWidgets: toggleWidget(widgets, id) })}
           clockLook={clockLook}
           onClockLook={(look) => onThemeChange({ homeClockLook: look })}
+          clockSize={deskWall ? clockSize : undefined}
+          noteSize={deskWall ? noteSize : undefined}
+          onNoteSize={deskWall ? (size) => onThemeChange({ homeNoteSizeDesk: size }) : undefined}
+          onClockSize={deskWall ? (size) => onThemeChange({ homeClockSizeDesk: size }) : undefined}
           spotifyLook={spotifyLook}
           onSpotifyLook={(look) => onThemeChange({ homeSpotifyLook: look })}
           weatherLook={weatherLook}

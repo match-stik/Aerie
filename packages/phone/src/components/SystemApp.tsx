@@ -164,7 +164,7 @@ export function SystemApp({ onClose, themeConfig, themeMode, embedded }: SystemA
       )}
 
       {!status && (
-        <p className={cn('text-center text-xs py-4', colors.textMuted)}>
+        <p className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-center text-xs py-4', colors.textMuted)}>
           {connected ? 'Loading system status…' : 'Offline — connect to view system status.'}
         </p>
       )}

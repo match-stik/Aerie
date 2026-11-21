@@ -183,11 +183,11 @@ export function ArtifactsApp({ onClose, themeConfig, themeMode }: ArtifactsAppPr
       {/* Content */}
       <div className="aerie-app-body flex-1 overflow-auto">
         {loading ? (
-          <div className={cn("flex items-center justify-center h-full", colors.textMuted)}>
-            Loading...
+          <div className={cn('m-4 rounded-2xl border py-6 text-center text-sm', colors.panelBg, colors.panelBorder, colors.textMuted)}>
+            Loading…
           </div>
         ) : error ? (
-          <div className="p-4" style={{ color: colors.accent }}>{error}</div>
+          <div className={cn('m-4 rounded-2xl border p-4 text-sm', colors.panelBg, colors.panelBorder)} style={{ color: colors.accent }}>{error}</div>
         ) : view === 'list' ? (
           <div className="p-4 space-y-3">
             {artifacts.length === 0 ? (
