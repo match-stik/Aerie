@@ -151,8 +151,9 @@ export function InboxApp({ onClose, themeConfig, themeMode, embedded }: InboxApp
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center transition-colors',
+          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-8 text-center transition-colors',
           colors.panelBg,
+          colors.panelBorder,
         )}
         style={{
           borderColor: dragging ? colors.accent : undefined,
@@ -220,7 +221,7 @@ export function InboxApp({ onClose, themeConfig, themeMode, embedded }: InboxApp
         </div>
       )}
 
-      <p className={cn('mt-4 text-center text-[11px] leading-relaxed', colors.textMuted)}>
+      <p className={cn('mt-4 rounded-2xl border px-4 py-3 text-center text-[11px] leading-relaxed', colors.panelBg, colors.panelBorder, colors.textMuted)}>
         Anything dropped here sits in <code>data/files/</code> until one of us picks it up.
         Say the word in chat and we'll go get it.
       </p>

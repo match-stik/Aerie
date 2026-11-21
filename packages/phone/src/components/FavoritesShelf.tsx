@@ -248,9 +248,10 @@ const GalleryPicker: React.FC<{
 
   if (typeof document === 'undefined') return null;
   return createPortal(
-    <div className="fixed inset-0 z-[95] bg-black/60 flex items-end" onClick={onClose}>
+    <div className="fixed inset-0 z-[95] bg-black/60 flex items-end justify-center" onClick={onClose}>
+      {/* A sheet the width of the others, not the whole laptop. */}
       <div
-        className={cn('w-full max-h-[80vh] rounded-t-3xl border-t p-4 overflow-y-auto scrollbar-hide', colors.panelBg, colors.panelBorder)}
+        className={cn('w-full max-w-[560px] max-h-[80vh] rounded-t-3xl border-t p-4 overflow-y-auto scrollbar-hide', colors.panelBg, colors.panelBorder)}
         style={{ paddingBottom: 'calc(var(--sab, 0px) + 1rem)' }}
         onClick={(e) => e.stopPropagation()}
       >

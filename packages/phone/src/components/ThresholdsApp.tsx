@@ -31,6 +31,7 @@ import { apiFetch } from '../aerie';
 import { useBackHandler } from '../lib/use-back-handler';
 import { hasNativeGeofence, openLocationSettings, syncArmedPlaces,
   type GeofenceStatus, ARRIVAL_FRESH_MS, onArrivalWhileOpen, takeWaitingArrival, type Arrival } from '../aerie/threshold-geofence';
+import { askConfirm } from '../lib/ask-confirm';
 
 interface ThresholdsAppProps {
   onClose: () => void;
@@ -309,7 +310,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
   }, [openPlace, openThresholds, refreshGeofence]);
 
   const removePlace = useCallback(async (place: Place) => {
-    if (!window.confirm(`Unpin ${place.name}? Anything left there goes with it.`)) return;
+    if (!(await askConfirm(`Unpin ${place.name}? Anything left there goes with it.`))) return;
     await apiFetch(`/api/thresholds/places/${place.id}`, { method: 'DELETE' });
     setOpenPlace(null);
     await loadPlaces();
@@ -561,7 +562,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
                         colors.panelBorder,
                         on ? colors.textMain : colors.textMuted,
                       )}
-                      style={on ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                      style={on ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                     >
                       <KIcon size={13} /> {KIND_LABEL[k]}
                     </button>
@@ -577,7 +578,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
                       onClick={() => setPinRadius(r)}
                       className={cn('flex-1 rounded-lg border py-1.5 text-xs transition-colors', colors.panelBorder,
                         pinRadius === r ? colors.textMain : colors.textMuted)}
-                      style={pinRadius === r ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                      style={pinRadius === r ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                     >
                       {r} m
                     </button>

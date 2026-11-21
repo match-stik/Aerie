@@ -9,6 +9,7 @@ import type { ThemeConfig } from '../lib/theme';
 // The runtime, the vendor inlining and the house-image inlining are shared
 // with the Story Shelf's scene widgets, so they live in one place.
 import { fillSealedPage, getVendorBundle, inlineHouseImages, sealedPageTemplate } from '../lib/sealed-frame';
+import { askConfirm } from '../lib/ask-confirm';
 
 interface ArtifactsAppProps {
   onClose: () => void;
@@ -75,7 +76,7 @@ export function ArtifactsApp({ onClose, themeConfig, themeMode }: ArtifactsAppPr
   };
 
   const deleteArtifact = async (id: string) => {
-    if (!confirm('Delete this artifact?')) return;
+    if (!(await askConfirm('Delete this artifact?'))) return;
     try {
       await fetch(`/api/artifacts/${id}`, { method: 'DELETE', credentials: 'include' });
       setArtifacts(prev => prev.filter(a => a.id !== id));

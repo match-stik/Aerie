@@ -22,6 +22,7 @@ import { apiFetch } from '../aerie';
 import { cn } from '../lib/utils';
 import { thumbSrc } from '../lib/thumb';
 import { useBackHandler } from '../lib/use-back-handler';
+import { askConfirm } from '../lib/ask-confirm';
 
 const PressEditor = lazy(() => import('./press/PressEditor'));
 
@@ -195,7 +196,7 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
   }
 
   async function deleteIssue(issue: PressIssue) {
-    if (!window.confirm(`Delete “${issue.title}” and all of its spreads?`)) return;
+    if (!(await askConfirm(`Delete “${issue.title}” and all of its spreads?`))) return;
     try {
       const response = await apiFetch(`/api/press/issues/${issue.id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Could not delete issue');
@@ -221,7 +222,7 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
 
   async function deleteSpread(spread: PressSpread) {
     if (!bundle || bundle.spreads.length <= 1) return;
-    if (!window.confirm(`Delete “${spread.title}”?`)) return;
+    if (!(await askConfirm(`Delete “${spread.title}”?`))) return;
     try {
       const response = await apiFetch(`/api/press/spreads/${spread.id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Could not delete spread');
@@ -485,7 +486,7 @@ export function PressApp({ onClose, themeConfig, themeMode }: PressAppProps) {
                         colors.panelBorder,
                         selected ? 'aerie-on-accent' : colors.textMain,
                       )}
-                      style={selected ? { background: colors.accent, borderColor: colors.accent } : undefined}
+                      style={selected ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: 'transparent' } : undefined}
                     >
                       <GripVertical size={11} className="opacity-45" />
                       <div>

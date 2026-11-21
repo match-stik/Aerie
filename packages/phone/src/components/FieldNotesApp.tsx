@@ -12,6 +12,7 @@ import { ThemeConfig } from '../lib/theme';
 import { themeInk } from '../lib/theme-ink';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
+import { Paginator, usePaged } from './Paginator';
 
 interface FieldNotesAppProps {
   onClose: () => void;
@@ -59,6 +60,10 @@ export function FieldNotesApp({ onClose, themeConfig, themeMode, embedded }: Fie
   const [notes, setNotes] = useState<FieldNote[]>([]);
   const [companions, setCompanions] = useState<Companion[]>([]);
   const [loading, setLoading] = useState(true);
+  // A few days to a page rather than every day since it started in one long
+  // scroll.
+  const days = byDay(notes);
+  const daysPage = usePaged(days, 5);
 
   async function load() {
     setLoading(true);
@@ -127,12 +132,15 @@ export function FieldNotesApp({ onClose, themeConfig, themeMode, embedded }: Fie
           Nothing yet. The morning look writes here every day.
         </div>
       ) : (
-        byDay(notes).map(([day, dayNotes]) => (
-          <div key={day} className={cn('mb-3 rounded-2xl border px-3 pb-1 pt-2.5', colors.panelBg, colors.panelBorder)}>
-            <div className={cn('text-[11px] font-semibold uppercase tracking-wider', colors.textMuted)}>{formatDay(day)}</div>
-            {dayNotes.map(noteRow)}
-          </div>
-        ))
+        <>
+          {daysPage.visible.map(([day, dayNotes]) => (
+            <div key={day} className={cn('mb-3 rounded-2xl border px-3 pb-1 pt-2.5', colors.panelBg, colors.panelBorder)}>
+              <div className={cn('text-[11px] font-semibold uppercase tracking-wider', colors.textMuted)}>{formatDay(day)}</div>
+              {dayNotes.map(noteRow)}
+            </div>
+          ))}
+          <Paginator page={daysPage.page} pageCount={daysPage.pageCount} onPage={daysPage.setPage} colors={colors} />
+        </>
       )}
     </AppShell>
   );

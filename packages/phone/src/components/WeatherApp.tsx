@@ -199,7 +199,7 @@ export function WeatherApp({ onClose, themeConfig, themeMode }: WeatherAppProps)
             </button>
           </div>
         ) : weather ? (
-          <div className="flex flex-col gap-6 max-w-md mx-auto">
+          <div data-room-column className="flex flex-col gap-6 max-w-md mx-auto">
             {/* Current Weather */}
             <div className={cn("flex flex-col items-center text-center p-6 rounded-3xl border backdrop-blur-md", colors.panelBg, colors.panelBorder)}>
               <h2 className="text-2xl font-light tracking-tight mb-2">{locationName}</h2>

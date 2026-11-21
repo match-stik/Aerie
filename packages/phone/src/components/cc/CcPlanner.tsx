@@ -299,8 +299,11 @@ export function CcPlanner({ themeConfig, themeMode }: CcSubPageProps) {
           {grouped.map(([key, group]) => {
             const isCollapsed = collapsed.has(key);
             return (
-              <div key={key} className={cn('rounded-2xl border mb-3 overflow-hidden', colors.panelBorder)}>
-                <div className={cn('flex items-center justify-between px-3 py-2.5', colors.panelBg)}>
+              // One card for the whole group, its tasks included: only the
+              // header used to have the card's fill, so what sat under it read
+              // as an empty box.
+              <div key={key} className={cn('rounded-2xl border mb-3 overflow-hidden backdrop-blur-md', colors.panelBg, colors.panelBorder)}>
+                <div className="flex items-center justify-between px-3 py-2.5">
                   <div className="flex items-center gap-2 min-w-0">
                     {group.project?.color && (
                       <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: group.project.color }} />

@@ -119,7 +119,7 @@ export function Paginator({
               colors.panelBorder,
               n === page ? 'aerie-on-accent' : cn(colors.panelBg, colors.textMuted),
             )}
-            style={n === page ? { background: colors.accent, borderColor: colors.accent } : undefined}
+            style={n === page ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: 'transparent' } : undefined}
           >
             {n}
           </button>

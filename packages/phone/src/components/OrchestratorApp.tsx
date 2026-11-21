@@ -8,6 +8,7 @@ import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
 import { HouseSelect } from './HouseSelect';
+import { askConfirm } from '../lib/ask-confirm';
 
 interface OrchestratorAppProps {
   onClose: () => void;
@@ -225,7 +226,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
   }
 
   async function removePromptOverride(wakeType: string, confirmText: string) {
-    if (!window.confirm(confirmText)) return;
+    if (!(await askConfirm(confirmText))) return;
     setSavingPrompt(true);
     try {
       const res = await apiFetch(`/api/orchestrator/wake-prompts/${wakeType}`, { method: 'DELETE' });
@@ -326,7 +327,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
   }
 
   async function deleteBell(wakeType: string, label: string) {
-    if (!window.confirm(`Remove the "${label}" bell and its prompt?`)) return;
+    if (!(await askConfirm(`Remove the "${label}" bell and its prompt?`))) return;
     try {
       const res = await apiFetch(`/api/orchestrator/tasks/${wakeType}`, { method: 'DELETE' });
       const data = await res.json().catch(() => null);
@@ -583,7 +584,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
         onClick={onClick}
         className={cn('rounded-[var(--shape-control)] border px-2 py-0.5 text-[11px] transition-colors', colors.panelBorder)}
         style={active
-          ? { background: colors.accent, borderColor: colors.accent }
+          ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: 'transparent' }
           : undefined}
       >
         <span className={active ? 'aerie-on-accent' : colors.textMuted}>{label}</span>

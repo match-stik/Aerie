@@ -26,7 +26,7 @@ export function SegmentedControl<T extends string>({
           key={option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            'shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border',
+            'shrink-0 rounded-[var(--shape-chip)] px-3 py-1.5 text-xs font-medium transition-colors border',
             colors.panelBorder,
             value !== option.value && cn(colors.panelBg, colors.textMain),
           )}
@@ -35,7 +35,6 @@ export function SegmentedControl<T extends string>({
               ? {
                   background: 'var(--aerie-selected-fill)',
                   color: 'var(--aerie-on-accent)',
-                  borderColor: colors.accent,
                 }
               : undefined
           }

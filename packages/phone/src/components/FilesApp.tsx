@@ -315,12 +315,12 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
         </div>
       )}
 
-      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+      <div className="aerie-tabscroll -mx-3 flex gap-1.5 overflow-x-auto scrollbar-hide px-3">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={cn('shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder, filter !== f.id && colors.panelBg)}
+            className={cn('shrink-0 rounded-[var(--shape-chip)] px-3 py-1.5 text-xs font-medium transition-colors border', colors.panelBorder, filter !== f.id && colors.panelBg)}
             style={filter === f.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
           >
             {f.label}

@@ -6,6 +6,7 @@ import { ThemeConfig } from '../lib/theme';
 import { Paginator, usePaged } from './Paginator';
 import { cn } from '../lib/utils';
 import { CortexUrl } from './CortexUrl';
+import { askConfirm } from '../lib/ask-confirm';
 
 interface CortexAppProps {
   onClose: () => void;
@@ -188,7 +189,7 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this memory?')) return;
+    if (!(await askConfirm('Delete this memory?'))) return;
     try {
       await fetch(`/api/cortex/memory/${id}`, { method: 'DELETE', credentials: 'include' });
       setMemories((prev) => prev.filter((m) => m.id !== id));

@@ -100,6 +100,7 @@ import type {
 } from './types';
 import { PRESS_WORKSPACE_COLOR, parsePressScene } from './types';
 import { fileToDataURL, hydrateFiles } from './scene-files';
+import { askConfirm } from '../../lib/ask-confirm';
 
 declare global {
   interface Window {
@@ -1942,7 +1943,7 @@ export default function PressEditor({
   }
 
   async function deletePack(pack: PressPack) {
-    if (!window.confirm(`Remove “${pack.name}” from The Press shelves?`)) return;
+    if (!(await askConfirm(`Remove “${pack.name}” from The Press shelves?`))) return;
     try {
       const response = await apiFetch(`/api/press/packs/${pack.id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Could not remove that pack');
@@ -2500,7 +2501,7 @@ export default function PressEditor({
                 key={id}
                 onClick={() => setMaterialTab(id)}
                 className={cn('flex min-h-11 items-center justify-center gap-1.5 rounded-xl border text-[11px] font-semibold', colors.panelBorder, materialTab === id ? 'aerie-on-accent' : colors.textMuted)}
-                style={materialTab === id ? { background: colors.accent, borderColor: colors.accent } : undefined}
+                style={materialTab === id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: 'transparent' } : undefined}
               >
                 <Icon size={14} /> {label}
               </button>
@@ -2571,7 +2572,7 @@ export default function PressEditor({
                     key={spec.type}
                     onClick={() => setActivePhotoAdjustment(spec.type)}
                     className={cn('flex min-h-14 flex-col items-center justify-center rounded-xl border px-1 text-center', colors.panelBorder, active ? 'aerie-on-accent' : colors.textMuted)}
-                    style={active ? { background: colors.accent, borderColor: colors.accent } : undefined}
+                    style={active ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: 'transparent' } : undefined}
                   >
                     <span className="text-[9px] font-bold leading-tight">{spec.shortLabel}</span>
                     <span className="mt-1 text-[8px] opacity-75">{spec.type === 'exposure' ? `${(value / 100).toFixed(2)}` : value}</span>

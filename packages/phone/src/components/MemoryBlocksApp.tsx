@@ -9,6 +9,7 @@ import { cn } from '../lib/utils';
 import { useBackHandler } from '../lib/use-back-handler';
 import { HouseSelect } from './HouseSelect';
 import { ConversationImportPanel } from './ConversationImportPanel';
+import { askConfirm } from '../lib/ask-confirm';
 
 interface MemoryBlocksAppProps {
   onClose: () => void;
@@ -171,7 +172,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
   };
 
   const handleDelete = async (block: MemoryBlock) => {
-    if (!confirm(`Delete block "${block.scope}/${block.label}"?`)) return;
+    if (!(await askConfirm(`Delete block "${block.scope}/${block.label}"?`))) return;
     try {
       await fetch(blockUrl(block.scope, block.label), {
         method: 'DELETE',
@@ -261,7 +262,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
   const scopeBadge = (scope: string) => (
     <span
       className="text-[10px] px-1.5 py-0.5 rounded-[var(--shape-control)] border uppercase tracking-wide opacity-80"
-      style={scope === SHARED_SCOPE ? undefined : { borderColor: colors.accent, color: colors.accent }}
+      style={scope === SHARED_SCOPE ? undefined : { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
     >
       {scope}
     </span>

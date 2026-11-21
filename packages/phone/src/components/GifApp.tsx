@@ -1793,7 +1793,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                     "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer transition-all relative",
                     // Ring = the frame you are looking at. Dimmed = not in the
                     // GIF. Two different facts, so two different signals.
-                    previewFrame === i ? "border-current" : "border-transparent",
+                    previewFrame === i ? "border-transparent" : "border-transparent",
                     selectedFrames.has(i) || pickingColor ? "opacity-100" : "opacity-50",
                   )}
                   style={previewFrame === i ? { borderColor: colors.accent } : undefined}
@@ -1938,7 +1938,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                   colors.panelBorder,
                   cropSquare ? 'text-[var(--aerie-on-accent)]' : colors.textMain,
                 )}
-                style={cropSquare ? { background: colors.accent, borderColor: colors.accent } : undefined}
+                style={cropSquare ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: 'transparent' } : undefined}
               >
                 Square
               </button>
@@ -2019,7 +2019,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                     colors.panelBorder,
                     cropAllFrames === all ? 'text-[var(--aerie-on-accent)]' : colors.textMain,
                   )}
-                  style={cropAllFrames === all ? { background: colors.accent, borderColor: colors.accent } : undefined}
+                  style={cropAllFrames === all ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: 'transparent' } : undefined}
                 >
                   {all ? 'All frames' : 'This frame only'}
                 </button>

@@ -3,8 +3,9 @@ import React, { useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, Download, Info, PenTool,
-  Users, X,
+  Trash2, Users, X,
 } from 'lucide-react';
+import { askConfirm } from '../lib/ask-confirm';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
 import { useBackHandler } from '../lib/use-back-handler';
@@ -62,7 +63,7 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
     enhancing,
     error,
     currentImage, setCurrentImage,
-    history,
+    history, deleteFromHistory,
     folders, setFolders,
     crop, setCrop,
     zoom, setZoom,
@@ -473,7 +474,26 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
             <div className="flex items-center justify-between p-4" style={{ paddingTop: 'calc(var(--sat) + 0.75rem)' }}>
               <button type="button" onClick={() => setViewingImage(null)} className="rounded-full bg-white/10 p-2"><X className="h-5 w-5" /></button>
               <span className="text-xs text-white/60">{flip.position}</span>
-              <button type="button" onClick={() => handleDownload(viewingImage)} className="rounded-full bg-white/10 p-2"><Download className="h-4 w-4" /></button>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => handleDownload(viewingImage)} className="rounded-full bg-white/10 p-2" title="Download"><Download className="h-4 w-4" /></button>
+                {/* Delete here too, not only in the gallery. The next picture
+                    takes its place, or the viewer closes on the last one. */}
+                <button
+                  type="button"
+                  title="Delete"
+                  onClick={() => {
+                    const gone = viewingImage;
+                    void askConfirm('Delete this picture? This cannot be undone.').then(async (yes) => {
+                      if (!yes) return;
+                      const at = history.findIndex((img) => img.id === gone.id);
+                      const after = history[at + 1] ?? history[at - 1] ?? null;
+                      await deleteFromHistory(gone.id);
+                      setViewingImage(after && after.id !== gone.id ? after : null);
+                    });
+                  }}
+                  className="rounded-full bg-red-500/20 p-2 text-red-300"
+                ><Trash2 className="h-4 w-4" /></button>
+              </div>
             </div>
             <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
               {viewingImage.mediaType === 'video'

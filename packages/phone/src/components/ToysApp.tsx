@@ -893,7 +893,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
                 <button
                   onClick={() => { setSettingsFor((open) => (open === toy.toyId ? null : toy.toyId)); setConfirmDelete(null); }}
                   className={cn('rounded-[var(--shape-chip)] border p-1.5', colors.panelBorder, colors.textMuted)}
-                  style={settingsFor === toy.toyId ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                  style={settingsFor === toy.toyId ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   aria-label={`Settings for ${toyName(toy)}`}
                   aria-expanded={settingsFor === toy.toyId}
                 >
@@ -969,7 +969,7 @@ export function ToysApp({ onClose, themeConfig, themeMode }: ToysAppProps) {
                         key={n}
                         onClick={() => { setLevel(toy.toyId, 'PRESET', n); noteOwnPreset(toy.toyId, toyName(toy), n); }}
                         className={cn('rounded-[var(--shape-chip)] border py-1.5 text-xs', colors.panelBorder, colors.textMain)}
-                        style={presetLevel(toy.toyId) === n ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                        style={presetLevel(toy.toyId) === n ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                       >
                         {n}
                       </button>

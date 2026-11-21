@@ -358,7 +358,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
       style={{ padding: `${CARD_SIDE_GAP_REM}rem` }}
     >
-      <div style={{ maxWidth: `${CARD_MAX_WIDTH_REM}rem` }} className={cn(
+      <div style={{ maxWidth: `calc(${CARD_MAX_WIDTH_REM}rem * var(--contact-card-scale, 1))` }} className={cn(
         "w-full overflow-hidden border relative transition-all duration-500 flex flex-col max-h-[90vh]",
         themeConfig.radius,
         colors.panelBg,
@@ -436,7 +436,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ themeConfig, themeMode
         </button>
 
         {/* Profile Header */}
-        <div ref={headerRef} className="relative shrink-0 overflow-hidden" style={{ height: `${CARD_HEADER_REM}rem` }}>
+        <div ref={headerRef} className="relative shrink-0 overflow-hidden" style={{ height: `calc(${CARD_HEADER_REM}rem * var(--contact-card-scale, 1))` }}>
           {current.image ? (
             <img
               src={current.image}

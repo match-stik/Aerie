@@ -89,11 +89,11 @@ export function GenerationControls({
                 key={key}
                 onClick={() => setBackend(key)}
                 className={cn(
-                  "flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors",
-                  selected ? "border-current" : cn(colors.panelBorder, colors.textMuted),
+                  "flex-1 px-3 py-2 rounded-[var(--shape-chip)] border text-sm font-medium transition-colors",
+                  selected ? "border-transparent" : cn(colors.panelBorder, colors.textMuted),
                   unavailable && !selected && "opacity-50",
                 )}
-                style={selected ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                style={selected ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
               >
                 {label}
                 {unavailable && (
@@ -181,8 +181,8 @@ export function GenerationControls({
             <button
               key={p.label}
               onClick={() => setSize(p.value)}
-              className={cn("px-2.5 py-1 rounded-[var(--shape-control)] text-xs font-medium border transition-colors", size === p.value ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-              style={size === p.value ? { borderColor: colors.accent, color: colors.accent } : undefined}
+              className={cn("px-2.5 py-1 rounded-[var(--shape-chip)] text-xs font-medium border transition-colors", size === p.value ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+              style={size === p.value ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
               title={p.dims}
             >
               {p.label}
@@ -226,8 +226,8 @@ export function GenerationControls({
                     <button
                       key={d.slug}
                       onClick={() => toggleSubject(d.slug)}
-                      className={cn("px-2 py-1 rounded-[var(--shape-control)] text-xs border transition-colors flex items-center gap-1", selectedSubjects.includes(d.slug) ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-                      style={selectedSubjects.includes(d.slug) ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                      className={cn("px-2 py-1 rounded-[var(--shape-control)] text-xs border transition-colors flex items-center gap-1", selectedSubjects.includes(d.slug) ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                      style={selectedSubjects.includes(d.slug) ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                     >
                       {d.emoji && <span>{d.emoji}</span>}
                       {d.label}
@@ -278,16 +278,16 @@ export function GenerationControls({
                 like, and both can be on at once. */}
             <button
               onClick={() => setShowDirectivePicker(!showDirectivePicker)}
-              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-control)] border transition-colors", selectedDirective ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-              style={selectedDirective ? { borderColor: colors.accent, color: colors.accent } : undefined}
+              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-control)] border transition-colors", selectedDirective ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+              style={selectedDirective ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               <Compass className="w-3 h-3" />
               {selectedDirective || 'Directive'}
             </button>
             <button
               onClick={() => setShowStylePicker(!showStylePicker)}
-              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-control)] border transition-colors", selectedStyle ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-              style={selectedStyle ? { borderColor: colors.accent, color: colors.accent } : undefined}
+              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-control)] border transition-colors", selectedStyle ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+              style={selectedStyle ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               <Palette className="w-3 h-3" />
               {selectedStyle || 'Style'}
@@ -302,8 +302,8 @@ export function GenerationControls({
                   <button
                     key={d.name}
                     onClick={() => { setSelectedDirective(d.name === 'None' ? '' : d.name); setShowDirectivePicker(false); }}
-                    className={cn("px-2 py-0.5 rounded-[var(--shape-control)] text-xs border transition-colors", (selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-                    style={(selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                    className={cn("px-2 py-0.5 rounded-[var(--shape-control)] text-xs border transition-colors", (selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                    style={(selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     {d.name}
                   </button>
@@ -318,8 +318,8 @@ export function GenerationControls({
                   <button
                     key={s.name}
                     onClick={() => { setSelectedStyle(s.name === 'None' ? '' : s.name); setShowStylePicker(false); }}
-                    className={cn("px-2 py-0.5 rounded-[var(--shape-control)] text-xs border transition-colors", (selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-                    style={(selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                    className={cn("px-2 py-0.5 rounded-[var(--shape-control)] text-xs border transition-colors", (selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                    style={(selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     {s.name}
                   </button>

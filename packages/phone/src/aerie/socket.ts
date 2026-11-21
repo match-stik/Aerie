@@ -224,6 +224,13 @@ function showLocalNotification(title: string, body: string): void {
   const tell = (what: string) => { if (laptop) reportFromLaptop(`notify-${Date.now()}`, what); };
   if (laptop ? document.hasFocus() : !document.hidden) { tell('skipped: the window has focus'); return; }
   if (Notification.permission !== 'granted') { tell(`skipped: permission is ${Notification.permission}`); return; }
+  // The laptop app 1.1.14 and later makes the notification itself, which is
+  // the one whose click reaches it (desktop/main.cjs aerie:notify).
+  const desktop = (window as { aerieDesktop?: { notify?: (title: string, body: string) => Promise<boolean> } }).aerieDesktop;
+  if (laptop && desktop && typeof desktop.notify === 'function') {
+    void desktop.notify(title, body).then((ok) => tell(ok ? 'shown by the app' : 'the app could not show it')).catch(() => tell('the app could not show it'));
+    return;
+  }
   const note = new Notification(title, { body, tag: 'aerie-local' });
   note.onshow = () => tell('shown');
   note.onerror = () => tell('Windows refused to show it');

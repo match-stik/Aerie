@@ -15,6 +15,7 @@ import { cn } from '../lib/utils';
 import { Toggle } from './Toggle';
 import { useBackHandler } from '../lib/use-back-handler';
 import { HouseSelect } from './HouseSelect';
+import { askConfirm } from '../lib/ask-confirm';
 
 interface CompanionsAppProps {
   onClose: () => void;
@@ -249,7 +250,7 @@ export function CompanionsApp({
   }
 
   async function deleteCompanion(slug: string) {
-    if (!confirm(`Delete ${slug}? This cannot be undone.`)) return;
+    if (!(await askConfirm(`Delete ${slug}? This cannot be undone.`))) return;
     setSaving(slug);
     try {
       const res = await apiFetch(`/api/companions/${slug}`, { method: 'DELETE' });

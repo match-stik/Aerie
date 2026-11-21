@@ -272,7 +272,7 @@ export function ScreeningApp({ onClose, themeConfig, themeMode }: Props) {
               aria-selected={tab === id}
               onClick={() => setTab(id)}
               className="h-9 flex-1 rounded-[var(--shape-chip)] text-sm font-medium transition active:scale-[.98]"
-              style={tab === id ? { background: colors.accent, color: 'var(--aerie-on-accent)' } : undefined}
+              style={tab === id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               {name}
             </button>

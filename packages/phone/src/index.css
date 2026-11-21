@@ -2087,3 +2087,37 @@ html[data-desk][data-desk-chat='tucked'] .aerie-picker-sheet {
   -webkit-user-select: text;
   user-select: text;
 }
+
+/* The contact card on the laptop: wider, its picture taller by the same
+   amount so the header keeps the shape its faces were cropped to.
+   lib/contact-card-frame.ts
+   holds the phone's sizes; the croppers measure the header as drawn. */
+html[data-desk] {
+  --contact-card-scale: 1.4;
+}
+
+/* No up and down arrows in a number box: they are tiny on the laptop, the
+   phone never shows them, and typing the number is the way in. */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Rooms that keep a phone-width column (Weather, the Shelf, the Scaffold)
+   take the laptop's room width like the rest, and the Scaffold's picture,
+   which runs edge to edge on the phone, becomes a card the width of the cards
+   under it. */
+.aerie-root[data-desk] [data-room-column] {
+  max-width: none;
+}
+.aerie-root[data-desk] [data-room-hero] {
+  margin: 0 0 1rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--aerie-hairline);
+}

@@ -22,6 +22,7 @@ import type {
 import { FlipArrows, useFlip } from './ViewerFlip';
 import { ZoomableImage } from '../ZoomableImage';
 import { HouseSelect } from '../HouseSelect';
+import { askConfirm } from '../../lib/ask-confirm';
 
 type Collection =
   | { kind: 'recent' }
@@ -434,14 +435,18 @@ export function StudioGalleryView({
   };
 
   const deleteImage = async (image: GeneratedImage) => {
-    if (!window.confirm('Delete this gallery item? This cannot be undone.')) return;
+    if (!(await askConfirm('Delete this picture? This cannot be undone.'))) return;
     try {
       const response = await apiFetch(`/api/studio/gallery/${encodeURIComponent(image.id)}`, { method: 'DELETE' });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || 'Delete failed');
       }
-      setViewing(null);
+      // The next picture takes its place while one is open, so deleting a run
+      // of them does not mean reopening each.
+      const at = items.findIndex((item) => item.id === image.id);
+      const after = items[at + 1] ?? items[at - 1] ?? null;
+      setViewing((open) => (open && open.id === image.id && after && after.id !== image.id ? after : null));
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Delete failed');
@@ -470,7 +475,7 @@ export function StudioGalleryView({
   };
 
   const deleteCurrentFolder = async () => {
-    if (!folderId || !window.confirm('Delete this folder? Its images will return to the main gallery.')) return;
+    if (!folderId || !(await askConfirm('Delete this folder? Its images will return to the main gallery.'))) return;
     try {
       const response = await apiFetch(`/api/studio/folders/${encodeURIComponent(folderId)}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Folder could not be deleted');
@@ -509,7 +514,7 @@ export function StudioGalleryView({
                 key={entry.key}
                 onClick={() => setCollection(entry.collection)}
                 className={cn('shrink-0 rounded-[var(--shape-control)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== entry.key && colors.textMuted)}
-                style={collectionKey === entry.key ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                style={collectionKey === entry.key ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
               >
                 {entry.label}
               </button>
@@ -522,7 +527,7 @@ export function StudioGalleryView({
                   key={key}
                   onClick={() => { setCastMode('exact'); setCollection({ kind: 'cast', cast: group.cast }); }}
                   className={cn('shrink-0 rounded-[var(--shape-control)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
-                  style={collectionKey === key ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                  style={collectionKey === key ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                 >
                   {castCollectionLabel(group.cast, labelFor, houseGroups)} {group.count}
                 </button>
@@ -541,7 +546,7 @@ export function StudioGalleryView({
                     key={person}
                     onClick={() => { setCastMode('includes'); setCollection({ kind: 'cast', cast: [person] }); }}
                     className={cn('shrink-0 rounded-[var(--shape-control)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
-                    style={collectionKey === key ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                    style={collectionKey === key ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     {labelFor(person)} {count}
                   </button>
@@ -821,7 +826,7 @@ export function StudioGalleryView({
                     onClick={() => togglePersonTag(slug)}
                     aria-pressed={active}
                     className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
-                    style={active ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                    style={active ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     {active && <Check className="h-3.5 w-3.5" />}
                     <span>{drawer.emoji ? `${drawer.emoji} ` : ''}{drawer.label}</span>
@@ -845,7 +850,7 @@ export function StudioGalleryView({
                         onClick={() => togglePersonTag(slug)}
                         aria-pressed={active}
                         className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
-                        style={active ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                        style={active ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                       >
                         {active && <Check className="h-3.5 w-3.5" />}
                         {labelFor(slug)}

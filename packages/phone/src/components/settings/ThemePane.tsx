@@ -5,6 +5,7 @@ import { saveThemeAs, updateSavedTheme, deleteSavedTheme, wearSavedTheme } from 
 import { PALETTE_THEME_IDS, THEMES } from "../../lib/theme";
 import { cn } from "../../lib/utils";
 import type { SettingsState } from './use-settings-state';
+import { askConfirm } from '../../lib/ask-confirm';
 
 export function ThemePane({ s }: { s: SettingsState }) {
   const { colors, shownNoteColors, handleColorSelect, isColorSelected, theme, onThemeChange, onClose } = s;
@@ -245,7 +246,7 @@ export function ThemePane({ s }: { s: SettingsState }) {
           </button>
           {wornSaved && (
             <button
-              onClick={() => { if (window.confirm(`Delete ${wornSaved.name}? Its colors stay in Custom.`)) onThemeChange(deleteSavedTheme(theme, wornSaved.id)); }}
+              onClick={() => { void askConfirm(`Delete ${wornSaved.name}? Its colors stay in Custom.`).then((yes) => { if (yes) onThemeChange(deleteSavedTheme(theme, wornSaved.id)); }); }}
               className={cn("rounded-[var(--shape-control)] p-1.5", colors.textMuted)}
               aria-label={`Delete ${wornSaved.name}`}
             >

@@ -414,7 +414,7 @@ export function StoryShelfApp({ onClose, themeConfig, themeMode }: StoryShelfApp
         </button>
       }
     >
-      <div ref={rootRef} className="mx-auto w-full max-w-md">
+      <div ref={rootRef} data-room-column className="mx-auto w-full max-w-md">
         {openId ? (
           view && view.book.id === openId ? (
             <BookPages
@@ -1055,7 +1055,7 @@ function SceneText({ page, bookId, companions, colors }: { page: StoryPage; book
 function MoveNote({ page, thread, colors }: { page: StoryPage; thread: string; colors: ThemeColors }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-xl border-l-[3px] px-3 py-2" style={{ borderColor: thread, background: CARD }}>
+      <div className="max-w-[85%] rounded-xl border border-l-[3px] px-3 py-2" style={{ borderColor: HAIRLINE, borderLeftColor: thread, background: SHEET }}>
         <div className={cn(LABEL, colors.textMuted)}>{page.choiceId ? 'You chose' : 'Your words'}</div>
         <p className={cn('mt-0.5 text-[13px] italic leading-snug [overflow-wrap:anywhere]', colors.textMain)}>{page.text}</p>
       </div>

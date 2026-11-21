@@ -341,7 +341,7 @@ export function BingoGame({ colors }: BingoProps) {
         <button type="button" disabled={busy}
                 onClick={() => { setSetup(false); setSeat(OWNER); void post('/new', { pattern, cardsEach }); }}
                 className="flex-1 rounded-[var(--shape-control)] px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
-                style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}>
+                style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>
           Deal
         </button>
         {game && <button type="button" onClick={() => setSetup(false)} className={chip}>Keep playing</button>}
@@ -566,7 +566,7 @@ export function BingoGame({ colors }: BingoProps) {
           <div className="mt-3 flex flex-nowrap items-center gap-1.5">
             <button type="button" disabled={game.done} onClick={() => setAuto((a) => !a)}
                     className="flex w-[4.5rem] shrink-0 items-center justify-center gap-1.5 rounded-[var(--shape-control)] px-2 py-2 text-sm font-semibold disabled:opacity-50"
-                    style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}>
+                    style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>
               {auto ? <Pause size={15} /> : <Play size={15} />}{auto ? 'Pause' : 'Roll'}
             </button>
             <button type="button" disabled={busy || game.done || auto} onClick={() => void post('/call')} className={cn(chip, 'shrink-0 whitespace-nowrap py-2 disabled:opacity-40')}>
@@ -586,7 +586,7 @@ export function BingoGame({ colors }: BingoProps) {
           <button type="button" disabled={busy || game.done || mine.frozen}
                   onClick={() => void post('/claim')}
                   className="mt-2.5 w-full rounded-[var(--shape-control)] py-1.5 text-sm font-black tracking-[.3em] disabled:opacity-40"
-                  style={{ background: colors.accent, color: 'var(--aerie-on-accent)' }}>
+                  style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>
             {mine.frozen ? 'FROZEN' : game.done ? 'ROUND OVER' : 'BINGO'}
           </button>
           {showBoard && (

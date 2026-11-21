@@ -95,6 +95,7 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns 
   // --- 2D drag state ----------------------------------------------------
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
+  const fixedOriginRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const tileSizeRef = useRef<{ w: number; h: number }>({ w: 56, h: 56 });
   const slotsRef = useRef(slots);
@@ -335,13 +336,19 @@ export function AppDrawer({ onClose, onOpenApp, themeConfig, themeMode, columns 
 
       </div>
 
+      {/* Where 'fixed' really starts here. On the laptop the drawer opens as a
+          moved sheet, and a moved ancestor makes fixed count from its corner
+          instead of the screen's, so the ghost trailed far to the side of the
+          finger. This zero-size mark sits at fixed 0,0, and its
+          place on the screen is what the ghost subtracts. */}
+      <div ref={fixedOriginRef} aria-hidden className="pointer-events-none fixed left-0 top-0 h-0 w-0" />
       {/* Floating ghost — follows the pointer while dragging. */}
       {draggingApp && pointer && (
         <div
           className="pointer-events-none fixed z-50 flex flex-col items-center gap-1.5 transition-transform"
           style={{
-            left: pointer.x - dragOffsetRef.current.x,
-            top: pointer.y - dragOffsetRef.current.y,
+            left: pointer.x - dragOffsetRef.current.x - (fixedOriginRef.current?.getBoundingClientRect().left ?? 0),
+            top: pointer.y - dragOffsetRef.current.y - (fixedOriginRef.current?.getBoundingClientRect().top ?? 0),
             width: tileSizeRef.current.w,
             transform: 'scale(1.08)',
             filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.25))',

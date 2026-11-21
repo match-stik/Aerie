@@ -1417,7 +1417,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
                 colors.panelBorder,
                 cropping ? 'text-[var(--aerie-on-accent)]' : colors.textMuted,
               )}
-              style={cropping ? { background: colors.accent, borderColor: colors.accent } : undefined}
+              style={cropping ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: 'transparent' } : undefined}
             >
               <Crop size={13} /> Crop
             </button>

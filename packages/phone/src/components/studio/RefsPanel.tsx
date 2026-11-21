@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { refThumbSrc } from '../../lib/thumb';
 import type { RefsPanelProps } from './types';
 import { ACCENT_TEXT_COLOR_BY_THEME } from './constants';
+import { askConfirm } from '../../lib/ask-confirm';
 
 export function RefsPanel({
   colors,
@@ -28,7 +29,7 @@ export function RefsPanel({
   const requestRefDelete = async (slug: string, drawerLabel: string, filename: string) => {
     const key = `${slug}\u0000${filename}`;
     if (pendingRefDeletes.current.has(key)) return;
-    if (!window.confirm(`Delete “${filename}” from ${drawerLabel}?`)) return;
+    if (!(await askConfirm(`Delete “${filename}” from ${drawerLabel}?`))) return;
 
     pendingRefDeletes.current.add(key);
     setPendingDeleteKeys(current => new Set(current).add(key));

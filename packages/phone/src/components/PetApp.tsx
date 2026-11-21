@@ -7,6 +7,7 @@ import type { ThemeConfig } from '../lib/theme';
 import { cn, haptic } from '../lib/utils';
 import { apiFetch } from '../aerie';
 import { useBackHandler } from '../lib/use-back-handler';
+import { askConfirm } from '../lib/ask-confirm';
 
 interface PetAppProps {
   onClose: () => void;
@@ -294,8 +295,8 @@ export function PetApp({ onClose, themeConfig, themeMode }: PetAppProps) {
     setEditing(false);
   }
 
-  function resetPet() {
-    if (!window.confirm('Start over with a new pet?')) return;
+  async function resetPet() {
+    if (!(await askConfirm('Start over with a new pet?', { yes: 'Start over' }))) return;
     petApi('/reset').then((data) => {
       if (data?.pet) {
         setPet(petFromServer(data.pet));

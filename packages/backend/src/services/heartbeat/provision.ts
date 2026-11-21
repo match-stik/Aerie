@@ -408,6 +408,53 @@ try {
   }
   fs.appendFileSync(OUT, JSON.stringify(line) + '\\n', 'utf8');
 } catch {}
+
+// The person's notes, put in front of the session the moment a tool call returns.
+// A note sent mid-turn sat in io/side-notes.jsonl until the session thought
+// to look, and through a long build or a test run it did not look, so it was
+// answered at the end of the turn or in the next one. Claude Code reads a PostToolUse hook's
+// additionalContext into the next step, so every tool call is now a look.
+// The offset of what has been shown is kept in io/.side-notes-surfaced; a
+// missing or unreadable one starts at the file's end rather than replaying
+// history, and it is written whole (tmp, then rename). Only whole lines are
+// taken. Nothing here marks a note read: answering it does that.
+if (PHASE === 'post' && !COMPACT) {
+  try {
+    const IO = path.join(path.resolve(__dirname, '..'), 'io');
+    const NOTES = path.join(IO, 'side-notes.jsonl');
+    const MARK = path.join(IO, '.side-notes-surfaced');
+    const size = fs.statSync(NOTES).size;
+    let from = NaN;
+    try { from = Number(String(fs.readFileSync(MARK, 'utf8')).trim()); } catch {}
+    const keep = (n) => { fs.writeFileSync(MARK + '.tmp', String(n)); fs.renameSync(MARK + '.tmp', MARK); };
+    if (!Number.isInteger(from) || from < 0 || from > size) {
+      keep(size);
+    } else if (size > from) {
+      const fd = fs.openSync(NOTES, 'r');
+      const buf = Buffer.alloc(size - from);
+      fs.readSync(fd, buf, 0, buf.length, from);
+      fs.closeSync(fd);
+      const text = buf.toString('utf8');
+      const end = text.lastIndexOf('\\n');
+      if (end >= 0) {
+        const notes = [];
+        for (const row of text.slice(0, end).split('\\n')) {
+          try { const n = JSON.parse(row); if (n && typeof n.text === 'string' && n.text.trim()) notes.push(n); } catch {}
+        }
+        keep(from + Buffer.byteLength(text.slice(0, end + 1), 'utf8'));
+        if (notes.length) {
+          const said = notes.map((n) => '- (' + (n.at || '') + ') ' + n.text).join('\\n');
+          process.stdout.write(JSON.stringify({
+            hookSpecificOutput: {
+              hookEventName: 'PostToolUse',
+              additionalContext: '[Your person just sent this while you were working. Answer it now, in your next outbox line with "more": true, then write its read mark, and go on with the work.]\\n' + said,
+            },
+          }));
+        }
+      }
+    }
+  } catch {}
+}
 process.exit(0);
 `;
 

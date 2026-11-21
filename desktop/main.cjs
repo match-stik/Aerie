@@ -379,6 +379,25 @@ function makeTrayMenu() {
 
 ipcMain.handle('aerie:show', () => { tellHouse('notify-click', 'the page asked to come forward'); showWindow(); return true; });
 
+// The app's own notifications, made here rather than by the page. A page's
+// notification in this app showed and never reported a click, by its own
+// handler or Windows' activation. One made here carries its click to this
+// process directly. Each is kept until it closes, or a collected one loses
+// its click.
+const liveNotes = new Set();
+ipcMain.handle('aerie:notify', (_event, title, body) => {
+  if (!Notification.isSupported()) return false;
+  const icon = path.join(__dirname, 'icon.png');
+  const note = new Notification({ title: String(title).slice(0, 120), body: String(body).slice(0, 400), ...(fs.existsSync(icon) ? { icon } : {}) });
+  liveNotes.add(note);
+  const forget = () => liveNotes.delete(note);
+  note.on('click', () => { tellHouse('notify-click', 'clicked (the app\'s own notification)'); forget(); showWindow(); });
+  note.on('close', forget);
+  note.on('failed', (_e, error) => { tellHouse('notify-click', `Windows refused it: ${error}`); forget(); });
+  note.show();
+  return true;
+});
+
 // Windows only reports an entry as on when it is asked with the SAME args it
 // was written with: asked bare, an entry made with --hidden reads as off, so
 // the switch flipped itself back every time. Every read and write uses this.
@@ -765,7 +784,7 @@ if (finishAt !== -1) {
   // One window: opening the app again brings the one already open forward.
   app.quit();
 } else {
-  app.on('second-instance', showWindow);
+  app.on('second-instance', () => { tellHouse('notify-click', 'opened again, so the open window comes forward'); showWindow(); });
   app.on('before-quit', () => { quitting = true; });
   if (process.platform === 'win32') {
     app.setAppUserModelId(APP_ID);

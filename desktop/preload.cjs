@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('aerieDesktop', {
   wakeSpotify: () => ipcRenderer.invoke('aerie:wake-spotify'),
   setHouse: (url) => ipcRenderer.invoke('aerie:set-house', String(url ?? '')),
   show: () => ipcRenderer.invoke('aerie:show'),
+  notify: (title, body) => ipcRenderer.invoke('aerie:notify', String(title ?? ''), String(body ?? '')),
   about: () => ipcRenderer.invoke('aerie:about'),
   setStartWithWindows: (on) => ipcRenderer.invoke('aerie:start-with-windows', Boolean(on)),
   checkUpdate: () => ipcRenderer.invoke('aerie:check-update'),

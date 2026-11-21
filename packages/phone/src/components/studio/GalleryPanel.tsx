@@ -58,7 +58,7 @@ function VirtualizedHistoryStrip({
               onClick={() => selectFromHistory(img)}
               className={cn(
                 "absolute top-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer",
-                isSelected ? "border-current" : "border-transparent opacity-70 hover:opacity-100"
+                isSelected ? "border-transparent" : "border-transparent opacity-70 hover:opacity-100"
               )}
               style={{
                 left: virtualItem.start,
@@ -130,8 +130,8 @@ export function GalleryPanel({
                 <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => setCurrentFolderId(null)}
-                    className={cn("px-2 py-1 rounded text-xs border", !currentFolderId ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-                    style={!currentFolderId ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                    className={cn("px-2 py-1 rounded text-xs border", !currentFolderId ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                    style={!currentFolderId ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     All
                   </button>
@@ -139,8 +139,8 @@ export function GalleryPanel({
                     <button
                       key={f.id}
                       onClick={() => setCurrentFolderId(f.id)}
-                      className={cn("px-2 py-1 rounded text-xs border flex items-center gap-1", currentFolderId === f.id ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-                      style={currentFolderId === f.id ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                      className={cn("px-2 py-1 rounded text-xs border flex items-center gap-1", currentFolderId === f.id ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                      style={currentFolderId === f.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                     >
                       {f.name}
                       <X className="w-3 h-3 opacity-50 hover:opacity-100" onClick={(e) => { e.stopPropagation(); deleteFolder(f.id); }} />
@@ -176,8 +176,8 @@ export function GalleryPanel({
                 <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => setCurrentRefFilter(null)}
-                    className={cn("px-2 py-1 rounded text-xs border", !currentRefFilter ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-                    style={!currentRefFilter ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                    className={cn("px-2 py-1 rounded text-xs border", !currentRefFilter ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                    style={!currentRefFilter ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     All refs
                   </button>
@@ -188,8 +188,8 @@ export function GalleryPanel({
                       <button
                         key={slug}
                         onClick={() => setCurrentRefFilter(slug)}
-                        className={cn("px-2 py-1 rounded text-xs border", currentRefFilter === slug ? "border-current" : cn(colors.panelBorder, colors.textMuted))}
-                        style={currentRefFilter === slug ? { borderColor: colors.accent, color: colors.accent } : undefined}
+                        className={cn("px-2 py-1 rounded text-xs border", currentRefFilter === slug ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                        style={currentRefFilter === slug ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                       >
                         {drawer?.emoji ? `${drawer.emoji} ` : ''}{label}
                       </button>
