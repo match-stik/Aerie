@@ -83,9 +83,15 @@ const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&a
  */
 function askHer(message, detail, yes, { no = 'Cancel', big = null } = {}) {
   return new Promise((resolve) => {
-    const parent = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed() && w.isVisible()) || null;
+    // Only the house's own window is a parent. A question asked right after
+    // another one found the first, still closing, as its parent and went down
+    // with it, so the backup's phrase never showed.
+    const parent = mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible() ? mainWindow : null;
+    // Tall enough for its words, so it never scrolls.
+    const lines = String(detail).split('\n').reduce((n, para) => n + Math.max(1, Math.ceil(para.length / 58)), 0);
+    const height = Math.min(640, 150 + lines * 20 + (big ? 100 : 0));
     const ask = new BrowserWindow({
-      width: 460, height: big ? 340 : 210, useContentSize: true, resizable: false, minimizable: false, maximizable: false,
+      width: 480, height, useContentSize: true, resizable: false, minimizable: false, maximizable: false,
       frame: false, show: false, modal: !!parent, parent: parent || undefined, backgroundColor: '#1a1416', title: 'Aerie',
       webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, javascript: false },
     });
@@ -104,6 +110,7 @@ function askHer(message, detail, yes, { no = 'Cancel', big = null } = {}) {
   h1{margin:0 0 10px;font-size:17px;font-weight:600;letter-spacing:.01em}
   .big{margin:4px 0 14px;padding:14px 10px;border-radius:14px;background:#24191c;border:1px solid #4a2f36;text-align:center;font:600 20px/1.4 Consolas,'Courier New',monospace;letter-spacing:.08em;-webkit-user-select:text;user-select:text}
   p{margin:0;color:#cdb9b2;font-size:13px;flex:1;overflow:auto}
+  ::-webkit-scrollbar{display:none}
   .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
   a{display:inline-block;padding:9px 18px;border-radius:999px;text-decoration:none;font-weight:600;font-size:13px;-webkit-app-region:no-drag}
   .no{color:#e8d8d2;border:1px solid #4a3a3f}

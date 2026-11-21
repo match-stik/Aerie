@@ -1462,7 +1462,6 @@ export default function App() {
           .join('')
           .trim()
         : (msg.content || '');
-      const sectionCopyText = (sec: { content: string }) => sec.content.trim() || undefined;
       const bubbleFor = (m: typeof msg, voice: any, pos: 'only' | 'first' | 'middle' | 'last', centered?: boolean, copy?: string) => (
         <MessageBubble
           message={m}
@@ -1533,10 +1532,11 @@ export default function App() {
                 // Leading meta-only section (thinking/tool badges
                 // before the first voice) → centered, no tail.
                 sec.voice === null && !sec.content.trim(),
-                // A bubble's Copy takes that bubble's own words as written,
-                // bold and all, not the whole message with every voice and
-                // header in it.
-                sectionCopyText(sec),
+                // Copy takes the whole message as written, every voice, bold
+                // and all. The tray sits under the last voice only, so a
+                // per-bubble copy there could only ever reach the last bubble.
+                // Part of a message is a highlight away.
+                undefined,
               )}
             </motion.div>,
           );

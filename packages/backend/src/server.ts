@@ -429,8 +429,12 @@ if (config.command_center.enabled) {
   initCcRoutes();
 }
 
-// Serve sticker files statically
-app.use('/stickers', express.static(getStickersDir()));
+// Serve sticker files statically. A sticker's file never changes under its
+// name (a replacement is written under a new, versioned one: stickerFilenameFor
+// in services/sticker-admin.ts), so a screen may keep it for a month without
+// asking again, and a sticker already seen shows at once instead of waiting on
+// a check with the house first.
+app.use('/stickers', express.static(getStickersDir(), { maxAge: '30d', immutable: true }));
 
 // Serve emoji files statically
 app.use('/emojis', express.static(join(dataDir, 'emojis')));
