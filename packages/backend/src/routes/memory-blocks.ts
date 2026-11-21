@@ -75,8 +75,12 @@ router.post('/memory/import/conversations', exportUpload.single('file'), (req, r
   conversationJob = job;
   res.json({ job });
   void (async () => {
+    // Checked again here: the check above does not follow into this later
+    // step, and the read and the removal below both use the path.
+    const uploaded = resolve(filePath);
+    if (!uploaded.startsWith(resolve(UPLOAD_DIR) + sep)) { job.state = 'failed'; job.error = 'That upload did not land where uploads go.'; job.finishedAt = new Date().toISOString(); return; }
     try {
-      const bytes = readFileSync(filePath);
+      const bytes = readFileSync(uploaded);
       const person = String(req.body?.person || getAerieConfig().identity?.user_name || 'You');
       const convs = parseExport(readExportFile(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), file.originalname), { person });
       job.state = 'importing';
@@ -96,7 +100,7 @@ router.post('/memory/import/conversations', exportUpload.single('file'), (req, r
       console.warn(`[conversation-import] ${job.error}`);
     } finally {
       job.finishedAt = new Date().toISOString();
-      try { unlinkSync(filePath); } catch { /* already gone */ }
+      try { unlinkSync(uploaded); } catch { /* already gone */ }
     }
   })();
 });
