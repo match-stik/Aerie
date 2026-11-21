@@ -7,7 +7,7 @@ import { getMemoryExtractionStatus, runMemoryExtraction } from '../services/memo
 import type { AgentService } from '../services/agent.js';
 import multer from 'multer';
 import { mkdirSync, readFileSync, unlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { PROJECT_ROOT, getAerieConfig } from '../config.js';
 import { importConversations, parseExport, readExportFile, type ImportProgress } from '../services/conversation-import.js';
 import { embed, vectorToBuffer } from '../services/embeddings.js';
@@ -64,8 +64,11 @@ let conversationJob: ConversationImportJob | null = null;
 router.post('/memory/import/conversations', exportUpload.single('file'), (req, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: 'No file. Send the export zip, or the conversations.json inside it.' });
+  // Only a file multer wrote into the upload folder is read or removed here.
+  const filePath = resolve(file.path);
+  if (!filePath.startsWith(resolve(UPLOAD_DIR) + sep)) return res.status(400).json({ error: 'That upload did not land where uploads go.' });
   if (conversationJob && (conversationJob.state === 'reading' || conversationJob.state === 'importing')) {
-    try { unlinkSync(file.path); } catch { /* already gone */ }
+    try { unlinkSync(filePath); } catch { /* already gone */ }
     return res.status(409).json({ error: 'An import is already running.', job: conversationJob });
   }
   const job: ConversationImportJob = { state: 'reading', file: file.originalname, startedAt: new Date().toISOString(), finishedAt: null, progress: null, error: null };
@@ -73,7 +76,7 @@ router.post('/memory/import/conversations', exportUpload.single('file'), (req, r
   res.json({ job });
   void (async () => {
     try {
-      const bytes = readFileSync(file.path);
+      const bytes = readFileSync(filePath);
       const person = String(req.body?.person || getAerieConfig().identity?.user_name || 'You');
       const convs = parseExport(readExportFile(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), file.originalname), { person });
       job.state = 'importing';
@@ -93,7 +96,7 @@ router.post('/memory/import/conversations', exportUpload.single('file'), (req, r
       console.warn(`[conversation-import] ${job.error}`);
     } finally {
       job.finishedAt = new Date().toISOString();
-      try { unlinkSync(file.path); } catch { /* already gone */ }
+      try { unlinkSync(filePath); } catch { /* already gone */ }
     }
   })();
 });

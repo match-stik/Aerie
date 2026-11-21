@@ -1,6 +1,6 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { realpathSync } from 'fs';
-import { dirname, resolve, sep } from 'path';
+import { basename, dirname, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
 import { getConfig } from '../../services/db/config.js';
 
@@ -32,12 +32,20 @@ function configuredShareRoots(): string[] {
   }
 }
 
-const NEVER_FILES = /(^|[\\/])(aerie\.ya?ml|[^\\/]+\.db(-wal|-shm|-journal)?|[^\\/]*session[^\\/]*\.json)$/i;
+// The settings, the databases and any session file are never handed out,
+// judged on the last part of the path by plain checks: the one pattern this
+// replaced could backtrack for a long time on a crafted name.
+function isNeverFile(real: string): boolean {
+  const name = basename(real).toLowerCase();
+  if (name === 'aerie.yaml' || name === 'aerie.yml') return true;
+  if (/\.db(-wal|-shm|-journal)?$/.test(name) && name.length > 3) return true;
+  return name.endsWith('.json') && name.includes('session');
+}
 
 export function isPathAllowedWith(filePath: string, roots: ReadonlyArray<string>): boolean {
   if (typeof filePath !== 'string' || !filePath || filePath.includes('\0')) return false;
   const real = realOrResolved(filePath);
-  if (NEVER_FILES.test(real)) return false;
+  if (isNeverFile(real)) return false;
   return roots.some((root) => {
     const r = realOrResolved(root);
     if (real !== r && !real.startsWith(r + sep)) return false;
