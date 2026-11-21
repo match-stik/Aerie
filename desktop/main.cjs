@@ -14,6 +14,7 @@ const { app, BrowserWindow, ipcMain, shell, session, Menu, Tray, nativeImage, ne
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 const backupKey = require('./backup-key.cjs');
 
 /** Windows ties notifications to this id; the installer's Start menu entry carries the same one. */
@@ -388,13 +389,28 @@ const liveNotes = new Set();
 ipcMain.handle('aerie:notify', (_event, title, body) => {
   if (!Notification.isSupported()) return false;
   const icon = path.join(__dirname, 'icon.png');
-  const note = new Notification({ title: String(title).slice(0, 120), body: String(body).slice(0, 400), ...(fs.existsSync(icon) ? { icon } : {}) });
+  // On Windows the toast opens aerie://open when clicked. A click on the
+  // app's own toast reached it neither as a click nor through Windows'
+  // activation (shown, then closed, no click), and
+  // a link needs no COM route: Windows starts this exe with the link, the
+  // second copy hands over to this one ('second-instance') and the window
+  // comes forward. The aerie: link is registered for this exe at start.
+  const esc = (t) => String(t).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
+  const iconXml = fs.existsSync(icon) ? `<image placement="appLogoOverride" hint-crop="circle" src="${esc(pathToFileURL(icon).href)}"/>` : '';
+  const toastXml = process.platform === 'win32'
+    ? `<toast activationType="protocol" launch="aerie://open"><visual><binding template="ToastGeneric"><text>${esc(String(title).slice(0, 120))}</text><text>${esc(String(body).slice(0, 400))}</text>${iconXml}</binding></visual></toast>`
+    : undefined;
+  const note = new Notification({ title: String(title).slice(0, 120), body: String(body).slice(0, 400), ...(fs.existsSync(icon) ? { icon } : {}), ...(toastXml ? { toastXml } : {}) });
   liveNotes.add(note);
   const forget = () => liveNotes.delete(note);
   note.on('click', () => { tellHouse('notify-click', 'clicked (the app\'s own notification)'); forget(); showWindow(); });
-  note.on('close', forget);
+  // Every way a notification can end goes in the house's log, so a click
+  // that never arrives shows what happened instead.
+  note.on('close', (event) => { tellHouse('notify-click', `closed (${event && event.reason ? event.reason : 'no reason given'})`); forget(); });
+  note.on('action', () => { tellHouse('notify-click', 'an action button'); showWindow(); });
   note.on('failed', (_e, error) => { tellHouse('notify-click', `Windows refused it: ${error}`); forget(); });
   note.show();
+  tellHouse('notify-click', `shown by the app; window ${mainWindow && mainWindow.isVisible() ? (mainWindow.isMinimized() ? 'minimized' : 'open') : 'tucked in the tray'}`);
   return true;
 });
 
@@ -641,8 +657,16 @@ function ensureShortcuts() {
       shell.writeShortcutLink(path.join(app.getPath('desktop'), 'Aerie.lnk'), 'create', link);
       fs.writeFileSync(marker, new Date().toISOString());
     }
-  } catch {
+    // What Windows will read when a notification is clicked: the Start menu
+    // shortcut's id and activator must match this app's, or a click has
+    // nowhere to go. Said once per start in the house's log.
+    try {
+      const back = shell.readShortcutLink(startMenu);
+      tellHouse('notify-setup', `shortcut ${back.target === process.execPath ? 'points here' : `points at ${back.target}`}, id ${back.appUserModelId === APP_ID ? 'matches' : `is ${back.appUserModelId}`}, activator ${String(back.toastActivatorClsid).toUpperCase() === TOAST_CLSID.toUpperCase() ? 'matches' : `is ${back.toastActivatorClsid}`}`);
+    } catch (err) { tellHouse('notify-setup', `shortcut could not be read back: ${err}`); }
+  } catch (err) {
     // Without the shortcut they still have the app; only its notifications wait.
+    tellHouse('notify-setup', `shortcut could not be written: ${err}`);
   }
   // A start-with-Windows entry names the exe's path, so a moved folder gets it refreshed.
   try {
@@ -784,7 +808,17 @@ if (finishAt !== -1) {
   // One window: opening the app again brings the one already open forward.
   app.quit();
 } else {
-  app.on('second-instance', () => { tellHouse('notify-click', 'opened again, so the open window comes forward'); showWindow(); });
+  app.on('second-instance', (_event, argv) => {
+    const link = (argv || []).find((x) => typeof x === 'string' && x.startsWith('aerie:'));
+    tellHouse('notify-click', link ? `a notification was clicked (${link}), so the window comes forward` : 'opened again, so the open window comes forward');
+    showWindow();
+  });
+  // aerie: links open this app (a clicked notification uses one). An unzipped
+  // app names its own exe; written for this user only, every start, so a moved
+  // folder is followed.
+  if (process.platform === 'win32') {
+    try { app.setAsDefaultProtocolClient('aerie', process.execPath, []); } catch { /* the click then only reaches the corner list */ }
+  }
   app.on('before-quit', () => { quitting = true; });
   if (process.platform === 'win32') {
     app.setAppUserModelId(APP_ID);
