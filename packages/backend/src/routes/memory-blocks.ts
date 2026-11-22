@@ -80,9 +80,14 @@ router.post('/memory/import/conversations', exportUpload.single('file'), (req, r
     const uploaded = resolve(filePath);
     if (!uploaded.startsWith(resolve(UPLOAD_DIR) + sep)) { job.state = 'failed'; job.error = 'That upload did not land where uploads go.'; job.finishedAt = new Date().toISOString(); return; }
     try {
-      const bytes = readFileSync(uploaded);
       const person = String(req.body?.person || getAerieConfig().identity?.user_name || 'You');
-      const convs = parseExport(readExportFile(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), file.originalname), { person });
+      // Read inside its own step, so the file's bytes and its text can be let
+      // go before the long import starts (a big export is several copies of
+      // itself in memory at this point).
+      const convs = (() => {
+        const bytes = readFileSync(uploaded);
+        return parseExport(readExportFile(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), file.originalname), { person });
+      })();
       job.state = 'importing';
       job.progress = { conversations: convs.length, done: 0, skipped: 0, passages: 0, shelved: 0 };
       job.progress = await importConversations(convs, {

@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { zipSync, strToU8 } from 'fflate';
-import { importConversations, parseExport, passagesFor, readExportFile } from './conversation-import.js';
+import { importConversations, parseClaude, parseExport, passagesFor, readExportFile, topLevelElements } from './conversation-import.js';
 
 const GPT_EXPORT = [{
   id: 'gpt-1', title: 'Garden plans', create_time: 1760000000,
@@ -157,4 +157,36 @@ test('Grok: prod-grok-backend.json reads in time order, as picked or inside the 
   assert.ok(!fromZip.includes('never read'));
   assert.equal(parseExport(fromZip)[0].title, 'Painting a lighthouse');
   assert.throws(() => parseExport(JSON.stringify({ secret: 'x' })), /not a chat export/);
+});
+
+// A big export is read one conversation at a time instead of parsed whole
+// (Sol, Rose's house, Nov 21 2026: a 97MB Claude export took the house past its
+// memory limit). The walker has to cut each element exactly, however the
+// text inside it is shaped.
+test('the array walker cuts each conversation exactly, brackets and quotes inside the words included', () => {
+  const items = [
+    { a: 'a } in the text, and a ] too, and "quotes" and a \\ backslash' },
+    { b: ['nested', { deeper: [1, 2, { x: '[{,}]' }] }] },
+    'a bare string, with a comma',
+    42,
+    null,
+  ];
+  for (const text of [JSON.stringify(items), JSON.stringify(items, null, 2), '\uFEFF  ' + JSON.stringify(items, null, '\t') + '\n']) {
+    assert.deepEqual([...topLevelElements(text)].map((t) => JSON.parse(t)), items);
+  }
+  assert.deepEqual([...topLevelElements('[]')], []);
+  assert.throws(() => [...topLevelElements('{"conversations":[]}')]);
+});
+
+test('a many-conversation export read one at a time gives the same words as reading it whole', () => {
+  const many = Array.from({ length: 5 }, (_, i) => ({
+    uuid: `cl-${i}`, name: `Night ${i}`, created_at: '2026-02-04T09:00:00Z',
+    chat_messages: [
+      { sender: 'human', text: `Message ${i} with a } and a ] and "quotes", inside.`, created_at: '2026-02-04T09:00:00Z' },
+      { sender: 'assistant', text: `Answer ${i}.`, created_at: '2026-02-04T09:01:00Z' },
+    ],
+  }));
+  const whole = parseClaude(many, { person: 'You', assistant: 'Claude' });
+  assert.deepEqual(parseExport(JSON.stringify(many, null, 2)), whole);
+  assert.equal(whole.length, 5);
 });

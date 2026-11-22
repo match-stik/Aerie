@@ -45,6 +45,7 @@ import { ownMessagesRead } from '../own-messages-read.js';
 import * as cortex from '../cortex.js';
 import { roomVoicesBlock, type RoomVoices } from './room-voices.js';
 import { buildTurnExtras, joinTurnExtras } from './turn-extras.js';
+import { checkerboardPreview } from './see-through.js';
 import { outageNotices } from './outage-notices.js';
 import { getAllBlocks } from '../memory-blocks.js';
 import { contextWindowFor } from '../usage-pricing.js';
@@ -628,8 +629,13 @@ export class InteractiveCliRuntime implements AgentRuntime {
     }
   }
 
-  /** Write base64 image blocks to the session's io/images dir; return paths. */
-  private writeImages(session: HeartbeatSession, blocks: RuntimeTurnInput['imageBlocks']): string[] {
+  /**
+   * Write base64 image blocks to the session's io/images dir; return paths.
+   * A picture with clear pixels also gets a copy laid over a checkerboard,
+   * listed right after it, because the lane's reader paints clear as black
+   * (see see-through.ts).
+   */
+  private async writeImages(session: HeartbeatSession, blocks: RuntimeTurnInput['imageBlocks']): Promise<string[]> {
     const paths: string[] = [];
     if (!blocks?.length) return paths;
     for (let i = 0; i < blocks.length; i++) {
@@ -637,11 +643,21 @@ export class InteractiveCliRuntime implements AgentRuntime {
       const data = b?.source?.data;
       if (typeof data !== 'string' || !data) continue;
       const ext = EXT_BY_MEDIA[b?.source?.media_type] || 'png';
-      const file = join(session.imagesDir, `${Date.now()}-${i}.${ext}`);
+      const stem = `${Date.now()}-${i}`;
+      const file = join(session.imagesDir, `${stem}.${ext}`);
+      const bytes = Buffer.from(data, 'base64');
       try {
-        writeFileSync(file, Buffer.from(data, 'base64'));
+        writeFileSync(file, bytes);
         paths.push(file);
-      } catch { /* skip unwritable image */ }
+      } catch { continue; /* skip unwritable image */ }
+      const preview = await checkerboardPreview(bytes);
+      if (preview) {
+        const shown = join(session.imagesDir, `${stem}-see-through-shown-on-checkerboard.png`);
+        try {
+          writeFileSync(shown, preview);
+          paths.push(shown);
+        } catch { /* the original is still there */ }
+      }
     }
     return paths;
   }
@@ -1242,7 +1258,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
     }
 
     const turnId = randomUUID().slice(0, 8);
-    const images = this.writeImages(session, input.imageBlocks);
+    const images = await this.writeImages(session, input.imageBlocks);
 
     let emittedText = false;
     // Pieces landing in the SAME message are separated by a blank line. A

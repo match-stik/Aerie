@@ -7,7 +7,7 @@ import test from 'node:test';
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
@@ -16,7 +16,8 @@ test('the Spotify worker passes its own tests', (t) => {
   if (!existsSync(join(dir, 'test.mjs'))) { t.skip('no Spotify worker in this tree'); return; }
   let out = '';
   try {
-    out = execFileSync(process.execPath, [join(dir, 'test.mjs'), join(dir, 'index.js')], { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] });
+    // A file URL, because Windows' import() refuses a bare C:\\ path (Sol, Rose's house, Nov 21 2026).
+    out = execFileSync(process.execPath, [join(dir, 'test.mjs'), pathToFileURL(join(dir, 'index.js')).href], { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] });
   } catch (err) {
     out = String((err as { stdout?: string }).stdout ?? err);
   }

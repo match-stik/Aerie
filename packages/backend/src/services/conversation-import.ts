@@ -211,13 +211,24 @@ export function parseGrok(data: unknown, names: { person: string; assistant: str
 }
 
 export function parseExport(text: string, opts: { person?: string } = {}): ImportedConversation[] {
-  const firstLine = text.replace(/^\uFEFF/, '').split(/\r?\n/, 1)[0].toLowerCase();
+  // Only the head is read to tell a CSV from JSON: on a one-line JSON export
+  // the 'first line' is the whole file, and lowercasing it made more copies of
+  // a 97MB export than the import itself needed.
+  const firstLine = text.slice(0, 512).replace(/^\uFEFF/, '').split(/\r?\n/, 1)[0].toLowerCase();
   if (/^conversation,time,author,message/.test(firstLine.replace(/\s+/g, ''))) {
     return parseCopilotCsv(text, { person: (opts.person || 'You').trim(), assistant: 'Copilot' });
   }
+  const person = (opts.person || 'You').trim();
+  // A ChatGPT or Claude export is one big array. Parsing it whole holds every
+  // conversation's full tree (ids, metadata, branches) in memory at once, and
+  // Rose's 97MB Claude export took her house past its memory limit mid-import
+  // (Sol, Rose's house, Nov 21 2026). So the array is read one conversation at
+  // a time: each element is cut out, parsed, boiled down to its words, and
+  // its tree let go before the next.
+  const streamed = parseArrayExport(text, person);
+  if (streamed) return streamed;
   let data: unknown;
   try { data = JSON.parse(text); } catch { throw new Error('That file is not a chat export this house can read (a ChatGPT or Claude conversations.json, Grok\'s prod-grok-backend.json, or a Copilot activity CSV).'); }
-  const person = (opts.person || 'You').trim();
   if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray((data as { conversations?: unknown }).conversations)) {
     return parseGrok(data, { person, assistant: 'Grok' });
   }
@@ -227,6 +238,71 @@ export function parseExport(text: string, opts: { person?: string } = {}): Impor
   if ('mapping' in sample) return parseChatGPT(data, { person, assistant: 'ChatGPT' });
   if ('chat_messages' in sample) return parseClaude(data, { person, assistant: 'Claude' });
   throw new Error('Not a ChatGPT or Claude export this house knows how to read.');
+}
+
+/**
+ * Each top-level element of a JSON array, as its own slice of the text, without
+ * parsing the whole. Null when the text is not an array (or not well formed
+ * enough to walk), and the caller falls back to parsing it whole.
+ */
+export function* topLevelElements(text: string): Generator<string, void, undefined> {
+  let i = 0;
+  const n = text.length;
+  while (i < n && (text.charCodeAt(i) <= 32 || text.charCodeAt(i) === 0xfeff)) i++;
+  if (text[i] !== '[') throw new Error('not an array');
+  i++;
+  for (;;) {
+    while (i < n && (text.charCodeAt(i) <= 32 || text[i] === ',')) i++;
+    if (i >= n) throw new Error('unterminated array');
+    if (text[i] === ']') return;
+    const start = i;
+    let depth = 0;
+    let inString = false;
+    for (; i < n; i++) {
+      const c = text.charCodeAt(i);
+      if (inString) {
+        if (c === 92) i++; // backslash: skip the escaped character
+        else if (c === 34) inString = false;
+        continue;
+      }
+      if (c === 34) inString = true;
+      else if (c === 123 || c === 91) depth++;
+      else if (c === 125 || c === 93) {
+        if (depth === 0) break; // the array's own closing bracket
+        depth--;
+        if (depth === 0) { i++; break; }
+      } else if (c === 44 && depth === 0) break;
+    }
+    yield text.slice(start, i).trim();
+  }
+}
+
+/** A ChatGPT or Claude array export, read one conversation at a time; null when it isn't one. */
+function parseArrayExport(text: string, person: string): ImportedConversation[] | null {
+  const head = text.slice(0, 64).replace(/^\uFEFF/, '').trimStart();
+  if (!head.startsWith('[')) return null;
+  const out: ImportedConversation[] = [];
+  let kind: 'gpt' | 'claude' | null = null;
+  try {
+    for (const slice of topLevelElements(text)) {
+      if (!slice) continue;
+      const item = JSON.parse(slice) as unknown;
+      if (!item || typeof item !== 'object') continue;
+      if (!kind) {
+        if ('mapping' in item) kind = 'gpt';
+        else if ('chat_messages' in item) kind = 'claude';
+        else throw new Error('Not a ChatGPT or Claude export this house knows how to read.');
+      }
+      const got = kind === 'gpt'
+        ? parseChatGPT([item], { person, assistant: 'ChatGPT' })
+        : parseClaude([item], { person, assistant: 'Claude' });
+      for (const c of got) out.push(c);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('Not a ChatGPT')) throw err;
+    return null; // not walkable: let the whole-file parse speak for it
+  }
+  return out;
 }
 
 /** The conversations.json out of a downloaded export: the zip itself, or the file. */
@@ -375,6 +451,11 @@ export async function importConversations(convs: ImportedConversation[], deps: I
     try { unlinkSync(tmp); } catch { /* nothing to clean */ }
     throw err;
   }
+  // Close the whisper's handle on the index before swapping the new one in:
+  // Windows will not rename over a file that is still open (EPERM), which
+  // stranded a finished import as .importing in Rose and Sol's house.
+  // Reported by Sol (Rose's house), Nov 21 2026.
+  if (finalPath === ARCHIVE_INDEX_PATH) resetArchiveIndex();
   renameSync(tmp, finalPath);
   if (finalPath === ARCHIVE_INDEX_PATH) resetArchiveIndex();
   return progress;

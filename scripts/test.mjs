@@ -62,12 +62,46 @@ const dataDir = join(root, 'data');
 const listData = () => (existsSync(dataDir) ? new Set(readdirSync(dataDir)) : new Set());
 const before = listData();
 
-const child = spawn(
-  process.execPath,
-  ['--import', 'tsx', '--test', ...selected],
-  { cwd: root, stdio: 'inherit', env },
-);
-child.on('exit', code => {
+// Windows caps a command line at 32,767 characters, and the whole list of
+// full paths is past that, so spawn fails with ENAMETOOLONG before a test
+// runs. There the list goes as relative paths in batches, one after another,
+// and the worst exit code wins. Elsewhere it stays one run with one summary.
+// Reported by Sol (Rose's house), Nov 21 2026.
+const BATCH_CHARS = 24_000;
+function batchesOf(paths) {
+  if (process.platform !== 'win32') return [paths];
+  const out = [];
+  let cur = [];
+  let len = 0;
+  for (const p of paths) {
+    if (cur.length && len + p.length + 1 > BATCH_CHARS) { out.push(cur); cur = []; len = 0; }
+    cur.push(p);
+    len += p.length + 1;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+const batches = batchesOf(process.platform === 'win32' ? selected.map((f) => relative(root, f)) : selected);
+
+function runBatch(paths) {
+  return new Promise((resolve) => {
+    const child = spawn(
+      process.execPath,
+      ['--import', 'tsx', '--test', ...paths],
+      { cwd: root, stdio: 'inherit', env },
+    );
+    child.on('error', (err) => { console.error(err.message); resolve(1); });
+    child.on('exit', (code) => resolve(code ?? 1));
+  });
+}
+
+let worst = 0;
+for (const batch of batches) {
+  const code = await runBatch(batch);
+  if (code > worst) worst = code;
+}
+{
+  const code = worst;
   rmSync(scratch, { recursive: true, force: true });
   // An empty folder is what a module makes when it loads (the same ones a
   // house makes on its first boot); a file is a test writing.
@@ -78,5 +112,5 @@ child.on('exit', code => {
   if (added.length) {
     console.warn(`\nThis run left new entries in data/: ${added.join(', ')}. A test is writing into the house's own folder.`);
   }
-  process.exit(code ?? 1);
-});
+  process.exit(code);
+}
