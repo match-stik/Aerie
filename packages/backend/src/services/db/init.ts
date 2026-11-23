@@ -698,6 +698,8 @@ export function initDb(dbPath: string): Database.Database {
   try { db.exec('ALTER TABLE threads ADD COLUMN model TEXT'); } catch {}
   // A thread's own room, services/agent/thread-model.ts.
   try { db.exec('ALTER TABLE threads ADD COLUMN own_room INTEGER DEFAULT 0'); } catch {}
+  // A thread room's own wall dial, JSON {"scope/label": mode} (thread-model.ts).
+  try { db.exec('ALTER TABLE threads ADD COLUMN wall_load TEXT'); } catch {}
   // usage_events is created BELOW, so its ALTER lives below too. It used to sit
   // on this line and it could never have worked on a new install: the table did
   // not exist yet, the ALTER threw "no such table", the empty catch ate it, and

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, statSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { threadTurnModel, modelLaneKey, modelLanesBeside, seedModelLaneTools, threadLaneKey, threadRoomTag } from './thread-model.js';
+import { threadTurnModel, modelLaneKey, modelLanesBeside, seedModelLaneTools, threadLaneKey, threadRoomTag, parseThreadWallLoad } from './thread-model.js';
 
 test('a thread with no model of its own rides the house model', () => {
   assert.equal(threadTurnModel(null, false, 'claude-opus-5'), 'claude-opus-5');
@@ -87,4 +87,10 @@ test('a thread room is found by the missed-message net as a room beside its lane
   mkdirSync(join(dir, 'other'));
   assert.deepEqual(modelLanesBeside(dir, ['primary']), ['primary--t-abc-123']);
   rmSync(dir, { recursive: true, force: true });
+});
+
+test('a thread room\'s wall dial keeps only real modes, and a broken value reads as the house dial', () => {
+  assert.deepEqual(parseThreadWallLoad('{"shared/lore":"search","shared/status":"room","x/y":"sometimes"}'), { 'shared/lore': 'search', 'shared/status': 'room' });
+  assert.deepEqual(parseThreadWallLoad('not json'), {});
+  assert.deepEqual(parseThreadWallLoad(null), {});
 });

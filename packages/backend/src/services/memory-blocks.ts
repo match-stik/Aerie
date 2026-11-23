@@ -210,10 +210,13 @@ export function loadedBlocks<B extends { scope: string; label: string; content: 
 
 // Format blocks for system prompt injection.
 // scopes should be ['shared', ...companion slugs active in the thread].
-export function formatBlocksForPrompt(scopes: string[]): string {
+/** A room's own dial, laid over the house's: a mode for a wall, or undefined to follow the house. */
+export type WallLoadOverride = (scope: string, label: string) => WallLoad | undefined;
+
+export function formatBlocksForPrompt(scopes: string[], override?: WallLoadOverride): string {
   const all = getBlocksForScopes(scopes);
   if (all.length === 0) return '';
-  const { loaded: blocks, skipped } = splitByLoad(all, (b) => wallLoad(b.scope, b.label), loadBudgetChars());
+  const { loaded: blocks, skipped } = splitByLoad(all, (b) => override?.(b.scope, b.label) ?? wallLoad(b.scope, b.label), loadBudgetChars());
 
   let output = '\n<core-memory>\n';
   output +=

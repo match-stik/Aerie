@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import { readThreadModel, readThreadOwnRoom, threadTurnModel, threadLaneKey } from './thread-model.js';
+import { readThreadModel, readThreadOwnRoom, threadTurnModel, threadLaneKey, threadWallOverride } from './thread-model.js';
 import { SHARED_LANE_KEY } from '../heartbeat/lane-dir.js';
 import type { ImageBlockParam } from './claude-types.js';
 import { getMessages, getThread } from '../db.js';
@@ -48,7 +48,7 @@ interface AgentDispatchRuntime {
  * and persona, plus the shared and personal memory blocks — and nobody else's.
  * A bell with an owner rings against this rather than the whole room's prompt.
  */
-export function buildLanePrompt(companionId: string, slug: string, fallback: string): string {
+export function buildLanePrompt(companionId: string, slug: string, fallback: string, threadId?: string | null): string {
   let prompt = fallback;
   try {
     const identity = loadCompanionIdentity(companionId);
@@ -58,7 +58,7 @@ export function buildLanePrompt(companionId: string, slug: string, fallback: str
     console.warn(`[Agent] Lane prompt fell back to global identity for ${slug}:`, err);
   }
   try {
-    const coreMemory = formatBlocksForPrompt([SHARED_SCOPE, slug]);
+    const coreMemory = formatBlocksForPrompt([SHARED_SCOPE, slug], threadWallOverride(threadId));
     if (coreMemory) prompt += '\n\n---\n' + coreMemory;
   } catch (err) {
     console.warn(`[Agent] Failed to inject core memory for lane ${slug}:`, err);
@@ -334,7 +334,8 @@ export async function dispatchAgentTurn(
     const memoryScopes = threadCompanionSlugs.length > 0
       ? [SHARED_SCOPE, ...threadCompanionSlugs]
       : [SHARED_SCOPE, ...listCompanions().map(c => c.slug)];
-    const coreMemory = formatBlocksForPrompt(memoryScopes);
+    // A thread with its own room may load its own walls (thread-model.ts).
+    const coreMemory = formatBlocksForPrompt(memoryScopes, isAutonomous ? undefined : threadWallOverride(threadId));
     if (coreMemory) effectiveClaudeMd += '\n\n---\n' + coreMemory;
   } catch (err) {
     console.warn('[Agent] Failed to inject core memory blocks:', err);
@@ -437,7 +438,7 @@ export async function dispatchAgentTurn(
         .filter((p) => p.laneRoute && p.lane.id !== lane.id)
         .map((p) => laneName(p.lane));
       const laneContent = laneTurnContent(content, spoken, others);
-      const lanePrompt = buildLanePrompt(lane.id, lane.slug, runtime.getClaudeMdContent());
+      const lanePrompt = buildLanePrompt(lane.id, lane.slug, runtime.getClaudeMdContent(), threadOwnRoom ? threadId : null);
       const displayName = laneName(lane);
       try {
         // A fresh stream id per lane — each lane's reply is its own message,

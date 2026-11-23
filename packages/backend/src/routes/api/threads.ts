@@ -10,7 +10,8 @@ import { deleteFile } from '../../services/files.js';
 import { registry } from '../../services/ws.js';
 import { getAerieConfig, PROJECT_ROOT } from '../../config.js';
 import { readdirSync } from 'fs';
-import { threadRoomTag } from '../../services/agent/thread-model.js';
+import { threadRoomTag, readThreadOwnRoom, readThreadWallLoad, writeThreadWallLoad } from '../../services/agent/thread-model.js';
+import { getAllBlocks, getBlock, wallLoad } from '../../services/memory-blocks.js';
 import { getHeartbeatSession } from '../../services/heartbeat/supervisor.js';
 
 const router = Router();
@@ -382,6 +383,39 @@ router.patch('/threads/:id', (req, res) => {
     console.error('Error renaming thread:', error);
     res.status(500).json({ error: 'Failed to rename thread' });
   }
+});
+
+// A thread room's own wall dial (thread-model.ts). Each
+// wall comes back with the house's mode and this thread's, if it has one; a
+// PUT with mode null puts the wall back on the house's dial. A change takes
+// hold when the thread's room next opens (Start this room fresh).
+router.get('/threads/:id/wall-load', (req, res) => {
+  const thread = getThread(req.params.id);
+  if (!thread) { res.status(404).json({ error: 'Thread not found' }); return; }
+  const mine = readThreadWallLoad(req.params.id);
+  res.json({
+    ownRoom: readThreadOwnRoom(req.params.id),
+    walls: getAllBlocks().map((b) => ({
+      scope: b.scope,
+      label: b.label,
+      chars: b.content.length,
+      house: wallLoad(b.scope, b.label),
+      thread: mine[`${b.scope}/${b.label}`] ?? null,
+    })),
+  });
+});
+
+router.put('/threads/:id/wall-load/:scope/:label', (req, res) => {
+  const thread = getThread(req.params.id);
+  if (!thread) { res.status(404).json({ error: 'Thread not found' }); return; }
+  const mode = req.body?.mode ?? null;
+  if (mode !== null && mode !== 'always' && mode !== 'room' && mode !== 'search') {
+    res.status(400).json({ error: 'mode must be always, room, search, or null for the house setting' });
+    return;
+  }
+  if (!getBlock(req.params.scope, req.params.label)) { res.status(404).json({ error: 'Block not found' }); return; }
+  const now = writeThreadWallLoad(req.params.id, req.params.scope, req.params.label, mode);
+  res.json({ ok: true, thread: now[`${req.params.scope}/${req.params.label}`] ?? null });
 });
 
 // Start a thread's own room over. Only a thread with a

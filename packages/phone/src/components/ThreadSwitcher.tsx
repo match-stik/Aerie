@@ -2,7 +2,7 @@
 import { themeInk } from '../lib/theme-ink';
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore, Cpu, DoorOpen, RefreshCw } from 'lucide-react';
+import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore, Cpu, DoorOpen, RefreshCw, Layers } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn, withAlpha, stripMarkdown } from '../lib/utils';
 import { groupThreads, monthKey, previewText } from '../lib/thread-list';
@@ -71,6 +71,11 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
   // A thread's own room: on, off, and starting it fresh.
   const [freshAskFor, setFreshAskFor] = useState<string | null>(null);
   const [roomNote, setRoomNote] = useState<{ id: string; text: string } | null>(null);
+  // A thread room's own wall dial: the house's dial,
+  // overridden wall by wall for this one room.
+  type WallRow = { scope: string; label: string; chars: number; house: 'always' | 'room' | 'search'; thread: 'always' | 'room' | 'search' | null };
+  const [wallsFor, setWallsFor] = useState<string | null>(null);
+  const [walls, setWalls] = useState<WallRow[] | null>(null);
   const [modelChoices, setModelChoices] = useState<Array<{ id: string; name?: string }> | null>(null);
   // Back closes a thread's menu or delete question first, then the switcher,
   // which leaves their person in the thread they were in.
@@ -191,6 +196,34 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
       setRoomNote({ id: threadId, text: res.ok && data?.success ? 'Started fresh. The next message opens a new room, caught up on this thread.' : (data?.error || 'It did not start fresh.') });
     } catch {
       setRoomNote({ id: threadId, text: 'It did not start fresh.' });
+    }
+  }
+
+  async function openWalls(threadId: string) {
+    if (wallsFor === threadId) { setWallsFor(null); return; }
+    setWallsFor(threadId);
+    setWalls(null);
+    try {
+      const res = await apiFetch(`/api/threads/${threadId}/wall-load`);
+      const data = await res.json().catch(() => null);
+      setWalls(Array.isArray(data?.walls) ? data.walls : []);
+    } catch {
+      setWalls([]);
+    }
+  }
+
+  async function setThreadWall(threadId: string, w: WallRow, mode: WallRow['house']) {
+    // Picking the house's own setting puts the wall back on the house dial.
+    const next = mode === w.house ? null : mode;
+    setWalls((list) => list?.map((x) => (x.scope === w.scope && x.label === w.label ? { ...x, thread: next } : x)) ?? list);
+    try {
+      await apiFetch(`/api/threads/${threadId}/wall-load/${encodeURIComponent(w.scope)}/${encodeURIComponent(w.label)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: next }),
+      });
+    } catch (err) {
+      console.error('Failed to set the thread wall:', err);
     }
   }
 
@@ -418,6 +451,45 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
                   <RefreshCw size={14} /> Start this room fresh
                 </button>
               )
+            ) : null}
+            {thread.own_room ? (
+              <button
+                onClick={() => void openWalls(thread.id)}
+                className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5', colors.textMain)}
+              >
+                <Layers size={14} /> Walls this room opens with
+              </button>
+            ) : null}
+            {thread.own_room && wallsFor === thread.id ? (
+              <div className="mx-1 mb-1 max-h-72 overflow-y-auto rounded-lg">
+                <p className={cn('px-2.5 pt-1 pb-1.5 text-[10px] leading-snug', colors.textMuted)}>
+                  Just this thread's room. Anything left alone follows the house. A change takes hold when the room next starts fresh.
+                </p>
+                {walls === null && <p className={cn('px-2.5 py-1.5 text-xs', colors.textMuted)}>Loading…</p>}
+                {walls?.map((w) => {
+                  const now = w.thread ?? w.house;
+                  return (
+                    <div key={`${w.scope}/${w.label}`} className="px-2.5 py-1.5">
+                      <div className={cn('flex items-baseline gap-2 text-[11px]', colors.textMain)}>
+                        <span className="truncate">{w.scope}/{w.label}</span>
+                        <span className={cn('ml-auto shrink-0', colors.textMuted)}>{w.chars >= 1000 ? `${Math.round(w.chars / 1000)}k` : w.chars} chars{w.thread ? ' · this room' : ''}</span>
+                      </div>
+                      <div className="mt-1 flex gap-1">
+                        {([['always', 'Always'], ['room', "If there's room"], ['search', 'Search only']] as const).map(([mode, label]) => (
+                          <button
+                            key={mode}
+                            onClick={() => void setThreadWall(thread.id, w, mode)}
+                            className={cn('rounded-[var(--shape-chip)] border px-2 py-0.5 text-[10px]', colors.panelBorder, now === mode ? '' : colors.textMuted)}
+                            style={now === mode ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : null}
             {roomNote?.id === thread.id && (
               <p className={cn('px-2.5 pb-1.5 text-[10px] leading-snug', colors.textMuted)}>{roomNote.text}</p>

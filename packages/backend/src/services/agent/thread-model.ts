@@ -51,6 +51,51 @@ export function readThreadOwnRoom(threadId: string): boolean {
   }
 }
 
+/**
+ * A thread room's own wall dial: for each wall, Always,
+ * If there's room or Search only, stored on the thread as {"scope/label":
+ * mode}. A wall not in it follows the house's dial. It only means anything
+ * for a thread with its own room: a thread sharing the main room shares the
+ * main room's walls, because it is the same session reading the same file.
+ */
+export type ThreadWallMode = 'always' | 'room' | 'search';
+export function parseThreadWallLoad(raw: string | null | undefined): Record<string, ThreadWallMode> {
+  if (!raw) return {};
+  try {
+    const obj = JSON.parse(raw) as Record<string, unknown>;
+    const out: Record<string, ThreadWallMode> = {};
+    for (const [k, v] of Object.entries(obj ?? {})) if (v === 'always' || v === 'room' || v === 'search') out[k] = v;
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export function readThreadWallLoad(threadId: string): Record<string, ThreadWallMode> {
+  try {
+    const row = getDb().prepare('SELECT wall_load FROM threads WHERE id = ?').get(threadId) as { wall_load?: string | null } | undefined;
+    return parseThreadWallLoad(row?.wall_load);
+  } catch {
+    return {};
+  }
+}
+
+export function writeThreadWallLoad(threadId: string, scope: string, label: string, mode: ThreadWallMode | null): Record<string, ThreadWallMode> {
+  const current = readThreadWallLoad(threadId);
+  if (mode) current[`${scope}/${label}`] = mode;
+  else delete current[`${scope}/${label}`];
+  getDb().prepare('UPDATE threads SET wall_load = ? WHERE id = ?').run(Object.keys(current).length ? JSON.stringify(current) : null, threadId);
+  return current;
+}
+
+/** The dial a turn in this thread loads its walls by, or undefined for the house's. */
+export function threadWallOverride(threadId: string | null | undefined): ((scope: string, label: string) => ThreadWallMode | undefined) | undefined {
+  if (!threadId || !readThreadOwnRoom(threadId)) return undefined;
+  const map = readThreadWallLoad(threadId);
+  if (Object.keys(map).length === 0) return undefined;
+  return (scope, label) => map[`${scope}/${label}`];
+}
+
 /** The marker in a lane key that says the room belongs to one thread. */
 export function threadRoomTag(threadId: string): string {
   return `--t-${threadId.replace(/[^a-zA-Z0-9-_]/g, '_')}`;
