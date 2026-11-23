@@ -1934,7 +1934,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
               <button
                 onClick={toggleCropSquare}
                 className={cn(
-                  'rounded-lg border px-3 py-1.5 text-xs font-medium',
+                  'rounded-[var(--shape-chip)] border px-3 py-1.5 text-xs font-medium',
                   colors.panelBorder,
                   cropSquare ? 'text-[var(--aerie-on-accent)]' : colors.textMain,
                 )}
@@ -2015,7 +2015,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                   key={String(all)}
                   onClick={() => setCropAllFrames(all)}
                   className={cn(
-                    'rounded-lg border px-3 py-1.5 text-xs font-medium',
+                    'rounded-[var(--shape-chip)] border px-3 py-1.5 text-xs font-medium',
                     colors.panelBorder,
                     cropAllFrames === all ? 'text-[var(--aerie-on-accent)]' : colors.textMain,
                   )}
@@ -2261,14 +2261,14 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => paint.setTool('restore')}
-                    className={cn("flex-1 py-1.5 rounded-lg text-xs font-medium border flex items-center justify-center gap-1", colors.panelBorder)}
+                    className={cn("flex-1 py-1.5 rounded-[var(--shape-chip)] text-xs font-medium border flex items-center justify-center gap-1", colors.panelBorder)}
                     style={paint.tool === 'restore' ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : { color: colors.textMuted }}
                   >
                     <Brush className="w-3.5 h-3.5" /> Restore
                   </button>
                   <button
                     onClick={() => paint.setTool('erase')}
-                    className={cn("flex-1 py-1.5 rounded-lg text-xs font-medium border flex items-center justify-center gap-1", colors.panelBorder)}
+                    className={cn("flex-1 py-1.5 rounded-[var(--shape-chip)] text-xs font-medium border flex items-center justify-center gap-1", colors.panelBorder)}
                     style={paint.tool === 'erase' ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : { color: colors.textMuted }}
                   >
                     <Eraser className="w-3.5 h-3.5" /> Erase
@@ -2292,7 +2292,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                     onClick={() => setGhost((on) => !on)}
                     disabled={!ghostOk || !ghostUrl}
                     title="Show the un-cut frame underneath"
-                    className={cn("px-3 py-1.5 rounded-lg text-xs border disabled:opacity-40", colors.panelBorder)}
+                    className={cn("px-3 py-1.5 rounded-[var(--shape-chip)] text-xs border disabled:opacity-40", colors.panelBorder)}
                     style={ghost && ghostOk ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : { color: colors.textMuted }}
                   >
                     Ghost
@@ -2373,7 +2373,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                     key={preset.label}
                     onClick={() => { setOutputWidth(preset.w); setOutputHeight(preset.h); }}
                     className={cn(
-                      "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border",
+                      "shrink-0 rounded-[var(--shape-chip)] px-3 py-1.5 text-xs font-medium transition-colors border",
                       colors.panelBorder,
                       !isSelected && cn(colors.panelBg, colors.textMain),
                     )}
@@ -2462,7 +2462,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                         key={f}
                         onClick={() => setTextFont(f)}
                         className={cn(
-                          "shrink-0 rounded-lg px-3 py-1.5 text-sm transition-colors border whitespace-nowrap",
+                          "shrink-0 rounded-[var(--shape-chip)] px-3 py-1.5 text-sm transition-colors border whitespace-nowrap",
                           colors.panelBorder,
                           !isSelected && cn(colors.panelBg, colors.textMain),
                         )}
@@ -2570,7 +2570,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                           // makes it the way back after a drag goes wrong.
                           onClick={() => { setTextPosition(pos); setTextAnchor(null); }}
                           className={cn(
-                            "flex-1 rounded-lg px-2 py-1.5 text-xs capitalize transition-colors border",
+                            "flex-1 rounded-[var(--shape-chip)] px-2 py-1.5 text-xs capitalize transition-colors border",
                             colors.panelBorder,
                             !isSelected && cn(colors.panelBg, colors.textMain),
                           )}
@@ -2654,7 +2654,7 @@ export function GifApp({ onClose, themeConfig, themeMode, embedded = false, acti
                   }
                 }}
                 className={cn(
-                  "shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-semibold border transition-colors",
+                  "shrink-0 rounded-[var(--shape-chip)] px-3 py-1.5 text-[11px] font-semibold border transition-colors",
                   colors.panelBorder,
                   !preserveColorPreset && cn(colors.panelBg, colors.textMain),
                 )}

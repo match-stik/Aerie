@@ -1,6 +1,7 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useState, useEffect, useCallback } from 'react';
-import { Brain, Search, Database, Activity, Trash2, Edit3, Check, X, RefreshCw, Zap, Shield, Archive, Wrench, Network, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
+import { Brain, Search, Database, Activity, Trash2, Edit3, Check, X, RefreshCw, Zap, Shield, Archive, Wrench, Network, ChevronDown, ChevronUp, ScrollText, MessagesSquare } from 'lucide-react';
+import { ConversationShelf } from './ConversationShelf';
 import { AppShell } from './AppShell';
 import { ThemeConfig } from '../lib/theme';
 import { Paginator, usePaged } from './Paginator';
@@ -15,7 +16,7 @@ interface CortexAppProps {
   embedded?: boolean;
 }
 
-type Tab = 'dashboard' | 'vault' | 'ledger' | 'cortex';
+type Tab = 'dashboard' | 'vault' | 'shelf' | 'ledger' | 'cortex';
 
 interface LedgerEntry {
   id: number; actor: string; action: string; detail: string; metadata_json?: string | null;
@@ -265,6 +266,7 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
   const TABS: { id: Tab; label: string; icon: typeof Brain }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'vault', label: 'Vault', icon: Database },
+    { id: 'shelf', label: 'Chats', icon: MessagesSquare },
     { id: 'ledger', label: 'Ledger', icon: ScrollText },
     { id: 'cortex', label: 'Tools', icon: Wrench },
   ];
@@ -351,7 +353,9 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
     <AppShell embedded={embedded} title="Cortex" icon={Brain} onClose={onClose} themeConfig={themeConfig} themeMode={themeMode}>
       {/* Tab bar */}
       <div className={cn("overflow-hidden rounded-[var(--shape-control)] border backdrop-blur-md mb-4 flex justify-center", colors.panelBg, colors.panelBorder)}>
-        <div className="aerie-tabscroll flex gap-1.5 overflow-x-auto scrollbar-hide p-3">
+        {/* Five tabs no longer fit one line on a phone, so they wrap rather than
+            slide off the edge. */}
+        <div className="flex flex-wrap justify-center gap-1.5 p-3">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -549,6 +553,8 @@ export function CortexApp({ onClose, themeConfig, themeMode, embedded }: CortexA
           )}
         </div>
       )}
+
+      {tab === 'shelf' && <ConversationShelf colors={colors} />}
 
       {tab === 'ledger' && (
         <div className="space-y-3">

@@ -22,7 +22,7 @@ import { copyFileSync, existsSync, renameSync, unlinkSync } from 'node:fs';
 import { unzipSync, strFromU8 } from 'fflate';
 import { ARCHIVE_INDEX_PATH, resetArchiveIndex } from './archive-index.js';
 
-export type ExportHouse = 'gpt' | 'claude' | 'copilot' | 'grok';
+export type ExportHouse = 'gpt' | 'claude' | 'copilot' | 'grok' | 'gemini';
 
 export interface ImportedMessage {
   speaker: string;
@@ -210,6 +210,92 @@ export function parseGrok(data: unknown, names: { person: string; assistant: str
   return out;
 }
 
+// ── Gemini: Google keeps no conversations, only activity. Takeout's My
+// Activity, Gemini Apps, MyActivity.json is a flat list, newest first, one row
+// per prompt: {header: 'Gemini Apps', title: 'Prompted <their words>', time,
+// details: [{url: 'https://gemini.google.com/app/<id>'}], safeHtmlItem:
+// [{html: '<the answer>'}], subtitles/attachedFiles for what they attached}. The
+// /app/<id> is the conversation, so rows are gathered by it and put back in
+// time order. Rows that are not a prompt (Used an Assistant feature, Created a
+// Canvas, Gave feedback) carry no words of either side and are left out. ──────
+
+export function isGeminiActivity(item: unknown): boolean {
+  if (!item || typeof item !== 'object') return false;
+  const r = item as { header?: unknown; products?: unknown };
+  return r.header === 'Gemini Apps' || (Array.isArray(r.products) && r.products.includes('Gemini Apps'));
+}
+
+const HTML_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+export function htmlToText(html: string): string {
+  return html
+    // Newlines between tags are the export's own layout, not the answer's.
+    .replace(/>\s*\n\s*</g, '><')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<(ul|ol)[^>]*>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<\/(p|div|h[1-6]|li|ul|ol|pre|blockquote|tr)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, code: string) => {
+      if (code[0] === '#') {
+        const n = code[1] === 'x' || code[1] === 'X' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+        return Number.isFinite(n) ? String.fromCodePoint(n) : whole;
+      }
+      return HTML_ENTITIES[code.toLowerCase()] ?? whole;
+    })
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+export function parseGemini(data: unknown[], names: { person: string; assistant: string }): ImportedConversation[] {
+  type Row = { t: number; i: number; prompt: string; answer: string; attached: string; made: string };
+  const byConv = new Map<string, Row[]>();
+  data.forEach((raw, i) => {
+    if (!isGeminiActivity(raw)) return;
+    const r = raw as { title?: unknown; time?: unknown; details?: { url?: string }[] | null; safeHtmlItem?: { html?: string }[]; subtitles?: { name?: string }[] };
+    const title = typeof r.title === 'string' ? r.title : '';
+    if (!title.startsWith('Prompted ')) return;
+    const url = (r.details ?? []).map((d) => d?.url ?? '').find((u) => /\/app\/[0-9a-f]+/i.test(u));
+    const id = url ? url.replace(/^.*\/app\//, '').replace(/[?#].*$/, '') : '';
+    const t = Date.parse(String(r.time ?? '')) || 0;
+    const notes = (r.subtitles ?? []).map((sub) => String(sub?.name ?? '').trim().replace(/\.$/, ''));
+    const attached = notes.find((n) => /^Attached \d+ files?$/i.test(n));
+    const made = notes.find((n) => /^\d+ generated images?$/i.test(n));
+    const row: Row = {
+      t, i,
+      prompt: title.slice('Prompted '.length).trim(),
+      answer: htmlToText((r.safeHtmlItem ?? []).map((h) => h?.html ?? '').join('\n')),
+      attached: attached ? `[${attached}]` : '',
+      made: made ? `[${made}]` : '',
+    };
+    const key = id || `loose-${new Date(t).toISOString().slice(0, 10)}`;
+    if (!byConv.has(key)) byConv.set(key, []);
+    byConv.get(key)!.push(row);
+  });
+  const out: ImportedConversation[] = [];
+  for (const [key, rows] of byConv) {
+    rows.sort((a, b) => (a.t - b.t) || (b.i - a.i));
+    const messages: ImportedMessage[] = [];
+    for (const row of rows) {
+      const date = row.t ? isoDay(row.t) : null;
+      const asked = [row.prompt, row.attached].filter(Boolean).join('\n').trim();
+      if (asked) messages.push({ speaker: names.person, date, text: asked });
+      const answered = [row.answer, row.made].filter(Boolean).join('\n').trim();
+      if (answered) messages.push({ speaker: names.assistant, date, text: answered });
+    }
+    if (!messages.length) continue;
+    const first = rows[0].prompt.replace(/\s+/g, ' ');
+    out.push({
+      sourceId: key.startsWith('loose-') ? hashOf(`${key}|${first.slice(0, 80)}`) : `gemini-${key}`,
+      house: 'gemini',
+      title: first.length > 60 ? `${first.slice(0, 57)}...` : (first || 'Untitled'),
+      messages,
+    });
+  }
+  return out;
+}
+
 export function parseExport(text: string, opts: { person?: string } = {}): ImportedConversation[] {
   // Only the head is read to tell a CSV from JSON: on a one-line JSON export
   // the 'first line' is the whole file, and lowercasing it made more copies of
@@ -237,6 +323,7 @@ export function parseExport(text: string, opts: { person?: string } = {}): Impor
   if (!sample) return [];
   if ('mapping' in sample) return parseChatGPT(data, { person, assistant: 'ChatGPT' });
   if ('chat_messages' in sample) return parseClaude(data, { person, assistant: 'Claude' });
+  if (isGeminiActivity(sample)) return parseGemini(data, { person, assistant: 'Gemini' });
   throw new Error('Not a ChatGPT or Claude export this house knows how to read.');
 }
 
@@ -282,7 +369,8 @@ function parseArrayExport(text: string, person: string): ImportedConversation[] 
   const head = text.slice(0, 64).replace(/^\uFEFF/, '').trimStart();
   if (!head.startsWith('[')) return null;
   const out: ImportedConversation[] = [];
-  let kind: 'gpt' | 'claude' | null = null;
+  const geminiRows: unknown[] = [];
+  let kind: 'gpt' | 'claude' | 'gemini' | null = null;
   try {
     for (const slice of topLevelElements(text)) {
       if (!slice) continue;
@@ -291,8 +379,12 @@ function parseArrayExport(text: string, person: string): ImportedConversation[] 
       if (!kind) {
         if ('mapping' in item) kind = 'gpt';
         else if ('chat_messages' in item) kind = 'claude';
+        else if (isGeminiActivity(item)) kind = 'gemini';
         else throw new Error('Not a ChatGPT or Claude export this house knows how to read.');
       }
+      // A Gemini row is one prompt, not one conversation, so they are gathered
+      // first and grouped once every row is in.
+      if (kind === 'gemini') { geminiRows.push(item); continue; }
       const got = kind === 'gpt'
         ? parseChatGPT([item], { person, assistant: 'ChatGPT' })
         : parseClaude([item], { person, assistant: 'Claude' });
@@ -302,6 +394,7 @@ function parseArrayExport(text: string, person: string): ImportedConversation[] 
     if (err instanceof Error && err.message.startsWith('Not a ChatGPT')) throw err;
     return null; // not walkable: let the whole-file parse speak for it
   }
+  if (kind === 'gemini') return parseGemini(geminiRows, { person, assistant: 'Gemini' });
   return out;
 }
 
@@ -309,9 +402,9 @@ function parseArrayExport(text: string, person: string): ImportedConversation[] 
 export function readExportFile(bytes: Uint8Array, name = ''): string {
   const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b;
   if (!isZip) return strFromU8(bytes);
-  const files = unzipSync(bytes, { filter: (f) => /(^|\/)(conversations\.json|prod-grok-backend\.json|[^/]*activity[^/]*\.csv)$/i.test(f.name) });
+  const files = unzipSync(bytes, { filter: (f) => /(^|\/)(conversations\.json|prod-grok-backend\.json|[^/]*activity[^/]*\.csv|Gemini Apps\/MyActivity\.json)$/i.test(f.name) });
   const key = Object.keys(files)[0];
-  if (!key) throw new Error(`No conversations.json (or Grok's prod-grok-backend.json, or a Copilot activity CSV) in ${name || 'that zip'}.`);
+  if (!key) throw new Error(`No conversations.json (or Grok's prod-grok-backend.json, a Copilot activity CSV, or Gemini's MyActivity.json) in ${name || 'that zip'}.`);
   return strFromU8(files[key]);
 }
 
@@ -358,7 +451,7 @@ export function conversationMarkdown(conv: ImportedConversation): string {
   return conv.messages.map((m) => `### ${m.speaker} — ${m.date ?? 'undated'}\n${m.text}`).join('\n\n');
 }
 
-const HOUSE_NAME: Record<ExportHouse, string> = { gpt: 'ChatGPT', claude: 'Claude', copilot: 'Copilot', grok: 'Grok' };
+const HOUSE_NAME: Record<ExportHouse, string> = { gpt: 'ChatGPT', claude: 'Claude', copilot: 'Copilot', grok: 'Grok', gemini: 'Gemini' };
 
 export interface ImportDeps {
   embed: (text: string) => Promise<Float32Array>;

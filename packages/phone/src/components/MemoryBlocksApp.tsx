@@ -42,6 +42,9 @@ interface ArchivistStatus {
 
 const SHARED_SCOPE = 'shared';
 
+type WallLoad = 'always' | 'room' | 'search';
+const LOAD_LABELS: Record<WallLoad, string> = { always: 'Always', room: "If there's room", search: 'Search only' };
+
 function blockKey(b: { scope: string; label: string }): string {
   return `${b.scope}/${b.label}`;
 }
@@ -61,6 +64,9 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
   const blocksPage = usePaged(blocks);
   const [scopes, setScopes] = useState<string[]>([SHARED_SCOPE]);
   const [selectedBlock, setSelectedBlock] = useState<MemoryBlock | null>(null);
+  // The load dial: which walls a new room opens with.
+  const [loadModes, setLoadModes] = useState<Record<string, WallLoad>>({});
+  const [loadBudget, setLoadBudget] = useState<string>('');
   const [archivistStatus, setArchivistStatus] = useState<ArchivistStatus | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -94,6 +100,16 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
           a.label.localeCompare(b.label)
         );
         setBlocks(list);
+        try {
+          const lr = await fetch('/api/memory/load', { credentials: 'include' });
+          if (lr.ok) {
+            const ld = await lr.json();
+            const modes: Record<string, WallLoad> = {};
+            for (const w of Array.isArray(ld?.walls) ? ld.walls : []) modes[blockKey(w)] = w.mode;
+            setLoadModes(modes);
+            setLoadBudget(ld?.budget ? String(ld.budget) : '');
+          }
+        } catch { /* an older backend has no dial; every wall reads Always */ }
         // Keep an open detail view attached to the freshly fetched row. Before
         // this, Refresh updated the list behind the screen while the selected
         // block (including its timestamp) stayed stale indefinitely.
@@ -259,9 +275,35 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
     { id: 'import', label: 'Import' },
   ];
 
+  const setLoad = async (block: MemoryBlock, mode: WallLoad) => {
+    setLoadModes((m) => ({ ...m, [blockKey(block)]: mode }));
+    try {
+      await fetch(`/api/memory/load/${encodeURIComponent(block.scope)}/${encodeURIComponent(block.label)}`, {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode }),
+      });
+    } catch (err) {
+      console.error('[MemoryBlocks] Failed to set load:', err);
+    }
+  };
+
+  const saveBudget = async () => {
+    try {
+      const res = await fetch('/api/memory/load-budget', {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chars: loadBudget.trim() === '' ? null : Number(loadBudget.replace(/[^0-9]/g, '')) }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setLoadBudget(d?.budget ? String(d.budget) : '');
+      }
+    } catch (err) {
+      console.error('[MemoryBlocks] Failed to set budget:', err);
+    }
+  };
+
   const scopeBadge = (scope: string) => (
     <span
-      className="text-[10px] px-1.5 py-0.5 rounded-[var(--shape-control)] border uppercase tracking-wide opacity-80"
+      className="text-[10px] px-1.5 py-0.5 rounded-[var(--shape-chip)] border uppercase tracking-wide opacity-80"
       style={scope === SHARED_SCOPE ? undefined : { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}
     >
       {scope}
@@ -353,6 +395,24 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
                 {scopeBadge(selectedBlock.scope)}
               </div>
               {selectedBlock.description && <p className="text-xs opacity-60 mb-3">{selectedBlock.description}</p>}
+              <div className="mb-3">
+                <div className="text-xs opacity-60 mb-1">When a new room opens</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(Object.keys(LOAD_LABELS) as WallLoad[]).map((mode) => {
+                    const on = (loadModes[blockKey(selectedBlock)] ?? 'always') === mode;
+                    return (
+                      <button
+                        key={mode}
+                        onClick={() => setLoad(selectedBlock, mode)}
+                        className={cn('px-3 py-1 rounded-full text-xs border', colors.panelBorder, on ? 'aerie-on-accent' : colors.panelBg)}
+                        style={on ? { backgroundColor: colors.accent } : undefined}
+                      >
+                        {LOAD_LABELS[mode]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               {editingKey === blockKey(selectedBlock) ? (
                 <div className="space-y-2">
                   <textarea
@@ -382,6 +442,21 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
             </div>
           ) : (
                 <>
+                <div className={cn('w-full p-3 rounded-lg border text-sm', colors.panelBorder, colors.panelBg)}>
+                  <div className="text-xs opacity-60 mb-1">Room size for If there's room walls, in characters (empty means no limit)</div>
+                  <div className="flex gap-2">
+                    <input
+                      value={loadBudget}
+                      onChange={(e) => setLoadBudget(e.target.value)}
+                      inputMode="numeric"
+                      placeholder="No limit"
+                      className="flex-1 min-w-0 px-2 py-1 rounded border bg-transparent text-sm"
+                    />
+                    <button onClick={saveBudget} className="px-3 py-1 rounded aerie-on-accent text-xs" style={{ backgroundColor: colors.accent }}>
+                      Save
+                    </button>
+                  </div>
+                </div>
                 {blocksPage.visible.map((block) => (
               <button
                 key={blockKey(block)}
@@ -394,7 +469,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
                     {scopeBadge(block.scope)}
                   </div>
                   {block.description && <div className="text-xs opacity-50 truncate">{block.description}</div>}
-                  <div className="text-xs opacity-40 mt-1">{block.content.length} chars</div>
+                  <div className="text-xs opacity-40 mt-1">{block.content.length.toLocaleString('en-US')} chars · {LOAD_LABELS[loadModes[blockKey(block)] ?? 'always']}</div>
                 </div>
                 <ChevronRight size={16} className="opacity-40 ml-2 shrink-0" />
               </button>

@@ -1142,7 +1142,7 @@ export function WidgetSheet({
             : w.id === 'note' && noteSize && onNoteSize ? (
               <div className="grid grid-cols-3 gap-1.5 px-1">
                 {(['s', 'm', 'l'] as HomeClockSize[]).map((size, i) => (
-                  <button key={size} type="button" onClick={() => onNoteSize(size)} className="rounded-xl px-2 py-1.5 text-[11px] font-semibold" style={row(noteSize === size)} aria-pressed={noteSize === size}>
+                  <button key={size} type="button" onClick={() => onNoteSize(size)} className="rounded-[var(--shape-chip)] px-2 py-1.5 text-[11px] font-semibold" style={row(noteSize === size)} aria-pressed={noteSize === size}>
                     {['Small', 'Medium', 'Large'][i]}
                   </button>
                 ))}
@@ -1151,7 +1151,7 @@ export function WidgetSheet({
             : w.id === 'music' && onSpotifyLook ? (
               <div className="grid grid-cols-3 gap-1.5 px-1">
                 {([['bar', 'Bar'], ['cover', 'Record'], ['slim', 'Slim']] as [LockSpotifyLook, string][]).map(([id, label]) => (
-                  <button key={id} type="button" onClick={() => onSpotifyLook(id)} className="rounded-xl px-2 py-1.5 text-[11px] font-semibold" style={row(spotifyLook === id)} aria-pressed={spotifyLook === id}>
+                  <button key={id} type="button" onClick={() => onSpotifyLook(id)} className="rounded-[var(--shape-chip)] px-2 py-1.5 text-[11px] font-semibold" style={row(spotifyLook === id)} aria-pressed={spotifyLook === id}>
                     {label}
                   </button>
                 ))}
@@ -1160,7 +1160,7 @@ export function WidgetSheet({
             : w.id === 'weather' && onWeatherLook ? (
               <div className="grid grid-cols-4 gap-1.5 px-1">
                 {HOME_WEATHER_LOOKS.map((look) => (
-                  <button key={look} type="button" onClick={() => onWeatherLook(look)} className="rounded-xl px-2 py-1.5 text-[11px] font-semibold capitalize" style={row(weatherLook === look)} aria-pressed={weatherLook === look}>
+                  <button key={look} type="button" onClick={() => onWeatherLook(look)} className="rounded-[var(--shape-chip)] px-2 py-1.5 text-[11px] font-semibold capitalize" style={row(weatherLook === look)} aria-pressed={weatherLook === look}>
                     {look}
                   </button>
                 ))}
@@ -1170,7 +1170,7 @@ export function WidgetSheet({
               <>
               <div className="grid grid-cols-4 gap-1.5 px-1">
                 {HOME_CLOCK_LOOKS.map((look) => (
-                  <button key={look} type="button" onClick={() => onClockLook(look)} className="rounded-xl px-2 py-1.5 text-[11px] font-semibold capitalize" style={row(clockLook === look)} aria-pressed={clockLook === look}>
+                  <button key={look} type="button" onClick={() => onClockLook(look)} className="rounded-[var(--shape-chip)] px-2 py-1.5 text-[11px] font-semibold capitalize" style={row(clockLook === look)} aria-pressed={clockLook === look}>
                     {look}
                   </button>
                 ))}
@@ -1179,7 +1179,7 @@ export function WidgetSheet({
               {clockSize && onClockSize && (
                 <div className="grid grid-cols-3 gap-1.5 px-1">
                   {(['s', 'm', 'l'] as HomeClockSize[]).map((size, i) => (
-                    <button key={size} type="button" onClick={() => onClockSize(size)} className="rounded-xl px-2 py-1.5 text-[11px] font-semibold" style={row(clockSize === size)} aria-pressed={clockSize === size}>
+                    <button key={size} type="button" onClick={() => onClockSize(size)} className="rounded-[var(--shape-chip)] px-2 py-1.5 text-[11px] font-semibold" style={row(clockSize === size)} aria-pressed={clockSize === size}>
                       {['Small', 'Medium', 'Large'][i]}
                     </button>
                   ))}

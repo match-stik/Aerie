@@ -31,6 +31,41 @@ router.get('/memory/blocks', (req, res) => {
   res.json(blocks);
 });
 
+// The load dial: which walls a room opens with.
+router.get('/memory/load', (_req, res) => {
+  const blocks = memoryBlocks.getAllBlocks();
+  const budget = memoryBlocks.loadBudgetChars();
+  const loaded = new Set(memoryBlocks.loadedBlocks(blocks).map((b) => `${b.scope}/${b.label}`));
+  res.json({
+    budget,
+    walls: blocks.map((b) => ({
+      scope: b.scope,
+      label: b.label,
+      chars: b.content.length,
+      mode: memoryBlocks.wallLoad(b.scope, b.label),
+      loaded: loaded.has(`${b.scope}/${b.label}`),
+    })),
+  });
+});
+
+router.put('/memory/load/:scope/:label', (req, res) => {
+  const mode = req.body?.mode;
+  if (!memoryBlocks.WALL_LOADS.includes(mode)) {
+    return res.status(400).json({ error: `mode must be one of ${memoryBlocks.WALL_LOADS.join(', ')}` });
+  }
+  if (!memoryBlocks.getBlock(req.params.scope, req.params.label)) return res.status(404).json({ error: 'Block not found' });
+  memoryBlocks.setWallLoad(req.params.scope, req.params.label, mode);
+  res.json({ ok: true, mode: memoryBlocks.wallLoad(req.params.scope, req.params.label) });
+});
+
+router.put('/memory/load-budget', (req, res) => {
+  const raw = req.body?.chars;
+  const chars = raw == null || raw === '' ? null : Number(raw);
+  if (chars != null && (!Number.isFinite(chars) || chars < 0)) return res.status(400).json({ error: 'chars must be a positive number, or empty for no limit' });
+  memoryBlocks.setLoadBudgetChars(chars);
+  res.json({ ok: true, budget: memoryBlocks.loadBudgetChars() });
+});
+
 router.get('/memory/blocks/:scope/:label', (req, res) => {
   const block = memoryBlocks.getBlock(req.params.scope, req.params.label);
   if (!block) return res.status(404).json({ error: 'Block not found' });

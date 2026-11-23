@@ -4,7 +4,7 @@ import { PROJECT_ROOT } from './local.js';
 import { existsSync, readFileSync } from 'fs';
 import { isHeartbeatLane } from '../../services/compaction-log.js';
 import { join } from 'path';
-import { getAllBlocks } from '../../services/memory-blocks.js';
+import { getAllBlocks, loadedBlocks } from '../../services/memory-blocks.js';
 import { driftAgainstBaseline, renderDrift, BASELINE_FILE } from '../../services/heartbeat/block-drift.js';
 import { registry } from '../../services/ws.js';
 
@@ -88,7 +88,7 @@ function staleBlockText(lane: string): string {
     const path = join(PROJECT_ROOT, 'data', 'heartbeat', lane, 'io', BASELINE_FILE);
     if (!existsSync(path)) return '';
     const baseline = JSON.parse(readFileSync(path, 'utf8')) as Record<string, string>;
-    const { changed, removed } = driftAgainstBaseline(baseline, getAllBlocks());
+    const { changed, removed } = driftAgainstBaseline(baseline, loadedBlocks(getAllBlocks()));
     return renderDrift(changed, removed);
   } catch {
     return '';

@@ -138,3 +138,20 @@ test('a row that names its author only in companion_id still has one', () => {
   assert.equal(toPhoneMessage(row({ role: 'companion', companion_id: 'willow', metadata: { companionSlug: 'birch' } })).companionSlug, 'birch');
   assert.equal(toPhoneMessage(row({ role: 'companion' })).companionSlug, undefined);
 });
+
+test('a reply that only reacted becomes a centred note naming the reactions, with no tool chips', () => {
+  const m = toPhoneMessage(row({ role: 'companion', platform: 'web', content: '[react:1000000000000000001 😂]\n[react:1000000000000000002 🏗️]', metadata: { segments: [{ type: 'tool', toolName: 'Bash' }] } as never }));
+  assert.equal(m.isSystem, true);
+  assert.equal(m.content, 'Reacted in the room: 😂 🏗️');
+  assert.equal(m.segments, undefined);
+  const words = toPhoneMessage(row({ role: 'companion', platform: 'web', content: '**🌿 Rowan**\nhi\n[react:1000000000000000001 😂]', metadata: null }));
+  assert.equal(words.isSystem, false);
+});
+
+test('a Discord row names its room, and a room with no names still keeps its key', async () => {
+  const { discordRoomOf } = await import('./adapter.js');
+  assert.deepEqual(discordRoomOf({ discordChannelId: 'c1', discordGuildId: 'g1', discordChannelName: 'shiny-things', discordGuildName: 'Highthorn Eyrie' }), { key: 'c1', label: 'Highthorn Eyrie · shiny-things' });
+  assert.deepEqual(discordRoomOf({ discordChannelId: 'c1', discordGuildId: 'g1' }), { key: 'c1', label: undefined });
+  assert.equal(discordRoomOf({ discordChannelId: 'c1' }), undefined);
+  assert.equal(discordRoomOf(null), undefined);
+});

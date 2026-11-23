@@ -142,6 +142,30 @@ router.put('/preferences', (req, res) => {
       }
     }
 
+    // What this save changed that the running house only reads at startup
+    // (the old message said 'some changes need a restart'
+    // on every save, even a model switch that is live the moment it lands).
+    // Compared against what the house is running now, so re-sending an
+    // unchanged name or timezone does not ask for a restart.
+    const waitsForRestart: string[] = [];
+    const runningIdentity = getAerieConfig().identity as Record<string, unknown>;
+    const identityLabels: Record<string, string> = {
+      companion_name: 'the companion name',
+      user_name: 'your name',
+      timezone: 'the timezone',
+    };
+    if (updates.identity) {
+      for (const [key, label] of Object.entries(identityLabels)) {
+        const next = updates.identity[key];
+        if (next !== undefined && String(next) !== String(runningIdentity[key] ?? '')) waitsForRestart.push(label);
+      }
+    }
+    for (const section of ['orchestrator', 'voice', 'discord', 'telegram'] as const) {
+      const next = updates[section]?.enabled;
+      if (next !== undefined && next !== parsed[section]?.enabled) waitsForRestart.push(`the ${section} switch`);
+    }
+    if (updates.providers && Object.keys(updates.providers).length > 0) waitsForRestart.push('the provider settings');
+
     // Merge only allowed fields
     if (updates.identity) {
       if (!parsed.identity) parsed.identity = {};
@@ -289,7 +313,10 @@ router.put('/preferences', (req, res) => {
       shutdownAllHeartbeats();
     }
 
-    res.json({ success: true, message: 'Preferences saved. Restart server for some changes to take effect.' });
+    const message = waitsForRestart.length === 0
+      ? 'Saved. Everything is live now.'
+      : `Saved. Everything is live now except ${joinPlain(waitsForRestart)}, which ${waitsForRestart.length === 1 ? 'takes' : 'take'} effect after a restart.`;
+    res.json({ success: true, message, restartNeeded: waitsForRestart.length > 0 });
   } catch (err) {
     console.error('Failed to save preferences:', err);
     res.status(500).json({ error: 'Failed to save preferences' });
@@ -297,3 +324,8 @@ router.put('/preferences', (req, res) => {
 });
 
 export default router;
+
+function joinPlain(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}

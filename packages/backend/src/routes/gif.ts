@@ -733,7 +733,7 @@ router.post('/gif/cutout/:sessionId/:filename/revert', (req, res) => {
 /**
  * Export one frame as a still, to a size budget, keeping transparency.
  * POST /api/gif/still-export/:sessionId/:filename
- * Body: { format?: 'png'|'webp', maxSide?: number, maxBytes?: number,
+ * Body: { format?: 'png'|'webp'|'gif', maxSide?: number, maxBytes?: number,
  *         padSquare?: boolean, allowReduce?: boolean }
  *
  * PNG with alpha has no palette limit, so nothing lossy happens unless the file
@@ -749,8 +749,8 @@ router.post('/gif/still-export/:sessionId/:filename', async (req, res) => {
     res.status(400).json({ error: 'Invalid path' });
     return;
   }
-  if (format !== 'png' && format !== 'webp') {
-    res.status(400).json({ error: "format must be 'png' or 'webp'" });
+  if (format !== 'png' && format !== 'webp' && format !== 'gif') {
+    res.status(400).json({ error: "format must be 'png', 'webp' or 'gif'" });
     return;
   }
 

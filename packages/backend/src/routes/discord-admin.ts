@@ -13,6 +13,14 @@ import { getRulesData, saveRules } from '../services/discord/rules.js';
 import type { ServerRule, ChannelRule, UserRule, RulesData } from '../services/discord/rules.js';
 import type { AgentService } from '../services/agent.js';
 
+import { discordLanding, DISCORD_LANDINGS, type DiscordLanding } from '../services/discord/room-thread.js';
+import { getConfig as readConfig } from '../services/db.js';
+
+function landingSettings() {
+  const own = (readConfig('discord.own_thread_channels') || '').split(',').map((x) => x.trim()).filter(Boolean);
+  return { landing: discordLanding(), ownThreadChannels: own };
+}
+
 const router = Router();
 
 // GET /discord/status
@@ -137,6 +145,7 @@ router.get('/discord/settings', (req, res) => {
       allowedUsers: [...getAllowedUsers()],
       allowedGuilds: [...getAllowedGuilds()],
       activeChannels: [...getActiveChannels()],
+      ...landingSettings(),
     });
   } catch (error) {
     console.error('Error fetching Discord settings:', error);
@@ -187,6 +196,21 @@ router.put('/discord/settings', (req, res) => {
       }
     }
 
+    // Where room talk lands (room-thread.ts).
+    if ('landing' in body) {
+      if (!DISCORD_LANDINGS.includes(body.landing as DiscordLanding)) {
+        res.status(400).json({ error: `landing must be one of ${DISCORD_LANDINGS.join(', ')}` });
+        return;
+      }
+      setConfig('discord.landing', String(body.landing));
+      updated++;
+    }
+    if ('ownThreadChannels' in body) {
+      const val = body.ownThreadChannels;
+      setConfig('discord.own_thread_channels', (Array.isArray(val) ? val.join(',') : String(val ?? '')).trim());
+      updated++;
+    }
+
     const config = getDiscordConfig();
     res.json({
       success: true,
@@ -195,6 +219,7 @@ router.put('/discord/settings', (req, res) => {
       allowedUsers: [...getAllowedUsers()],
       allowedGuilds: [...getAllowedGuilds()],
       activeChannels: [...getActiveChannels()],
+      ...landingSettings(),
     });
   } catch (error) {
     console.error('Error updating Discord settings:', error);

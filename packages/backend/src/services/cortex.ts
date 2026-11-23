@@ -258,8 +258,13 @@ export async function saveConversation(title: string, content: string, domain?: 
   return callTool('save_conversation', { title, content, domain, summary });
 }
 
-export async function getConversation(id: string): Promise<string> {
-  return callTool('get_conversation', { id });
+export async function getConversation(id: string, page?: { offset?: number; maxChars?: number }): Promise<string> {
+  // A long old window comes back a page at a time; next_offset in the answer
+  // says where the following page starts.
+  const args: Record<string, unknown> = { id };
+  if (page?.offset) args.offset = page.offset;
+  if (page?.maxChars) args.max_chars = page.maxChars;
+  return callTool('get_conversation', args);
 }
 
 export async function conversationsByDate(startDate: string, endDate?: string, domain?: string): Promise<string> {

@@ -352,7 +352,7 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
             <button
               key={r}
               onClick={() => setRange(r)}
-              className={cn('flex-1 rounded-lg py-1.5 text-xs font-medium capitalize transition-colors border', colors.panelBorder)}
+              className={cn('flex-1 rounded-[var(--shape-chip)] py-1.5 text-xs font-medium capitalize transition-colors border', colors.panelBorder)}
               style={range === r ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               {r}
@@ -369,7 +369,7 @@ export function UsageApp({ onClose, themeConfig, themeMode, embedded }: UsageApp
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                'flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors border',
+                'flex-1 rounded-[var(--shape-chip)] py-1.5 text-xs font-medium transition-colors border',
                 colors.panelBorder,
                 tab !== t.id && colors.textMuted,
               )}

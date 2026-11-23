@@ -34,6 +34,8 @@ export interface Message {
   // the companions ("mentioned you in #general"). Shown beside the sender's
   // name, in the same words as the notification that brought their person to it.
   mentionLabel?: string;
+  /** The Discord room a message was said in, so the chat can mark where the talk moves between rooms. */
+  room?: { key: string; label?: string };
   // Slug of the companion who authored this message, when the backend
   // recorded one (treehouse posts, per-companion sends). Lets the chat
   // attach the right avatar even without an in-text voice header.

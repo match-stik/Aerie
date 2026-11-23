@@ -97,3 +97,9 @@ test('a picture can name whose it is, per line or per item, and an item wins', (
   // An object form still counts as a picture for the reply-or-silence check.
   assert.equal(outboxCarriesAttachment({ imageUrls: [{ url: 'x' }] }), true);
 });
+
+test('a Discord reply\'s [discord-attach] files ride on the stored row too, once each', () => {
+  const pics = outboxPictures({ content: 'For you.\n[discord-attach:bfb1b98f-c21a]\n[discord-attach:bfb1b98f-c21a]', attachments: [{ fileId: 'f1' }] });
+  assert.deepEqual(pics.files, [{ fileId: 'f1' }, { fileId: 'bfb1b98f-c21a' }]);
+  assert.equal(outboxCarriesAttachment({ content: 'plain words' } as never), false);
+});

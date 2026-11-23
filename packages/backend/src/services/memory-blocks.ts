@@ -5,6 +5,7 @@
 
 import { getDb } from './db.js';
 import { getCompanionBySlug, listCompanions } from './db/companions.js';
+import { getConfig, setConfig, deleteConfig } from './db/config.js';
 
 export const SHARED_SCOPE = 'shared';
 
@@ -143,11 +144,76 @@ export function rethinkBlock(scope: string, label: string, newContent: string): 
   return newContent;
 }
 
+// ─── The wall load dial ─────────────
+// Every wall has one of three positions. ALWAYS is loaded into every room
+// that opens. ROOM is loaded after the always walls, in order, while the
+// budget (memory.load_budget_chars) has room; with no budget set it loads like
+// always. SEARCH is never loaded: the room is told the wall exists and how
+// big it is, and reads it when it needs it. An unset wall is ALWAYS, so a
+// house that never touches the dial behaves exactly as it did before.
+
+export type WallLoad = 'always' | 'room' | 'search';
+export const WALL_LOADS: readonly WallLoad[] = ['always', 'room', 'search'];
+const LOAD_PREFIX = 'memory.load.';
+const BUDGET_KEY = 'memory.load_budget_chars';
+
+export function wallLoad(scope: string, label: string): WallLoad {
+  const v = getConfig(`${LOAD_PREFIX}${scope}.${label}`);
+  return v === 'room' || v === 'search' ? v : 'always';
+}
+
+export function setWallLoad(scope: string, label: string, mode: WallLoad): void {
+  const key = `${LOAD_PREFIX}${scope}.${label}`;
+  if (mode === 'always') deleteConfig(key);
+  else setConfig(key, mode);
+}
+
+/** The budget for ROOM walls, in characters of wall text. Null means no limit. */
+export function loadBudgetChars(): number | null {
+  const n = Number(getConfig(BUDGET_KEY));
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+}
+
+export function setLoadBudgetChars(chars: number | null): void {
+  if (chars == null || !Number.isFinite(chars) || chars <= 0) deleteConfig(BUDGET_KEY);
+  else setConfig(BUDGET_KEY, String(Math.floor(chars)));
+}
+
+/**
+ * Which of these walls a room opens with, and which it is only told about.
+ * Pure over its inputs so the rule can be tested without a database.
+ */
+export function splitByLoad<B extends { scope: string; label: string; content: string }>(
+  blocks: B[],
+  modeOf: (b: B) => WallLoad,
+  budget: number | null,
+): { loaded: B[]; skipped: B[] } {
+  const always = blocks.filter((b) => modeOf(b) === 'always');
+  let used = always.reduce((n, b) => n + b.content.length, 0);
+  const roomOk = new Set<B>();
+  for (const b of blocks) {
+    if (modeOf(b) !== 'room') continue;
+    if (budget == null || used + b.content.length <= budget) {
+      roomOk.add(b);
+      used += b.content.length;
+    }
+  }
+  const loaded = blocks.filter((b) => modeOf(b) === 'always' || roomOk.has(b));
+  const skipped = blocks.filter((b) => !loaded.includes(b));
+  return { loaded, skipped };
+}
+
+/** The walls a room is actually handed, by the dial. */
+export function loadedBlocks<B extends { scope: string; label: string; content: string }>(blocks: B[]): B[] {
+  return splitByLoad(blocks, (b) => wallLoad(b.scope, b.label), loadBudgetChars()).loaded;
+}
+
 // Format blocks for system prompt injection.
 // scopes should be ['shared', ...companion slugs active in the thread].
 export function formatBlocksForPrompt(scopes: string[]): string {
-  const blocks = getBlocksForScopes(scopes);
-  if (blocks.length === 0) return '';
+  const all = getBlocksForScopes(scopes);
+  if (all.length === 0) return '';
+  const { loaded: blocks, skipped } = splitByLoad(all, (b) => wallLoad(b.scope, b.label), loadBudgetChars());
 
   let output = '\n<core-memory>\n';
   output +=
@@ -157,6 +223,15 @@ export function formatBlocksForPrompt(scopes: string[]): string {
     'Keep them current — when you learn something durable, write it down. ' +
     'A wall holds what you need in hand the moment a session opens: who you are, who your person is, what is true right now and what is still open. ' +
     "How to do one particular job (a recipe, a fix, a house project's working notes) belongs in a skill, and a finished story or old history belongs in Cortex, where search finds it when it fits.\n\n";
+  if (skipped.length > 0) {
+    // Before the first heading on purpose: the drift parser only reads text
+    // under a `## [scope] label` heading, so this line is never mistaken for
+    // part of a wall.
+    const list = skipped.map((b) => `${b.scope}/${b.label} (${b.content.length.toLocaleString('en-US')} characters)`).join(', ');
+    output +=
+      `Walls not loaded into this room, by the load dial: ${list}. They are current and yours to read whenever you need them: ` +
+      'GET /api/memory/blocks/<scope>/<label> on the public port, or search for what you need. Edit them the same way as the others.\n\n';
+  }
   for (const block of blocks) {
     output += `## [${block.scope}] ${block.label}\n`;
     if (block.description) output += `<!-- ${block.description} -->\n`;

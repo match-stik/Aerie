@@ -249,7 +249,7 @@ test('the query queue refusing a turn is never posted as a reply', async () => {
 test('owner messages on Discord go home, never into the room\'s own channel thread', () => {
   const source = readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
   assert.equal(source.split('getMostRecentActiveThread();').length - 1, 1, 'only homeThreadFrom reads the newest thread directly');
-  assert.ok(source.includes('if (newest && newest.id === getDiscordThreadId(channelId)) {'), 'and it skips the room thread');
+  assert.ok(source.includes('if (newest && (newest.id === getDiscordThreadId(channelId) || newest.id === oneRoomThreadId())) {'), 'and it skips the room thread and the one Discord thread');
   assert.equal(source.split('homeThreadFrom(channelId)').length - 1, 4, 'owner, mention, held-ping and pairing-request routing all go through it');
 });
 

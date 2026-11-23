@@ -8,6 +8,21 @@ import { stickerLinesAsParagraphs } from './sticker-lines';
 import { extractVideoUrls, safeVideoSrc } from './video-attachments';
 import { whispersToHeadings } from './whisper-lines';
 
+
+/** Reaction lines a Discord reply carries ([react:<id> <emoji>], see the
+ *  backend's services/discord/reaction-markers.ts) go on in the channel and are
+ *  not words, so neither the plain bubble nor a bubble with tool chips shows
+ *  them. */
+export function stripReactionMarkers(text: string): string {
+  return text.replace(/^[ \t]*\[react:\s*\d{15,22}\s+[^\]\n]{1,64}\][ \t]*(?:\n|$)/gm, '').trim();
+}
+
+/** A Discord reply's [discord-attach:<fileId>] line is the channel's road for a
+ *  file; on the phone the same file rides as an attachment, so the line goes. */
+export function stripAttachMarkers(text: string): string {
+  return text.replace(/[ \t]*\[discord-attach:[a-f0-9-]+\][ \t]*/gi, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 export interface MessageContent {
   isGif: boolean;
   isImage: boolean;
@@ -59,7 +74,7 @@ export function parseMessageContent(
   // A reaction a Discord reply put on somebody's message ([react:<id> <emoji>],
   // services/discord/reaction-markers.ts) is not words; it goes on in the
   // channel and never shows here.
-  textContent = textContent.replace(/^[ \t]*\[react:\s*\d{15,22}\s+[^\]\n]{1,64}\][ \t]*(?:\n|$)/gm, '').trim();
+  textContent = stripAttachMarkers(stripReactionMarkers(textContent));
   textContent = discordEmotesToMarkdown(textContent);
   if (message.via && textContent.includes('<')) {
     textContent = textContent

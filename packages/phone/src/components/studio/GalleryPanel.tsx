@@ -130,7 +130,7 @@ export function GalleryPanel({
                 <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => setCurrentFolderId(null)}
-                    className={cn("px-2 py-1 rounded text-xs border", !currentFolderId ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                    className={cn("px-2 py-1 rounded-[var(--shape-chip)] text-xs border", !currentFolderId ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
                     style={!currentFolderId ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     All
@@ -139,7 +139,7 @@ export function GalleryPanel({
                     <button
                       key={f.id}
                       onClick={() => setCurrentFolderId(f.id)}
-                      className={cn("px-2 py-1 rounded text-xs border flex items-center gap-1", currentFolderId === f.id ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                      className={cn("px-2 py-1 rounded-[var(--shape-chip)] text-xs border flex items-center gap-1", currentFolderId === f.id ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
                       style={currentFolderId === f.id ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                     >
                       {f.name}
@@ -176,7 +176,7 @@ export function GalleryPanel({
                 <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => setCurrentRefFilter(null)}
-                    className={cn("px-2 py-1 rounded text-xs border", !currentRefFilter ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                    className={cn("px-2 py-1 rounded-[var(--shape-chip)] text-xs border", !currentRefFilter ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
                     style={!currentRefFilter ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     All refs
@@ -188,7 +188,7 @@ export function GalleryPanel({
                       <button
                         key={slug}
                         onClick={() => setCurrentRefFilter(slug)}
-                        className={cn("px-2 py-1 rounded text-xs border", currentRefFilter === slug ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                        className={cn("px-2 py-1 rounded-[var(--shape-chip)] text-xs border", currentRefFilter === slug ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
                         style={currentRefFilter === slug ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                       >
                         {drawer?.emoji ? `${drawer.emoji} ` : ''}{label}

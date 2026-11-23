@@ -513,7 +513,7 @@ export function StudioGalleryView({
                 type="button"
                 key={entry.key}
                 onClick={() => setCollection(entry.collection)}
-                className={cn('shrink-0 rounded-[var(--shape-control)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== entry.key && colors.textMuted)}
+                className={cn('shrink-0 rounded-[var(--shape-chip)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== entry.key && colors.textMuted)}
                 style={collectionKey === entry.key ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
               >
                 {entry.label}
@@ -526,7 +526,7 @@ export function StudioGalleryView({
                   type="button"
                   key={key}
                   onClick={() => { setCastMode('exact'); setCollection({ kind: 'cast', cast: group.cast }); }}
-                  className={cn('shrink-0 rounded-[var(--shape-control)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
+                  className={cn('shrink-0 rounded-[var(--shape-chip)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
                   style={collectionKey === key ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                 >
                   {castCollectionLabel(group.cast, labelFor, houseGroups)} {group.count}
@@ -545,7 +545,7 @@ export function StudioGalleryView({
                     type="button"
                     key={person}
                     onClick={() => { setCastMode('includes'); setCollection({ kind: 'cast', cast: [person] }); }}
-                    className={cn('shrink-0 rounded-[var(--shape-control)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
+                    className={cn('shrink-0 rounded-[var(--shape-chip)] border px-3 py-1.5 text-xs font-medium backdrop-blur-sm', colors.panelBg, colors.panelBorder, collectionKey !== key && colors.textMuted)}
                     style={collectionKey === key ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     {labelFor(person)} {count}
@@ -825,7 +825,7 @@ export function StudioGalleryView({
                     key={drawer.slug}
                     onClick={() => togglePersonTag(slug)}
                     aria-pressed={active}
-                    className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
+                    className={cn('flex items-center gap-1.5 rounded-[var(--shape-chip)] border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
                     style={active ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     {active && <Check className="h-3.5 w-3.5" />}
@@ -849,7 +849,7 @@ export function StudioGalleryView({
                         key={slug}
                         onClick={() => togglePersonTag(slug)}
                         aria-pressed={active}
-                        className={cn('flex items-center gap-1.5 rounded-[var(--shape-control)] border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
+                        className={cn('flex items-center gap-1.5 rounded-[var(--shape-chip)] border px-3 py-2 text-xs', colors.panelBorder, !active && colors.textMuted)}
                         style={active ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                       >
                         {active && <Check className="h-3.5 w-3.5" />}

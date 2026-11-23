@@ -8,8 +8,11 @@ still over budget. Most images never reach the reduction ladder at all.
 
 Needs nothing but Pillow.
 
+A GIF can only keep a pixel or drop it, never half-show it, so its edge is cut
+at half alpha, and it holds 256 colours at most (one of them is the clear one).
+
 Usage:
-    still-export.py <input> <output> [--format png|webp] [--max-side N]
+    still-export.py <input> <output> [--format png|webp|gif] [--max-side N]
                     [--max-bytes N] [--quality N] [--no-reduce]
 
 Prints one line of JSON describing what it actually did.
@@ -47,9 +50,38 @@ def pad_to_square(image: Image.Image, side: int) -> Image.Image:
     return canvas
 
 
-def encode(image: Image.Image, fmt: str, quality: int) -> bytes:
+def to_gif_palette(image: Image.Image, colors: int) -> Image.Image:
+    # A GIF has one fully clear palette slot and no partial alpha. Everything at
+    # least half visible keeps its own colour, everything below that becomes the
+    # clear slot. The clear pixels are painted one flat colour before quantizing
+    # so the hidden background does not spend palette entries.
+    rgba = image.convert("RGBA")
+    alpha = rgba.getchannel("A")
+    clear = alpha.point(lambda a: 255 if a < 128 else 0)
+    flat = Image.new("RGB", rgba.size, (0, 0, 0))
+    flat.paste(rgba.convert("RGB"), mask=alpha.point(lambda a: 255 if a >= 128 else 0))
+    slots = max(2, min(256, colors)) - 1
+    try:
+        # libimagequant picks a far better 255 than median cut does, which is
+        # most of the difference between a GIF that looks grainy and one that
+        # does not. Pillow is built without it in some installs.
+        paletted = flat.quantize(colors=slots, method=Image.LIBIMAGEQUANT)
+    except (ValueError, OSError):
+        paletted = flat.quantize(colors=slots, method=Image.MEDIANCUT)
+    palette = (paletted.getpalette() or [])[: slots * 3]
+    palette += [0] * (768 - len(palette))
+    paletted.putpalette(palette)
+    paletted.paste(slots, mask=clear)
+    paletted.info["transparency"] = slots
+    return paletted
+
+
+def encode(image: Image.Image, fmt: str, quality: int, colors: int = 256) -> bytes:
     buffer = io.BytesIO()
-    if fmt == "webp":
+    if fmt == "gif":
+        paletted = to_gif_palette(image, colors)
+        paletted.save(buffer, "GIF", transparency=paletted.info["transparency"], optimize=True)
+    elif fmt == "webp":
         # Lossless keeps a cut-out's hard alpha edge clean; quality here is the
         # compression effort, not a lossy dial.
         image.save(buffer, "WEBP", lossless=True, quality=quality, method=6)
@@ -68,7 +100,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Export a still to a size budget.")
     parser.add_argument("input")
     parser.add_argument("output")
-    parser.add_argument("--format", choices=["png", "webp"], default="png")
+    parser.add_argument("--format", choices=["png", "webp", "gif"], default="png")
     parser.add_argument("--max-side", type=int, default=0, help="Longest edge in px; 0 keeps the original.")
     parser.add_argument("--max-bytes", type=int, default=0, help="File-size budget; 0 means no budget.")
     parser.add_argument("--quality", type=int, default=90, help="WebP effort (ignored for PNG).")
@@ -88,8 +120,10 @@ def main() -> int:
 
     if args.max_bytes and len(data) > args.max_bytes and not args.no_reduce:
         for candidate in COLOR_LADDER:
-            reduced = quantize_keeping_alpha(image, candidate)
-            attempt = encode(reduced, args.format, args.quality)
+            if args.format == "gif":
+                attempt = encode(image, "gif", args.quality, candidate)
+            else:
+                attempt = encode(quantize_keeping_alpha(image, candidate), args.format, args.quality)
             colors = candidate
             if len(attempt) <= args.max_bytes:
                 data = attempt

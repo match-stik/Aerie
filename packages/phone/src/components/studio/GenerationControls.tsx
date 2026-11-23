@@ -125,8 +125,12 @@ export function GenerationControls({
             className={cn("w-full px-3 py-2 rounded-lg border text-sm", colors.panelBg, colors.panelBorder, colors.textMain, "focus:outline-none focus:ring-2")}
             style={{ '--tw-ring-color': colors.accent } as CSSProperties}
           >
+            {/* Names only: the Codex model is the go-between that reads the
+                references and writes the brief, not the painter, so the
+                account's marketing words ('Most Capable') said nothing about
+                the picture. */}
             {CODEX_MODELS.map(m => (
-              <option key={m.id} value={m.id}>{m.name} — {m.desc}</option>
+              <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </HouseSelect>
         </div>
@@ -226,7 +230,7 @@ export function GenerationControls({
                     <button
                       key={d.slug}
                       onClick={() => toggleSubject(d.slug)}
-                      className={cn("px-2 py-1 rounded-[var(--shape-control)] text-xs border transition-colors flex items-center gap-1", selectedSubjects.includes(d.slug) ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                      className={cn("px-2 py-1 rounded-[var(--shape-chip)] text-xs border transition-colors flex items-center gap-1", selectedSubjects.includes(d.slug) ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
                       style={selectedSubjects.includes(d.slug) ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                     >
                       {d.emoji && <span>{d.emoji}</span>}
@@ -278,7 +282,7 @@ export function GenerationControls({
                 like, and both can be on at once. */}
             <button
               onClick={() => setShowDirectivePicker(!showDirectivePicker)}
-              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-control)] border transition-colors", selectedDirective ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-chip)] border transition-colors", selectedDirective ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
               style={selectedDirective ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               <Compass className="w-3 h-3" />
@@ -286,7 +290,7 @@ export function GenerationControls({
             </button>
             <button
               onClick={() => setShowStylePicker(!showStylePicker)}
-              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-control)] border transition-colors", selectedStyle ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+              className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-[var(--shape-chip)] border transition-colors", selectedStyle ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
               style={selectedStyle ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               <Palette className="w-3 h-3" />
@@ -302,7 +306,7 @@ export function GenerationControls({
                   <button
                     key={d.name}
                     onClick={() => { setSelectedDirective(d.name === 'None' ? '' : d.name); setShowDirectivePicker(false); }}
-                    className={cn("px-2 py-0.5 rounded-[var(--shape-control)] text-xs border transition-colors", (selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                    className={cn("px-2 py-0.5 rounded-[var(--shape-chip)] text-xs border transition-colors", (selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
                     style={(selectedDirective === d.name || (d.name === 'None' && !selectedDirective)) ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     {d.name}
@@ -318,7 +322,7 @@ export function GenerationControls({
                   <button
                     key={s.name}
                     onClick={() => { setSelectedStyle(s.name === 'None' ? '' : s.name); setShowStylePicker(false); }}
-                    className={cn("px-2 py-0.5 rounded-[var(--shape-control)] text-xs border transition-colors", (selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+                    className={cn("px-2 py-0.5 rounded-[var(--shape-chip)] text-xs border transition-colors", (selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
                     style={(selectedStyle === s.name || (s.name === 'None' && !selectedStyle)) ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                   >
                     {s.name}

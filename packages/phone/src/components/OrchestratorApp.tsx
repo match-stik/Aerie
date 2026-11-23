@@ -582,7 +582,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
       <button
         key={label}
         onClick={onClick}
-        className={cn('rounded-[var(--shape-control)] border px-2 py-0.5 text-[11px] transition-colors', colors.panelBorder)}
+        className={cn('rounded-[var(--shape-chip)] border px-2 py-0.5 text-[11px] transition-colors', colors.panelBorder)}
         style={active
           ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: 'transparent' }
           : undefined}
@@ -889,7 +889,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                   <button
                     key={k}
                     onClick={() => setNewTrigger((s) => ({ ...s, kind: k }))}
-                    className="rounded-md border px-2 py-1 text-xs"
+                    className="rounded-[var(--shape-chip)] border px-2 py-1 text-xs"
                     style={newTrigger.kind === k
                       ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                       : { color: 'var(--aerie-text)' }}
@@ -917,7 +917,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                   <button
                     key={c}
                     onClick={() => setNewTrigger((s) => ({ ...s, conditionType: c }))}
-                    className="rounded-md border px-1 py-1 text-[10px]"
+                    className="rounded-[var(--shape-chip)] border px-1 py-1 text-[10px]"
                     style={newTrigger.conditionType === c
                       ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                       : { color: 'var(--aerie-text)' }}
@@ -932,7 +932,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                     <button
                       key={p}
                       onClick={() => setNewTrigger((s) => ({ ...s, presenceState: p }))}
-                      className="rounded-md border px-1 py-1 text-[10px] capitalize"
+                      className="rounded-[var(--shape-chip)] border px-1 py-1 text-[10px] capitalize"
                       style={newTrigger.presenceState === p
                         ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent }
                         : { color: 'var(--aerie-text)' }}

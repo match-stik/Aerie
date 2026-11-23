@@ -147,7 +147,7 @@ function asVoice(value: unknown): string | undefined {
  * plain URL or {url, voice}, attachments takes {fileId, voice}. An item's own
  * voice wins over the line's. No voice means the last bubble, as before.
  */
-export function outboxPictures(parsed: { imageUrls?: unknown; attachments?: unknown; voice?: unknown }): {
+export function outboxPictures(parsed: { imageUrls?: unknown; attachments?: unknown; voice?: unknown; content?: unknown }): {
   urls: Array<{ url: string; voice?: string }>;
   files: Array<{ fileId: string; voice?: string }>;
 } {
@@ -166,6 +166,16 @@ export function outboxPictures(parsed: { imageUrls?: unknown; attachments?: unkn
     if (typeof fileId !== 'string') continue;
     const voice = asVoice((item as { voice?: unknown }).voice) ?? lineVoice;
     files.push(voice ? { fileId, voice } : { fileId });
+  }
+  // A Discord reply names its files as [discord-attach:<fileId>] in its words,
+  // which is the channel's road only, so on the phone a voice note showed as
+  // that raw line. The same files go on the stored row too,
+  // and the phone hides the marker.
+  if (typeof parsed.content === 'string') {
+    for (const m of parsed.content.matchAll(/\[discord-attach:([a-f0-9-]+)\]/gi)) {
+      if (files.some((f) => f.fileId === m[1])) continue;
+      files.push(lineVoice ? { fileId: m[1], voice: lineVoice } : { fileId: m[1] });
+    }
   }
   return { urls, files };
 }

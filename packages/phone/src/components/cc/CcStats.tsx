@@ -127,7 +127,7 @@ export function CcStats({ themeConfig, themeMode }: CcSubPageProps) {
             <button
               key={d}
               onClick={() => setDays(d)}
-              className={cn('rounded-lg px-3 py-1.5 text-xs font-medium border', colors.panelBorder, days !== d && colors.panelBg)}
+              className={cn('rounded-[var(--shape-chip)] px-3 py-1.5 text-xs font-medium border', colors.panelBorder, days !== d && colors.panelBg)}
               style={days === d ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
             >
               {d}d

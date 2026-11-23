@@ -239,7 +239,7 @@ export function HomePane({ s }: { s: SettingsState }) {
                     key={p}
                     onClick={() => onThemeChange({ slideshowSeconds: p })}
                     aria-pressed={pace === p}
-                    className={cn("px-2 py-2 rounded-[var(--shape-control)] border text-[11px] font-bold uppercase tracking-widest", colors.panelBorder, colors.textMain)}
+                    className={cn("px-2 py-2 rounded-[var(--shape-chip)] border text-[11px] font-bold uppercase tracking-widest", colors.panelBorder, colors.textMain)}
                     style={pace === p ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
                   >
                     {paceLabel(p)}
@@ -309,7 +309,7 @@ export function HomePane({ s }: { s: SettingsState }) {
                 <button
                   key={id}
                   onClick={() => onThemeChange({ homeCardStyle: id, homeCardBacks: id !== 'none' })}
-                  className={cn('px-3 py-2 rounded-xl border text-[11px] font-bold uppercase tracking-widest', colors.panelBorder, colors.textMain)}
+                  className={cn('px-3 py-2 rounded-[var(--shape-chip)] border text-[11px] font-bold uppercase tracking-widest', colors.panelBorder, colors.textMain)}
                   style={on ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
                   aria-pressed={on}
                 >
@@ -331,7 +331,7 @@ export function HomePane({ s }: { s: SettingsState }) {
                   <button
                     key={chip}
                     onClick={() => onThemeChange({ [key]: id })}
-                    className={cn('px-3 py-2 rounded-xl border text-[11px] font-bold uppercase tracking-widest', colors.panelBorder, colors.textMain)}
+                    className={cn('px-3 py-2 rounded-[var(--shape-chip)] border text-[11px] font-bold uppercase tracking-widest', colors.panelBorder, colors.textMain)}
                     style={on ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
                     aria-pressed={on}
                   >

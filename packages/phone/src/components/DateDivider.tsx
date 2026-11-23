@@ -41,3 +41,18 @@ export function DateDivider({ timestamp, themeConfig, themeMode }: DateDividerPr
     </div>
   );
 }
+
+/** Where the talk moves from one Discord room to the next in the one Discord
+ *  thread: the same quiet line as a date, naming the server and channel. */
+export function RoomDivider({ label, themeConfig, themeMode }: { label: string; themeConfig: ThemeConfig; themeMode: 'light' | 'dark' }) {
+  const colors = themeConfig[themeMode];
+  return (
+    <div className="flex items-center gap-2 my-3 px-2">
+      <div className={cn('flex-1 h-px', colors.panelBorder, 'border-t')} />
+      <span className={cn('text-[14px] font-semibold tracking-wide opacity-80 normal-case', colors.textMuted)}>
+        {label}
+      </span>
+      <div className={cn('flex-1 h-px', colors.panelBorder, 'border-t')} />
+    </div>
+  );
+}

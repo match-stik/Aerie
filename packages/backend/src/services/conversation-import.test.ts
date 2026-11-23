@@ -159,6 +159,52 @@ test('Grok: prod-grok-backend.json reads in time order, as picked or inside the 
   assert.throws(() => parseExport(JSON.stringify({ secret: 'x' })), /not a chat export/);
 });
 
+// Gemini keeps activity, not conversations (read off a real Takeout): one
+// row per prompt, newest first, the conversation named only by the
+// gemini.google.com/app/<id> link on each row. Non-prompt rows carry no words.
+const GEMINI_ACTIVITY = [
+  { header: 'Gemini Apps', title: 'Prompted And the chorus?', time: '2026-11-07T22:10:00.000Z', products: ['Gemini Apps'],
+    details: [{ name: 'x', url: 'https://gemini.google.com/app/aa11' }],
+    safeHtmlItem: [{ html: '<p>Try this:</p>\n<ul>\n<li>Line one &amp; two</li>\n<li>It&#39;s yours</li>\n</ul>' }] },
+  { header: 'Gemini Apps', title: 'Used an Assistant feature', time: '2026-11-07T22:09:00.000Z', products: ['Gemini Apps'],
+    details: [{ name: 'x', url: 'https://gemini.google.com/app/aa11' }] },
+  { header: 'Gemini Apps', title: 'Prompted Paint the three of them on a couch', time: '2026-11-06T10:00:00.000Z', products: ['Gemini Apps'],
+    details: [{ name: 'y', url: 'https://gemini.google.com/app/bb22' }],
+    subtitles: [{ name: '1 generated image.' }, { name: 'Attached 2 files.' }, { name: '-  a.png', url: 'a.png' }],
+    safeHtmlItem: [{ html: '<p>Here they are.</p>' }] },
+  { header: 'Gemini Apps', title: 'Prompted Write me a song about a house', time: '2026-11-07T22:05:00.000Z', products: ['Gemini Apps'],
+    details: [{ name: 'x', url: 'https://gemini.google.com/app/aa11' }],
+    safeHtmlItem: [{ html: '<p><strong>Verse one</strong></p>' }] },
+  { header: 'Gemini Apps', title: 'Gave feedback: Bad response (Unspecified)', time: '2026-11-05T10:00:00.000Z', products: ['Gemini Apps'], details: null },
+];
+
+test('Gemini: My Activity rows are gathered by conversation, put back in time order, and read as plain words', () => {
+  const convs = parseExport(JSON.stringify(GEMINI_ACTIVITY), { person: 'Sam' });
+  assert.equal(convs.length, 2);
+  const song = convs.find((c) => c.sourceId === 'gemini-aa11')!;
+  assert.equal(song.house, 'gemini');
+  assert.equal(song.title, 'Write me a song about a house');
+  assert.deepEqual(song.messages.map((m) => `${m.speaker}: ${m.text}`), [
+    'Sam: Write me a song about a house',
+    'Gemini: Verse one',
+    'Sam: And the chorus?',
+    "Gemini: Try this:\n\n- Line one & two\n- It's yours",
+  ]);
+  assert.equal(song.messages[0].date, '2026-11-07');
+  const couch = convs.find((c) => c.sourceId === 'gemini-bb22')!;
+  assert.deepEqual(couch.messages.map((m) => `${m.speaker}: ${m.text}`), [
+    'Sam: Paint the three of them on a couch\n[Attached 2 files]',
+    'Gemini: Here they are.\n[1 generated image]',
+  ]);
+  const zip = zipSync({
+    'Takeout/My Activity/Gemini Apps/MyActivity.json': strToU8(JSON.stringify(GEMINI_ACTIVITY)),
+    'Takeout/My Activity/YouTube/MyActivity.json': strToU8('[{"header":"YouTube","title":"never read"}]'),
+  });
+  const fromZip = readExportFile(zip, 'takeout.zip');
+  assert.ok(!fromZip.includes('never read'));
+  assert.equal(parseExport(fromZip).length, 2);
+});
+
 // A big export is read one conversation at a time instead of parsed whole
 // (Sol, Rose's house, Nov 21 2026: a 97MB Claude export took the house past its
 // memory limit). The walker has to cut each element exactly, however the

@@ -165,7 +165,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
   panRef.current = pan;
 
   const [preset, setPreset] = useState('sticker');
-  const [format, setFormat] = useState<'png' | 'webp'>('png');
+  const [format, setFormat] = useState<'png' | 'webp' | 'gif'>('png');
   const [result, setResult] = useState<ExportResult | null>(null);
 
   // BATCH. The aim: pick a set that share a background, key them all in one pass,
@@ -1393,7 +1393,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
               disabled={zoom <= 1}
               aria-pressed={moveMode}
               title="Drag to move the picture"
-              className={cn('flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] disabled:opacity-40', colors.panelBorder, moveMode ? '' : colors.textMuted)}
+              className={cn('flex items-center gap-1 rounded-[var(--shape-chip)] border px-2 py-1 text-[11px] disabled:opacity-40', colors.panelBorder, moveMode ? '' : colors.textMuted)}
               style={moveMode && zoom > 1 ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
             >
               <Hand size={12} /> Move
@@ -1413,7 +1413,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
             <button
               onClick={() => { setCropping((v) => !v); setCrop(null); }}
               className={cn(
-                'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold',
+                'flex items-center gap-1.5 rounded-[var(--shape-chip)] border px-2.5 py-1.5 text-[11px] font-semibold',
                 colors.panelBorder,
                 cropping ? 'text-[var(--aerie-on-accent)]' : colors.textMuted,
               )}
@@ -1789,14 +1789,14 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
           </div>
 
           <div className="mt-2 flex gap-1.5">
-            {(['png', 'webp'] as const).map((f) => (
+            {(['png', 'webp', 'gif'] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFormat(f)}
                 className={cn('flex-1 rounded-xl border px-2 py-1.5 text-xs', colors.panelBorder, colors.textMain)}
                 style={format === f ? { borderColor: colors.accent } : undefined}
               >
-                {f === 'png' ? 'PNG (Discord)' : 'WebP (smaller)'}
+                {f === 'png' ? 'PNG (Discord)' : f === 'webp' ? 'WebP (smaller)' : 'GIF (hard edge)'}
               </button>
             ))}
           </div>

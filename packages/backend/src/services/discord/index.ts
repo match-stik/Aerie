@@ -19,6 +19,7 @@ import { getPushService } from '../push.js';
 import { PairingService, pairingRequestNote } from './pairing.js';
 import { SayError } from './say-error.js';
 import { guestGoesHome } from './guest-thread.js';
+import { landingFor, ONE_THREAD_NAME, oneRoomThreadId } from './room-thread.js';
 import { getUserRule, requiresMention } from './rules.js';
 import { discordTurnAudience } from '../turn-audience.js';
 import { buildRulesContext } from './rules.js';
@@ -120,7 +121,8 @@ export function isQueueRefusal(response: string): boolean {
  */
 function homeThreadFrom(channelId: string) {
   const newest = getMostRecentActiveThread();
-  if (newest && newest.id === getDiscordThreadId(channelId)) {
+  // Neither the room's own thread nor the one Discord thread is ever home.
+  if (newest && (newest.id === getDiscordThreadId(channelId) || newest.id === oneRoomThreadId())) {
     return getMostRecentActiveThreadExcept(newest.id) ?? newest;
   }
   return newest;
@@ -499,7 +501,7 @@ export class DiscordService {
           // No active web thread — fall back to channel-mapped thread
           threadId = getDiscordThreadId(channelId);
           threadName = batch.guildId
-            ? `#${(this.client.channels.cache.get(channelId) as TextChannel)?.name || channelId} (${this.client.guilds.cache.get(batch.guildId)?.name || batch.guildId})`
+            ? `${(this.client.channels.cache.get(channelId) as TextChannel)?.name || channelId} (${this.client.guilds.cache.get(batch.guildId)?.name || batch.guildId})`
             : `DM: ${firstMessage.author.username}`;
           console.log(`[Discord] No active web thread — owner using Discord thread: ${threadName}`);
         }
@@ -529,7 +531,7 @@ export class DiscordService {
               const channel = this.client.channels.cache.get(channelId);
               const channelName = channel && 'name' in channel ? (channel as TextChannel).name : channelId;
               const guildName = guild?.name || batch.guildId;
-              threadName = `#${channelName} (${guildName})`;
+              threadName = `${channelName} (${guildName})`;
             } else {
               threadName = `DM: ${firstMessage.author.username}`;
             }
@@ -543,12 +545,25 @@ export class DiscordService {
             const channel = this.client.channels.cache.get(channelId);
             const channelName = channel && 'name' in channel ? (channel as TextChannel).name : channelId;
             const guildName = guild?.name || batch.guildId;
-            threadName = `#${channelName} (${guildName})`;
+            threadName = `${channelName} (${guildName})`;
           } else {
             threadName = `DM: ${firstMessage.author.username}`;
           }
           console.log(`[Discord] Non-owner using channel-mapped thread: ${threadName}`);
         }
+      }
+
+      // Where a server room's talk lands is a setting (room-thread.ts):
+      // each room its own thread, one Discord thread, or following their person home.
+      const landing = landingFor(batch.guildId, channelId);
+      if (landing === 'one') {
+        threadId = oneRoomThreadId();
+        threadName = ONE_THREAD_NAME;
+      } else if (landing === 'room') {
+        threadId = getDiscordThreadId(channelId);
+        const roomChannel = this.client.channels.cache.get(channelId);
+        const roomChannelName = roomChannel && 'name' in roomChannel ? (roomChannel as TextChannel).name : channelId;
+        threadName = `${roomChannelName} (${this.client.guilds.cache.get(batch.guildId!)?.name || batch.guildId})`;
       }
 
       // A held role ping goes to their thread, whatever this channel was routed to.
@@ -656,6 +671,14 @@ export class DiscordService {
           // said, so the phone can label it without looking anything up.
           ...(ownerMention && place
             ? { ownerMention, discordChannelName: place.channelName, discordGuildName: place.guildName }
+            : {}),
+          // The room's names on every row, so the phone can mark where the
+          // talk moves from one room to the next without looking anything up.
+          ...(!(ownerMention && place) && batch.guildId
+            ? {
+                discordChannelName: nameOf(lastMessage.channel) ?? nameOf(this.client.channels.cache.get(channelId)) ?? undefined,
+                discordGuildName: nameOf(lastMessage.guild) ?? nameOf(this.client.guilds.cache.get(batch.guildId)) ?? undefined,
+              }
             : {}),
         },
         createdAt: now,
@@ -1330,7 +1353,7 @@ export class DiscordService {
     let threadName: string;
     if (guildId) {
       if (!isGuildAllowed(guildId)) throw new SayError(403, 'That server is not one the house listens to.');
-      threadName = `#${'name' in channel ? channel.name : channelId} (${this.client.guilds.cache.get(guildId)?.name || guildId})`;
+      threadName = `${'name' in channel ? channel.name : channelId} (${this.client.guilds.cache.get(guildId)?.name || guildId})`;
     } else {
       const recipient = 'recipientId' in channel ? (channel.recipientId as string | null) : null;
       if (!recipient || !(this.pairingService.isApproved(recipient) || isUserAllowed(recipient))) {

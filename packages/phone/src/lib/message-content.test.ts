@@ -98,3 +98,10 @@ test('a file alone still keeps everything after it', () => {
   const m = parse('[FILE:notes.txt]:line one\nline two');
   assert.equal(m.fileContent, 'line one\nline two');
 });
+
+test('reaction lines are stripped whichever way the bubble draws, tool chips included', async () => {
+  const { stripReactionMarkers } = await import('./message-content.js');
+  assert.equal(stripReactionMarkers('[react:1000000000000000001 😂]\n[react:1000000000000000002 🏗️]'), '');
+  assert.equal(stripReactionMarkers('**🌿 Rowan**\nhi\n[react:1000000000000000001 <:party_clap:123456789012345678>]'), '**🌿 Rowan**\nhi');
+  assert.equal(stripReactionMarkers('a line that mentions [react:12 x] inline'), 'a line that mentions [react:12 x] inline');
+});

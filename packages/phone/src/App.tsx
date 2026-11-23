@@ -99,7 +99,7 @@ import { CompactionBanner } from './components/CompactionBanner';
 import { RateLimitBanner } from './components/RateLimitBanner';
 import { SearchResults, type SearchResult } from './components/SearchResults';
 import { useMessageSearch } from './lib/use-message-search';
-import { DateDivider } from './components/DateDivider';
+import { DateDivider, RoomDivider } from './components/DateDivider';
 import { splitMessageVoices } from './lib/voices';
 import { deliverLastCrashReport, listenForCarCallRequest, setCallerFaces } from './aerie/pocket-voice';
 import { syncArmedPlaces, watchArrivals } from './aerie/threshold-geofence';
@@ -1410,7 +1410,7 @@ export default function App() {
   // A message whose derived object, date divider, index and every shared
   // input below are unchanged reuses the nodes it rendered last time, so a
   // send re-renders the new bubble rather than the whole history.
-  const bubbleNodesRef = useRef(new Map<string, { msg: unknown; showDate: boolean; index: number; shared: unknown; nodes: React.ReactNode[] }>());
+  const bubbleNodesRef = useRef(new Map<string, { msg: unknown; showDate: boolean; index: number; shared: unknown; roomLabel?: string; nodes: React.ReactNode[] }>());
   const bubbleShared = useMemo(() => ({}), [
     threadCompanions, dbCompanions, activeTheme, theme.mode, elevenLabsApiKey,
     appSettings.customEmojis, appSettings.userAvatar, appSettings.userAvatarColor,
@@ -1425,14 +1425,28 @@ export default function App() {
   const renderedMessages = useMemo(() => {
     const voiceRoster = threadCompanions.length > 0 ? threadCompanions : dbCompanions;
     const priorNodes = bubbleNodesRef.current;
-    const nextNodes = new Map<string, { msg: unknown; showDate: boolean; index: number; shared: unknown; nodes: React.ReactNode[] }>();
+    const nextNodes = new Map<string, { msg: unknown; showDate: boolean; index: number; shared: unknown; roomLabel?: string; nodes: React.ReactNode[] }>();
+    // The room each message was said in, carried forward through the companions' replies
+    // (which do not name a room), so a label shows only where the talk moves
+    // from one Discord room to the next.
+    const roomLabels = new Map<string, string>();
+    {
+      let lastRoom: string | null = null;
+      for (const m of filteredMessages) {
+        if (m.room) {
+          if (m.room.key !== lastRoom && m.room.label) roomLabels.set(m.id, m.room.label);
+          lastRoom = m.room.key;
+        }
+      }
+    }
     const out = filteredMessages.flatMap((msg, index) => {
       const prev = index > 0 ? filteredMessages[index - 1] : null;
       const showDate =
         !prev ||
         new Date(prev.timestamp).toDateString() !== new Date(msg.timestamp).toDateString();
+      const roomLabel = roomLabels.get(msg.id);
       const kept = priorNodes.get(msg.id);
-      if (kept && kept.msg === msg && kept.showDate === showDate && kept.index === index && kept.shared === bubbleShared) {
+      if (kept && kept.msg === msg && kept.showDate === showDate && kept.index === index && kept.shared === bubbleShared && kept.roomLabel === roomLabel) {
         nextNodes.set(msg.id, kept);
         return kept.nodes;
       }
@@ -1442,6 +1456,16 @@ export default function App() {
           <DateDivider
             key={`date-${msg.id}`}
             timestamp={msg.timestamp}
+            themeConfig={activeTheme}
+            themeMode={theme.mode}
+          />,
+        );
+      }
+      if (roomLabel) {
+        nodes.push(
+          <RoomDivider
+            key={`room-${msg.id}`}
+            label={roomLabel}
             themeConfig={activeTheme}
             themeMode={theme.mode}
           />,
@@ -1554,7 +1578,7 @@ export default function App() {
           </motion.div>,
         );
       }
-      nextNodes.set(msg.id, { msg, showDate, index, shared: bubbleShared, nodes });
+      nextNodes.set(msg.id, { msg, showDate, index, shared: bubbleShared, roomLabel, nodes });
       return nodes;
     });
     bubbleNodesRef.current = nextNodes;

@@ -52,7 +52,7 @@ export function EditPanel({
             <button
               key={opt.label}
               onClick={() => setCropAspect(opt.value)}
-              className={cn("px-2 py-0.5 rounded text-xs border transition-colors", cropAspect === opt.value ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
+              className={cn("px-2 py-0.5 rounded-[var(--shape-chip)] text-xs border transition-colors", cropAspect === opt.value ? "border-transparent" : cn(colors.panelBorder, colors.textMuted))}
               style={cropAspect === opt.value ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
             >
               {opt.label}

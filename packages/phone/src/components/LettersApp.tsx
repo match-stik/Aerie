@@ -380,7 +380,7 @@ export function LettersApp({ onClose, themeConfig, themeMode, embedded }: Letter
                 <button
                   key={k}
                   onClick={() => setKind(k)}
-                  className={cn('rounded-[var(--shape-control)] border px-3 py-1 text-xs font-semibold capitalize', colors.panelBorder)}
+                  className={cn('rounded-[var(--shape-chip)] border px-3 py-1 text-xs font-semibold capitalize', colors.panelBorder)}
                   style={kind === k ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
                 >
                   {k}

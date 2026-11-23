@@ -25,7 +25,7 @@ function Chips<T extends string | number>({ colors, options, value, onPick, cols
           <button
             key={String(id)}
             onClick={() => onPick(id)}
-            className={cn('px-3 py-2 rounded-xl border text-[11px] font-bold uppercase tracking-widest', colors.panelBorder, colors.textMain)}
+            className={cn('px-3 py-2 rounded-[var(--shape-chip)] border text-[11px] font-bold uppercase tracking-widest', colors.panelBorder, colors.textMain)}
             style={on ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
             aria-pressed={on}
           >
@@ -163,7 +163,7 @@ export function LaptopAppSettings({ s }: { s: SettingsState }) {
         </span>
         <button
           onClick={() => { void (newer ? install() : check()); }}
-          className={cn('px-3 py-2 rounded-xl border text-[11px] font-bold uppercase tracking-widest shrink-0', colors.panelBorder, colors.textMain)}
+          className={cn('px-3 py-2 rounded-[var(--shape-chip)] border text-[11px] font-bold uppercase tracking-widest shrink-0', colors.panelBorder, colors.textMain)}
           style={newer ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)', borderColor: colors.accent } : undefined}
         >
           {newer ? 'Update' : 'Check'}

@@ -463,7 +463,7 @@ export function ModelPill({ themeConfig, themeMode, threadModel }: ModelPillProp
                         key={p}
                         onClick={() => setActiveProvider(p)}
                         className={cn(
-                          'shrink-0 min-w-[3.5rem] rounded-lg px-3 py-1 text-[11px] font-medium border whitespace-nowrap text-center',
+                          'shrink-0 min-w-[3.5rem] rounded-[var(--shape-chip)] px-3 py-1 text-[11px] font-medium border whitespace-nowrap text-center',
                           colors.panelBorder,
                           colors.textMain,
                         )}
@@ -531,7 +531,7 @@ export function ModelPill({ themeConfig, themeMode, threadModel }: ModelPillProp
                                   setClaudeThinking(mode);
                                   void saveSetting('agent.claude_thinking', mode);
                                 }}
-                                className={cn('rounded-lg border px-1 py-1.5 text-[11px]', colors.panelBorder, colors.textMain)}
+                                className={cn('rounded-[var(--shape-chip)] border px-1 py-1.5 text-[11px]', colors.panelBorder, colors.textMain)}
                                 style={claudeThinking === mode ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                               >{mode === 'disabled' ? 'Off' : mode === 'enabled' ? 'Always' : 'Adaptive'}</button>
                             ))}

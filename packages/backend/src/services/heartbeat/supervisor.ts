@@ -23,7 +23,7 @@ import { join } from 'path';
 import { PROJECT_ROOT } from '../../config.js';
 import { getConfig } from '../db.js';
 import { provisionSessionDir } from './provision.js';
-import { getAllBlocks } from '../memory-blocks.js';
+import { getAllBlocks, loadedBlocks } from '../memory-blocks.js';
 import { baselineFrom, BASELINE_FILE } from './block-drift.js';
 import { outageNotices, type OutageKind } from './outage-notices.js';
 import { atomicWrite } from './atomic-write.js';
@@ -1511,7 +1511,7 @@ export class HeartbeatSession {
     // a 7,983-character thin thirty seconds after the thin. So the baseline is
     // taken HERE, at the one moment that really is the start of the room.
     try {
-      atomicWrite(this.ioPath(BASELINE_FILE), JSON.stringify(baselineFrom(getAllBlocks())));
+      atomicWrite(this.ioPath(BASELINE_FILE), JSON.stringify(baselineFrom(loadedBlocks(getAllBlocks()))));
     } catch { /* a missing baseline reports no drift, which is the old behaviour */ }
     this.logStream = createWriteStream(join(this.dir, 'session.log'), { flags: 'a' });
     this.logStream.write(`\n--- launch ${new Date().toISOString()} model=${this.model} ---\n`);

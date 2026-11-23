@@ -186,6 +186,34 @@ router.post('/cortex/principle', async (req, res) => {
   }
 });
 
+// Cortex's conversation shelf, to browse and read. The list is every conversation by date
+// unless a search is given; one conversation comes back a page at a time.
+router.get('/cortex/conversations', async (req, res) => {
+  try {
+    const { q, domain } = req.query as Record<string, string | undefined>;
+    if (q && q.trim()) {
+      const found = JSON.parse(await cortex.searchConversations(q.trim(), domain || undefined, 50));
+      res.json({ results: Array.isArray(found) ? found : (found?.results ?? []) });
+      return;
+    }
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const listed = JSON.parse(await cortex.conversationsByDate('2000-01-01', tomorrow, domain || undefined));
+    res.json({ results: Array.isArray(listed) ? listed : (listed?.results ?? []) });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.get('/cortex/conversation/:id', async (req, res) => {
+  try {
+    const offset = Math.max(0, parseInt(String(req.query.offset ?? '0'), 10) || 0);
+    const maxChars = Math.min(40_000, Math.max(1_000, parseInt(String(req.query.max ?? '40000'), 10) || 40_000));
+    res.json(JSON.parse(await cortex.getConversation(String(req.params.id), { offset, maxChars })));
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 router.post('/cortex/conversation', async (req, res) => {
   try {
     const { title, content, domain, summary } = req.body;

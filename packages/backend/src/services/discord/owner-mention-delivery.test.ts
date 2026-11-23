@@ -42,6 +42,11 @@ initDb(join(dir, 'test.db'));
 after(() => rmSync(dir, { recursive: true, force: true }));
 setConfig('discord.allowedGuilds', GUILD);
 setConfig('discord.owner_mentions', 'true');
+// These tests follow the person home, the routing they were written for:
+// with Follow me home set, a message about them and their own words go to
+// the thread they are reading. The default, each room its own thread, has
+// its own test at the end.
+setConfig('discord.landing', 'home');
 saveRules({ servers: {}, channels: {}, users: { [BOT]: { id: BOT, name: 'Companion A', trustLevel: 'standard' } } });
 
 // What the house did, as the three places their person could have noticed it.
@@ -285,5 +290,23 @@ test('with no thread open anywhere, it falls back to the channel thread', async 
     assert.equal(pushes.at(-1)!.body, 'is owner here? — in #lonely');
   } finally {
     for (const { id } of open) unarchiveThread(id);
+  }
+});
+
+test('by default each room keeps its own thread, a message about them included', async () => {
+  setConfig('discord.landing', 'rooms');
+  try {
+    makeMostRecent(HOME);
+    const channelId = 'channel-own-room';
+    await processBatch(batchOf(
+      [discordMessage({ content: `<@${OWNER}> around?`, mentioned: [OWNER] })],
+      channelId,
+      '@Owner around?',
+    ));
+    const [row] = rowsIn(getDiscordThreadId(channelId)).slice(-1);
+    assert.ok(row, 'it is stored in the room\'s own thread');
+    assert.equal(row.content, '@Owner around?');
+  } finally {
+    setConfig('discord.landing', 'home');
   }
 });

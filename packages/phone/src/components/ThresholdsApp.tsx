@@ -558,7 +558,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
                       key={k}
                       onClick={() => setPinKind(k)}
                       className={cn(
-                        'flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2 text-xs transition-colors',
+                        'flex flex-1 items-center justify-center gap-1.5 rounded-[var(--shape-chip)] border py-2 text-xs transition-colors',
                         colors.panelBorder,
                         on ? colors.textMain : colors.textMuted,
                       )}
@@ -576,7 +576,7 @@ export function ThresholdsApp({ onClose, themeConfig, themeMode, embedded }: Thr
                     <button
                       key={r}
                       onClick={() => setPinRadius(r)}
-                      className={cn('flex-1 rounded-lg border py-1.5 text-xs transition-colors', colors.panelBorder,
+                      className={cn('flex-1 rounded-[var(--shape-chip)] border py-1.5 text-xs transition-colors', colors.panelBorder,
                         pinRadius === r ? colors.textMain : colors.textMuted)}
                       style={pinRadius === r ? { background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' } : undefined}
                     >

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Bot, RefreshCw, Loader2, ChevronRight } from 'lucide-react';
 import { AppShell } from './AppShell';
 import { Toggle } from './Toggle';
+import { HouseSelect } from './HouseSelect';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
@@ -48,7 +49,16 @@ interface DiscordSettings {
   allowedUsers: string[];
   allowedGuilds: string[];
   activeChannels: string[];
+  /** Where room talk lands (room-thread.ts on the house). */
+  landing?: 'rooms' | 'one' | 'home';
+  ownThreadChannels?: string[];
 }
+
+const LANDINGS: { id: 'rooms' | 'one' | 'home'; label: string; hint: string }[] = [
+  { id: 'rooms', label: 'Each room its own thread', hint: 'Every Discord room gets a thread named after it.' },
+  { id: 'one', label: 'One Discord thread', hint: 'Every room lands in a single thread called Discord.' },
+  { id: 'home', label: 'Follow me home', hint: 'Your messages and anything aimed at the companions land in your home thread; other chatter gets its room\'s thread.' },
+];
 
 export function DiscordApp({ onClose, themeConfig, themeMode, embedded }: DiscordAppProps) {
   const colors = themeConfig[themeMode];
@@ -446,6 +456,22 @@ export function DiscordApp({ onClose, themeConfig, themeMode, embedded }: Discor
             </button>
             {showSettings && settings && (
               <div className="mt-3 flex flex-col gap-2.5">
+                <label className="flex flex-col gap-1">
+                  <span className={cn('text-[11px]', colors.textMuted)}>Where Discord talk lands</span>
+                  <HouseSelect
+                    className={cn('rounded-md border px-2 py-1 text-xs bg-transparent', colors.panelBorder, colors.textMain)}
+                    value={settings.landing ?? 'rooms'}
+                    onChange={(e) => patchSettings({ landing: e.target.value as 'rooms' | 'one' | 'home' })}
+                  >
+                    {LANDINGS.map((l) => (
+                      <option key={l.id} value={l.id}>{l.label}</option>
+                    ))}
+                  </HouseSelect>
+                  <span className={cn('text-[10px] italic', colors.textMuted)}>
+                    {LANDINGS.find((l) => l.id === (settings.landing ?? 'rooms'))?.hint} Direct messages always keep their own threads.
+                  </span>
+                </label>
+                {listField('Rooms that keep their own thread (channel IDs)', settings.ownThreadChannels ?? [], (v) => patchSettings({ ownThreadChannels: v }))}
                 {numField('Debounce window (ms)', settings.debounceMs, (n) => patchSettings({ debounceMs: n }))}
                 <div className="flex items-center justify-between">
                   <span className={cn('text-[11px]', colors.textMuted)}>Require @mention in guilds</span>

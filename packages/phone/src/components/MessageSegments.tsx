@@ -1,4 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { stripReactionMarkers, stripAttachMarkers } from '../lib/message-content';
 import React, { useState, useMemo } from 'react';
 import { isHiddenTool } from '../lib/segment-visibility';
 import ReactMarkdown from 'react-markdown';
@@ -97,7 +98,11 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
   useStickerVersion();
   const colors = themeConfig[themeMode];
   const [openThinking, setOpenThinking] = useState<Set<number>>(new Set());
-  const displaySegments = useMemo(() => coalesceThinkingSegments(segments), [segments]);
+  // Reaction lines from a Discord reply are carried out in the channel, never shown here.
+  const displaySegments = useMemo(
+    () => coalesceThinkingSegments(segments).map((seg) => (seg.type === 'text' ? { ...seg, content: stripAttachMarkers(stripReactionMarkers(seg.content)) } : seg)),
+    [segments],
+  );
 
   const isLight = textClass === 'text-white' || /text-\[#[CDEFcdef]/i.test(textClass || '');
 

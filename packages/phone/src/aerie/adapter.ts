@@ -102,6 +102,31 @@ function extractSegments(metadata: Record<string, unknown> | null): MessageSegme
   return valid.length > 0 ? valid : undefined;
 }
 
+/** The Discord room a row was said in: its channel id as the key, and its
+ *  server and channel names as the label when the row carries them. */
+export function discordRoomOf(metadata: unknown): { key: string; label?: string } | undefined {
+  if (!metadata || typeof metadata !== 'object') return undefined;
+  const m = metadata as { discordChannelId?: unknown; discordChannelName?: unknown; discordGuildName?: unknown; discordGuildId?: unknown };
+  if (typeof m.discordChannelId !== 'string' || !m.discordChannelId || !m.discordGuildId) return undefined;
+  const channel = typeof m.discordChannelName === 'string' && m.discordChannelName ? m.discordChannelName : '';
+  const guild = typeof m.discordGuildName === 'string' && m.discordGuildName ? m.discordGuildName : '';
+  const label = guild && channel ? `${guild} · ${channel}` : (guild || channel || undefined);
+  return { key: m.discordChannelId, label };
+}
+
+/** The emoji of a reply that is nothing but reaction lines, or null. */
+export function reactionsOnly(content: string): string[] | null {
+  const lines = content.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  const out: string[] = [];
+  for (const line of lines) {
+    const m = /^\[react:\s*\d{15,22}\s+([^\]\n]{1,64}?)\s*\]$/.exec(line);
+    if (!m) return null;
+    out.push(m[1]);
+  }
+  return out;
+}
+
 export function toPhoneMessage(km: AerieMessage): PhoneMessage {
   // The phone's Message model uses 'inbound' for the phone owner's own
   // messages and 'outbound' for the other party (see MessageBubble/App.tsx).
@@ -123,6 +148,22 @@ export function toPhoneMessage(km: AerieMessage): PhoneMessage {
   const discordUsername = discordMeta?.discordDisplayName || discordMeta?.discordUsername;
   noteGuestAvatar(discordMeta?.discordUserId, discordMeta?.discordAvatarUrl, km.created_at);
   const attachmentTail = attachmentSentinels(km.metadata).trim();
+  // A Discord reply that only reacted ([react:<id> <emoji>] lines and nothing
+  // else) is not something a companion said: it reads as a small centred note
+  // naming what went on in the room, with no tool chips under it.
+  const reactedWith = km.role !== 'user' ? reactionsOnly(km.content || '') : null;
+  if (reactedWith) {
+    return {
+      id: km.id,
+      timestamp: km.created_at,
+      direction,
+      content: `Reacted in the room: ${reactedWith.join(' ')}`,
+      read: km.read_at ? 1 : 0,
+      isSystem: true,
+      type: 'text',
+      status: km.read_at ? 'read' : 'delivered',
+    };
+  }
   return {
     id: km.id,
     timestamp: km.created_at,
@@ -143,6 +184,7 @@ export function toPhoneMessage(km: AerieMessage): PhoneMessage {
     via: discordUsername ? 'Discord' : undefined,
     // Only a guest's message can be about their person; their own rows never are.
     mentionLabel: km.role === 'system' && discordUsername ? ownerMentionLabel(km.metadata) : undefined,
+    room: discordRoomOf(km.metadata),
     // The oldest treehouse rows (May and early June 2026) predate both the
     // metadata and the voice headers, and name their author only in
     // companion_id, as a slug. Theirs, Oct 31 2026: a search hit landed on one

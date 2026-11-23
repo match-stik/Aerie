@@ -1,4 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
+import { oneRoomThreadId } from './discord/room-thread.js';
 import * as cron from 'node-cron';
 import { parseBellOwners, sameBellBlock, ringBellInTurn, MAX_BELL_RECALLS } from './bell-owners.js';
 import { bellStatus, statusHoldKey, statusHoldOf, statusWordKey, statusWordOf } from './bell-status.js';
@@ -852,6 +853,13 @@ export class Orchestrator {
       let thread = isTreehouseWake
         ? getThread(getTreehouseThread().id)
         : getThreadWithMostRecentUserMessage(120);
+      // The one Discord thread is where room chatter lands, never home: their person
+      // talking in a Discord room must not pull a bell out of their home thread
+      // (discord/room-thread.ts).
+      if (thread && !isTreehouseWake && thread.id === oneRoomThreadId()) {
+        olog(`Active thread is the Discord rooms thread — ringing at home instead`);
+        thread = null;
+      }
 
       if (thread) {
         olog(`Using ${isTreehouseWake ? 'treehouse' : 'active'} thread: "${thread.name}" (${thread.id})`);

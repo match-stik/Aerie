@@ -592,6 +592,20 @@
     -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
     mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
   }
+  /* A room's tab row never hides a tab off the edge of the phone. The tabs sit a hair tighter, so a row that only just missed fits on
+     one line; a row still too long wraps onto a second line, centered, instead
+     of sliding sideways. The laptop's room is wide enough that every row fits
+     on one line, so nothing there changes. */
+  .aerie-tabscroll {
+    flex-wrap: wrap !important;
+    justify-content: center;
+    column-gap: 0.25rem !important;
+    row-gap: 0.375rem !important;
+  }
+  .aerie-tabscroll > button {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
   
   /* Glassmorphism Utilities */
   .glass {

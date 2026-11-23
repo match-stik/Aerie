@@ -104,7 +104,7 @@ export function StickerPicker({ onSelect, onClose, themeConfig, themeMode, color
                 key={pack.id}
                 onClick={() => setActivePackId(pack.id)}
                 className={cn(
-                  'rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+                  'rounded-[var(--shape-chip)] border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
                   colors.panelBorder,
                   // Only the selected pill set a colour, so the rest inherited the panel's
                   // and came out near-black on a dark sheet. textMain is white in the dark
