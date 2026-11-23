@@ -154,7 +154,9 @@ export function formatBlocksForPrompt(scopes: string[]): string {
     'Persistent memory blocks. Edit them in place with the core_memory_append / core_memory_replace / core_memory_rethink tools when those tools are available. ' +
     'In the Codex CLI lane, use `node tools/core-memory.mjs` when the MCP tools are absent; do not substitute Cortex for a block edit. ' +
     "Blocks scoped 'shared' are visible to every companion; blocks scoped to a companion slug belong to that companion alone. " +
-    'Keep them current — when you learn something durable, write it down.\n\n';
+    'Keep them current — when you learn something durable, write it down. ' +
+    'A wall holds what you need in hand the moment a session opens: who you are, who your person is, what is true right now and what is still open. ' +
+    "How to do one particular job (a recipe, a fix, a house project's working notes) belongs in a skill, and a finished story or old history belongs in Cortex, where search finds it when it fits.\n\n";
   for (const block of blocks) {
     output += `## [${block.scope}] ${block.label}\n`;
     if (block.description) output += `<!-- ${block.description} -->\n`;
@@ -164,18 +166,45 @@ export function formatBlocksForPrompt(scopes: string[]): string {
   return output;
 }
 
+// What each starting wall is for, in one line. The description rides into the
+// prompt right above its wall, so it is the first thing a companion reads
+// about it, and it also says what does NOT belong there: a status wall nobody
+// told otherwise slowly turns into the house's manual.
+function humanDescription(userName: string): string {
+  return `Who ${userName.trim() || 'your person'} is: their people, their history, their preferences and what not to step on. Every companion reads it.`;
+}
+const STATUS_DESCRIPTION =
+  'What is true in the house right now, and what is still open, a line each; a line comes down when its thing is done. How to do a job goes in a skill, not here.';
+function personaDescription(name: string): string {
+  return `${name}'s own wall, written by ${name}: who they are and what they have learned about themselves.`;
+}
+
+// The notes the first versions seeded. A house still carrying one of these
+// exactly gets the newer note; a note anybody has changed is left alone.
+function refreshSeededDescriptions(userName: string, companions: { slug: string; display_name: string }[]): void {
+  const update = getDb().prepare(
+    'UPDATE memory_blocks SET description = ? WHERE scope = ? AND label = ? AND description = ?',
+  );
+  update.run(humanDescription(userName), SHARED_SCOPE, 'human', 'Information about the user, shared across companions');
+  update.run(STATUS_DESCRIPTION, SHARED_SCOPE, 'status', 'Current status, ongoing projects, open questions');
+  for (const c of companions) {
+    update.run(personaDescription(c.display_name), c.slug, 'persona', `${c.display_name}'s self-authored persona and continuity`);
+  }
+}
+
 // Seed default blocks for a brand-new installation
 export function seedDefaultBlocks(
   userName: string,
   companions: { slug: string; display_name: string }[]
 ): void {
+  refreshSeededDescriptions(userName, companions);
   const existing = getAllBlocks();
   if (existing.length > 0) return;
 
-  setBlock(SHARED_SCOPE, 'human', `Name: ${userName}`, 'Information about the user, shared across companions');
-  setBlock(SHARED_SCOPE, 'status', '', 'Current status, ongoing projects, open questions');
+  setBlock(SHARED_SCOPE, 'human', `Name: ${userName}`, humanDescription(userName));
+  setBlock(SHARED_SCOPE, 'status', '', STATUS_DESCRIPTION);
   for (const c of companions) {
-    setBlock(c.slug, 'persona', `I am ${c.display_name}.`, `${c.display_name}'s self-authored persona and continuity`);
+    setBlock(c.slug, 'persona', `I am ${c.display_name}.`, personaDescription(c.display_name));
   }
 }
 
@@ -183,7 +212,7 @@ export function seedDefaultBlocks(
 export function ensureCompanionBlocks(companions: { slug: string; display_name: string }[]): void {
   for (const c of companions) {
     if (!getBlock(c.slug, 'persona')) {
-      setBlock(c.slug, 'persona', `I am ${c.display_name}.`, `${c.display_name}'s self-authored persona and continuity`);
+      setBlock(c.slug, 'persona', `I am ${c.display_name}.`, personaDescription(c.display_name));
     }
   }
 }

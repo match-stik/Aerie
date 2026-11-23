@@ -277,7 +277,9 @@ The **Failsafe** system is an optional feature that checks in when you've been a
 
 ## Memory & Context
 
-Your companion remembers things automatically using Claude Code's built-in memory system. As you chat, it learns your preferences, remembers details, and builds context over time.
+Your companion's memory is a few short pages it holds in hand every turn, called walls (the Memory app calls them blocks). It writes them itself as you talk. A new house starts with three: one about you, which begins with just your name; a status wall that begins empty; and one wall for each companion that begins with its own name. The rest is theirs to write.
+
+A wall is only for what your companion needs the moment a conversation opens. A finished story or old history goes to Cortex, where search finds it when it fits, and how to do a particular job goes in a skill your companion writes for itself, so the walls stay small. The memory skill (`.claude/skills/memory`) tells your companion how to tend all of it.
 
 For things you want your companion to always know from the start, put them in `CLAUDE.md`. This is read on every interaction.
 
