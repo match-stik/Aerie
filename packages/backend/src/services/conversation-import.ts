@@ -228,14 +228,21 @@ export function isGeminiActivity(item: unknown): boolean {
 const HTML_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 
 export function htmlToText(html: string): string {
-  return html
+  let text = html
     // Newlines between tags are the export's own layout, not the answer's.
     .replace(/>\s*\n\s*</g, '><')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<(ul|ol)[^>]*>/gi, '\n')
     .replace(/<li[^>]*>/gi, '- ')
-    .replace(/<\/(p|div|h[1-6]|li|ul|ol|pre|blockquote|tr)>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
+    .replace(/<\/(p|div|h[1-6]|li|ul|ol|pre|blockquote|tr)>/gi, '\n');
+  // Tags come out until none are left, so one hidden inside another
+  // (<<b>script>) cannot reassemble itself after a single pass.
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text
     .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, code: string) => {
       if (code[0] === '#') {
         const n = code[1] === 'x' || code[1] === 'X' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);

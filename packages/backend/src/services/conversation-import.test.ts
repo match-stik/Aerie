@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { zipSync, strToU8 } from 'fflate';
-import { importConversations, parseClaude, parseExport, passagesFor, readExportFile, topLevelElements } from './conversation-import.js';
+import { htmlToText, importConversations, parseClaude, parseExport, passagesFor, readExportFile, topLevelElements } from './conversation-import.js';
 
 const GPT_EXPORT = [{
   id: 'gpt-1', title: 'Garden plans', create_time: 1760000000,
@@ -235,4 +235,11 @@ test('a many-conversation export read one at a time gives the same words as read
   const whole = parseClaude(many, { person: 'You', assistant: 'Claude' });
   assert.deepEqual(parseExport(JSON.stringify(many, null, 2)), whole);
   assert.equal(whole.length, 5);
+});
+
+test('an answer\'s markup comes out whole, even a tag hidden inside another', () => {
+  assert.equal(htmlToText('<p>Hi <b>there</b></p>'), 'Hi there');
+  assert.doesNotMatch(htmlToText('<<b>script>alert(1)<</b>/script>'), /<script/i);
+  assert.doesNotMatch(htmlToText('<scr<i>ipt>x'), /<script/i);
+  assert.equal(htmlToText('&lt;b&gt; is how you write bold'), '<b> is how you write bold');
 });

@@ -6,7 +6,8 @@ import { findNeighbors } from '../services/memory-neighbors.js';
 import { getMemoryExtractionStatus, runMemoryExtraction } from '../services/memory-extraction.js';
 import type { AgentService } from '../services/agent.js';
 import multer from 'multer';
-import { mkdirSync, readFileSync, unlinkSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, unlinkSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { join, resolve, sep } from 'node:path';
 import { PROJECT_ROOT, getAerieConfig } from '../config.js';
 import { importConversations, parseExport, readExportFile, type ImportProgress } from '../services/conversation-import.js';
@@ -106,14 +107,18 @@ router.post('/memory/import/conversations', exportUpload.single('file'), (req, r
     try { unlinkSync(filePath); } catch { /* already gone */ }
     return res.status(409).json({ error: 'An import is already running.', job: conversationJob });
   }
+  // The upload is moved to a name made here, so the later steps read and
+  // remove a path that never came from the request at all.
+  const uploaded = join(UPLOAD_DIR, `import-${randomUUID()}`);
+  try {
+    renameSync(filePath, uploaded);
+  } catch {
+    return res.status(500).json({ error: 'The upload could not be moved into place.' });
+  }
   const job: ConversationImportJob = { state: 'reading', file: file.originalname, startedAt: new Date().toISOString(), finishedAt: null, progress: null, error: null };
   conversationJob = job;
   res.json({ job });
   void (async () => {
-    // Checked again here: the check above does not follow into this later
-    // step, and the read and the removal below both use the path.
-    const uploaded = resolve(filePath);
-    if (!uploaded.startsWith(resolve(UPLOAD_DIR) + sep)) { job.state = 'failed'; job.error = 'That upload did not land where uploads go.'; job.finishedAt = new Date().toISOString(); return; }
     try {
       const person = String(req.body?.person || getAerieConfig().identity?.user_name || 'You');
       // Read inside its own step, so the file's bytes and its text can be let
