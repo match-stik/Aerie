@@ -1030,6 +1030,15 @@ export class HeartbeatSession {
     return false;
   }
 
+  /** Start this room over (a thread's own room, at the person's button): forget the
+   *  conversation it would reopen, and recycle it now if it is running, so
+   *  the next turn opens a new room primed from the thread's recent messages. */
+  startFreshRoom(): void {
+    this.sessionId = null;
+    try { unlinkSync(this.ioPath(SESSION_ID_FILE)); } catch { /* none yet */ }
+    if (this.status === 'running') this.requestRestart();
+  }
+
   /** Ask the running session to recycle (picked up by the watchdog poll). */
   requestRestart(): void {
     try { writeFileSync(this.ioPath('.restart'), ''); } catch { /* ignore */ }
@@ -1049,6 +1058,14 @@ export class HeartbeatSession {
     } catch {
       return false;
     }
+  }
+
+  /** Whether the child now running came back by --resume: the same room
+   *  reopened, not a new one. Only the wording of the seam note reads it; the
+   *  re-prime itself happens either way (too much, never nothing). A stop
+   *  that showed 'recycled' read as the room being gone. */
+  lastLaunchWasResume(): boolean {
+    return this.launchedResumed;
   }
 
   /** True once after a (re)launch — the runtime re-primes history when set. */

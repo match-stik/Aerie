@@ -3,7 +3,7 @@
 // search and a filter by where each one came from; tapping one opens it whole,
 // a page at a time, and nothing is loaded until it is tapped.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, Loader2, MessagesSquare, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Loader2, MessagesSquare, Search, Trash2, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -184,8 +184,18 @@ export function ConversationShelf({ colors }: { colors: ShelfColors }) {
       return db.localeCompare(da);
     }), [source, house]);
   const paged = usePaged(shown, 20);
+  // All leaves the summaries out, so its count was eight short of the front
+  // page's total with nothing saying why. Say where the rest are.
+  const summariesAside = house === ALL ? source.filter((c) => shelfGroup(c.title) === 'Summaries').length : 0;
 
-  if (open) return <ShelfReader conv={open} colors={colors} onBack={() => setOpen(null)} />;
+  // A deleted conversation leaves the list and the search at once.
+  const forget = (id: string) => {
+    setList((l) => (l ? l.filter((c) => c.id !== id) : l));
+    setSearched((l) => (l ? l.filter((c) => c.id !== id) : l));
+    setOpen(null);
+  };
+
+  if (open) return <ShelfReader conv={open} colors={colors} onBack={() => setOpen(null)} onDeleted={forget} />;
 
   return (
     <div className="space-y-3">
@@ -231,7 +241,7 @@ export function ConversationShelf({ colors }: { colors: ShelfColors }) {
           </div>
         )}
         <div className={cn('text-xs', colors.textMuted)}>
-          {list === null && !error ? 'Opening the shelf…' : `${shown.length} ${searched ? 'found' : 'conversations'}${paged.pageCount > 1 ? ` · page ${paged.page} of ${paged.pageCount}` : ''}`}
+          {list === null && !error ? 'Opening the shelf…' : `${shown.length} ${searched ? 'found' : 'conversations'}${summariesAside ? ` · ${summariesAside} summar${summariesAside === 1 ? 'y' : 'ies'} under their own chip` : ''}${paged.pageCount > 1 ? ` · page ${paged.page} of ${paged.pageCount}` : ''}`}
         </div>
       </div>
 
@@ -264,7 +274,26 @@ const TURNS_PER_PAGE = 25;
 /** The most pages of a conversation fetched at once: about a million characters. */
 const MAX_FETCHES = 25;
 
-function ShelfReader({ conv, colors, onBack }: { conv: ShelfConversation; colors: ShelfColors; onBack: () => void }) {
+function ShelfReader({ conv, colors, onBack, onDeleted }: { conv: ShelfConversation; colors: ShelfColors; onBack: () => void; onDeleted: (id: string) => void }) {
+  // Delete asks once in place before it does anything, for chats that don't
+  // need keeping. The house keeps a copy on its own disk before the shelf forgets
+  // it (data/cortex-deleted), so a mistaken press can still be put back by hand.
+  const [asking, setAsking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const remove = async () => {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const r = await fetch(`/api/cortex/conversation/${encodeURIComponent(conv.id)}`, { method: 'DELETE', credentials: 'include' });
+      const data = await r.json().catch(() => null);
+      if (!r.ok || !data?.success) throw new Error(data?.error || 'It was not deleted.');
+      onDeleted(conv.id);
+    } catch (err: any) {
+      setDeleteError(err?.message || 'It was not deleted.');
+      setDeleting(false);
+    }
+  };
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -309,9 +338,30 @@ function ShelfReader({ conv, colors, onBack }: { conv: ShelfConversation; colors
   return (
     <div className="space-y-3">
       <div ref={topRef} className={cn('p-3 rounded-[var(--shape-surface)] border', colors.panelBorder, colors.panelBg)}>
-        <button onClick={onBack} className={cn('mb-2 flex items-center gap-1 text-xs', colors.textMuted)}>
-          <ChevronLeft size={14} /> All conversations
-        </button>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <button onClick={onBack} className={cn('flex items-center gap-1 text-xs', colors.textMuted)}>
+            <ChevronLeft size={14} /> All conversations
+          </button>
+          {!asking && (
+            <button onClick={() => setAsking(true)} className={cn('flex items-center gap-1 rounded-[var(--shape-chip)] border px-2 py-1 text-[11px]', colors.panelBorder, colors.textMuted)}>
+              <Trash2 size={12} /> Delete
+            </button>
+          )}
+        </div>
+        {asking && (
+          <div className={cn('mb-2 rounded-[var(--shape-control)] border p-2.5 text-center text-xs', colors.panelBorder, colors.textMain)}>
+            <div>Take this conversation off the shelf for good? The house keeps a copy on its own disk.</div>
+            <div className="mt-2 flex justify-center gap-2">
+              <button disabled={deleting} onClick={() => void remove()} className="flex items-center gap-1 rounded-[var(--shape-chip)] px-3 py-1" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>
+                {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Delete
+              </button>
+              <button disabled={deleting} onClick={() => { setAsking(false); setDeleteError(''); }} className={cn('rounded-[var(--shape-chip)] border px-3 py-1', colors.panelBorder)}>
+                Keep it
+              </button>
+            </div>
+            {deleteError && <div className={cn('mt-2', colors.textMuted)}>{deleteError}</div>}
+          </div>
+        )}
         <div className={cn('flex items-center gap-2 text-sm font-medium', colors.textMain)}>
           <MessagesSquare size={14} style={{ color: colors.accent }} /> {t.name}
         </div>

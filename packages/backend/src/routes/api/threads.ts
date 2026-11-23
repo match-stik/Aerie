@@ -8,7 +8,10 @@ import { listThreads, getThread, createThread, getMessages, archiveThread, unarc
 import { authMiddleware } from '../../middleware/auth.js';
 import { deleteFile } from '../../services/files.js';
 import { registry } from '../../services/ws.js';
-import { getAerieConfig } from '../../config.js';
+import { getAerieConfig, PROJECT_ROOT } from '../../config.js';
+import { readdirSync } from 'fs';
+import { threadRoomTag } from '../../services/agent/thread-model.js';
+import { getHeartbeatSession } from '../../services/heartbeat/supervisor.js';
 
 const router = Router();
 
@@ -46,6 +49,7 @@ router.get('/threads', (req, res) => {
         } : null,
         pinned_at: thread.pinned_at ?? null,
         model: thread.model ?? null,
+        own_room: (thread as { own_room?: number }).own_room ?? 0,
       };
     });
 
@@ -327,6 +331,8 @@ router.patch('/threads/:id', (req, res) => {
     const { name } = req.body;
     // A thread's own model (services/agent/thread-model.ts): a model id, or
     // null or '' to put it back on the house model. Absent leaves it alone.
+    // A thread's own room (thread-model.ts readThreadOwnRoom): true or false.
+    const hasOwnRoom = typeof req.body?.own_room === 'boolean';
     const hasModel = Object.prototype.hasOwnProperty.call(req.body ?? {}, 'model');
     const rawModel = hasModel ? req.body.model : undefined;
 
@@ -335,7 +341,7 @@ router.patch('/threads/:id', (req, res) => {
       return;
     }
     const model = typeof rawModel === 'string' ? rawModel.trim().slice(0, 200) : null;
-    if (!hasModel && (!name || typeof name !== 'string')) {
+    if (!hasModel && !hasOwnRoom && (!name || typeof name !== 'string')) {
       res.status(400).json({ error: 'Thread name required' });
       return;
     }
@@ -353,6 +359,7 @@ router.patch('/threads/:id', (req, res) => {
     const db = getDb();
     if (typeof name === 'string') db.prepare('UPDATE threads SET name = ? WHERE id = ?').run(name, id);
     if (hasModel) db.prepare('UPDATE threads SET model = ? WHERE id = ?').run(model || null, id);
+    if (hasOwnRoom) db.prepare('UPDATE threads SET own_room = ? WHERE id = ?').run(req.body.own_room ? 1 : 0, id);
 
     // Broadcast updated thread to all clients
     registry.broadcast({
@@ -366,6 +373,7 @@ router.patch('/threads/:id', (req, res) => {
         last_message_preview: null,
         pinned_at: thread.pinned_at ?? null,
         model: hasModel ? (model || null) : (thread.model ?? null),
+        own_room: hasOwnRoom ? (req.body.own_room ? 1 : 0) : ((thread as { own_room?: number }).own_room ?? 0),
       },
     });
 
@@ -373,6 +381,27 @@ router.patch('/threads/:id', (req, res) => {
   } catch (error) {
     console.error('Error renaming thread:', error);
     res.status(500).json({ error: 'Failed to rename thread' });
+  }
+});
+
+// Start a thread's own room over. Only a thread with a
+// room of its own has one to start over; the main room is never touched from
+// here. Every lane folder carrying this thread's tag is reset (one per
+// companion head, and per model room), so the next message opens a new room
+// primed from this thread's recent messages.
+router.post('/threads/:id/fresh-room', (req, res) => {
+  try {
+    const thread = getThread(req.params.id) as ({ own_room?: number } & object) | undefined;
+    if (!thread) { res.status(404).json({ error: 'Thread not found' }); return; }
+    if (!thread.own_room) { res.status(400).json({ error: 'This thread shares the main room; give it a room of its own first.' }); return; }
+    const tag = threadRoomTag(req.params.id);
+    let names: string[] = [];
+    try { names = readdirSync(join(PROJECT_ROOT, 'data', 'heartbeat')); } catch { /* no lanes yet */ }
+    const lanes = names.filter((n) => n.includes(tag));
+    for (const lane of lanes) getHeartbeatSession(lane).startFreshRoom();
+    res.json({ success: true, rooms: lanes.length });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
   }
 });
 

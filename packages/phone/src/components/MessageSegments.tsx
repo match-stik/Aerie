@@ -13,7 +13,7 @@ import { CustomEmoji } from '../types';
 import type { MessageSegment } from '../aerie';
 import { resolveStickerRef, useStickerVersion } from '../aerie';
 import { isStickerOnly, stickerLinesAsParagraphs } from '../lib/sticker-lines';
-import { coalesceThinkingSegments, plainThinkingText, thinkingTitle } from '../lib/thinking';
+import { coalesceThinkingSegments, plainThinkingText, roomSeamLabel, thinkingTitle } from '../lib/thinking';
 import { CodeBlock } from './CodeBlock';
 import { ToolList } from './ToolList';
 import { whispersToHeadings } from '../lib/whisper-lines';
@@ -193,7 +193,8 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
         if (seg.type === 'thinking') {
           // CLI-lane session recycle note → distinct badge instead of a
           // generic thinking block, so the seam is visible at a glance.
-          if ((seg.content || seg.summary || '').startsWith('[Session recycled')) {
+          const seamLabel = roomSeamLabel(seg.content || seg.summary);
+          if (seamLabel) {
             return (
               <div
                 key={`recycle-${i}`}
@@ -201,7 +202,7 @@ export function MessageSegments({ segments, themeConfig, themeMode, customEmojis
                 style={{ background: 'rgba(127,127,127,0.08)' }}
               >
                 <RefreshCw size={11} className="shrink-0" />
-                <span>Session recycled — re-primed with recent history</span>
+                <span>{seamLabel}</span>
               </div>
             );
           }

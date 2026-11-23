@@ -17,6 +17,9 @@ import { resolveSilenceCheckModel } from '../services/silence-check.js';
 import type { AgentRouting } from '../services/agent/agent-route-selection.js';
 import { getAerieConfig } from '../config.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { identityFilesLine } from '../services/identity-files.js';
+import { listCompanions } from '../services/db/companions.js';
+import { resolvePath } from '../services/companion-identity.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -499,7 +502,13 @@ router.get('/orchestrator/runtime', (_req, res) => {
       join(config.agent.cwd, '.claude/CLAUDE.md'),
       join(config.agent.cwd, 'CLAUDE.md'),
     ];
-    const identityFile = identityCandidates.find((p) => existsSync(p)) || null;
+    // A house with companions loads companions/<slug>.md and the _shared.md
+    // beside it; the single CLAUDE.md is only the no-companions fallback.
+    const identityFile = identityFilesLine(
+      listCompanions().map((c) => resolvePath(c.claude_md_path)).filter(Boolean),
+      identityCandidates,
+      existsSync,
+    );
 
     res.json({
       lanes: [

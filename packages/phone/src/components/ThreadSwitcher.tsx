@@ -2,7 +2,7 @@
 import { themeInk } from '../lib/theme-ink';
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore, Cpu } from 'lucide-react';
+import { Search, X, Plus, Pin, PinOff, Pencil, Archive, Trash2, MoreVertical, ChevronRight, Check, ArchiveRestore, Cpu, DoorOpen, RefreshCw } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn, withAlpha, stripMarkdown } from '../lib/utils';
 import { groupThreads, monthKey, previewText } from '../lib/thread-list';
@@ -68,6 +68,9 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
   // A thread's own model. The list is fetched the first
   // time they open it; a thread with none rides the house model.
   const [modelPickerFor, setModelPickerFor] = useState<string | null>(null);
+  // A thread's own room: on, off, and starting it fresh.
+  const [freshAskFor, setFreshAskFor] = useState<string | null>(null);
+  const [roomNote, setRoomNote] = useState<{ id: string; text: string } | null>(null);
   const [modelChoices, setModelChoices] = useState<Array<{ id: string; name?: string }> | null>(null);
   // Back closes a thread's menu or delete question first, then the switcher,
   // which leaves their person in the thread they were in.
@@ -163,6 +166,31 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
       await loadThreads();
     } catch (err) {
       console.error('Failed to set the thread model:', err);
+    }
+  }
+
+  async function setOwnRoom(threadId: string, on: boolean) {
+    try {
+      await apiFetch(`/api/threads/${threadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ own_room: on }),
+      });
+      setRoomNote({ id: threadId, text: on ? 'This thread answers from its own room from the next message.' : 'This thread is back in the main room.' });
+      await loadThreads();
+    } catch (err) {
+      console.error('Failed to set the thread room:', err);
+    }
+  }
+
+  async function startFresh(threadId: string) {
+    setFreshAskFor(null);
+    try {
+      const res = await apiFetch(`/api/threads/${threadId}/fresh-room`, { method: 'POST' });
+      const data = await res.json().catch(() => null);
+      setRoomNote({ id: threadId, text: res.ok && data?.success ? 'Started fresh. The next message opens a new room, caught up on this thread.' : (data?.error || 'It did not start fresh.') });
+    } catch {
+      setRoomNote({ id: threadId, text: 'It did not start fresh.' });
     }
   }
 
@@ -365,6 +393,34 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
                 })}
                 {modelChoices === null && <p className={cn('px-2.5 py-1.5 text-xs', colors.textMuted)}>Loading…</p>}
               </div>
+            )}
+            <button
+              onClick={() => void setOwnRoom(thread.id, !thread.own_room)}
+              className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5', colors.textMain)}
+            >
+              <DoorOpen size={14} /> Own room
+              <span className={cn('ml-auto', colors.textMuted)}>{thread.own_room ? 'On' : 'Off'}</span>
+            </button>
+            {thread.own_room ? (
+              freshAskFor === thread.id ? (
+                <div className={cn('mx-1 mb-1 rounded-lg border p-2 text-center text-[11px]', colors.panelBorder, colors.textMain)}>
+                  <p>Start this thread's room over? Nothing is deleted; the next message opens a new room caught up on this thread. The main room is not touched.</p>
+                  <div className="mt-1.5 flex justify-center gap-2">
+                    <button onClick={() => void startFresh(thread.id)} className="rounded-[var(--shape-chip)] px-3 py-1" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>Start fresh</button>
+                    <button onClick={() => setFreshAskFor(null)} className={cn('rounded-[var(--shape-chip)] border px-3 py-1', colors.panelBorder)}>Not now</button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setFreshAskFor(thread.id)}
+                  className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5', colors.textMain)}
+                >
+                  <RefreshCw size={14} /> Start this room fresh
+                </button>
+              )
+            ) : null}
+            {roomNote?.id === thread.id && (
+              <p className={cn('px-2.5 pb-1.5 text-[10px] leading-snug', colors.textMuted)}>{roomNote.text}</p>
             )}
             <button
               onClick={() => archive(thread.id)}

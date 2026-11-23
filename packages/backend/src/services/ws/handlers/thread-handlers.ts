@@ -33,6 +33,7 @@ export function threadsToSummaries(threads: Thread[]): ThreadSummary[] {
     last_message_preview: getLastMessagePreview(t.id),
     pinned_at: t.pinned_at ?? null,
     model: t.model ?? null,
+    own_room: (t as { own_room?: number }).own_room ?? 0,
   }));
 }
 

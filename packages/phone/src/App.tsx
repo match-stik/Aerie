@@ -116,7 +116,7 @@ import { homePlacesOf, deskPlacesOf, homeClockSizeOf, homeWidgetsOf, homeCardSty
 import { bubbleInks, bubbleLookOf, mixHex } from './lib/bubble-look';
 import { drawerLookOf } from './lib/drawer-look';
 import { bodyStack, fontsOf, titleStack } from './lib/fonts';
-import { layoutGap, summarizeKeyboardChange, type LayoutFrame, frameTiming, type LongTaskEntry } from './lib/layout-gap';
+import { layoutGap } from './lib/layout-gap';
 import { startToyRemote } from './aerie/toy-remote';
 import { ToyRemotePill } from './components/ToyRemotePill';
 import { SoundBar } from './components/SoundBar';
@@ -1822,82 +1822,13 @@ export default function App() {
         }).catch(() => {});
       }, 700);
     };
-    // What shows is a FLASH, gone before anything settles, so
-    // the settled reading above cannot catch it. Every resize also starts a
-    // frame-by-frame recording for a couple of seconds, and each time the
-    // keyboard closes the summary is posted whether or not the page fell
-    // short: a close where the page measured whole in every frame says the
-    // block is the app's Android window, not the page.
-    const frameNow = (t: number): LayoutFrame | null => {
-      const root = document.querySelector('.aerie-root');
-      if (!root) return null;
-      // The message box too: the block can show in its color.
-      const box = document.getElementById('message-input')?.getBoundingClientRect();
-      return {
-        t, inner: window.innerHeight, visual: Math.round(window.visualViewport?.height ?? window.innerHeight), rootBottom: Math.round(root.getBoundingClientRect().bottom), docH: document.documentElement.clientHeight,
-        ...(box ? { boxTop: Math.round(box.top), boxH: Math.round(box.height) } : {}),
-      };
-    };
-    let before = frameNow(-1);
-    let recording: LayoutFrame[] | null = null;
-    let lastTrace = 0;
-    // The stopwatch (lib/layout-gap.ts frameTiming): the page's long tasks
-    // are kept as they happen, the last forty, so a recording can say how
-    // busy the page was around the move, the second before it included.
-    const longTasks: LongTaskEntry[] = [];
-    let taskWatch: PerformanceObserver | null = null;
-    try {
-      taskWatch = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) {
-          longTasks.push({ start: entry.startTime, duration: entry.duration });
-          if (longTasks.length > 40) longTasks.shift();
-        }
-      });
-      taskWatch.observe({ type: 'longtask', buffered: true });
-    } catch {
-      taskWatch = null;
-    }
-    const record = () => {
-      if (recording) return;
-      const start = performance.now();
-      const stamps: number[] = [];
-      recording = before ? [{ ...before, t: -1 }] : [];
-      const step = () => {
-        const now = performance.now();
-        stamps.push(now);
-        const t = Math.round(now - start);
-        const frame = frameNow(t);
-        if (frame && recording) recording.push(frame);
-        if (t < 2500) { requestAnimationFrame(step); return; }
-        const frames = recording ?? [];
-        recording = null;
-        before = frames[frames.length - 1] ?? before;
-        const trace = summarizeKeyboardChange(frames);
-        const timing = frameTiming(start, stamps, longTasks);
-        // Opens as well as closes: either direction can be the one that flashes.
-        if ((!trace.closed && !trace.opened) || Date.now() - lastTrace < 20_000) return;
-        lastTrace = Date.now();
-        void apiFetch('/api/client-errors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          // The summary rides in message (500 characters) and the frames as
-          // compact rows [t, inner, visual, rootBottom, docH, boxTop, boxH]
-          // in stack (2000), so this needs nothing new from the house.
-          body: JSON.stringify({
-            where: trace.closed ? 'keyboard-close' : 'keyboard-open',
-            message: JSON.stringify({ closed: trace.closed, opened: trace.opened, worstRootShort: trace.worstRootShort, worstWindowShort: trace.worstWindowShort, boxGrew: trace.boxGrew, frames: trace.frames.length, screen: window.screen.height, dpr: window.devicePixelRatio, firstFrameMs: timing.firstFrameMs, longestFrameMs: timing.longestFrameMs, busyMs: timing.busyMs, longestTaskMs: timing.longestTaskMs, tasks: timing.tasks, tasksSeen: !!taskWatch }),
-            stack: JSON.stringify(trace.frames.map((f) => [f.t, f.inner, f.visual, f.rootBottom, f.docH, f.boxTop ?? null, f.boxH ?? null])),
-          }),
-        }).catch(() => {});
-      };
-      requestAnimationFrame(step);
-    };
-    const onResize = () => { record(); check(); };
+    // The frame-by-frame keyboard recorder that sat here came down once the
+    // keyboard proved fine: its reports were filling the error log in red.
+    const onResize = () => { check(); };
     window.addEventListener('resize', onResize);
     window.visualViewport?.addEventListener('resize', onResize);
     return () => {
       clearTimeout(timer);
-      taskWatch?.disconnect();
       window.removeEventListener('resize', onResize);
       window.visualViewport?.removeEventListener('resize', onResize);
     };

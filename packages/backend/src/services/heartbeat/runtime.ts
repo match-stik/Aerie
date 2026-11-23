@@ -945,7 +945,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
     ].join('\n');
   }
 
-  private async buildRecycleContext(): Promise<string> {
+  private async buildRecycleContext(reopened = false): Promise<string> {
     const { loadHistory, threadId, historyLimit, companionName, userName } = this.options;
     if (!loadHistory || !threadId) return '';
 
@@ -1060,7 +1060,12 @@ export class InteractiveCliRuntime implements AgentRuntime {
     if (dropped > 0) {
       lines.unshift(`[${dropped} older message${dropped === 1 ? '' : 's'} omitted from this seed for size]`);
     }
-    const header = '[Session recycled — recent conversation, oldest first, for continuity:]';
+    // The same honesty as the seam note on the phone: a room that
+    // came back by --resume is told it was reopened, so it does not read its
+    // own unbroken evening as a stranger's history.
+    const header = reopened
+      ? '[Session reopened — the same room came back after a restart; recent conversation, oldest first, so nothing falls through the gap:]'
+      : '[Session recycled — recent conversation, oldest first, for continuity:]';
     // A room with other voices in it: say out loud which one this lane is. A
     // fresh session reading three headers of history will otherwise reproduce
     // all three, which is how one recycled lane starts writing the whole room.
@@ -1222,7 +1227,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       if (fresh) state.owesRecycleSeed = true;
     } else if (fresh || state.owesRecycleSeed) {
       state.owesRecycleSeed = false;
-      contextBlock = await this.buildRecycleContext();
+      contextBlock = await this.buildRecycleContext(session.lastLaunchWasResume?.() === true);
     }
     // A wake into a warm-but-absent lane: hand it what the room said while it
     // was quiet. A live turn gets the same, bounded at their person's arriving
@@ -1251,8 +1256,14 @@ export class InteractiveCliRuntime implements AgentRuntime {
 
     // Surface the recycle seam in the UI — the warm session restarted and
     // is being re-primed, which is otherwise invisible to the user.
+    // A room reopened by --resume is the same room, so its note says so;
+    // 'recycled' on a reopened room reads as the room being gone. The phone
+    // labels the two differently off these prefixes (lib/thinking.ts).
     if (fresh) {
-      const note = `[Session recycled — warm CLI session restarted; re-primed with the last ${this.options.historyLimit || 30} messages of this thread.]`;
+      const reopened = session.lastLaunchWasResume?.() === true;
+      const note = reopened
+        ? `[Session reopened — the same room came back after a restart; handed the last ${this.options.historyLimit || 30} messages of this thread so nothing falls through the gap.]`
+        : `[Session recycled — warm CLI session restarted; re-primed with the last ${this.options.historyLimit || 30} messages of this thread.]`;
       yield { type: 'thinking_delta', text: note };
       yield { type: 'thinking_end', fullText: note };
     }

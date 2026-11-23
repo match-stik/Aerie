@@ -15,6 +15,8 @@ export interface Thread {
   pinned_at: string | null;
   /** This thread's own model; null rides the house model. */
   model?: string | null;
+  /** 1 when the thread has a room of its own (thread-model.ts readThreadOwnRoom). */
+  own_room?: number | null;
 }
 
 export type Platform = 'web' | 'discord' | 'telegram' | 'api';
@@ -246,6 +248,8 @@ export interface ThreadSummary {
   pinned_at: string | null;
   /** This thread's own model; null rides the house model. */
   model?: string | null;
+  /** 1 when the thread has a room of its own (thread-model.ts readThreadOwnRoom). */
+  own_room?: number | null;
 }
 
 export interface SearchResult {

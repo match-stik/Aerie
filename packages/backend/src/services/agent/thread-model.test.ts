@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, statSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { threadTurnModel, modelLaneKey, modelLanesBeside, seedModelLaneTools } from './thread-model.js';
+import { threadTurnModel, modelLaneKey, modelLanesBeside, seedModelLaneTools, threadLaneKey, threadRoomTag } from './thread-model.js';
 
 test('a thread with no model of its own rides the house model', () => {
   assert.equal(threadTurnModel(null, false, 'claude-opus-5'), 'claude-opus-5');
@@ -67,4 +67,24 @@ test('a new model room is handed the usual room’s tools once, owner-only, neve
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// A thread's own room: a separate session for one thread, startable fresh.
+test('a thread with its own room rides base--t-<thread>, and its model room beside that', () => {
+  assert.equal(threadLaneKey('primary', 'abc-123', true, 'claude-opus-5-5', 'claude-opus-5-5'), 'primary--t-abc-123');
+  assert.equal(threadLaneKey('primary', 'abc-123', true, 'claude-opus-4-5', 'claude-opus-5-5'), 'primary--t-abc-123--claude-opus-4-5');
+  assert.ok(threadLaneKey('juniper', 'abc-123', true, 'm', 'm')!.includes(threadRoomTag('abc-123')));
+});
+
+test('a thread without its own room keeps the old road: the usual room, or the shared model room', () => {
+  assert.equal(threadLaneKey('primary', 'abc-123', false, 'claude-opus-5-5', 'claude-opus-5-5'), null);
+  assert.equal(threadLaneKey('primary', 'abc-123', false, 'claude-opus-4-5', 'claude-opus-5-5'), 'primary--claude-opus-4-5');
+});
+
+test('a thread room is found by the missed-message net as a room beside its lane', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lanes-'));
+  mkdirSync(join(dir, 'primary--t-abc-123'));
+  mkdirSync(join(dir, 'other'));
+  assert.deepEqual(modelLanesBeside(dir, ['primary']), ['primary--t-abc-123']);
+  rmSync(dir, { recursive: true, force: true });
 });

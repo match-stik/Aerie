@@ -1903,8 +1903,10 @@ html[data-desk] {
   height: var(--desk-face, 46px) !important;
 }
 
-/* The typing box's words a size down on the laptop. */
-.aerie-root[data-desk] .aerie-composer {
+/* The typing box's words a size down on the laptop; the table rail's typing
+   box speaks the same size as the chat's. */
+.aerie-root[data-desk] .aerie-composer,
+.aerie-root[data-desk] .aerie-rail-input {
   font-size: 13px !important;
 }
 

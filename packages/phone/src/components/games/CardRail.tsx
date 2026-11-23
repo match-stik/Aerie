@@ -26,6 +26,7 @@ import { StickerPicker } from '../StickerPicker';
 import { EmojiPicker } from '../EmojiPicker';
 import { GifPicker } from '../GifPicker';
 import { useRoomBubbleSettings } from '../RoomBubble';
+import { keepIfSame } from '../../lib/rail-lines';
 import { useBackHandler } from '../../lib/use-back-handler';
 import type { ThemeConfig } from '../../lib/theme';
 
@@ -199,7 +200,7 @@ export function CardRail({ tableId, colors, base = '/api/games/cards', label = '
     const res = await apiFetch(`${base}/rail${tableId ? `?id=${tableId}` : ''}`);
     const body = await res.json().catch(() => null);
     if (!body || !('messages' in body)) return;
-    setMessages(body.messages as RailMessage[]);
+    setMessages((prev) => keepIfSame(prev, body.messages as RailMessage[]));
     if (typeof body.threadId === 'string') setThreadId(body.threadId);
     setPending(Boolean(body.companionPending));
   }, [tableId, base]);
@@ -442,7 +443,7 @@ export function CardRail({ tableId, colors, base = '/api/games/cards', label = '
             onBlur={() => window.dispatchEvent(new CustomEvent('aerie:card-rail-typing', { detail: false }))}
             placeholder={tableId ? 'Say something' : 'Deal a game first'}
             disabled={!tableId}
-            className="scrollbar-hide min-w-0 flex-1 resize-none rounded-[var(--shape-control)] border px-3.5 py-2.5 text-[16px] leading-6 outline-none placeholder:opacity-60 disabled:opacity-55"
+            className="aerie-rail-input scrollbar-hide min-w-0 flex-1 resize-none rounded-[var(--shape-control)] border px-3.5 py-2.5 text-[15px] leading-6 outline-none placeholder:opacity-60 disabled:opacity-55"
             style={{ backgroundColor: PANEL_SURFACE, borderColor: PANEL_BORDER, color: PANEL_TEXT }}
           />
           <button

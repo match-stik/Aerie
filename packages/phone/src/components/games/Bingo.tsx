@@ -608,7 +608,9 @@ export function BingoGame({ colors }: BingoProps) {
           )}
         </div>
 
-        {note && <p className="text-xs opacity-80">{note}</p>}
+        {/* Centered on a card, not loose at the left edge (the frozen-dauber
+            notice). */}
+        {note && <p className={cn(panel, 'px-3 py-2 text-center text-xs')}>{note}</p>}
 
         <div className="flex gap-2">
           {(['numbers', 'house'] as const).map((which) => (

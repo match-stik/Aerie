@@ -34,6 +34,41 @@ export function readThreadModel(threadId: string): string | null {
   }
 }
 
+/**
+ * Whether a thread has a room of its own: a separate session for one
+ * thread. A thread with one is answered by its
+ * own warm session beside the usual one, which knows the house through the
+ * walls, recall and the thread's own recent messages rather than through the
+ * main room's evening; it can be started fresh without touching the main room.
+ * Bells keep their own rooms either way.
+ */
+export function readThreadOwnRoom(threadId: string): boolean {
+  try {
+    const row = getDb().prepare('SELECT own_room FROM threads WHERE id = ?').get(threadId) as { own_room?: number | null } | undefined;
+    return Boolean(row?.own_room);
+  } catch {
+    return false;
+  }
+}
+
+/** The marker in a lane key that says the room belongs to one thread. */
+export function threadRoomTag(threadId: string): string {
+  return `--t-${threadId.replace(/[^a-zA-Z0-9-_]/g, '_')}`;
+}
+
+/**
+ * The lane a turn in this thread rides, or null for the usual one. A thread
+ * with its own room gets base--t-<thread>, and on a model other than the
+ * lane's natural one, that room's own model room beside it; a thread with
+ * only a model of its own shares that model's room with every other thread on
+ * the model (modelLaneKey), as before.
+ */
+export function threadLaneKey(baseKey: string, threadId: string, ownRoom: boolean, model: string, naturalModel: string): string | null {
+  if (!ownRoom) return modelLaneKey(baseKey, model, naturalModel);
+  const room = `${baseKey}${threadRoomTag(threadId)}`;
+  return modelLaneKey(room, model, naturalModel) ?? room;
+}
+
 /** The model a turn in this thread asks for before any companion's own. */
 export function threadTurnModel(threadModel: string | null, isAutonomous: boolean, houseModel: string): string {
   if (isAutonomous) return houseModel;

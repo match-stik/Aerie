@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Brain, RefreshCw } from 'lucide-react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
-import { coalesceThinkingSegments, plainThinkingText } from '../lib/thinking';
+import { coalesceThinkingSegments, plainThinkingText, roomSeamLabel } from '../lib/thinking';
 import { useStreaming, useStreamingSegments } from '../aerie';
 import { phrasesFor, phraseStart } from '../lib/working-phrases';
 import { isHiddenTool } from '../lib/segment-visibility';
@@ -42,7 +42,8 @@ export function StreamingReply({ themeConfig, themeMode, voices }: StreamingRepl
 
   const thinkingCard = (key: string, summary: string) => {
     // CLI-lane session recycle note → distinct badge, visible mid-stream.
-    if ((summary || '').startsWith('[Session recycled')) {
+    const seamLabel = roomSeamLabel(summary);
+    if (seamLabel) {
       return (
         <div
           key={key}
@@ -50,7 +51,7 @@ export function StreamingReply({ themeConfig, themeMode, voices }: StreamingRepl
           style={{ background: 'rgba(127,127,127,0.08)' }}
         >
           <RefreshCw size={11} className="shrink-0" />
-          <span>Session recycled — re-primed with recent history</span>
+          <span>{seamLabel}</span>
         </div>
       );
     }

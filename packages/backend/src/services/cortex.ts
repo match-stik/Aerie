@@ -267,6 +267,53 @@ export async function getConversation(id: string, page?: { offset?: number; maxC
   return callTool('get_conversation', args);
 }
 
+/**
+ * Take a conversation off the shelf for good, keeping a copy first, for
+ * chats that don't need keeping. The whole
+ * text is read page by page and written to data/cortex-deleted/<id>.json
+ * before the worker is asked to delete it, so a press made by mistake can be
+ * put back by hand. If the copy cannot be read whole or written, nothing is
+ * deleted.
+ */
+export async function deleteConversation(id: string, keepDir: string): Promise<{ keptAt: string }> {
+  return keepThenDelete(
+    id,
+    async (offset) => JSON.parse(await getConversation(id, { offset, maxChars: 40_000 })) as Record<string, unknown>,
+    async () => { await callRest(`/api/conversation/${encodeURIComponent(id)}`, { method: 'DELETE' }); },
+    keepDir,
+  );
+}
+
+/** The copy-then-delete itself, with the reads and the delete handed in so it can be tested. */
+export async function keepThenDelete(
+  id: string,
+  readPage: (offset: number) => Promise<Record<string, unknown>>,
+  remove: () => Promise<void>,
+  keepDir: string,
+): Promise<{ keptAt: string }> {
+  const { mkdirSync, writeFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  let offset = 0;
+  let content = '';
+  let head: Record<string, unknown> | null = null;
+  for (let pages = 0; pages < 500; pages++) {
+    const page = await readPage(offset);
+    if (!page || typeof page.content !== 'string') throw new Error('The conversation could not be read, so it was not deleted.');
+    head ??= page;
+    content += page.content;
+    const next = page.next_offset;
+    if (typeof next !== 'number' || next <= offset) break;
+    offset = next;
+  }
+  const total = Number(head?.total_chars);
+  if (Number.isFinite(total) && content.length < total) throw new Error('Only part of the conversation could be read, so it was not deleted.');
+  mkdirSync(keepDir, { recursive: true });
+  const keptAt = join(keepDir, `${id.replace(/[^A-Za-z0-9_-]/g, '_')}.json`);
+  writeFileSync(keptAt, JSON.stringify({ id, title: head?.title, domain: head?.domain, summary: head?.summary, created_at: head?.created_at, content, deleted_at: new Date().toISOString() }, null, 2));
+  await remove();
+  return { keptAt };
+}
+
 export async function conversationsByDate(startDate: string, endDate?: string, domain?: string): Promise<string> {
   return callTool('conversations_by_date', { start_date: startDate, end_date: endDate, domain });
 }

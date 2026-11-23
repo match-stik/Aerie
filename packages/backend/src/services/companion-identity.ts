@@ -35,7 +35,7 @@ const identityCache = new Map<string, CompanionIdentity>();
 /**
  * Resolve a path that may be relative to PROJECT_ROOT or absolute.
  */
-function resolvePath(path: string): string {
+export function resolvePath(path: string): string {
   if (isAbsolute(path)) return path;
   return resolve(PROJECT_ROOT, path);
 }

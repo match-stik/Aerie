@@ -2,6 +2,8 @@
 // routes/cortex.ts — Cortex API routes
 import { Router } from 'express';
 import * as cortex from '../services/cortex.js';
+import { join } from 'node:path';
+import { PROJECT_ROOT } from '../config.js';
 import {
   extractMemoryId, findNearDuplicates, recordFeedback, setTemporalValidity, supersedeMemory,
 } from '../services/cortex-memory-quality.js';
@@ -219,6 +221,18 @@ router.post('/cortex/conversation', async (req, res) => {
     const { title, content, domain, summary } = req.body;
     const result = await cortex.saveConversation(title, content, domain, summary);
     res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// A conversation off the shelf for good; a copy is kept on the house's disk
+// first (services/cortex.ts deleteConversation).
+router.delete('/cortex/conversation/:id', async (req, res) => {
+  try {
+    const keepDir = join(PROJECT_ROOT, 'data', 'cortex-deleted');
+    const { keptAt } = await cortex.deleteConversation(String(req.params.id), keepDir);
+    res.json({ success: true, keptAt });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }

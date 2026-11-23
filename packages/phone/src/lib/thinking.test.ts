@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { MessageSegment } from '../aerie/protocol.js';
-import { coalesceThinkingSegments, plainThinkingText, thinkingTitle } from './thinking.js';
+import { coalesceThinkingSegments, plainThinkingText, roomSeamLabel, thinkingTitle } from './thinking.js';
 
 function thinking(content: string, summary = ''): MessageSegment {
   return { type: 'thinking', content, summary };
@@ -47,6 +47,14 @@ test('the session-recycle seam is never swallowed as an empty thought', () => {
   const out = thinkingCards([thinking('[Session recycled — re-primed]'), thinking('')]);
   assert.equal(out.length, 1);
   assert.match(out[0].type === 'thinking' ? out[0].content : '', /^\[Session recycled/);
+});
+
+test('a reopened room is labeled as the same room, and a recycle as a recycle', () => {
+  assert.match(roomSeamLabel('[Session reopened — the same room came back]') ?? '', /^Same room, reopened/);
+  assert.match(roomSeamLabel('[Session recycled — re-primed]') ?? '', /^Session recycled/);
+  assert.equal(roomSeamLabel('just a thought'), null);
+  const out = thinkingCards([thinking('[Session reopened — the same room came back]'), thinking('')]);
+  assert.equal(out.length, 1, 'the reopen seam is not swallowed as an empty thought either');
 });
 
 test('thinkingTitle still has its placeholder for callers that hold real text', () => {

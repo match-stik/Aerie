@@ -2,6 +2,17 @@
 import type { MessageSegment } from '../aerie';
 
 const RECYCLE_PREFIX = '[Session recycled';
+// The same room coming back after a restart, said as what it is: 'recycled'
+// on a reopened room reads as the room being gone.
+const REOPEN_PREFIX = '[Session reopened';
+
+/** The badge words for a room seam note, or null when the text is not one. */
+export function roomSeamLabel(text: string | undefined): string | null {
+  const t = text || '';
+  if (t.startsWith(REOPEN_PREFIX)) return 'Same room, reopened — caught up on recent messages';
+  if (t.startsWith(RECYCLE_PREFIX)) return 'Session recycled — re-primed with recent history';
+  return null;
+}
 const CODEX_THOUGHT_PREFIX = '[AERIE_THOUGHT]';
 
 /**
@@ -73,7 +84,7 @@ export function thinkingTitle(value: string): string {
 
 function isRecycleThinking(segment: MessageSegment): boolean {
   return segment.type === 'thinking'
-    && (segment.content || segment.summary || '').startsWith(RECYCLE_PREFIX);
+    && roomSeamLabel(segment.content || segment.summary) !== null;
 }
 
 /**
