@@ -44,8 +44,11 @@ db.pragma('busy_timeout = 20000');
 const tokenRow = db
   .prepare("SELECT value FROM config WHERE key = 'secret:discord_bot_token'")
   .get();
-const token = tokenRow
-  ? (String(tokenRow.value).startsWith('"') ? JSON.parse(tokenRow.value) : tokenRow.value)
+// Stored keys are sealed at rest (services/secret-box.ts); open with the key file.
+const { loadSecretsKey, openValue } = await import(resolve(root, 'packages', 'backend', 'dist', 'services', 'secret-box.js'));
+const tokenValue = tokenRow ? openValue(String(tokenRow.value), loadSecretsKey(), 'secret:discord_bot_token') : null;
+const token = tokenValue
+  ? (tokenValue.startsWith('"') ? JSON.parse(tokenValue) : tokenValue)
   : process.env.DISCORD_BOT_TOKEN;
 
 /** Guest rows only. Their person's own bridged messages are stored as 'user' and already

@@ -34,7 +34,8 @@ export interface UserRule {
   context?: string;
   allowedServers?: string[];
   blockedServers?: string[];
-  trustLevel: 'full' | 'standard' | 'limited';
+  // 'full' is an old name for 'standard' (folded Nov 24 2026); 'blocked' is never answered.
+  trustLevel: 'full' | 'standard' | 'limited' | 'blocked';
   relationship?: string;
 }
 
@@ -159,6 +160,11 @@ export function buildRulesContext(userId: string, channelId: string, guildId: st
   }
 
   return parts.join('\n');
+}
+
+/** Whether a rule says never to answer this person or bot, anywhere (Nov 24 2026). */
+export function ruleBlocks(rule: Pick<UserRule, 'trustLevel'> | undefined): boolean {
+  return rule?.trustLevel === 'blocked';
 }
 
 export function isUserAllowedInServer(userId: string, guildId: string | null): boolean {

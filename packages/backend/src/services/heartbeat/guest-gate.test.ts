@@ -344,3 +344,30 @@ test('on their Discord turn the speak helper runs, and a guest cannot', () => {
     assert.equal(gate(lane, 'Bash', { command: SPEAK('{"text":"hi"}') }).status, 2);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// Nov 24 2026: Standard could read parts of the house held back from
+// the public copy. A house that names
+// its public copy in data/guest-public-tree.txt lets a guest read only a file
+// the public copy also has, and search inside the public copy itself.
+test('with a public copy named, a guest reads only what the public copy has', () => {
+  const { root, lane } = house();
+  const pub = mkdtempSync(join(tmpdir(), 'aerie-public-'));
+  try {
+    mkdirSync(join(root, 'packages', 'backend', 'held'), { recursive: true });
+    writeFileSync(join(root, 'packages', 'backend', 'held', 'private.ts'), 'house only');
+    mkdirSync(join(pub, 'packages', 'backend'), { recursive: true });
+    writeFileSync(join(pub, 'packages', 'backend', 'thing.ts'), 'export const x = 1;\n');
+    mkdirSync(join(root, 'data'), { recursive: true });
+    audience(lane, GUEST('standard'));
+    // Before it is named, the whole tree is public, as it was.
+    assert.equal(gate(lane, 'Read', { file_path: join(root, 'packages', 'backend', 'held', 'private.ts') }).status, 0);
+    writeFileSync(join(root, 'data', 'guest-public-tree.txt'), pub + '\n');
+    assert.equal(gate(lane, 'Read', { file_path: join(root, 'packages', 'backend', 'thing.ts') }).status, 0, 'in the public copy too');
+    assert.equal(gate(lane, 'Read', { file_path: join(root, 'packages', 'backend', 'held', 'private.ts') }).status, 2, 'held back');
+    assert.equal(gate(lane, 'Grep', { pattern: 'x', path: join(root, 'packages') }).status, 2, 'a folder here would read the held files');
+    assert.equal(gate(lane, 'Grep', { pattern: 'x', path: join(pub, 'packages') }).status, 0, 'search the public copy instead');
+    assert.equal(gate(lane, 'Read', { file_path: join(pub, 'packages', 'backend', 'thing.ts') }).status, 0);
+    audience(lane, GUEST('limited'));
+    assert.equal(gate(lane, 'Read', { file_path: join(pub, 'packages', 'backend', 'thing.ts') }).status, 2, 'limited still reads nothing');
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(pub, { recursive: true, force: true }); }
+});

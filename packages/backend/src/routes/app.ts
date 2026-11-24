@@ -44,19 +44,37 @@ router.get('/download', (_req, res) => {
 // and the app's Settings button reads one and fetches the other.
 const DESKTOP_DIR = join(APP_DIR, 'desktop');
 
-function desktopMeta(): { version: string; file: string } | null {
+interface DesktopMeta { version: string; file: string; sha256?: string; signature?: string }
+
+/** version.json as stage.mjs wrote it; the hash and signature only when well formed. */
+export function parseDesktopMeta(raw: unknown): DesktopMeta | null {
+  const meta = (raw && typeof raw === 'object' ? raw : {}) as { version?: unknown; file?: unknown; sha256?: unknown; signature?: unknown };
+  if (typeof meta.version !== 'string' || typeof meta.file !== 'string' || !/^[\w.\- ]+\.zip$/.test(meta.file)) return null;
+  const out: DesktopMeta = { version: meta.version, file: meta.file };
+  if (typeof meta.sha256 === 'string' && /^[0-9a-f]{64}$/i.test(meta.sha256)
+    && typeof meta.signature === 'string' && /^[A-Za-z0-9+/]{86}==$/.test(meta.signature)) {
+    out.sha256 = meta.sha256.toLowerCase();
+    out.signature = meta.signature;
+  }
+  return out;
+}
+
+function desktopMeta(): DesktopMeta | null {
   try {
-    const meta = JSON.parse(readFileSync(join(DESKTOP_DIR, 'version.json'), 'utf-8')) as { version?: unknown; file?: unknown };
-    if (typeof meta.version !== 'string' || typeof meta.file !== 'string' || !/^[\w.\- ]+\.zip$/.test(meta.file)) return null;
-    return existsSync(join(DESKTOP_DIR, meta.file)) ? { version: meta.version, file: meta.file } : null;
+    const meta = parseDesktopMeta(JSON.parse(readFileSync(join(DESKTOP_DIR, 'version.json'), 'utf-8')));
+    return meta && existsSync(join(DESKTOP_DIR, meta.file)) ? meta : null;
   } catch {
     return null;
   }
 }
 
+// The hash and signature go to the app with the version, so it can check the
+// zip it downloads against the key it was built with (desktop/update-signature.cjs).
 router.get('/desktop/version', (_req, res) => {
   const meta = desktopMeta();
-  res.json(meta ? { available: true, version: meta.version } : { available: false });
+  res.json(meta
+    ? { available: true, version: meta.version, ...(meta.signature ? { sha256: meta.sha256, signature: meta.signature } : {}) }
+    : { available: false });
 });
 
 router.get('/desktop/download', (_req, res) => {

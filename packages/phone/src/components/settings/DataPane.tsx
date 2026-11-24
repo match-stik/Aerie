@@ -10,6 +10,7 @@ import { Toggle } from "../Toggle";
 import { LaptopAppSettings } from "./LaptopPane";
 import { useDesk } from "../../lib/use-desk";
 import type { SettingsState } from './use-settings-state';
+import { apiFetch } from "../../aerie";
 
 export function DataPane({ s }: { s: SettingsState }) {
   const { activeTheme, colors, handlePushToggle, theme, appSettings } = s;
@@ -44,6 +45,7 @@ export function DataPane({ s }: { s: SettingsState }) {
             ariaLabel="Toggle push notifications"
           />
       </div>
+      <LockScreenPreview colors={colors} />
     </section>
 
     {/* Web UI Password — moved from Agent → Models since it's a
@@ -69,5 +71,44 @@ export function DataPane({ s }: { s: SettingsState }) {
     {/* The Claude Code the lanes run, updated from here (ClaudeCodeUpdate.tsx). */}
     <ClaudeCodeUpdate themeConfig={activeTheme} themeMode={theme.mode} />
     </>
+  );
+}
+
+/**
+ * Whether a notification shows the first line of the message on the lock
+ * screen, or only who it is from (backend setting push.preview; outside
+ * review, Nov 20 2026). On means the text shows, as it always has.
+ */
+function LockScreenPreview({ colors }: { colors: SettingsState["colors"] }) {
+  const [shown, setShown] = React.useState<boolean | null>(null);
+  React.useEffect(() => {
+    let live = true;
+    void apiFetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { config?: Record<string, string> } | null) => {
+        if (live) setShown(body?.config?.["push.preview"] !== "hidden");
+      })
+      .catch(() => { if (live) setShown(true); });
+    return () => { live = false; };
+  }, []);
+  const flip = () => {
+    const next = !(shown ?? true);
+    setShown(next);
+    void apiFetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "push.preview", value: next ? "full" : "hidden" }),
+    }).then((r) => { if (!r.ok) setShown(!next); }).catch(() => setShown(!next));
+  };
+  return (
+    <div className="flex items-center justify-between">
+      <div className="text-left">
+        <span className={cn("block text-sm font-medium", colors.textMain)}>Show messages on the lock screen</span>
+        <span className={cn("text-xs", colors.textMuted)}>
+          Off shows only who it's from and New message
+        </span>
+      </div>
+      <Toggle on={shown ?? true} onClick={flip} colors={colors} ariaLabel="Show message text on the lock screen" />
+    </div>
   );
 }

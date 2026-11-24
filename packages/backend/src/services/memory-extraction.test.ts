@@ -55,7 +55,7 @@ test('Archivist names a Discord guest instead of calling them System', () => {
   const batch = buildConversationBatch([guest, house], 'Ivy', 'America/Chicago');
 
   assert.ok(batch);
-  assert.match(batch.text, /Pat \(a guest, not Ivy\): meter the exit/);
-  assert.doesNotMatch(batch.text, /System: meter the exit/);
+  assert.match(batch.text, /Pat \(a guest, not Ivy\): \[a guest spoke here/);
+  assert.doesNotMatch(batch.text, /meter the exit/, "a guest's words never reach the memory writer (outside review, Nov 20 2026)");
   assert.match(batch.text, /System: a bell rang/);
 });

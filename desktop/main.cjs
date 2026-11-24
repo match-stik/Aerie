@@ -16,6 +16,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const backupKey = require('./backup-key.cjs');
+const updateSignature = require('./update-signature.cjs');
+const fileBackup = require('./file-backup.cjs');
 
 /** Windows ties notifications to this id; the installer's Start menu entry carries the same one. */
 const APP_ID = 'com.aerie.desktop';
@@ -126,6 +128,17 @@ function askHer(message, detail, yes, { no = 'Cancel', big = null } = {}) {
 function houseUrl() {
   const built = readJson(path.join(__dirname, 'house.json'));
   return cleanUrl(built && built.url) || cleanUrl((readJson(configFile()) || {}).url);
+}
+
+/**
+ * The key this app trusts updates from, built in through house.json
+ * ("updateKey", printed by `node stage.mjs --keygen`). Only the built-in file
+ * counts: the settings file is writable from the page's side of things, and a
+ * key anybody can change is no key at all. null means no key was built in.
+ */
+function updateKey() {
+  const built = readJson(path.join(__dirname, 'house.json'));
+  return updateSignature.publicKeyFrom(built && built.updateKey);
 }
 
 // ---- waking Spotify ----
@@ -314,11 +327,60 @@ async function backUpNow() {
   const made = await houseJson(house, 'POST', '/backup/now');
   if (!made.ok) { backupNote(made.status === 401 ? 'sign in to the house in the window first' : `the house could not make one (${made.data && made.data.error ? made.data.error : made.status})`); return; }
   await fetchBackup({ quiet: false });
+  void fetchFiles();
+}
+
+// ---- the files half: uploads and pictures, a bounded amount each run ----
+let filesBusy = false;
+
+function filesDir() {
+  return path.join(backupDir(), 'files');
+}
+
+/** Bring home the uploads and pictures the house has and this laptop does not. */
+async function fetchFiles() {
+  const house = houseUrl();
+  const config = readJson(configFile()) || {};
+  if (!house || !config.backupSetUp || filesBusy) return;
+  filesBusy = true;
+  try {
+    const list = await houseJson(house, 'GET', '/backup/files');
+    if (!list.ok || !list.data || !Array.isArray(list.data.files)) return;
+    fs.mkdirSync(filesDir(), { recursive: true });
+    const indexFile = path.join(filesDir(), 'index.json');
+    const index = readJson(indexFile) || {};
+    const { take, missing } = fileBackup.planFetch(list.data.files, index);
+    if (take.length === 0) { writeJson(configFile(), { ...(readJson(configFile()) || {}), filesNote: `pictures and uploads up to date (${list.data.files.length})` }); return; }
+    const headers = await houseHeaders(house);
+    let done = 0;
+    for (const f of take) {
+      const parts = fileBackup.safeRelPath(f.path);
+      if (!parts) continue;
+      const final = path.join(filesDir(), ...parts) + '.sealed';
+      fs.mkdirSync(path.dirname(final), { recursive: true });
+      const res = await net.fetch(`${house}/api/backup/files/item?path=${encodeURIComponent(f.path)}`, { headers });
+      if (!res.ok) continue;
+      const part = `${final}.part`;
+      fs.writeFileSync(part, Buffer.from(await res.arrayBuffer()));
+      fs.renameSync(part, final);
+      index[f.path] = { bytes: f.bytes, mtime: f.mtime };
+      done++;
+      if (done % 50 === 0) writeJson(indexFile, index);
+    }
+    writeJson(indexFile, index);
+    const left = missing - done;
+    writeJson(configFile(), { ...(readJson(configFile()) || {}), filesNote: left > 0 ? `copied ${done} pictures and uploads, ${left} still to come` : `pictures and uploads up to date (${list.data.files.length})` });
+  } catch {
+    /* the next run picks up where this one stopped */
+  } finally {
+    filesBusy = false;
+  }
 }
 
 function startBackupFetches() {
-  setTimeout(() => void fetchBackup(), 2 * 60 * 1000);
-  setInterval(() => void fetchBackup(), BACKUP_EVERY_MS);
+  const both = async () => { await fetchBackup(); await fetchFiles(); };
+  setTimeout(() => void both(), 2 * 60 * 1000);
+  setInterval(() => void both(), BACKUP_EVERY_MS);
 }
 
 let mainWindow = null;
@@ -489,13 +551,31 @@ ipcMain.handle('aerie:install-update', async () => {
   try {
     fs.mkdirSync(app.getPath('userData'), { recursive: true });
     fs.writeFileSync(updateLogFile(), `${new Date().toISOString()} START from ${app.getVersion()}\r\n`);
+    // What the house says it is offering, with its hash and signature, read
+    // before the download so the two are checked against each other after.
+    const key = updateKey();
+    let offered = null;
+    if (key) {
+      const metaRes = await net.fetch(`${house}/api/app/desktop/version`, { session: session.defaultSession });
+      if (!metaRes.ok) return fail(`the house answered ${metaRes.status} for the version`);
+      offered = await metaRes.json().catch(() => null);
+    }
     const res = await net.fetch(`${house}/api/app/desktop/download`, { session: session.defaultSession });
     if (!res.ok) return fail(`the house answered ${res.status}`);
     const work = updateWorkDir();
     fs.rmSync(work, { recursive: true, force: true });
     fs.mkdirSync(work, { recursive: true });
     const zip = path.join(work, 'aerie.zip');
-    fs.writeFileSync(zip, Buffer.from(await res.arrayBuffer()));
+    const bytes = Buffer.from(await res.arrayBuffer());
+    // Nothing is written to disk or unpacked until the signature checks out.
+    if (key) {
+      const checked = updateSignature.verifyUpdate(offered, bytes, key);
+      if (!checked.ok) return fail(`not installed: ${checked.reason}`);
+      updateNote(`signature checked for ${offered.version}`);
+    } else {
+      updateNote('no update key built into this app, so the download was not signature-checked');
+    }
+    fs.writeFileSync(zip, bytes);
     updateNote(`downloaded ${fs.statSync(zip).size} bytes`);
     const stage = path.join(work, 'app');
     fs.mkdirSync(stage, { recursive: true });

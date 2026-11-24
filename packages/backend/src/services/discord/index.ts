@@ -20,7 +20,7 @@ import { PairingService, pairingRequestNote } from './pairing.js';
 import { SayError } from './say-error.js';
 import { guestGoesHome } from './guest-thread.js';
 import { landingFor, ONE_THREAD_NAME, oneRoomThreadId } from './room-thread.js';
-import { getUserRule, requiresMention } from './rules.js';
+import { getUserRule, requiresMention, ruleBlocks } from './rules.js';
 import { discordTurnAudience } from '../turn-audience.js';
 import { buildRulesContext } from './rules.js';
 import { DISCORD_CONFIG, getDiscordConfig } from './config.js';
@@ -261,6 +261,7 @@ export class DiscordService {
       // (heldPingDecision), and a note is never an answer.
       if (message.author.bot) {
         const botRule = getUserRule(message.author.id);
+        if (ruleBlocks(botRule)) return; // blocked: never answered
         if (!botRule) {
           if (heldRoleNamesOf(message).length === 0) return;
           console.log(`[Discord] Unknown bot ${message.author.username} pinged a role we hold; holding it for their person`);

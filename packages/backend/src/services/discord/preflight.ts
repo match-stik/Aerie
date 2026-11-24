@@ -12,6 +12,7 @@ import {
   getUserRule,
   getServerRule,
   isUserAllowedInServer,
+  ruleBlocks,
 } from './rules.js';
 import { botGateDecision, noteApproved } from './bot-loop.js';
 
@@ -177,6 +178,12 @@ async function decide(batch: MessageBatch, pairingService: PairingService): Prom
   const userAllowed = isUserAllowed(userId);
   const userRule = getUserRule(userId);
   const serverRule = guildId ? getServerRule(guildId) : undefined;
+
+  // Blocked (Nov 24 2026): somebody their person never wants answered, in any
+  // server or DM. Their messages are not answered and not held for their person.
+  if (ruleBlocks(userRule)) {
+    return { allowed: false, reason: 'User is blocked by the rules' };
+  }
 
   // Guild message flow
   if (guildId) {

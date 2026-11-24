@@ -251,3 +251,13 @@ test('a live Codex answer with no window is not a reading', () => {
   assert.equal(parseCodexLiveUsage({ plan_type: 'plus' }, new Date()), null);
   assert.equal(parseCodexLiveUsage({ rate_limit: { primary_window: {} } }, new Date()), null);
 });
+
+// Two programs rotating one token can sign Claude Code out (outside review,
+// Nov 20 2026): the meter leaves the refresh to the CLI unless a house asks.
+test('the usage meter does not rotate the CLI token unless usage.refresh_claude_token is on', async () => {
+  const { mayRefreshClaudeToken } = await import('./subscription-usage.js');
+  assert.equal(mayRefreshClaudeToken(null), false);
+  assert.equal(mayRefreshClaudeToken(undefined), false);
+  assert.equal(mayRefreshClaudeToken('off'), false);
+  assert.equal(mayRefreshClaudeToken('on'), true);
+});

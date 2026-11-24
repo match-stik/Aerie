@@ -82,6 +82,13 @@ if (dbIsNew) {
 deleteExpiredSessions();
 console.log('Database initialized');
 
+// Keys at rest (services/secret-box.ts): any stored key still in plain text,
+// from before this existed or from a restore, is sealed under the key file.
+{
+  const sealed = sealPlainSecrets();
+  if (sealed) console.log(`[secrets] sealed ${sealed} stored key${sealed === 1 ? '' : 's'} at rest`);
+}
+
 // Sync DB config to in-memory config (DB values override YAML defaults)
 const dbConfig = getAllConfig();
 for (const [key, value] of Object.entries(dbConfig)) {
@@ -501,7 +508,7 @@ setPushService(pushService);
 
 // Initialize Discord gateway (config-gated with env / DB-secret fallback)
 import { getConfigBool } from './services/db.js';
-import { getSecret } from './services/secrets.js';
+import { getSecret, sealPlainSecrets } from './services/secrets.js';
 
 // The service objects always exist on app.locals so /api/secrets PUT can
 // call start()/stop() on them after the user sets a token in the UI; they

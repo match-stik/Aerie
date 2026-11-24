@@ -142,9 +142,16 @@ export function buildConversationBatch(
   for (const message of messages) {
     const time = message.created_at ? localTimeStr(timezone, new Date(message.created_at)) : '';
     const speaker = speakerFor(message, userName);
-    const content = message.content.length > 2000
-      ? message.content.slice(0, 2000) + '\n[... truncated]'
-      : message.content;
+    // A guest's own words never reach the memory writer: anybody in a server
+    // could otherwise plant something that comes back as a proposal for our
+    // walls (outside review, Nov 20 2026). The line stays so the replies
+    // around it make sense; what the guest said is told by their person and the companions.
+    const isGuest = speaker.endsWith(`(a guest, not ${userName})`);
+    const content = isGuest
+      ? '[a guest spoke here; a guest\'s words are never filed as memory]'
+      : message.content.length > 2000
+        ? message.content.slice(0, 2000) + '\n[... truncated]'
+        : message.content;
     const entry = `[${time}] ${speaker}: ${content}`;
     const addedChars = entry.length + (rendered.length ? 2 : 0);
 

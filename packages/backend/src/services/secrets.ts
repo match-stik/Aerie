@@ -7,6 +7,7 @@
 // a value in the UI.
 
 import { getConfig, setConfig, deleteConfig, getAllConfig } from './db.js';
+import { isSealedValue, loadSecretsKey, openValue, sealValue, secretsKeyPath } from './secret-box.js';
 
 const PREFIX = 'secret:';
 
@@ -219,9 +220,29 @@ export function isSecretConfigKey(key: string): boolean {
   return key.startsWith(PREFIX) || /(?:^|[._])(?:api_key|apikey|token|secret|password)$/i.test(key);
 }
 
+// Stored values are sealed at rest (services/secret-box.ts); these three are
+// the only doors to them, so nothing else in the house sees ciphertext.
+let warnedUnopenable = false;
+function openStored(row: string, stored: string): string | null {
+  const plain = openValue(stored, loadSecretsKey(), row);
+  if (plain === null && !warnedUnopenable) {
+    warnedUnopenable = true;
+    console.error(`[secrets] ${row} is sealed and the key file cannot open it (${secretsKeyPath()}); treating it as unset`);
+  }
+  return plain;
+}
+
+/** Whether new values get sealed: on unless config secrets.at_rest is 'off'. */
+function sealingOn(): boolean {
+  return getConfig('secrets.at_rest') !== 'off';
+}
+
 export function getSecret(name: string): string | undefined {
   const stored = getConfig(PREFIX + name);
-  if (stored) return stored;
+  if (stored) {
+    const plain = openStored(PREFIX + name, stored);
+    if (plain) return plain;
+  }
   const def = SECRETS.find((s) => s.name === name);
   if (def?.envVar) {
     const fromEnv = process.env[def.envVar];
@@ -231,7 +252,23 @@ export function getSecret(name: string): string | undefined {
 }
 
 export function setSecret(name: string, value: string): void {
-  setConfig(PREFIX + name, value);
+  const key = value && sealingOn() ? loadSecretsKey({ create: true }) : null;
+  setConfig(PREFIX + name, key ? sealValue(value, key, PREFIX + name) : value);
+}
+
+/**
+ * Seal every stored secret still held as plain text (run at start, so values
+ * written before this existed, or by a restore, are covered). Returns how many
+ * rows it sealed; nothing when sealing is off or no key file can be made.
+ */
+export function sealPlainSecrets(): number {
+  if (!sealingOn()) return 0;
+  const plain = Object.entries(getAllConfig()).filter(([k, v]) => k.startsWith(PREFIX) && v && !isSealedValue(v));
+  if (!plain.length) return 0;
+  const key = loadSecretsKey({ create: true });
+  if (!key) return 0;
+  for (const [k, v] of plain) setConfig(k, sealValue(v, key, k));
+  return plain.length;
 }
 
 export function deleteSecret(name: string): void {
@@ -247,7 +284,8 @@ export function listSecretsByPrefix(prefix: string): Record<string, string> {
   const full = PREFIX + prefix;
   for (const [key, value] of Object.entries(all)) {
     if (key.startsWith(full) && value) {
-      out[key.slice(PREFIX.length)] = value;
+      const plain = openStored(key, value);
+      if (plain) out[key.slice(PREFIX.length)] = plain;
     }
   }
   return out;

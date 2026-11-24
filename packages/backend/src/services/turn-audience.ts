@@ -31,7 +31,11 @@ const TRUST_LEVELS: readonly GuestTrust[] = ['full', 'standard', 'limited'];
  */
 export function discordTurnAudience(isOwner: boolean, trustLevel: unknown): TurnAudience {
   if (isOwner) return { kind: 'owner', room: 'discord' };
-  const trust = TRUST_LEVELS.includes(trustLevel as GuestTrust) ? (trustLevel as GuestTrust) : 'limited';
+  // Full was folded into Standard (Nov 24 2026): it read exactly like
+  // Standard and its name promised more, so an old rule saying full is read
+  // as standard and the guest turn never carries the word.
+  const named = trustLevel === 'full' ? 'standard' : trustLevel;
+  const trust = TRUST_LEVELS.includes(named as GuestTrust) ? (named as GuestTrust) : 'limited';
   return { kind: 'guest', trust };
 }
 

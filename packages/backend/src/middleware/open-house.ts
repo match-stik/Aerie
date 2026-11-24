@@ -7,8 +7,8 @@
 //   0.0.0.0 or a network address with no password publishes every route, keys
 //   included, to the network.
 // - It answers only requests whose Host names this machine or one of the
-//   configured cors.origins, and never one that came through a proxy or
-//   tunnel. A page in a browser on this machine can point its
+//   configured cors.origins that is a private-network name (a home network or
+//   a tailnet), and never one that came through a proxy or tunnel. A page in a browser on this machine can point its
 //   own hostname at 127.0.0.1 (DNS rebinding) and read the answers as its own;
 //   its Host header still names the page's site, which is how it is told apart.
 //
@@ -24,11 +24,40 @@ export function isLoopbackBind(host: string | undefined): boolean {
   return LOOPBACK_BINDS.has(String(host ?? '').trim().toLowerCase());
 }
 
-/** The Host values a house with no password answers: the loopback names, and the hosts of its cors.origins. */
+/**
+ * Whether a hostname can only ever mean this machine, a home network or a
+ * tailnet: private and link-local addresses, the tailnet's 100.64/10 range,
+ * and the names those networks use (.local, .lan, .home.arpa, .internal,
+ * .ts.net). A public name cannot be told apart from somebody's tunnel.
+ */
+export function isPrivateNetworkHost(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (h === 'localhost' || h === '::1') return true;
+  if (/\.(?:local|lan|home\.arpa|internal|ts\.net)$/.test(h)) return true;
+  const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)
+      || (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127);
+  }
+  return /^f[cd][0-9a-f]{2}:/.test(h) || /^fe80:/.test(h);
+}
+
+/**
+ * The Host values a house with no password answers besides the loopback
+ * names: the hosts of its cors.origins that are private-network names. A
+ * public name is left out even when listed, because a raw tunnel such as
+ * ssh -R adds no forwarding header, so the proxy check below cannot see it,
+ * and a public name in the list would then open every route with no login
+ * (outside re-check, Nov 24 2026).
+ */
 export function allowedHostsFrom(origins: ReadonlyArray<string>): Set<string> {
   const hosts = new Set<string>();
   for (const origin of origins) {
-    try { hosts.add(new URL(origin).host.toLowerCase()); } catch { /* not a URL: ignore */ }
+    try {
+      const url = new URL(origin);
+      if (isPrivateNetworkHost(url.hostname)) hosts.add(url.host.toLowerCase());
+    } catch { /* not a URL: ignore */ }
   }
   return hosts;
 }

@@ -18,7 +18,8 @@ import {
 } from '../services/db/companions.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getOwnerCard, updateOwnerCard } from '../services/owner-card.js';
-import { getAerieConfig, getOwnerSlug } from '../config.js';
+import { getAerieConfig, getOwnerSlug, PROJECT_ROOT } from '../config.js';
+import { companionPathRefusal } from '../services/companion-paths.js';
 
 const router = Router();
 
@@ -88,6 +89,9 @@ router.post('/companions', authMiddleware, (req, res) => {
     // so a phone-side "register this contact as a companion" call only needs
     // slug + displayName. The companion shares the global system prompt and
     // MCP server set unless the user explicitly points it elsewhere.
+    const pathRefusal = companionPathRefusal(claudeMdPath || undefined, 'identity', PROJECT_ROOT)
+      ?? companionPathRefusal(mcpJsonPath || undefined, 'mcp', PROJECT_ROOT);
+    if (pathRefusal) return res.status(400).json({ error: pathRefusal });
     const cfg = getAerieConfig();
     const resolvedClaudeMd = claudeMdPath || cfg.agent.claude_md_path;
     const resolvedMcpJson = mcpJsonPath || cfg.agent.mcp_json_path;
@@ -125,6 +129,9 @@ router.post('/companions', authMiddleware, (req, res) => {
 
 router.patch('/companions/:id', authMiddleware, (req, res) => {
   try {
+    const pathRefusal = companionPathRefusal(req.body?.claudeMdPath, 'identity', PROJECT_ROOT)
+      ?? companionPathRefusal(req.body?.mcpJsonPath, 'mcp', PROJECT_ROOT);
+    if (pathRefusal) return res.status(400).json({ error: pathRefusal });
     const ok = updateCompanion(req.params.id as string, req.body);
     if (!ok) return res.status(404).json({ error: 'Companion not found' });
     const companion = getCompanion(req.params.id as string);

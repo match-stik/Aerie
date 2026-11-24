@@ -5,11 +5,14 @@
  *
  * - Claude: the same OAuth usage endpoint the Claude CLI polls for its own
  *   /usage screen, using the access token already on disk. When that token
- *   has expired it refreshes it the way the CLI does, with the CLI's own
- *   client id, and writes the new pair back into the CLI's credentials file
- *   (refreshClaudeCredentials), keeping whatever the CLI wrote if it won the
- *   race. Two programs rotating one token is a real risk: if the CLI ever
- *   reports itself signed out, this is the first thing to suspect.
+ *   has expired the meter does NOT refresh it by default: two programs
+ *   rotating one token can sign the CLI out (outside review, Nov 20 2026), so
+ *   it shows the last reading, marked stale, until Claude Code refreshes its
+ *   own token, which a running lane does on its next turn. A house that wants
+ *   the old behaviour sets usage.refresh_claude_token to 'on'; the refresh
+ *   then goes the way the CLI does, with the CLI's own client id, writing the
+ *   new pair back (refreshClaudeCredentials) and keeping whatever the CLI
+ *   wrote if it won the race.
  * - Codex: the same usage endpoint Codex's own /status reads, with the access
  *   token on disk and never the refresh token. The daemon also stamps
  *   rate-limit state into every session transcript's token_count events, but
@@ -20,6 +23,7 @@
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { getConfig } from './db.js';
 
 const CLAUDE_CREDENTIALS_PATH = path.join(os.homedir(), '.claude', '.credentials.json');
 const CLAUDE_USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
@@ -461,10 +465,22 @@ export async function getClaudeUsage(): Promise<ClaudeUsage> {
   return claudeUsageOrLastGood(readClaudeUsageFresh, claudeCache);
 }
 
+/** Whether the meter may rotate Claude Code's own token (usage.refresh_claude_token; off unless 'on'). */
+export function mayRefreshClaudeToken(setting: string | null | undefined): boolean {
+  return setting === 'on';
+}
+
+function refreshSetting(): string | null {
+  try { return getConfig('usage.refresh_claude_token'); } catch { return null; }
+}
+
 async function readClaudeUsageFresh(): Promise<ClaudeUsage> {
   let creds = await readClaudeCredentials();
   let res = await fetchClaudeUsage(creds);
   if (res.status === 401) {
+    if (!mayRefreshClaudeToken(refreshSetting())) {
+      throw new Error("Claude Code's sign-in is due for its own refresh; the meter shows the last reading until it does");
+    }
     creds = await refreshClaudeCredentials(creds);
     res = await fetchClaudeUsage(creds);
   }

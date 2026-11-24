@@ -11,6 +11,7 @@ import * as cron from 'node-cron';
 import { getConfig, setConfig } from '../../services/db/config.js';
 import { getDb } from '../../services/db/init.js';
 import { listSealedBackups, makeSealedBackup } from '../../services/sealed-backup.js';
+import { listBackupFiles, resolveBackupFile, sealFile } from '../../services/sealed-files.js';
 import { PROJECT_ROOT } from '../internal/local.js';
 
 const router = Router();
@@ -69,6 +70,29 @@ router.get('/backup/latest', (_req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="${latest.name}"`);
   res.setHeader('Content-Length', String(latest.bytes));
   createReadStream(join(SEALED_DIR, latest.name)).pipe(res);
+});
+
+// The files half (services/sealed-files.ts): the list, then one sealed file
+// at a time. The laptop keeps what it has and asks only for what it lacks.
+router.get('/backup/files', (_req, res) => {
+  if (!publicKey()) return res.status(400).json({ error: 'No backup key yet. Set it up from the laptop app.' });
+  res.json({ files: listBackupFiles(PROJECT_ROOT) });
+});
+
+router.get('/backup/files/item', async (req, res) => {
+  const key = publicKey();
+  if (!key) return res.status(400).json({ error: 'No backup key yet.' });
+  const abs = resolveBackupFile(PROJECT_ROOT, req.query.path);
+  if (!abs) return res.status(404).json({ error: 'No such file.' });
+  res.setHeader('Content-Type', 'application/octet-stream');
+  try {
+    await sealFile(abs, key, (b) => { res.write(b); });
+    res.end();
+  } catch (e) {
+    console.error('[Backup] sealing a file failed:', e instanceof Error ? e.message : e);
+    if (!res.headersSent) res.status(500).json({ error: 'Sealing failed.' });
+    else res.destroy();
+  }
 });
 
 export default router;

@@ -102,15 +102,17 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
-  // With a password set, the login cookie is the gate, so a request on a
-  // loopback Host, or one with no session cookie, can pass here and meet auth.
-  // With no password there is no gate behind this one: every request is
-  // checked, wherever it says it came from.
+  // With a password set, the login cookie is the gate, so a request with no
+  // session cookie can pass here and meet auth. A loopback Host skips only
+  // the token below (the box's own tools post with a cookie and no token);
+  // the cross-site check still runs, because a page in a browser on this
+  // machine can post to localhost with the login cookie attached (outside
+  // re-check, Nov 24 2026: the whole check was skipped for loopback). With no password
+  // there is no gate behind this one: every request is checked, wherever it
+  // says it came from (outside audit, Nov 11 2026).
   const hasPassword = passwordIsSet();
   const host = req.get('host') || '';
-  if (hasPassword && (host.startsWith('localhost') || host.startsWith('127.0.0.1'))) {
-    return next();
-  }
+  const loopbackWithPassword = hasPassword && (host.startsWith('localhost') || host.startsWith('127.0.0.1'));
 
   // Parse cookies manually (matching auth.ts pattern)
   const cookieHeader = req.headers.cookie;
@@ -145,8 +147,9 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   }
 
   // No session (a house with no password): the cross-site check above is the
-  // whole guard; there is no session for a token to be signed with.
-  if (!sessionToken) {
+  // whole guard; there is no session for a token to be signed with. The
+  // box's own tools on loopback stop here too, past the cross-site check.
+  if (!sessionToken || loopbackWithPassword) {
     return next();
   }
 

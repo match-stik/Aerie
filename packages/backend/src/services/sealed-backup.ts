@@ -23,6 +23,7 @@ import { createGzip } from 'node:zlib';
 import { createReadStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, openSync, writeSync, closeSync } from 'node:fs';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
+import { isSealedValue, loadSecretsKey, openValue } from './secret-box.js';
 
 export const MAGIC = Buffer.from('AERIEBK1');
 const INFO = Buffer.from('aerie-backup-v1');
@@ -165,6 +166,17 @@ export async function makeSealedBackup(opts: { db: Database.Database; publicKeyR
       for (const t of LEFT_OUT_TABLES) {
         const exists = copy.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(t);
         if (exists) copy.prepare(`DELETE FROM ${t}`).run();
+      }
+      // The keys go into the backup opened (it is sealed to the phrase
+      // anyway), so a restore never depends on the house's key file
+      // surviving whatever took the house down.
+      const secretsKey = loadSecretsKey();
+      const hasConfig = copy.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='config'").get();
+      const rows = (hasConfig ? copy.prepare("SELECT key, value FROM config WHERE key LIKE 'secret:%'").all() : []) as Array<{ key: string; value: string }>;
+      for (const r of rows) {
+        if (!isSealedValue(r.value)) continue;
+        const plain = openValue(r.value, secretsKey, r.key);
+        if (plain !== null) copy.prepare('UPDATE config SET value = ? WHERE key = ?').run(plain, r.key);
       }
       copy.pragma('journal_mode = DELETE');
     } finally {

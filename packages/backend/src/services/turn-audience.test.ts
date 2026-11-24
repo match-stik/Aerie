@@ -28,7 +28,7 @@ test("their Discord turns look things up but do not build", async () => {
 });
 
 test('anyone else is a guest at the trust their rule gives them', () => {
-  assert.deepEqual(discordTurnAudience(false, 'full'), { kind: 'guest', trust: 'full' });
+  assert.deepEqual(discordTurnAudience(false, 'full'), { kind: 'guest', trust: 'standard' }, 'full folded into standard');
   assert.deepEqual(discordTurnAudience(false, 'standard'), { kind: 'guest', trust: 'standard' });
   assert.deepEqual(discordTurnAudience(false, 'limited'), { kind: 'guest', trust: 'limited' });
 });
@@ -78,4 +78,11 @@ test('guestToolRefusal blocks every router tool for a guest', () => {
 test('guestToolRefusal lets their person and the wakes (no audience) run tools', () => {
   assert.equal(guestToolRefusal({ kind: 'owner' }, 'shell_exec'), null);
   assert.equal(guestToolRefusal(undefined, 'codex_exec'), null);
+});
+
+test('Full is folded into Standard: an old full rule reaches the turn as standard (Nov 24 2026)', () => {
+  assert.deepEqual(discordTurnAudience(false, 'full'), { kind: 'guest', trust: 'standard' });
+  assert.deepEqual(discordTurnAudience(false, 'standard'), { kind: 'guest', trust: 'standard' });
+  assert.deepEqual(discordTurnAudience(false, 'limited'), { kind: 'guest', trust: 'limited' });
+  assert.deepEqual(discordTurnAudience(false, undefined), { kind: 'guest', trust: 'limited' }, 'no rule is limited');
 });

@@ -16,6 +16,7 @@ import { createSign } from 'crypto';
 import { registry } from './ws/connection-registry.js';
 import { getSecret, setSecret } from './secrets.js';
 import webpush from 'web-push';
+import { getConfig } from './db.js';
 import {
   listPushSubscriptions,
   removePushSubscription,
@@ -50,6 +51,21 @@ function base64url(input: Buffer | string): string {
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
+}
+
+/**
+ * What a notification may show on a lock screen. 'full' (unset) shows the
+ * first line of the message; 'hidden' keeps who it is from and says only
+ * that something arrived, for a phone other people can see (outside review,
+ * Nov 20 2026: up to 140 characters reached the lock screen with no way to
+ * hide them). Setting push.preview, set from Settings.
+ */
+export function lockScreenBody(body: string, mode: string | null | undefined): string {
+  return mode === 'hidden' ? 'New message' : body;
+}
+
+function previewMode(): string | null {
+  try { return getConfig('push.preview'); } catch { return null; }
 }
 
 export class PushService {
@@ -129,7 +145,7 @@ export class PushService {
     if (!keys) return 0;
     const body = JSON.stringify({
       title: payload.title,
-      body: payload.body,
+      body: lockScreenBody(payload.body, previewMode()),
       ...(payload.threadId ? { threadId: payload.threadId } : {}),
       ...(payload.tag ? { tag: payload.tag } : {}),
       ...(payload.url ? { url: payload.url } : {}),
@@ -227,7 +243,7 @@ export class PushService {
     await this.sendWebPush(payload);
     await this.sendToEveryDevice(token => ({
       token,
-      notification: { title: payload.title, body: payload.body },
+      notification: { title: payload.title, body: lockScreenBody(payload.body, previewMode()) },
       // Data travels alongside so a tap can open the right room.
       data: {
         ...(payload.threadId ? { threadId: payload.threadId } : {}),

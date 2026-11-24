@@ -27,6 +27,15 @@ interface RulesData {
 }
 
 // The server/channel/user rules editor for the Discord panel.
+// What each trust level does, said under the picker (Nov 24 2026). No
+// level ever lets a guest's turn run commands, change files, use outside tools
+// or read their person's side notes.
+const TRUST_NOTES: Record<string, string> = {
+  standard: "We answer them and can read the house's public code while we do. For friends who build.",
+  limited: 'We answer them and see only the pictures they send. Where everyone new starts.',
+  blocked: 'We never answer them, anywhere, and nothing they say reaches you.',
+};
+
 export function DiscordRules({ themeConfig, themeMode }: DiscordRulesProps) {
   const colors = themeConfig[themeMode];
   const [open, setOpen] = useState(false);
@@ -106,7 +115,9 @@ export function DiscordRules({ themeConfig, themeMode }: DiscordRulesProps) {
         ? { id: newId.trim(), name: newName.trim(), context: '', requireMention: true }
         : tab === 'channel'
           ? { id: newId.trim(), name: newName.trim(), serverId: '' }
-          : { id: newId.trim(), name: newName.trim(), trustLevel: 'standard' };
+          // A new person starts at Limited; raise them when they are a friend
+          // who builds (Nov 24 2026).
+          : { id: newId.trim(), name: newName.trim(), trustLevel: 'limited' };
     try {
       const res = await apiFetch(`/api/discord/rules/${tab}`, {
         method: 'POST',
@@ -177,11 +188,14 @@ export function DiscordRules({ themeConfig, themeMode }: DiscordRulesProps) {
         {tab === 'user' && (
           <>
             <div className={cn(fieldLabel, 'mt-2')}>Trust level</div>
-            <HouseSelect className={input} value={d.trustLevel || 'standard'} onChange={(e) => setField(id, 'trustLevel', e.target.value)}>
-              <option value="full">Full</option>
+            {/* Full was folded into Standard (Nov 24 2026): it read
+                exactly the same, so an old full rule shows as Standard. */}
+            <HouseSelect className={input} value={d.trustLevel === 'full' ? 'standard' : (d.trustLevel || 'limited')} onChange={(e) => setField(id, 'trustLevel', e.target.value)}>
               <option value="standard">Standard</option>
               <option value="limited">Limited</option>
+              <option value="blocked">Blocked</option>
             </HouseSelect>
+            <div className={cn("mt-1 text-xs", colors.textMuted)}>{TRUST_NOTES[d.trustLevel === 'full' ? 'standard' : (d.trustLevel || 'limited')] ?? ''}</div>
             <div className={cn(fieldLabel, 'mt-2')}>Relationship</div>
             <input className={input} value={d.relationship || ''} onChange={(e) => setField(id, 'relationship', e.target.value)} />
           </>
