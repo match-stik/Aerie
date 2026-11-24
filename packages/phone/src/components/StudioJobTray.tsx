@@ -190,9 +190,12 @@ export function StudioJobTray({ onOpen, inStudio = false }: { onOpen: () => void
         }}
         className={cn(
           'relative flex items-center justify-center w-9 h-9 rounded-full border shadow-lg backdrop-blur-md transition-all duration-200',
-          failed ? 'bg-red-950/85 border-red-400/40 text-red-100' : 'bg-neutral-950/85',
+          failed ? 'bg-red-950/85 border-red-400/40 text-red-100' : '',
         )}
         style={{
+          // The theme's own surface, so it is light on Daylight and dark on
+          // Midnight (hers, Nov 23 2026: it sat black on Daylight).
+          backgroundColor: failed ? undefined : 'color-mix(in srgb, var(--custom-panelBg, var(--aerie-surface-strong)) 90%, transparent)',
           borderColor: failed ? undefined : 'color-mix(in srgb, var(--aerie-accent) 40%, transparent)',
           color: failed ? undefined : 'var(--aerie-accent)',
           ...(completed ? {
@@ -206,7 +209,7 @@ export function StudioJobTray({ onOpen, inStudio = false }: { onOpen: () => void
         <Paintbrush className="h-4 w-4" />
         {active && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-7 h-7 rounded-full border-2 border-transparent border-t-white/60 animate-spin" />
+            <div className="w-7 h-7 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: 'color-mix(in srgb, var(--aerie-accent) 70%, transparent)' }} />
           </div>
         )}
       </button>
