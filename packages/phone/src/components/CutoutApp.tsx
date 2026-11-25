@@ -1621,7 +1621,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
                 <span className={cn('w-9 text-right text-[11px]', colors.textMuted)}>{softness.toFixed(2)}</span>
               </div>
               <label className={cn('mt-2 flex items-center gap-2 text-[11px]', colors.textMuted)}>
-                <input type="checkbox" checked={greenScreen} onChange={(e) => setGreenScreen(e.target.checked)} />
+                <input type="checkbox" checked={greenScreen} onChange={(e) => setGreenScreen(e.target.checked)} style={{ accentColor: colors.accent }} />
                 Green-screen mode — for an actual green screen, not a flat backdrop
               </label>
             </>
@@ -1637,7 +1637,7 @@ export function CutoutApp({ themeConfig, themeMode, active = true }: CutoutAppPr
                 <span className={cn('w-9 text-right text-[11px]', colors.textMuted)}>{feather}px</span>
               </div>
               <label className={cn('mt-2 flex items-center gap-2 text-[11px]', colors.textMuted)}>
-                <input type="checkbox" checked={hardEdge} onChange={(e) => setHardEdge(e.target.checked)} />
+                <input type="checkbox" checked={hardEdge} onChange={(e) => setHardEdge(e.target.checked)} style={{ accentColor: colors.accent }} />
                 Solid subject — keep anything it recognised at all, no half-transparent fabric
               </label>
               {engine?.model && (

@@ -29,11 +29,17 @@ export function companionPathRefusal(path: unknown, kind: 'identity' | 'mcp', ro
   if (path === undefined) return null;
   if (typeof path !== 'string' || !path.trim()) return `${kind === 'identity' ? 'claudeMdPath' : 'mcpJsonPath'} must be a file path`;
   const wanted = kind === 'identity' ? '.md' : '.json';
-  const absolute = isAbsolute(path) ? path : resolve(root, path);
+  const absolute = isAbsolute(path) ? resolve(path) : resolve(root, path);
   if (extname(absolute).toLowerCase() !== wanted) return `a companion's ${kind === 'identity' ? 'identity file must be a .md file' : 'MCP file must be a .json file'}`;
-  const where = landing(absolute);
+  // Inside the house by its name first, before anything on disk is touched
+  // with it (code scanning, Nov 24 2026: the request's path reached the file
+  // checks before the folder check), then again after links are followed.
+  const lexicalHome = resolve(root);
   let home: string;
-  try { home = realpathSync(root); } catch { home = resolve(root); }
-  if (!where || (where !== home && !where.startsWith(home + sep))) return 'a companion file must live inside the house folder';
+  try { home = realpathSync(root); } catch { home = lexicalHome; }
+  // Written out inline (no helper) so the scanner can see the guard.
+  if (!absolute.startsWith(lexicalHome + sep) && !absolute.startsWith(home + sep)) return 'a companion file must live inside the house folder';
+  const where = landing(absolute);
+  if (!where || !where.startsWith(home + sep)) return 'a companion file must live inside the house folder';
   return null;
 }
