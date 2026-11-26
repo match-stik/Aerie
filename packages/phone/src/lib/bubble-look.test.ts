@@ -13,14 +13,14 @@ test('the bubbles look as they do today until a switch is flipped', () => {
 });
 
 test('a name color depends on the color and the page, never on who it is', () => {
-  assert.equal(nameColor('Willow', '#1e3a5f', 'dark', '#090807'), nameColor('juniper', '#1e3a5f', 'dark', '#090807'));
-  assert.equal(nameColor('birch', '#e85d04', 'light', '#ffffff'), nameColor('cedar', '#e85d04', 'light', '#ffffff'));
+  assert.equal(nameColor('Willow', '#1e40af', 'dark', '#090807'), nameColor('juniper', '#1e40af', 'dark', '#090807'));
+  assert.equal(nameColor('birch', '#ea580c', 'light', '#ffffff'), nameColor('cedar', '#ea580c', 'light', '#ffffff'));
   // No color at all still gets one that reads.
   assert.ok(contrastRatio(nameColor('cedar', null, 'dark', '#000000'), '#000000') >= 4.5);
 });
 
 test('anyone else gets their own color, lifted until it reads on the page', () => {
-  const night = nameColor('juniper', '#1e3a5f', 'dark', '#090807');
+  const night = nameColor('juniper', '#1e40af', 'dark', '#090807');
   assert.ok(contrastRatio(night, '#090807') >= 4.5, night);
   const day = nameColor('juniper', '#f5d0fe', 'light', '#ffffff');
   assert.ok(contrastRatio(day, '#ffffff') >= 4.5, day);
@@ -54,9 +54,9 @@ test('the tail shape is the point unless the swoop is picked', () => {
 
 test('one accent makes three dots at its own lightness, the accent in the middle', async () => {
   const { accentTriad } = await import('./bubble-look');
-  const three = accentTriad('#e85d04');
+  const three = accentTriad('#ea580c');
   assert.equal(three.length, 3);
-  assert.equal(three[1], '#e85d04');
+  assert.equal(three[1], '#ea580c');
   assert.notEqual(three[0], three[2]);
   assert.deepEqual(accentTriad('var(--x)'), ['var(--x)', 'var(--x)', 'var(--x)']);
 });
@@ -67,10 +67,10 @@ test('the action lines keep the old quieter switch as Faded, and a color reads o
   assert.equal(actionInkOf({ bubbleQuietActions: true }), 'faded');
   assert.equal(actionInkOf({ bubbleQuietActions: true, bubbleActionInk: 'ours' }), 'ours');
   assert.equal(actionInkOf({ bubbleActionInk: 'plaid' }), 'plain');
-  assert.equal(actionColor('plain', { slug: 'birch', color: '#e85d04' }, '#3b82f6', 'dark', ['#111111']), null);
-  assert.equal(actionColor('faded', { slug: 'birch', color: '#e85d04' }, '#3b82f6', 'dark', ['#111111']), null);
+  assert.equal(actionColor('plain', { slug: 'birch', color: '#ea580c' }, '#3b82f6', 'dark', ['#111111']), null);
+  assert.equal(actionColor('faded', { slug: 'birch', color: '#ea580c' }, '#3b82f6', 'dark', ['#111111']), null);
   for (const ink of ['accent', 'ours'] as const) {
-    const c = actionColor(ink, { slug: 'willow', color: '#1e3a5f' }, '#1e3a5f', 'dark', ['#111111'])!;
+    const c = actionColor(ink, { slug: 'willow', color: '#1e40af' }, '#1e40af', 'dark', ['#111111'])!;
     assert.ok(contrastRatio(c, '#111111') >= 3.5, `${ink} ${c}`);
   }
 });

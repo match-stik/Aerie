@@ -51,7 +51,7 @@ interface Companion {
 
 // Their person's accent when the house hasn't been given one — the sigils
 // themselves come from each companion's own row, not from a list in here.
-const OWNER_COLOR = '#e85d04';
+const OWNER_COLOR = '#f97316';
 const OWNER_SIGIL = '🧡';
 const KINDS: Array<LetterView['kind']> = ['letter', 'vow', 'confession', 'keepsake'];
 

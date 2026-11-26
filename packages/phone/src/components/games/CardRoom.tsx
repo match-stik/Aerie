@@ -23,6 +23,7 @@ import { useHouseRoster, OWNER_SIGIL } from '../../lib/house';
 import { cn } from '../../lib/utils';
 import { useBackHandler } from '../../lib/use-back-handler';
 import type { ThemeConfig } from '../../lib/theme';
+import { resumeTabFor } from '../../lib/card-room-resume';
 
 type CardId = string;
 
@@ -114,23 +115,10 @@ export function CardRoom({ colors }: CardRoomProps) {
       setTable(body.table);
       if (!resumed.current) {
         resumed.current = true;
-        // The table stores 'rat-screw'; this room's tab is 'ratscrew'. Map
-        // explicitly — an unknown game name stays on the bare table.
-        const tab = body.table.game === 'rat-screw' ? 'ratscrew'
-          : body.table.game === 'golf' ? 'golf'
-          : body.table.game === 'eights' ? 'eights'
-          : body.table.game === 'president' ? 'president'
-          : body.table.game === 'hearts' ? 'hearts'
-          : body.table.game === 'spades' ? 'spades'
-          : body.table.game === 'euchre' ? 'euchre'
-          : body.table.game === 'klondike' ? 'klondike'
-          : null;
-        // Only a game somebody touched lately is picked back up: an old table
-        // left 'playing' from weeks ago dragged them into a game they had
-        // finished.
-        const touched = Date.parse(body.table.updatedAt ?? '');
-        const recent = Number.isFinite(touched) && Date.now() - touched < 12 * 60 * 60 * 1000;
-        if (tab && body.table.status === 'playing' && recent) setMode(tab);
+        // A fresh house has no table yet (table: null); resumeTabFor opens
+        // the bare table for that, an old game or an unknown one.
+        const tab = resumeTabFor(body.table);
+        if (tab) setMode(tab);
       }
       setOpened(true);
     } catch {

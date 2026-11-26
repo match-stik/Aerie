@@ -136,7 +136,7 @@ final class PocketVoiceOverlay {
         pill.setShape(GradientDrawable.RECTANGLE);
         pill.setCornerRadius(dp(26));
         pill.setColor(Color.parseColor("#EE17120F"));
-        pill.setStroke(dp(2), Color.parseColor("#e85d04"));
+        pill.setStroke(dp(2), Color.parseColor("#f97316"));
 
         LinearLayout frame = new LinearLayout(context);
         frame.setOrientation(LinearLayout.HORIZONTAL);
@@ -182,7 +182,7 @@ final class PocketVoiceOverlay {
     }
 
     private View faceView(String png, String colour, String initial, int size, int left) {
-        int ring = parseColour(colour, "#e85d04");
+        int ring = parseColour(colour, "#f97316");
         Bitmap decoded = decode(png);
         FrameLayout.LayoutParams layout = new FrameLayout.LayoutParams(size, size);
         layout.leftMargin = left;
@@ -224,7 +224,7 @@ final class PocketVoiceOverlay {
             GradientDrawable shape = new GradientDrawable();
             shape.setShape(GradientDrawable.RECTANGLE);
             shape.setCornerRadius(dp(2));
-            shape.setColor(Color.parseColor("#e85d04"));
+            shape.setColor(Color.parseColor("#f97316"));
             bar.setBackground(shape);
             LinearLayout.LayoutParams layout =
                 new LinearLayout.LayoutParams(dp(3), dp(BAR_HEIGHTS_DP[index]));
@@ -382,22 +382,22 @@ final class PocketVoiceOverlay {
 
     /** The house's own colours, so a glance at the dock says who has the floor. */
     private static int colourForPhase(String phase) {
-        if (phase == null) return Color.parseColor("#e85d04");
+        if (phase == null) return Color.parseColor("#f97316");
         switch (phase) {
             case "listening":
             case "hearing":
-                return Color.parseColor("#e85d04");
+                return Color.parseColor("#f97316");
             case "transcribing":
                 return Color.parseColor("#3d6ea8");
             case "thinking":
             case "synthesizing":
-                return Color.parseColor("#7c3aed");
+                return Color.parseColor("#6366f1");
             case "speaking":
                 return Color.parseColor("#ffa23a");
             case "error":
                 return Color.parseColor("#8a3b3b");
             default:
-                return Color.parseColor("#e85d04");
+                return Color.parseColor("#f97316");
         }
     }
 

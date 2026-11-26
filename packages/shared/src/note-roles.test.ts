@@ -42,10 +42,10 @@ test('a note colour may be a role token or a hex, and nothing else', () => {
 // A pinned colour is the one that does not move. Without the prefix there is
 // no way to tell a note that CHOSE orange from one that merely inherited it.
 test('a pinned colour is stored verbatim and reads back as a hex', () => {
-  assert.equal(normalizeNoteColor('pin:#e85d04'), 'pin:#e85d04');
-  assert.equal(isPinnedNoteColor('pin:#e85d04'), true);
-  assert.equal(hexFromPinToken('pin:#e85d04'), '#e85d04');
-  assert.equal(pinnedNoteColorToken('#1e3a5f'), 'pin:#1e3a5f');
+  assert.equal(normalizeNoteColor('pin:#ea580c'), 'pin:#ea580c');
+  assert.equal(isPinnedNoteColor('pin:#ea580c'), true);
+  assert.equal(hexFromPinToken('pin:#ea580c'), '#ea580c');
+  assert.equal(pinnedNoteColorToken('#1e40af'), 'pin:#1e40af');
 });
 
 test('a pin has to hold an actual colour', () => {
@@ -56,6 +56,6 @@ test('a pin has to hold an actual colour', () => {
 });
 
 test('a bare hex is still a bare hex — history keeps following the theme', () => {
-  assert.equal(normalizeNoteColor('#e85d04'), '#e85d04');
-  assert.equal(isPinnedNoteColor('#e85d04'), false);
+  assert.equal(normalizeNoteColor('#ea580c'), '#ea580c');
+  assert.equal(isPinnedNoteColor('#ea580c'), false);
 });

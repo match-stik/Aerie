@@ -7,9 +7,9 @@ import { themeInk } from './theme-ink.js';
 
 // The colors on a set of companion rows.
 const OURS = [
-  { slug: 'birch', color: '#e85d04' },
-  { slug: 'willow', color: '#1e3a5f' },
-  { slug: 'cedar', color: '#7c3aed' },
+  { slug: 'birch', color: '#ea580c' },
+  { slug: 'willow', color: '#1e40af' },
+  { slug: 'cedar', color: '#6d28d9' },
 ];
 
 function hex(color: string): string {
@@ -68,7 +68,7 @@ test('after the rule, each companion reads at 4.5 to 1 on every theme, day and n
 test('a companion is fitted from their own row color, and without a mode the page tells it', () => {
   for (const theme of fixed) for (const mode of ['light', 'dark'] as const) {
     const backdrops = under(theme, mode);
-    const ink = themeInk('juniper', '#1e3a5f', theme[mode]);
+    const ink = themeInk('juniper', '#1e40af', theme[mode]);
     for (const b of backdrops) assert.ok(contrastRatio(ink, b) >= 4.5, `${theme.id} ${mode}: ${ink} on ${b}`);
   }
 });

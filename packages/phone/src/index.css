@@ -1298,7 +1298,7 @@ select:not([class*="rounded"]):focus-visible {
 
 /* Theme-aware scrollbars */
 :root {
-  --scrollbar-thumb: #7c3aed;
+  --scrollbar-thumb: #71717a;
   --scrollbar-track: rgba(0,0,0,0.3);
 }
 

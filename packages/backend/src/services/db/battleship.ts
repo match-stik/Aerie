@@ -32,11 +32,11 @@ export interface ShipSpec {
  * about how the game plays.
  */
 export const DEFAULT_BATTLESHIP_FLEET: ShipSpec[] = [
-  { name: 'Battleship', length: 4, color: '#e85d04' },
-  { name: 'Cruiser', length: 3, color: '#1e3a5f' },
-  { name: 'Submarine', length: 3, color: '#7c3aed' },
-  { name: 'Destroyer', length: 2, color: '#cbd5e1' },
-  { name: 'Patrol Boat', length: 2, color: '#e11d48' },
+  { name: 'Battleship', length: 4, color: '#64748b' },
+  { name: 'Cruiser', length: 3, color: '#0e7490' },
+  { name: 'Submarine', length: 3, color: '#4d7c0f' },
+  { name: 'Destroyer', length: 2, color: '#b45309' },
+  { name: 'Patrol Boat', length: 2, color: '#94a3b8' },
 ];
 
 /**

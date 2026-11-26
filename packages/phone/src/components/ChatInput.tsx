@@ -1288,6 +1288,10 @@ export function ChatInput({ onSend, onError, giphyApiKey, disabled, themeConfig,
             <button
               onClick={handleSend}
               disabled={!canSend}
+              // Icon-only, so it carries its own name for screen readers and
+              // tests (found Nov 26 2026: a fresh walk could not find it).
+              aria-label="Send"
+              title="Send"
               className={cn(
                 "aerie-send-button absolute right-2 bottom-3 flex items-center justify-center w-9 h-9 rounded-full disabled:opacity-50 transition-all duration-300 hover:scale-105 active:scale-95",
                 getSendIconColor(themeMode)

@@ -223,7 +223,7 @@ export function phaseColour(phase: VoiceModePhase): string {
       return '#3d6ea8';
     case 'thinking':
     case 'synthesizing':
-      return '#7c3aed';
+      return '#6366f1';
     case 'speaking':
       return '#ffa23a';
     case 'error':
@@ -231,7 +231,7 @@ export function phaseColour(phase: VoiceModePhase): string {
     case 'listening':
     case 'hearing':
     default:
-      return '#e85d04';
+      return '#f97316';
   }
 }
 

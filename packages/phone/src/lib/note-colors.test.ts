@@ -39,7 +39,7 @@ const ACCENTS: [string, string, string][] = [
 ];
 
 test('oklch survives a round trip', () => {
-  for (const hex of ['#F97316', '#1E3A5F', '#7C3AED', '#A1887F', '#FFFFFF', '#000000']) {
+  for (const hex of ['#F97316', '#1E40AF', '#6D28D9', '#A1887F', '#FFFFFF', '#000000']) {
     const lch = hexToOklch(hex);
     assert.ok(lch, `${hex} should parse`);
     assert.equal(oklchToHex(lch!.l, lch!.c, lch!.h).toUpperCase(), hex.toUpperCase());
@@ -62,9 +62,9 @@ test('every note in every theme can be written on', () => {
 // The bug that started this: one font colour for every note. A pale note and a
 // deep note must not be handed the same ink.
 test('a pale note and a deep note take different ink', () => {
-  assert.notEqual(inkFor('#FBE3D0'), inkFor('#1E3A5F'));
+  assert.notEqual(inkFor('#FBE3D0'), inkFor('#1E40AF'));
   assert.equal(inkFor('#FBE3D0'), '#17171B');
-  assert.equal(inkFor('#1E3A5F'), '#F7F7F5');
+  assert.equal(inkFor('#1E40AF'), '#F7F7F5');
 });
 
 // Orange and Mocha sit nine degrees apart in hue and used to produce the same
@@ -105,8 +105,8 @@ function relativeIsDarkerThanSource(landed: string, source: string): boolean {
 // under it and the note kept an orange nothing else had.
 
 test('a role token resolves to that role\'s swatch in the current palette', () => {
-  const warm = noteColorsForAccent('#e85d04', 'dark');
-  const cool = noteColorsForAccent('#1e3a5f', 'dark');
+  const warm = noteColorsForAccent('#ea580c', 'dark');
+  const cool = noteColorsForAccent('#1e40af', 'dark');
   const token = noteRoleToken('quiet');
   const a = resolveNoteColor(token, warm);
   const b = resolveNoteColor(token, cool);
@@ -116,7 +116,7 @@ test('a role token resolves to that role\'s swatch in the current palette', () =
 });
 
 test('every role survives a round trip through its token', () => {
-  const palette = noteColorsForAccent('#7c3aed', 'light');
+  const palette = noteColorsForAccent('#6d28d9', 'light');
   NOTE_ROLES.forEach((role, i) => {
     assert.strictEqual(roleFromToken(noteRoleToken(role)), role);
     assert.strictEqual(resolveNoteColor(noteRoleToken(role), palette), palette[i]);
@@ -124,7 +124,7 @@ test('every role survives a round trip through its token', () => {
 });
 
 test('a note written before roles existed still follows the theme', () => {
-  const palette = noteColorsForAccent('#e85d04', 'dark');
+  const palette = noteColorsForAccent('#ea580c', 'dark');
   // A real legacy note, stored as a literal hex.
   const painted = resolveNoteColor('#c66936', palette);
   assert.ok(painted, 'a legacy hex must still paint');
@@ -132,7 +132,7 @@ test('a note written before roles existed still follows the theme', () => {
 });
 
 test('junk is refused rather than painted', () => {
-  const palette = noteColorsForAccent('#e85d04', 'dark');
+  const palette = noteColorsForAccent('#ea580c', 'dark');
   assert.strictEqual(resolveNoteColor('', palette), null);
   assert.strictEqual(resolveNoteColor(null, palette), null);
   assert.strictEqual(resolveNoteColor('bg-yellow-200', palette), null);
@@ -151,20 +151,20 @@ test('isNoteRole only accepts the five real roles', () => {
 // the whole point of it: their person chose the color because of what the note is
 // about, not because of what the room looks like this week.
 test('a pinned colour survives a palette it has nothing to do with', () => {
-  const palette = noteColorsForAccent('#1e3a5f', 'dark');
-  assert.strictEqual(resolveNoteColor(pinnedNoteColorToken('#e85d04'), palette), '#e85d04');
-  assert.strictEqual(resolveNoteColor('pin:#e85d04', noteColorsForAccent('#7c3aed', 'light')), '#e85d04');
+  const palette = noteColorsForAccent('#1e40af', 'dark');
+  assert.strictEqual(resolveNoteColor(pinnedNoteColorToken('#ea580c'), palette), '#ea580c');
+  assert.strictEqual(resolveNoteColor('pin:#ea580c', noteColorsForAccent('#6d28d9', 'light')), '#ea580c');
 });
 
 test('an unpinned hex still snaps to the nearest swatch', () => {
-  const palette = noteColorsForAccent('#1e3a5f', 'dark');
-  const snapped = resolveNoteColor('#e85d04', palette);
-  assert.notStrictEqual(snapped, '#e85d04');
+  const palette = noteColorsForAccent('#1e40af', 'dark');
+  const snapped = resolveNoteColor('#ea580c', palette);
+  assert.notStrictEqual(snapped, '#ea580c');
   assert.ok(palette.includes(snapped as string));
 });
 
 test('a malformed pin is not treated as a colour', () => {
-  const palette = noteColorsForAccent('#1e3a5f', 'dark');
+  const palette = noteColorsForAccent('#1e40af', 'dark');
   assert.strictEqual(resolveNoteColor('pin:not-a-colour', palette), null);
 });
 

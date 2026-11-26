@@ -4,19 +4,19 @@ import { test } from 'node:test';
 import { resolveNoteColor, DEFAULT_NOTE_COLOR } from './note-color.js';
 
 test('a companion signs their note in their own colour, pinned', () => {
-  assert.equal(resolveNoteColor({ senderColor: '#e85d04' }), 'pin:#e85d04');
-  assert.equal(resolveNoteColor({ senderColor: '#1e3a5f' }), 'pin:#1e3a5f');
-  assert.equal(resolveNoteColor({ senderColor: '#7c3aed' }), 'pin:#7c3aed');
+  assert.equal(resolveNoteColor({ senderColor: '#ea580c' }), 'pin:#ea580c');
+  assert.equal(resolveNoteColor({ senderColor: '#1e40af' }), 'pin:#1e40af');
+  assert.equal(resolveNoteColor({ senderColor: '#6d28d9' }), 'pin:#6d28d9');
 });
 
 test('pinned, not a role — their colour must not follow the theme', () => {
-  const c = resolveNoteColor({ senderColor: '#1e3a5f' });
+  const c = resolveNoteColor({ senderColor: '#1e40af' });
   assert.ok(c.startsWith('pin:'), `${c} would re-tint with the theme; navy that goes green is not their note`);
 });
 
 test('an explicit ask beats the signature, because they meant it', () => {
-  assert.equal(resolveNoteColor({ explicit: 'role:quiet', senderColor: '#e85d04' }), 'role:quiet');
-  assert.equal(resolveNoteColor({ explicit: '#22c55e', senderColor: '#e85d04' }), '#22c55e');
+  assert.equal(resolveNoteColor({ explicit: 'role:quiet', senderColor: '#ea580c' }), 'role:quiet');
+  assert.equal(resolveNoteColor({ explicit: '#22c55e', senderColor: '#ea580c' }), '#22c55e');
 });
 
 test('the shared lane has no single author, so it keeps the yellow', () => {
@@ -25,6 +25,6 @@ test('the shared lane has no single author, so it keeps the yellow', () => {
 });
 
 test('junk asked for is ignored rather than stored', () => {
-  assert.equal(resolveNoteColor({ explicit: 'chartreuse', senderColor: '#e85d04' }), 'pin:#e85d04');
+  assert.equal(resolveNoteColor({ explicit: 'chartreuse', senderColor: '#ea580c' }), 'pin:#ea580c');
   assert.equal(resolveNoteColor({ explicit: 42 }), DEFAULT_NOTE_COLOR);
 });

@@ -298,8 +298,8 @@ const GalleryPicker: React.FC<{
               >
                 <img src={thumb(it.url)} alt="" loading="lazy" className="w-full h-full object-cover" />
                 {order > -1 && (
-                  <span className="absolute inset-0 ring-2 ring-inset ring-[var(--aerie-accent,#e85d04)] rounded-xl">
-                    <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[var(--aerie-accent,#e85d04)] text-[var(--aerie-on-accent,#fff)] flex items-center justify-center">
+                  <span className="absolute inset-0 ring-2 ring-inset ring-[var(--aerie-accent,#f97316)] rounded-xl">
+                    <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[var(--aerie-accent,#f97316)] text-[var(--aerie-on-accent,#fff)] flex items-center justify-center">
                       <Check size={12} />
                     </span>
                   </span>
@@ -322,7 +322,7 @@ const GalleryPicker: React.FC<{
             <button
               onClick={() => void hang(chosen)}
               disabled={busy}
-              className="w-full py-3 rounded-2xl text-xs font-bold uppercase tracking-widest bg-[var(--aerie-accent,#e85d04)] text-[var(--aerie-on-accent,#fff)]"
+              className="w-full py-3 rounded-2xl text-xs font-bold uppercase tracking-widest bg-[var(--aerie-accent,#f97316)] text-[var(--aerie-on-accent,#fff)]"
             >
               Hang {chosen.length}
             </button>

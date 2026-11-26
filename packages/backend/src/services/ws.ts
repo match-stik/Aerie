@@ -17,6 +17,7 @@ import {
   createThread,
   updateThreadActivity,
   getFallbackThread,
+  getOpeningThread,
   dailyThreadsEnabled,
   listCanvases,
   getConfigBool,
@@ -165,11 +166,13 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     registry.add(extWs.userId, extWs, clientIp);
 
     // Send connected message with thread list and status
-    const threads = listThreads({ includeArchived: false });
     // The room the app opens into. This has to honour the same fallback the
     // rest of the house uses — an owner who has said they never want a daily
     // thread should not be dropped into one the moment they open the app.
-    const opening = getFallbackThread();
+    // A brand-new house gets its first conversation here, so the list below
+    // already holds it (services/db/threads.ts, getOpeningThread).
+    const opening = getOpeningThread();
+    const threads = listThreads({ includeArchived: false });
 
     const connectedMsg: ServerMessage = {
       type: 'connected',

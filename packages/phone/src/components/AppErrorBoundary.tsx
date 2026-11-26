@@ -69,7 +69,7 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, State> 
             <button
               onClick={() => window.location.reload()}
               className="rounded-xl px-3 py-2 text-xs font-semibold"
-              style={{ background: 'var(--aerie-accent, #e85d04)', color: 'var(--aerie-on-accent, #090807)' }}
+              style={{ background: 'var(--aerie-accent, #f97316)', color: 'var(--aerie-on-accent, #090807)' }}
             >
               Reload
             </button>

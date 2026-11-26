@@ -15,6 +15,7 @@ import { previewText } from '../lib/thread-list';
 import { isRedWord } from '../lib/safeword';
 import { reportFromLaptop } from '../lib/laptop-app';
 import { notificationFor } from '../lib/notify-text';
+import { openingThreadId } from '../lib/opening-thread';
 
 // --- Connection internals (non-reactive) ---
 let ws: WebSocket | null = null;
@@ -276,7 +277,7 @@ function handleMessage(event: MessageEvent): void {
       // Only adopt a thread on a fresh connect — on reconnect keep whatever
       // the user was viewing.
       if (!s.activeThreadId) {
-        const target = msg.activeThreadId || (msg.threads[0]?.id ?? null);
+        const target = openingThreadId(msg.activeThreadId, msg.threads);
         if (target) void loadThread(target);
       }
       break;

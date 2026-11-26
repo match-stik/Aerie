@@ -10,11 +10,11 @@ import { DEFAULT_BATTLESHIP_FLEET, fleetFromOverride } from './battleship.js';
 // length, so a disagreeing file has to be ignored whole rather than half-applied.
 
 const RENAMED = [
-  { name: 'The Lighthouse', length: 4, color: '#e85d04' },
-  { name: 'The Ferry', length: 3, color: '#1e3a5f' },
-  { name: 'The Trawler', length: 3, color: '#7c3aed' },
-  { name: 'The Dinghy', length: 2, color: '#cbd5e1' },
-  { name: 'The Tugboat', length: 2, color: '#e11d48' },
+  { name: 'The Lighthouse', length: 4, color: '#64748b' },
+  { name: 'The Ferry', length: 3, color: '#0e7490' },
+  { name: 'The Trawler', length: 3, color: '#4d7c0f' },
+  { name: 'The Dinghy', length: 2, color: '#b45309' },
+  { name: 'The Tugboat', length: 2, color: '#94a3b8' },
 ];
 
 test('the deck that ships is the ordinary one', () => {
@@ -29,7 +29,7 @@ test('a fleet their person chose is honoured and changes only the names and colo
   const fleet = fleetFromOverride(RENAMED);
   assert.deepEqual(fleet.map(s => s.name), RENAMED.map(s => s.name));
   assert.deepEqual(fleet.map(s => s.length), DEFAULT_BATTLESHIP_FLEET.map(s => s.length));
-  assert.equal(fleet[0].color, '#e85d04');
+  assert.equal(fleet[0].color, '#64748b');
 });
 
 test('a fleet that would change the GAME is refused whole', () => {

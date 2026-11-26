@@ -2,10 +2,11 @@
 // Thread operations
 // Migrated from ../db.ts
 
+import { randomUUID } from 'node:crypto';
 import type { Thread } from '@aerie/shared';
 import { getAerieConfig } from '../../config.js';
 import { getDb } from './state.js';
-import { getConfig, getConfigBool } from './config.js';
+import { getConfig, getConfigBool, setConfig } from './config.js';
 import { todayLocal, offsetMinutes as getOffsetMinutes } from '../time.js';
 
 export function createThread(params: {
@@ -105,6 +106,51 @@ export function getFallbackThread(): Thread | null {
   if (home && !home.archived_at) return home;
 
   return getTodayThread();
+}
+
+/**
+ * The room the app opens into. Usually the fallback thread. A brand-new house
+ * has nothing but the companions' Treehouse, so the app used to open there and
+ * the first hello landed in the companions' room (found Nov 26 2026, walking a
+ * fresh install of the kit). With no conversation of any kind yet, one is made:
+ * today's thread when the house starts its own, otherwise one that keeps going,
+ * named for the companion, which becomes the home thread if none is set.
+ */
+export function getOpeningThread(now = new Date()): Thread | null {
+  const fallback = getFallbackThread();
+  if (fallback) return fallback;
+  // The rooms (Card Room, Screening Room, Fleet Room and the rest) keep their
+  // thread ids in config under <room>.thread_id; opening one is not a
+  // conversation, and a first hello must not land there either.
+  const hasConversation = getDb()
+    .prepare(`
+      SELECT 1 FROM threads
+      WHERE type != 'treehouse' AND archived_at IS NULL
+      AND id NOT IN (SELECT value FROM config WHERE key LIKE '%.thread_id' AND key != 'orchestrator.wake_thread_id')
+      LIMIT 1
+    `)
+    .get();
+  if (hasConversation) return null;
+  const config = getAerieConfig();
+  const createdAt = now.toISOString();
+  if (dailyThreadsEnabled()) {
+    let name: string;
+    try {
+      name = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'short', day: 'numeric', timeZone: config.identity.timezone });
+    } catch {
+      name = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'short', day: 'numeric' });
+    }
+    return createThread({ id: randomUUID(), name, type: 'daily', createdAt, sessionType: 'v2' });
+  }
+  const home = createThread({
+    id: randomUUID(),
+    name: (config.identity.companion_name || '').trim() || 'Home',
+    type: 'named',
+    createdAt,
+    sessionType: 'v2',
+  });
+  if (!getConfig('orchestrator.wake_thread_id')) setConfig('orchestrator.wake_thread_id', home.id);
+  return home;
 }
 
 export function dailyThreadsEnabled(): boolean {

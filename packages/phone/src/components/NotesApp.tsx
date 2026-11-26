@@ -43,9 +43,9 @@ interface Note {
 // Only used when the theme cannot say what its accent is (a custom theme sets
 // it as a CSS variable, which we cannot read from here).
 const FALLBACK_NOTE_COLORS = [
-  '#e85d04', // Fire orange
-  '#1e3a5f', // Deep navy
-  '#7c3aed', // Silver-violet
+  '#f97316', // Orange
+  '#2563eb', // Blue
+  '#8b5cf6', // Violet
   '#d97706', // Warm amber
   '#059669', // Deep emerald
 ];

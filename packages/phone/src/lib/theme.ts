@@ -265,7 +265,7 @@ const BASE_THEMES: Record<string, ThemeConfig> = {
       panelBorder: 'border-[#EA580C]/10',
       textMain: 'text-black',
       textMuted: 'text-black/60',
-      userBubbleBg: 'bg-[#E85D04]/85',
+      userBubbleBg: 'bg-[#F97316]/85',
       userBubbleText: 'text-black',
       compBubbleBg: 'bg-[#FED7AA]/90',
       compBubbleText: 'text-black',

@@ -723,7 +723,7 @@ export function OrchestratorApp({ onClose, themeConfig, themeMode, embedded }: O
                     className={cn('w-full rounded-md border px-2 py-1 text-xs mt-2 bg-transparent', colors.panelBorder, colors.textMain)}
                   />
                   {newBellError && (
-                    <div className="text-[11px] mt-1" style={{ color: '#e85d04' }}>{newBellError}</div>
+                    <div className="text-[11px] mt-1" style={{ color: '#dc2626' }}>{newBellError}</div>
                   )}
                   <div className="flex items-center gap-2 mt-2">
                     <button

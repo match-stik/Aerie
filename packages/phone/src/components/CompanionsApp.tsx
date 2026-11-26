@@ -47,7 +47,7 @@ interface ModelOption {
   provider?: string;
 }
 
-const DEFAULT_COLORS = ['#e85d04', '#1e3a5f', '#7c3aed', '#10b981', '#ec4899', '#f59e0b'];
+const DEFAULT_COLORS = ['#f97316', '#2563eb', '#8b5cf6', '#10b981', '#ec4899', '#f59e0b'];
 const DEFAULT_EMOJIS = ['🔥', '🌫️', '✨', '🌙', '⚡', '🌊', '🦋', '🌸', '💫'];
 
 export function CompanionsApp({

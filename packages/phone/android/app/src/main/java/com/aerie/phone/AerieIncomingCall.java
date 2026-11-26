@@ -210,9 +210,9 @@ public final class AerieIncomingCall {
     private static void drawFace(Canvas canvas, Bitmap face, String colour, float cx, float cy, float radius) {
         int ring;
         try {
-            ring = colour == null ? Color.parseColor("#e85d04") : Color.parseColor(colour);
+            ring = colour == null ? Color.parseColor("#f97316") : Color.parseColor(colour);
         } catch (IllegalArgumentException bad) {
-            ring = Color.parseColor("#e85d04");
+            ring = Color.parseColor("#f97316");
         }
         Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
         edge.setColor(ring);
