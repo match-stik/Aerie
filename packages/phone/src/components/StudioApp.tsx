@@ -49,7 +49,7 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
     drawers, selectedSubjects,
     viewMode, setViewMode,
     codexModel, setCodexModel,
-    agyModel, setAgyModel,
+    agyModel, setAgyModel, agyModels,
     openartModel, setOpenartModel,
     size, setSize,
     customWidth, setCustomWidth,
@@ -345,6 +345,7 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
             setCodexModel={setCodexModel}
             agyModel={agyModel}
             setAgyModel={setAgyModel}
+            agyModels={agyModels}
             openartModel={openartModel}
             setOpenartModel={setOpenartModel}
             size={size}

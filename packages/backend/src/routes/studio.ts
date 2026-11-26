@@ -10,6 +10,7 @@ import { existsSync } from 'fs';
 import { getConfig, setConfig } from '../services/db/config.js';
 import { getCodexUsage } from '../services/subscription-usage.js';
 import { discoverCodexModels } from '../services/codex-model-discovery.js';
+import { refreshAntigravityModels } from '../services/image-gen/antigravity-models.js';
 import { decodeSketchDataUrl, saveSketch, sketchPaths, pruneSketches } from '../services/studio-sketch.js';
 import { studioWindowWarning, warnThresholdFrom } from '../services/studio-window-warning.js';
 import type { StudioWindowWarning } from '../services/studio-window-warning.js';
@@ -120,6 +121,12 @@ router.get('/studio/backends', async (_req, res) => {
     console.error('[studio] backend probe error:', error);
     res.status(500).json({ error: 'Failed to probe Studio backends' });
   }
+});
+
+// The painters the signed-in Antigravity account offers, read with `agy models`
+// at most once an hour; the hand-typed list when it has never been read.
+router.get('/studio/antigravity/models', async (_req, res) => {
+  res.json({ models: await refreshAntigravityModels() });
 });
 
 router.put('/studio/settings', (req, res) => {

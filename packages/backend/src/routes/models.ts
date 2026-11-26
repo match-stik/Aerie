@@ -7,6 +7,7 @@ import { getAerieConfig } from '../config.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { isCodexLoggedIn } from '../services/auth/codex-oauth.js';
 import { discoverCodexModels } from '../services/codex-model-discovery.js';
+import { discoverClaudeModels } from '../services/claude-model-discovery.js';
 import { filterByAccess, isOllamaCloud, needsCheck, readAccess, refreshAccess } from '../services/ollama-access.js';
 import { heartbeatLaneModelState } from '../services/heartbeat/supervisor.js';
 import { cliKnowsModels, ListingError, readModelListing } from '../services/claude-model-check.js';
@@ -68,8 +69,13 @@ router.get('/models', authMiddleware, async (_req, res) => {
   // --- Claude models on the CLI lane (warm interactive Claude Code session,
   // subscription-billed via the heartbeat runtime). The retired SDK lane
   // redirects to CLI anyway, so only list these once.
-  models.push(...CLAUDE_MODELS.map(m => ({ ...m, provider: 'claude-cli' })));
-  models.push(...extraModelsFor('claude').map(m =>
+  // Read off the signed-in account (services/claude-model-discovery.ts); the
+  // hand-typed list only when the account has never been read.
+  const claudeAccount = await discoverClaudeModels();
+  const claudeList = claudeAccount.length > 0 ? claudeAccount : CLAUDE_MODELS;
+  const claudeIds = new Set(claudeList.map(m => m.id));
+  models.push(...claudeList.map(m => ({ ...m, provider: 'claude-cli' })));
+  models.push(...extraModelsFor('claude').filter(m => !claudeIds.has(m.id)).map(m =>
     asModelInfo(m, { provider: 'claude-cli', tier: 'included' })));
 
   // --- Ollama (local inference — free!) ---
@@ -283,7 +289,7 @@ router.get('/models/status', authMiddleware, (_req, res) => {
 router.get('/models/claude-check', authMiddleware, async (_req, res) => {
   try {
     const listed = await readModelListing(undefined, { fresh: true });
-    const inPicker = new Set([...CLAUDE_MODELS.map(m => m.id), ...extraModelsFor('claude').map(m => m.id)]);
+    const inPicker = new Set([...(await discoverClaudeModels()).map(m => m.id), ...CLAUDE_MODELS.map(m => m.id), ...extraModelsFor('claude').map(m => m.id)]);
     const cli = await cliKnowsModels(listed.map(m => m.id));
     res.json({
       models: listed.map(m => ({
@@ -324,7 +330,7 @@ router.post('/models/claude-add', authMiddleware, async (req, res) => {
       res.status(409).json({ error: `The Claude Code on this box doesn't know ${model.label} yet. Update Claude Code first, then add it.` });
       return;
     }
-    const inPicker = new Set([...CLAUDE_MODELS.map(m => m.id), ...extraModelsFor('claude').map(m => m.id)]);
+    const inPicker = new Set([...(await discoverClaudeModels()).map(m => m.id), ...CLAUDE_MODELS.map(m => m.id), ...extraModelsFor('claude').map(m => m.id)]);
     if (inPicker.has(id)) {
       res.json({ ok: true, already: true });
       return;

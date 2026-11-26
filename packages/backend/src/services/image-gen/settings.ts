@@ -7,6 +7,7 @@ import { getConfig, getConfigBool, getConfigNumber } from '../db/config.js';
 import { getSecret } from '../secrets.js';
 import { parseFallbackChain, type ImageBackend } from '../image-fallback.js';
 import { isSafeSubjectSlug } from './drawers.js';
+import { knownAntigravityModels } from './antigravity-models.js';
 
 /** Engine tag recorded on usage_events for image generations. */
 export const IMAGE_GEN_ENGINE = 'image-gen';
@@ -132,7 +133,8 @@ export function getImageGenSettings(): ImageGenSettings {
     size: SIZE_MAP[size] ? size : 'square',
     quality: VALID_QUALITY.includes(quality) ? quality : 'auto',
     openaiModel: getConfig('image_gen.openai_model') || 'gpt-image-2',
-    antigravityModel: ANTIGRAVITY_MODELS.includes(antigravityModel) ? antigravityModel : ANTIGRAVITY_DEFAULT_MODEL,
+    // The account's own list when it has been read (antigravity-models.ts).
+    antigravityModel: knownAntigravityModels().includes(antigravityModel) ? antigravityModel : ANTIGRAVITY_DEFAULT_MODEL,
     openartModel: getConfig('image_gen.openart_model') || 'nano-banana-2-lite',
     monthlyBudgetUsd: getConfigNumber('image_gen.monthly_budget_usd', 0),
     hasOpenaiKey: !!getConfig('image_gen.openai_api_key'),

@@ -6,6 +6,7 @@ import { galleryItemToImage } from './gallery-utils';
 import { saveHref } from '../../lib/download';
 import { swapOnToggle, type PendingSwap } from '../../lib/studio-name-swap';
 import type { ViewMode, Backend, AspectRatioValue, DrawTool, GeneratedImage, StudioFolder, RefDrawer, StudioBackendStatus, StudioWindowWarning, UseStudioStateParams } from './types';
+import { agyOptionsFrom } from '../../lib/agy-options';
 
 const BACKEND_KEYS: Backend[] = ['codex', 'antigravity', 'openart'];
 
@@ -80,6 +81,8 @@ export function useStudioState({
     // one the backend uses when a request names none (DEFAULT_CODEX_IMAGE_MODEL).
     try { return localStorage.getItem('aerie-studio-codex-model') || 'gpt-5.6-terra'; } catch { return 'gpt-5.6-terra'; }
   });
+  // The Gemini menu: the hand-typed list until the account's own arrives.
+  const [agyModels, setAgyModels] = useState<Array<{ id: string; name: string; desc: string }>>(antigravityModels as Array<{ id: string; name: string; desc: string }>);
   // Antigravity (Gemini) model state
   const [agyModel, setAgyModel] = useState(() => {
     // A stored id survives a model being retired upstream, so validate it
@@ -180,6 +183,23 @@ export function useStudioState({
   useEffect(() => { try { localStorage.setItem('aerie-studio-codex-model', codexModel); } catch {} }, [codexModel]);
   useEffect(() => { try { localStorage.setItem('aerie-studio-agy-model', agyModel); } catch {} }, [agyModel]);
   useEffect(() => { try { localStorage.setItem('aerie-studio-openart-model', openartModel); } catch {} }, [openartModel]);
+
+  // Antigravity's menu, read off the account the first time Gemini is picked.
+  const agyAsked = useRef(false);
+  useEffect(() => {
+    if (backend !== 'antigravity' || agyAsked.current) return;
+    agyAsked.current = true;
+    let cancelled = false;
+    apiFetch('/api/studio/antigravity/models')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: unknown) => {
+        if (cancelled) return;
+        const options = agyOptionsFrom(data);
+        if (options.length > 0) setAgyModels(options);
+      })
+      .catch(() => { /* keep the hand-typed list */ });
+    return () => { cancelled = true; };
+  }, [backend]);
 
   // Fetch reference drawers from backend
   useEffect(() => {
@@ -895,7 +915,7 @@ export function useStudioState({
     selectedSubjects, setSelectedSubjects,
     viewMode, setViewMode,
     codexModel, setCodexModel,
-    agyModel, setAgyModel,
+    agyModel, setAgyModel, agyModels,
     openartModel, setOpenartModel,
     size, setSize,
     customWidth, setCustomWidth,

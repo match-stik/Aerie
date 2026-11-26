@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Loader2, Plus, X, User, Palette, Wand2, Compass } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { Backend, GenerationControlsProps } from './types';
-import { ACCENT_TEXT_COLOR_BY_THEME, CODEX_MODELS, ANTIGRAVITY_MODELS, OPENART_MODELS, PROMPT_STYLES, PROMPT_DIRECTIVES, SIZE_PRESETS, MIN_DIMENSION, MAX_DIMENSION, clampDimension } from './constants';
+import { ACCENT_TEXT_COLOR_BY_THEME, CODEX_MODELS, OPENART_MODELS, PROMPT_STYLES, PROMPT_DIRECTIVES, SIZE_PRESETS, MIN_DIMENSION, MAX_DIMENSION, clampDimension } from './constants';
 import { HouseSelect } from '../HouseSelect';
 
 const BACKEND_BUTTONS: ReadonlyArray<{ key: Backend; label: string }> = [
@@ -58,7 +58,7 @@ export function GenerationControls({
   backend, setBackend,
   backendStatus,
   codexModel, setCodexModel,
-  agyModel, setAgyModel,
+  agyModel, setAgyModel, agyModels,
   openartModel, setOpenartModel,
   size, setSize,
   customWidth, setCustomWidth,
@@ -146,8 +146,8 @@ export function GenerationControls({
             className={cn("w-full px-3 py-2 rounded-lg border text-sm", colors.panelBg, colors.panelBorder, colors.textMain, "focus:outline-none focus:ring-2")}
             style={{ '--tw-ring-color': colors.accent } as CSSProperties}
           >
-            {ANTIGRAVITY_MODELS.map(m => (
-              <option key={m.id} value={m.id}>{m.name} — {m.desc}</option>
+            {agyModels.map(m => (
+              <option key={m.id} value={m.id}>{m.desc ? `${m.name} — ${m.desc}` : m.name}</option>
             ))}
           </HouseSelect>
         </div>

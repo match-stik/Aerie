@@ -114,6 +114,7 @@ export interface GenerationControlsProps extends StudioPanelProps {
   codexModel: string;
   setCodexModel: (m: string) => void;
   agyModel: string;
+  agyModels: Array<{ id: string; name: string; desc: string }>;
   setAgyModel: (m: string) => void;
   openartModel: string;
   setOpenartModel: (m: string) => void;

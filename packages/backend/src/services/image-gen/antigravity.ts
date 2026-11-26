@@ -4,7 +4,8 @@ import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
 import { join, extname } from 'path';
 import { homedir } from 'os';
-import { ANTIGRAVITY_MODELS, AntigravityModel, GALLERY_DIR, IMAGE_EXTS, antigravityBin, antigravityHome, antigravityTimeoutMs, getImageGenSettings } from './settings.js';
+import { knownAntigravityModels } from './antigravity-models.js';
+import { GALLERY_DIR, IMAGE_EXTS, antigravityBin, antigravityHome, antigravityTimeoutMs, getImageGenSettings } from './settings.js';
 import { GenerateInput, GenerateResult, ImageGenError, newGalleryName, resolveAllRefs, resolveSize } from './common.js';
 import { onRunningJobCancel } from './cancel.js';
 
@@ -71,7 +72,7 @@ export async function generateViaAntigravity(input: GenerateInput): Promise<Gene
   // Use request model if provided, otherwise fall back to configured default
   // Only Gemini models can generate images — Claude/GPT models can't
   const settings = getImageGenSettings();
-  const model = (input.agyModel && ANTIGRAVITY_MODELS.includes(input.agyModel as AntigravityModel))
+  const model = (input.agyModel && knownAntigravityModels().includes(input.agyModel))
     ? input.agyModel
     : settings.antigravityModel;
 
