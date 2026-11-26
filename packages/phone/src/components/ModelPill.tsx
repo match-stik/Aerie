@@ -10,6 +10,7 @@ import { apiFetch } from '../aerie';
 import { clearProviderScopedState } from '../aerie/socket';
 import { isModelSwitch } from './model-switch';
 import { modelLabel } from '../lib/model-label';
+import { isCurrentModelRow, providerForRouting } from '../lib/model-row';
 
 interface ModelPillProps {
   themeConfig: ThemeConfig;
@@ -209,7 +210,7 @@ export function ModelPill({ themeConfig, themeMode, threadModel }: ModelPillProp
     const cfg = await loadSettings();
     const liveRouting = cfg?.['agent.routing'] || routing;
     // Always set activeProvider to match current routing when opening
-    const routingProvider = liveRouting === 'cli' ? 'claude-cli' : liveRouting === 'sdk' ? 'anthropic' : liveRouting === 'codex-cli' ? 'codex-cli' : '';
+    const routingProvider = providerForRouting(liveRouting);
     if (routingProvider) setActiveProvider(routingProvider);
     if (loadState === 'ready' || loadState === 'loading') return;
     setLoadState('loading');
@@ -598,7 +599,7 @@ export function ModelPill({ themeConfig, themeMode, threadModel }: ModelPillProp
                 {sorted.map((m) => {
                   const key = modelKey(m);
                   const isFav = favs.has(key);
-                  const isActive = m.id === currentModel;
+                  const isActive = isCurrentModelRow(m, currentModel, routing);
                   const ownLane = laneFor(m.provider);
                   return (
                     <div key={key} className="flex items-center gap-1 px-2">
