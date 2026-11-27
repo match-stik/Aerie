@@ -14,26 +14,20 @@ function fakeInstall(opts: {
   codexBin?: boolean;
   codexAuth?: boolean;
   openartCred?: boolean | 'other-provider';
-  agyBin?: boolean;
-  agyHome?: boolean;
 }) {
   const root = mkdtempSync(join(tmpdir(), 'aerie-studio-probe-'));
   const codexHome = join(root, 'codex-home');
-  const antigravityHome = join(root, 'agy-home');
   const codexBin = join(root, 'codex');
-  const antigravityBin = join(root, 'agy');
   mkdirSync(codexHome, { recursive: true });
 
   if (opts.codexBin) writeFileSync(codexBin, '#!/bin/sh\n');
-  if (opts.agyBin) writeFileSync(antigravityBin, '#!/bin/sh\n');
-  if (opts.agyHome) mkdirSync(antigravityHome, { recursive: true });
   if (opts.codexAuth) writeFileSync(join(codexHome, 'auth.json'), '{}');
   if (opts.openartCred) {
     const key = opts.openartCred === 'other-provider' ? 'cortex|abc' : 'openart|abc';
     writeFileSync(join(codexHome, '.credentials.json'), JSON.stringify({ [key]: { access_token: 'x' } }));
   }
 
-  return { codexBin, codexHome, antigravityBin, antigravityHome };
+  return { codexBin, codexHome };
 }
 
 function statusFor(key: string, paths: ReturnType<typeof fakeInstall>) {
@@ -46,7 +40,7 @@ test('a bare machine reports every backend as not ready, each with a fix', () =>
   const paths = fakeInstall({});
   const probed = probeStudioBackends(paths);
 
-  assert.deepEqual(probed.map((b) => b.key), ['codex', 'antigravity', 'openart']);
+  assert.deepEqual(probed.map((b) => b.key), ['codex', 'openart']);
   for (const backend of probed) {
     assert.equal(backend.ready, false, `${backend.key} should not be ready`);
     assert.ok(backend.reason, `${backend.key} should say what is missing`);
@@ -55,7 +49,7 @@ test('a bare machine reports every backend as not ready, each with a fix', () =>
 });
 
 test('a fully configured machine reports every backend ready and stays quiet', () => {
-  const paths = fakeInstall({ codexBin: true, codexAuth: true, openartCred: true, agyBin: true, agyHome: true });
+  const paths = fakeInstall({ codexBin: true, codexAuth: true, openartCred: true });
 
   for (const backend of probeStudioBackends(paths)) {
     assert.equal(backend.ready, true, `${backend.key} should be ready`);
@@ -75,7 +69,7 @@ test('an installed but signed-out Codex is distinguished from a missing one', ()
 });
 
 test('OpenArt without Codex blames the Codex login, not OpenArt', () => {
-  const status = statusFor('openart', fakeInstall({ agyBin: true, agyHome: true }));
+  const status = statusFor('openart', fakeInstall({}));
 
   assert.equal(status.ready, false);
   assert.match(status.reason!, /issued through the Codex CLI/);
@@ -103,10 +97,3 @@ test('OpenArt can be ready while Codex itself is signed out', () => {
   assert.equal(statusFor('openart', paths).ready, true);
 });
 
-test('Antigravity warns about the Google account and rate limits before install', () => {
-  const status = statusFor('antigravity', fakeInstall({}));
-
-  assert.equal(status.ready, false);
-  assert.match(status.reason!, /Google account/);
-  assert.match(status.fix!, /antigravity\.google/);
-});

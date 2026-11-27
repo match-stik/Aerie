@@ -20,7 +20,6 @@ export const EXTRA_KEYS = [
   'aerie-studio-backend',
   'aerie-studio-codex-model',
   'aerie-studio-cf-model',
-  'aerie-studio-agy-model',
   'aerie-studio-openart-model',
   'aerie-studio-history',
   'aerie.press.spread-rail-collapsed',

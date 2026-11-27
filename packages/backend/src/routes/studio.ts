@@ -10,7 +10,6 @@ import { existsSync } from 'fs';
 import { getConfig, setConfig } from '../services/db/config.js';
 import { getCodexUsage } from '../services/subscription-usage.js';
 import { discoverCodexModels } from '../services/codex-model-discovery.js';
-import { refreshAntigravityModels } from '../services/image-gen/antigravity-models.js';
 import { decodeSketchDataUrl, saveSketch, sketchPaths, pruneSketches } from '../services/studio-sketch.js';
 import { studioWindowWarning, warnThresholdFrom } from '../services/studio-window-warning.js';
 import type { StudioWindowWarning } from '../services/studio-window-warning.js';
@@ -123,12 +122,6 @@ router.get('/studio/backends', async (_req, res) => {
   }
 });
 
-// The painters the signed-in Antigravity account offers, read with `agy models`
-// at most once an hour; the hand-typed list when it has never been read.
-router.get('/studio/antigravity/models', async (_req, res) => {
-  res.json({ models: await refreshAntigravityModels() });
-});
-
 router.put('/studio/settings', (req, res) => {
   try {
     const b = req.body as Record<string, unknown>;
@@ -137,7 +130,7 @@ router.put('/studio/settings', (req, res) => {
     if ('enabled' in b) writes.push(['image_gen.enabled', b.enabled ? 'true' : 'false']);
     if ('backend' in b) {
       const v = String(b.backend);
-      if (!['codex', 'openai', 'antigravity', 'openart'].includes(v)) { res.status(400).json({ error: 'backend must be codex, openai, antigravity, or openart' }); return; }
+      if (!['codex', 'openai', 'openart'].includes(v)) { res.status(400).json({ error: 'backend must be codex, openai, or openart' }); return; }
       writes.push(['image_gen.backend', v]);
     }
     if ('size' in b) {
@@ -152,7 +145,6 @@ router.put('/studio/settings', (req, res) => {
     }
     if ('openai_model' in b) writes.push(['image_gen.openai_model', String(b.openai_model)]);
     if ('openai_api_key' in b) writes.push(['image_gen.openai_api_key', String(b.openai_api_key)]);
-    if ('antigravity_model' in b) writes.push(['image_gen.antigravity_model', String(b.antigravity_model)]);
     if ('openart_model' in b) writes.push(['image_gen.openart_model', String(b.openart_model)]);
     if ('monthly_budget_usd' in b) {
       const n = Number(b.monthly_budget_usd);
@@ -613,7 +605,7 @@ router.get('/studio/gallery/:filename', async (req, res) => {
 
 router.post('/studio/generate', async (req, res) => {
   try {
-    const { prompt, sourcePrompt, styleId, subjects, size, customWidth, customHeight, threadId, messageId, async: useAsync, backend: reqBackend, codexModel, agyModel, openartModel, openartMedia, sketchIds } = req.body as {
+    const { prompt, sourcePrompt, styleId, subjects, size, customWidth, customHeight, threadId, messageId, async: useAsync, backend: reqBackend, codexModel, openartModel, openartMedia, sketchIds } = req.body as {
       prompt?: string;
       sourcePrompt?: string;
       styleId?: string;
@@ -627,7 +619,6 @@ router.post('/studio/generate', async (req, res) => {
       backend?: string;
       codexModel?: string;
       sketchIds?: unknown;
-      agyModel?: string;
       openartModel?: string;
       openartMedia?: 'image' | 'video';
     };
@@ -651,7 +642,7 @@ router.post('/studio/generate', async (req, res) => {
     if (useAsync !== false) {
       const metadata = { threadId, messageId, prompt, sourcePrompt: cleanSourcePrompt, styleId: cleanStyleId, size, customWidth, customHeight, referenceDrawers, generatedCast };
       const jobId = startGenerateJob(
-        { prompt, sourcePrompt: cleanSourcePrompt, styleId: cleanStyleId, subjects: referenceDrawers, size, customWidth, customHeight, backend: reqBackend, codexModel, agyModel, openartModel, openartMedia, extraRefs: sketchPaths(sketchIds) },
+        { prompt, sourcePrompt: cleanSourcePrompt, styleId: cleanStyleId, subjects: referenceDrawers, size, customWidth, customHeight, backend: reqBackend, codexModel, openartModel, openartMedia, extraRefs: sketchPaths(sketchIds) },
         async (result) => {
           const { width, height } = dimensionsFor(metadata.size, metadata.customWidth, metadata.customHeight);
           await recordGalleryMeta(result.filename, {
@@ -678,7 +669,7 @@ router.post('/studio/generate', async (req, res) => {
     }
 
     // Sync mode (legacy, for local/LAN use where timeout isn't an issue)
-    const result = await generateImage({ prompt, sourcePrompt: cleanSourcePrompt, styleId: cleanStyleId, subjects: referenceDrawers, size, customWidth, customHeight, backend: reqBackend, codexModel, agyModel, openartModel, openartMedia, extraRefs: sketchPaths(sketchIds) });
+    const result = await generateImage({ prompt, sourcePrompt: cleanSourcePrompt, styleId: cleanStyleId, subjects: referenceDrawers, size, customWidth, customHeight, backend: reqBackend, codexModel, openartModel, openartMedia, extraRefs: sketchPaths(sketchIds) });
     const { width, height } = dimensionsFor(size, customWidth, customHeight);
 
     // Always record gallery meta with prompt
@@ -752,7 +743,7 @@ function jobResponse(job: ReturnType<typeof getJobStatus>) {
     // presence is the whole signal — a picture that arrived is not proof the
     // backend the user asked for is working.
     fellBackFrom: job.result?.fellBackFrom ?? null,
-    model: job.result?.model ?? job.input.codexModel ?? job.input.agyModel ?? job.input.openartModel ?? null,
+    model: job.result?.model ?? job.input.codexModel ?? job.input.openartModel ?? null,
     references: referenceDrawers ?? null,
     referenceDrawers: referenceDrawers ?? [],
     cast: cast?.length ? cast : null,

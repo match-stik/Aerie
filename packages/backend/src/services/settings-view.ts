@@ -27,7 +27,7 @@ export function settingsForClient(config: Record<string, unknown>): Record<strin
  * A new setting of this kind ends in _bin or _path and runs something; add it
  * here by name if it doesn't.
  */
-const PROGRAM_SETTING_KEYS = new Set(['image_gen.codex_bin', 'image_gen.antigravity_bin', 'videos.ytdlp_path']);
+const PROGRAM_SETTING_KEYS = new Set(['image_gen.codex_bin', 'videos.ytdlp_path']);
 
 /** Keys the generic settings door (PUT /api/settings) must never write. */
 export function isGuardedSettingKey(key: string): boolean {

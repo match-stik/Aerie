@@ -5,7 +5,7 @@ import type { ThemeColors, ThemeConfig } from '../../lib/theme';
 export type ThemeMode = 'light' | 'dark';
 export type ViewMode = 'generate' | 'edit' | 'draw' | 'refs';
 export type StudioSection = 'create' | 'gif' | 'cutout' | 'gallery';
-export type Backend = 'codex' | 'antigravity' | 'openart';
+export type Backend = 'codex' | 'openart';
 export type DrawTool = 'brush' | 'eraser';
 export type CastSource = 'selected-references' | 'manual' | 'none' | 'unknown';
 export type AspectRatioValue =
@@ -113,9 +113,6 @@ export interface GenerationControlsProps extends StudioPanelProps {
   backendStatus: StudioBackendStatus[];
   codexModel: string;
   setCodexModel: (m: string) => void;
-  agyModel: string;
-  agyModels: Array<{ id: string; name: string; desc: string }>;
-  setAgyModel: (m: string) => void;
   openartModel: string;
   setOpenartModel: (m: string) => void;
   size: AspectRatioValue;
@@ -245,7 +242,6 @@ export interface RefsPanelProps extends StudioPanelProps {
 export interface UseStudioStateParams {
   themeMode: ThemeMode;
   codexModels: Array<{ id: string }>;
-  antigravityModels: Array<{ id: string }>;
   openartModels: Array<{ key: string; id: string; media: 'image' | 'video' }>;
   promptStyles: Array<{ name: string; style: string }>;
   sizePresets: Array<{ value: AspectRatioValue; dims?: string }>;

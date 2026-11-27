@@ -1,14 +1,13 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import { useState, useRef, useEffect, useCallback, type ChangeEvent, type MouseEvent, type TouchEvent } from 'react';
 import { apiFetch } from '../../aerie';
-import { DRAW_CANVAS_BACKGROUND_BY_THEME, ANTIGRAVITY_DEFAULT_MODEL, clampDimension, PROMPT_DIRECTIVES } from './constants';
+import { DRAW_CANVAS_BACKGROUND_BY_THEME, clampDimension, PROMPT_DIRECTIVES } from './constants';
 import { galleryItemToImage } from './gallery-utils';
 import { saveHref } from '../../lib/download';
 import { swapOnToggle, type PendingSwap } from '../../lib/studio-name-swap';
 import type { ViewMode, Backend, AspectRatioValue, DrawTool, GeneratedImage, StudioFolder, RefDrawer, StudioBackendStatus, StudioWindowWarning, UseStudioStateParams } from './types';
-import { agyOptionsFrom } from '../../lib/agy-options';
 
-const BACKEND_KEYS: Backend[] = ['codex', 'antigravity', 'openart'];
+const BACKEND_KEYS: Backend[] = ['codex', 'openart'];
 
 /**
  * A phone build can reach a backend that predates /api/studio/backends, and the
@@ -62,7 +61,6 @@ function parseBackendStatus(data: unknown): StudioBackendStatus[] {
 export function useStudioState({
   themeMode,
   codexModels,
-  antigravityModels,
   openartModels,
   promptStyles,
   sizePresets,
@@ -81,25 +79,14 @@ export function useStudioState({
     // one the backend uses when a request names none (DEFAULT_CODEX_IMAGE_MODEL).
     try { return localStorage.getItem('aerie-studio-codex-model') || 'gpt-5.6-terra'; } catch { return 'gpt-5.6-terra'; }
   });
-  // The Gemini menu: the hand-typed list until the account's own arrives.
-  const [agyModels, setAgyModels] = useState<Array<{ id: string; name: string; desc: string }>>(antigravityModels as Array<{ id: string; name: string; desc: string }>);
-  // Antigravity (Gemini) model state
-  const [agyModel, setAgyModel] = useState(() => {
-    // A stored id survives a model being retired upstream, so validate it
-    // against the live list rather than trusting whatever is in localStorage.
-    const fallback = antigravityModels.find(m => m.id === ANTIGRAVITY_DEFAULT_MODEL)?.id ?? antigravityModels[0].id;
-    try {
-      const saved = localStorage.getItem('aerie-studio-agy-model');
-      return saved && antigravityModels.some(m => m.id === saved) ? saved : fallback;
-    } catch { return fallback; }
-  });
   // OpenArt model state — holds the picker key (kling appears once per media)
   const [openartModel, setOpenartModel] = useState(() => {
     try { return localStorage.getItem('aerie-studio-openart-model') || openartModels[0].key; } catch { return openartModels[0].key; }
   });
   // Backend state persistence
   const [backend, setBackendState] = useState<Backend>(() => {
-    try { return (localStorage.getItem('aerie-studio-backend') as Backend) || 'codex'; } catch { return 'codex'; }
+    // A saved painter this house does not have reads as Codex.
+    try { const saved = localStorage.getItem('aerie-studio-backend') as Backend; return saved && BACKEND_KEYS.includes(saved) ? saved : 'codex'; } catch { return 'codex'; }
   });
   const setBackend = useCallback((b: Backend) => {
     setBackendState(b);
@@ -181,25 +168,7 @@ export function useStudioState({
 
   // Persist model selections to localStorage
   useEffect(() => { try { localStorage.setItem('aerie-studio-codex-model', codexModel); } catch {} }, [codexModel]);
-  useEffect(() => { try { localStorage.setItem('aerie-studio-agy-model', agyModel); } catch {} }, [agyModel]);
   useEffect(() => { try { localStorage.setItem('aerie-studio-openart-model', openartModel); } catch {} }, [openartModel]);
-
-  // Antigravity's menu, read off the account the first time Gemini is picked.
-  const agyAsked = useRef(false);
-  useEffect(() => {
-    if (backend !== 'antigravity' || agyAsked.current) return;
-    agyAsked.current = true;
-    let cancelled = false;
-    apiFetch('/api/studio/antigravity/models')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: unknown) => {
-        if (cancelled) return;
-        const options = agyOptionsFrom(data);
-        if (options.length > 0) setAgyModels(options);
-      })
-      .catch(() => { /* keep the hand-typed list */ });
-    return () => { cancelled = true; };
-  }, [backend]);
 
   // Fetch reference drawers from backend
   useEffect(() => {
@@ -576,7 +545,6 @@ export function useStudioState({
           size,
           backend,
           ...(backend === 'codex' ? { codexModel } : {}),
-          ...(backend === 'antigravity' ? { agyModel } : {}),
           ...(backend === 'openart' && currentOpenartModel
             ? { openartModel: currentOpenartModel.id, openartMedia: currentOpenartModel.media }
             : {}),
@@ -641,13 +609,14 @@ export function useStudioState({
         }
       }
     }
-    if (img.backend) {
+    // A picture from a painter this house does not have remixes on whatever
+    // painter is picked now.
+    if (img.backend && BACKEND_KEYS.includes(img.backend as Backend)) {
       setBackend(img.backend as Backend);
     }
     if (img.model) {
       // Set the appropriate model based on backend
       if (img.backend === 'codex') setCodexModel(img.model);
-      else if (img.backend === 'antigravity') setAgyModel(img.model);
       else if (img.backend === 'openart') {
         // Meta stores the OpenArt model id; the picker keys on id + media
         const match = openartModels.find(m => m.id === img.model && (!img.mediaType || m.media === img.mediaType));
@@ -915,7 +884,6 @@ export function useStudioState({
     selectedSubjects, setSelectedSubjects,
     viewMode, setViewMode,
     codexModel, setCodexModel,
-    agyModel, setAgyModel, agyModels,
     openartModel, setOpenartModel,
     size, setSize,
     customWidth, setCustomWidth,

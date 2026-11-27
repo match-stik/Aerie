@@ -8,7 +8,7 @@ import { enhanceWithCodex } from '../../services/studio-enhance.js';
 import type { GenerateInput } from '../../services/image-gen/common.js';
 import type { VoiceService } from '../../services/voice.js';
 
-const PAINTERS = ['codex', 'antigravity', 'openart'] as const;
+const PAINTERS = ['codex', 'openart'] as const;
 
 /**
  * What a paint request may choose (their person's ask, Nov 6 2026: the wand and the painter
@@ -26,7 +26,6 @@ export function paintChoices(body: Record<string, unknown>): { ok: true; input: 
   if (model) {
     if (!backend || backend === 'codex') input.codexModel = model;
     else if (backend === 'openart') { input.openartModel = model; input.openartMedia = 'image'; }
-    else if (backend === 'antigravity') input.agyModel = model;
   }
   return { ok: true, input };
 }

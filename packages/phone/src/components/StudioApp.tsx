@@ -14,7 +14,6 @@ import { GifApp } from './GifApp';
 import { CutoutApp } from './CutoutApp';
 import {
   ACCENT_TEXT_COLOR_BY_THEME,
-  ANTIGRAVITY_MODELS,
   CODEX_MODELS,
   OPENART_MODELS,
   DrawingCanvas,
@@ -49,7 +48,6 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
     drawers, selectedSubjects,
     viewMode, setViewMode,
     codexModel, setCodexModel,
-    agyModel, setAgyModel, agyModels,
     openartModel, setOpenartModel,
     size, setSize,
     customWidth, setCustomWidth,
@@ -111,7 +109,6 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
   } = useStudioState({
     themeMode,
     codexModels: CODEX_MODELS,
-    antigravityModels: ANTIGRAVITY_MODELS,
     openartModels: OPENART_MODELS,
     promptStyles: PROMPT_STYLES,
     sizePresets: SIZE_PRESETS,
@@ -343,9 +340,6 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
             backendStatus={backendStatus}
             codexModel={codexModel}
             setCodexModel={setCodexModel}
-            agyModel={agyModel}
-            setAgyModel={setAgyModel}
-            agyModels={agyModels}
             openartModel={openartModel}
             setOpenartModel={setOpenartModel}
             size={size}
@@ -525,7 +519,6 @@ export function StudioApp({ onClose, themeConfig, themeMode }: StudioAppProps) {
               </div>
               <div className={cn("p-3 rounded-lg text-xs space-y-2", colors.panelBorder, "border")}>
                 <p className={colors.textMain}><strong>Codex:</strong> Free image generation using your ChatGPT subscription. Supports reference subjects from your drawers.</p>
-                <p className={colors.textMain}><strong>Gemini:</strong> Free image generation using your Google One AI subscription via Antigravity CLI.</p>
                 <p className={colors.textMain}><strong>OpenArt:</strong> Images and video against your OpenArt credits. Trained character models live here.</p>
               </div>
               <button onClick={() => setShowSettings(false)} className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ background: 'var(--aerie-selected-fill)', color: 'var(--aerie-on-accent)' }}>Done</button>

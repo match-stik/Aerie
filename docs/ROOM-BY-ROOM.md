@@ -240,7 +240,7 @@ another.
 
 Pictures, in four tabs.
 
-**Create** makes images. Pick a **Backend** (Codex, Gemini, OpenArt, Mage), its
+**Create** makes images. Pick a **Backend** (Codex or OpenArt), its
 model, a **Size**, the **Reference Subjects** (whose reference photos to use, so
 faces stay faces), then write the **Prompt** and **Generate**. **Queue another**
 lines up the next one while this one draws. You can attach a **Sketch**; it

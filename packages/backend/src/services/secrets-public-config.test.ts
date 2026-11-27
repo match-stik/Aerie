@@ -18,11 +18,11 @@ test('the public view of the config never carries a secret row', async () => {
   const view = withoutSecrets!({
     'secret:discord_bot_token': 'x',
     'secret:elevenlabs_voice_id:companion-a': 'y',
-    'image_gen.fallback_chain': 'antigravity,openart',
+    'image_gen.fallback_chain': 'codex,openart',
     'heartbeat.autocompact_tokens': '800000',
   });
   assert.deepEqual(view, {
-    'image_gen.fallback_chain': 'antigravity,openart',
+    'image_gen.fallback_chain': 'codex,openart',
     'heartbeat.autocompact_tokens': '800000',
   });
 });

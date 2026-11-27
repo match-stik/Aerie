@@ -24,7 +24,6 @@ import { KNOWN_BACKENDS, planAttempts, runWithFallback, type ImageBackend } from
 import { IMAGE_GEN_ENGINE, JOBS_FILE, getImageGenSettings } from './image-gen/settings.js';
 import { GenerateInput, GenerateResult, ImageGenError } from './image-gen/common.js';
 import { generateViaCodex } from './image-gen/codex.js';
-import { generateViaAntigravity } from './image-gen/antigravity.js';
 import { generateViaOpenArt } from './image-gen/openart.js';
 import { generateViaOpenAi } from './image-gen/openai.js';
 import { cancelHooks, clearRunningJob, onRunningJobCancel, setRunningJob } from './image-gen/cancel.js';
@@ -35,7 +34,6 @@ export * from './image-gen/drawers.js';
 export * from './image-gen/gallery.js';
 export * from './image-gen/common.js';
 export * from './image-gen/codex.js';
-export * from './image-gen/antigravity.js';
 export * from './image-gen/openart.js';
 export * from './image-gen/openai.js';
 /** Only the metered backend is capped, and only when their person has set a figure. */
@@ -99,7 +97,6 @@ export async function generateImage(input: GenerateInput): Promise<GenerateResul
 
 function runOnBackend(backend: ImageBackend, input: GenerateInput): Promise<GenerateResult> {
   if (backend === 'openai') return generateViaOpenAi(input);
-  if (backend === 'antigravity') return generateViaAntigravity(input);
   if (backend === 'openart') return generateViaOpenArt(input);
   return generateViaCodex(input);
 }

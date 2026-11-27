@@ -2,7 +2,7 @@
 /**
  * Cancelling a Studio job. A pending job is
  * skipped when its turn comes. A running one frees the queue at once: the
- * child process it runs (Codex or Antigravity) is killed, and the job stops
+ * child process it runs (Codex) is killed, and the job stops
  * waiting on any backend it was polling. A backend that cannot be killed
  * mid-poll (OpenArt, Mage) may still finish in the background, and that
  * picture is discarded rather than delivered.

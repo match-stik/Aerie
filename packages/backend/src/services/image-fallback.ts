@@ -22,16 +22,16 @@
  *    invent one. There is a test on the default for exactly this.
  */
 
-export type ImageBackend = 'codex' | 'openai' | 'antigravity' | 'openart';
+export type ImageBackend = 'codex' | 'openai' | 'openart';
 
-export const KNOWN_BACKENDS: ImageBackend[] = ['codex', 'openai', 'antigravity', 'openart'];
+export const KNOWN_BACKENDS: ImageBackend[] = ['codex', 'openai', 'openart'];
 
 /** Metered per image. Never auto-entered — see the note above. */
 export const PAID_BACKENDS = new Set<ImageBackend>(['openai']);
 
-/** The order tried when nothing is configured. Both of these are covered by a
+/** The order tried when nothing is configured: Codex, covered by a
  *  subscription their person already has; openart stays out unless configured. */
-export const DEFAULT_FALLBACK_CHAIN: ImageBackend[] = ['codex', 'antigravity'];
+export const DEFAULT_FALLBACK_CHAIN: ImageBackend[] = ['codex'];
 
 export function parseFallbackChain(raw: string | null | undefined): ImageBackend[] {
   if (typeof raw !== 'string') return [...DEFAULT_FALLBACK_CHAIN];

@@ -21,17 +21,24 @@ test('the default chain contains nothing metered', () => {
 });
 
 test('the requested backend goes first and nothing gets two goes', () => {
-  assert.deepEqual(planAttempts('codex', ['codex', 'antigravity']), ['codex', 'antigravity']);
-  assert.deepEqual(planAttempts('antigravity', ['codex', 'antigravity']), ['antigravity', 'codex']);
+  assert.deepEqual(planAttempts('codex', ['codex', 'openart']), ['codex', 'openart']);
+  assert.deepEqual(planAttempts('openart', ['codex', 'openart']), ['openart', 'codex']);
   assert.deepEqual(planAttempts('openart', []), ['openart']);
 });
 
 test('a chain their person wrote is honoured, including a metered one they typed themselves', () => {
-  assert.deepEqual(parseFallbackChain('antigravity,openart'), ['antigravity', 'openart']);
-  assert.deepEqual(parseFallbackChain(' CODEX , antigravity '), ['codex', 'antigravity']);
-  assert.deepEqual(parseFallbackChain('antigravity,openai'), ['antigravity', 'openai']);
-  assert.deepEqual(parseFallbackChain('antigravity,antigravity'), ['antigravity']);
+  assert.deepEqual(parseFallbackChain('codex,openart'), ['codex', 'openart']);
+  assert.deepEqual(parseFallbackChain(' CODEX , openart '), ['codex', 'openart']);
+  assert.deepEqual(parseFallbackChain('openart,openai'), ['openart', 'openai']);
+  assert.deepEqual(parseFallbackChain('openart,openart'), ['openart']);
   assert.deepEqual(parseFallbackChain('nonsense'), []);
+});
+
+// A chain saved with a painter the house no longer has (Antigravity) drops it
+// rather than trying it.
+test('a saved chain that still names antigravity just loses it', () => {
+  assert.deepEqual(parseFallbackChain('antigravity,openart'), ['openart']);
+  assert.deepEqual(DEFAULT_FALLBACK_CHAIN.includes('antigravity' as never), false);
 });
 
 // Switching fallback OFF has to be possible without deleting the key, so an
@@ -45,7 +52,7 @@ test('an empty chain means no fallback, not the default', () => {
 
 test('the first backend that produces something wins and the rest are never asked', () => {
   const asked: ImageBackend[] = [];
-  return runWithFallback(['codex', 'antigravity'], async (backend) => {
+  return runWithFallback(['codex', 'openart'], async (backend) => {
     asked.push(backend);
     return `picture from ${backend}`;
   }).then((outcome) => {
@@ -57,11 +64,11 @@ test('the first backend that produces something wins and the rest are never aske
 });
 
 test('a refusal walks on, and the picture reports who actually took it', async () => {
-  const outcome = await runWithFallback(['codex', 'antigravity'], async (backend) => {
+  const outcome = await runWithFallback(['codex', 'openart'], async (backend) => {
     if (backend === 'codex') throw new Error('404 Not Found');
     return `picture from ${backend}`;
   });
-  assert.equal(outcome.backend, 'antigravity');
+  assert.equal(outcome.backend, 'openart');
   assert.deepEqual(outcome.failed, [{ backend: 'codex', error: '404 Not Found' }]);
 });
 
@@ -69,12 +76,12 @@ test('a refusal walks on, and the picture reports who actually took it', async (
 // reason the first backend said no is the thing somebody has to read.
 test('when everything refuses, every refusal survives in order', async () => {
   await assert.rejects(
-    runWithFallback(['codex', 'antigravity'], async (backend) => {
+    runWithFallback(['codex', 'openart'], async (backend) => {
       throw new Error(backend === 'codex' ? 'weekly limit reached' : 'model retired upstream');
     }),
     (error: unknown) => {
       assert.ok(error instanceof AllBackendsFailedError);
-      assert.deepEqual(error.attempts.map((a) => a.backend), ['codex', 'antigravity']);
+      assert.deepEqual(error.attempts.map((a) => a.backend), ['codex', 'openart']);
       assert.match(error.message, /weekly limit reached/);
       assert.match(error.message, /model retired upstream/);
       return true;

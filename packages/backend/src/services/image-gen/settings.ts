@@ -7,7 +7,6 @@ import { getConfig, getConfigBool, getConfigNumber } from '../db/config.js';
 import { getSecret } from '../secrets.js';
 import { parseFallbackChain, type ImageBackend } from '../image-fallback.js';
 import { isSafeSubjectSlug } from './drawers.js';
-import { knownAntigravityModels } from './antigravity-models.js';
 
 /** Engine tag recorded on usage_events for image generations. */
 export const IMAGE_GEN_ENGINE = 'image-gen';
@@ -72,38 +71,12 @@ export const ASPECT_RATIOS = Object.keys(SIZE_MAP);
 export type Quality = 'auto' | 'low' | 'medium' | 'high';
 const VALID_QUALITY: Quality[] = ['auto', 'low', 'medium', 'high'];
 
-/**
- * The Gemini models Studio will accept, kept in step with what the Antigravity
- * CLI actually offers. This list is HAND-TYPED — there is no endpoint to read
- * it from — so it drifts silently as Google retires models upstream. It sat at
- * the 3.5 era until Sep 5 2026, months after 3.5 stopped existing, which made
- * every Gemini fallback fail at the door with a picker full of dead options.
- * The CLI will print the live list if you hand it a name it does not know:
- *   agy --model ZZZ -p hi
- * Non-image models (Claude, GPT-OSS) are deliberately not here. Read Nov 6 2026
- * with `agy models`: only 3.8 Flash is left, so 3.7, 3.6 and 3.1 Pro came out.
- */
-export const ANTIGRAVITY_MODELS = [
-  'Gemini 3.8 Flash (High)',
-  'Gemini 3.8 Flash (Medium)',
-  'Gemini 3.8 Flash (Low)',
-] as const;
-
-/** The one that has actually been seen to take a picture. Defined once because a
- *  duplicated default drifts even when both copies start out identical. agy
- *  stopped offering Gemini 3.1 Pro by Oct 2026 ('invalid model selection'),
- *  so every refused Codex job skipped this painter; 3.8 Flash (High) draws. */
-export const ANTIGRAVITY_DEFAULT_MODEL = 'Gemini 3.8 Flash (High)' as const;
-
-export type AntigravityModel = typeof ANTIGRAVITY_MODELS[number];
-
 export interface ImageGenSettings {
   enabled: boolean;
-  backend: 'codex' | 'openai' | 'antigravity' | 'openart';
+  backend: 'codex' | 'openai' | 'openart';
   size: 'square' | 'portrait' | 'landscape';
   quality: Quality;
   openaiModel: string;
-  antigravityModel: AntigravityModel;
   openartModel: string;
   monthlyBudgetUsd: number;
   hasOpenaiKey: boolean;
@@ -111,30 +84,16 @@ export interface ImageGenSettings {
   fallbackChain: ImageBackend[];
 }
 
-export const ANTIGRAVITY_DEFAULT_TIMEOUT_SECONDS = 150;
-
-/** Seconds Antigravity gets, from image_gen.antigravity_timeout_seconds; a
- *  missing or nonsense value means the default, and it is held between half a
- *  minute and ten. */
-export function antigravityTimeoutMs(raw: unknown = getConfig('image_gen.antigravity_timeout_seconds')): number {
-  const n = Number(raw);
-  const seconds = Number.isFinite(n) && n > 0 ? Math.min(600, Math.max(30, n)) : ANTIGRAVITY_DEFAULT_TIMEOUT_SECONDS;
-  return seconds * 1000;
-}
-
 export function getImageGenSettings(): ImageGenSettings {
   const backend = (getConfig('image_gen.backend') as ImageGenSettings['backend']) || 'codex';
   const size = (getConfig('image_gen.size') as ImageGenSettings['size']) || 'square';
   const quality = (getConfig('image_gen.quality') as Quality) || 'auto';
-  const antigravityModel = getConfig('image_gen.antigravity_model') as AntigravityModel || ANTIGRAVITY_DEFAULT_MODEL;
   return {
     enabled: getConfigBool('image_gen.enabled', true),
-    backend: ['codex', 'openai', 'antigravity', 'openart'].includes(backend) ? backend as ImageGenSettings['backend'] : 'codex',
+    backend: ['codex', 'openai', 'openart'].includes(backend) ? backend as ImageGenSettings['backend'] : 'codex',
     size: SIZE_MAP[size] ? size : 'square',
     quality: VALID_QUALITY.includes(quality) ? quality : 'auto',
     openaiModel: getConfig('image_gen.openai_model') || 'gpt-image-2',
-    // The account's own list when it has been read (antigravity-models.ts).
-    antigravityModel: knownAntigravityModels().includes(antigravityModel) ? antigravityModel : ANTIGRAVITY_DEFAULT_MODEL,
     openartModel: getConfig('image_gen.openart_model') || 'nano-banana-2-lite',
     monthlyBudgetUsd: getConfigNumber('image_gen.monthly_budget_usd', 0),
     hasOpenaiKey: !!getConfig('image_gen.openai_api_key'),
@@ -154,14 +113,6 @@ export function codexHome(): string {
   return getConfig('image_gen.codex_home') || process.env.CODEX_HOME || join(homedir(), '.codex');
 }
 
-export function antigravityHome(): string {
-  return getConfig('image_gen.antigravity_home') || join(homedir(), '.gemini', 'antigravity-cli');
-}
-
-export function antigravityBin(): string {
-  return getConfig('image_gen.antigravity_bin') || join(homedir(), '.local', 'bin', 'agy');
-}
-
 // ─── Backend readiness ───────────────────────────────────────────────
 
 /**
@@ -171,7 +122,7 @@ export function antigravityBin(): string {
  * so the picker can say up front which doors are actually open.
  */
 
-export type StudioBackendKey = 'codex' | 'antigravity' | 'openart';
+export type StudioBackendKey = 'codex' | 'openart';
 
 export interface StudioBackendStatus {
   key: StudioBackendKey;
@@ -187,16 +138,12 @@ export interface StudioBackendStatus {
 export interface StudioBackendPaths {
   codexBin: string;
   codexHome: string;
-  antigravityBin: string;
-  antigravityHome: string;
 }
 
 function resolveBackendPaths(overrides?: Partial<StudioBackendPaths>): StudioBackendPaths {
   return {
     codexBin: overrides?.codexBin ?? codexBin(),
     codexHome: overrides?.codexHome ?? codexHome(),
-    antigravityBin: overrides?.antigravityBin ?? antigravityBin(),
-    antigravityHome: overrides?.antigravityHome ?? antigravityHome(),
   };
 }
 
@@ -207,22 +154,6 @@ function codexReady(paths: StudioBackendPaths): StudioBackendStatus {
   }
   if (!existsSync(join(paths.codexHome, 'auth.json'))) {
     return { ...base, ready: false, reason: 'Codex is installed but not signed in.', fix: 'codex login' };
-  }
-  return { ...base, ready: true };
-}
-
-function antigravityReady(paths: StudioBackendPaths): StudioBackendStatus {
-  const base = { key: 'antigravity' as const, label: 'Gemini' };
-  if (!existsSync(paths.antigravityBin)) {
-    return {
-      ...base,
-      ready: false,
-      reason: 'Antigravity CLI is not installed. Needs a Google account; the free tier is rate-limited.',
-      fix: 'curl -fsSL https://antigravity.google/cli/install.sh | bash',
-    };
-  }
-  if (!existsSync(paths.antigravityHome)) {
-    return { ...base, ready: false, reason: 'Antigravity is installed but not signed in.', fix: 'agy (sign in on first run)' };
   }
   return { ...base, ready: true };
 }
@@ -249,7 +180,7 @@ function openartReady(paths: StudioBackendPaths): StudioBackendStatus {
 /** Readiness of every backend the Studio picker offers, in picker order. */
 export function probeStudioBackends(overrides?: Partial<StudioBackendPaths>): StudioBackendStatus[] {
   const paths = resolveBackendPaths(overrides);
-  return [codexReady(paths), antigravityReady(paths), openartReady(paths)];
+  return [codexReady(paths), openartReady(paths)];
 }
 
 // ─── Drawers (named reference sets) ──────────────────────────────────

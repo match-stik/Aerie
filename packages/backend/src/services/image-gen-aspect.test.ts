@@ -60,22 +60,3 @@ test('the phone offers exactly the ratios the backend can render', () => {
     'the picker and the renderer have drifted: a ratio is selectable and unrenderable, or renderable and unreachable',
   );
 });
-
-// The phone's own comment says this list MUST match the backend's. Nothing
-// enforced it, and a Gemini model the backend does not recognise is silently
-// ignored — the request quietly runs on the default instead, which is exactly
-// what happened for months while the 3.5 family sat dead in both files.
-test('the phone offers exactly the Antigravity models the backend accepts', () => {
-  // The backend's array closes with `] as const;`, so a lazy match for `];`
-  // runs past it and swallows the default-model constant underneath.
-  const backendBlock = /export const ANTIGRAVITY_MODELS = \[([\s\S]*?)\](?: as const)?;/.exec(backendSource);
-  const phoneBlock = /export const ANTIGRAVITY_MODELS = \[([\s\S]*?)\](?: as const)?;/.exec(phoneSource);
-  assert.ok(backendBlock && phoneBlock, 'both lists must still be findable by name');
-  const backendModels = [...backendBlock[1].matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
-  const phoneModels = [...phoneBlock[1].matchAll(/id: '([^']+)'/g)].map((m) => m[1]).sort();
-  assert.ok(backendModels.length > 0 && phoneModels.length > 0, 'neither list may read as empty');
-  assert.deepEqual(
-    phoneModels, backendModels,
-    'the Studio picker and the renderer disagree about which Gemini models exist',
-  );
-});

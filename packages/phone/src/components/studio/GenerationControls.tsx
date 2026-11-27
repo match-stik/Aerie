@@ -10,7 +10,6 @@ import { HouseSelect } from '../HouseSelect';
 
 const BACKEND_BUTTONS: ReadonlyArray<{ key: Backend; label: string }> = [
   { key: 'codex', label: 'Codex' },
-  { key: 'antigravity', label: 'Gemini' },
   { key: 'openart', label: 'OpenArt' },
 ];
 
@@ -58,7 +57,6 @@ export function GenerationControls({
   backend, setBackend,
   backendStatus,
   codexModel, setCodexModel,
-  agyModel, setAgyModel, agyModels,
   openartModel, setOpenartModel,
   size, setSize,
   customWidth, setCustomWidth,
@@ -136,23 +134,6 @@ export function GenerationControls({
         </div>
       )}
 
-      {/* Model Picker (Antigravity/Gemini) */}
-      {backend === 'antigravity' && (
-        <div>
-          <label className={cn("block text-xs font-medium mb-1.5 uppercase tracking-wide", colors.textMuted)}>Gemini Model</label>
-          <HouseSelect
-            value={agyModel}
-            onChange={(e) => setAgyModel(e.target.value)}
-            className={cn("w-full px-3 py-2 rounded-lg border text-sm", colors.panelBg, colors.panelBorder, colors.textMain, "focus:outline-none focus:ring-2")}
-            style={{ '--tw-ring-color': colors.accent } as CSSProperties}
-          >
-            {agyModels.map(m => (
-              <option key={m.id} value={m.id}>{m.desc ? `${m.name} — ${m.desc}` : m.name}</option>
-            ))}
-          </HouseSelect>
-        </div>
-      )}
-
       {/* Model Picker (OpenArt — images and video) */}
       {backend === 'openart' && (
         <div>
@@ -213,8 +194,8 @@ export function GenerationControls({
         )}
       </div>
 
-      {/* Reference Subjects (Codex/Antigravity/OpenArt) */}
-      {(backend === 'codex' || backend === 'antigravity' || backend === 'openart') && drawers.length > 0 && (
+      {/* Reference Subjects (Codex/OpenArt) */}
+      {(backend === 'codex' || backend === 'openart') && drawers.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className={cn("text-xs font-medium uppercase tracking-wide", colors.textMuted)}>Reference Subjects</label>

@@ -6,7 +6,8 @@ import { paintChoices } from './paint.js';
 test('the paint door hands each painter its model on the field that painter reads', () => {
   assert.deepEqual(paintChoices({ backend: 'codex', model: 'gpt-6.1-sol' }), { ok: true, input: { backend: 'codex', codexModel: 'gpt-6.1-sol' } });
   assert.deepEqual(paintChoices({ backend: 'openart', model: 'nano-banana-pro' }), { ok: true, input: { backend: 'openart', openartModel: 'nano-banana-pro', openartMedia: 'image' } });
-  assert.deepEqual(paintChoices({ backend: 'Antigravity' }), { ok: true, input: { backend: 'antigravity' } });
+  assert.deepEqual(paintChoices({ backend: 'OpenArt' }), { ok: true, input: { backend: 'openart' } });
+  assert.equal(paintChoices({ backend: 'antigravity' }).ok, false, 'Antigravity is not a painter here');
   assert.deepEqual(paintChoices({}), { ok: true, input: {} });
   assert.equal(paintChoices({ backend: 'openai' }).ok, false);
 });

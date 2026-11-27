@@ -18,7 +18,6 @@ export interface GenerateInput {
   extraRefs?: string[];
   backend?: string;
   codexModel?: string;
-  agyModel?: string;
   openartModel?: string;
   openartMedia?: 'image' | 'video';
 }
@@ -26,7 +25,7 @@ export interface GenerateInput {
 export interface GenerateResult {
   filename: string;
   path: string;
-  backend: 'codex' | 'openai' | 'antigravity' | 'openart';
+  backend: 'codex' | 'openai' | 'openart';
   model: string;
   mediaType?: 'image' | 'video';
   durationMs: number;

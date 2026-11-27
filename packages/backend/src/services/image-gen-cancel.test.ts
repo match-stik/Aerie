@@ -14,16 +14,16 @@ process.env.AERIE_STUDIO_JOBS_FILE = join(scratch, 'studio-image-jobs.json');
 
 const { initDb } = await import('./db/init.js');
 const { setConfig } = await import('./db/config.js');
-const { startGenerateJob, getJobStatus, cancelImageJob, antigravityTimeoutMs } = await import('./image-gen.js');
+const { startGenerateJob, getJobStatus, cancelImageJob } = await import('./image-gen.js');
 
 initDb(':memory:');
 test.after(() => rmSync(scratch, { recursive: true, force: true }));
 
 // A painter that hangs, and says when it started.
 const pidFile = join(scratch, 'painter.pid');
-const fakeAgy = join(scratch, 'agy');
-writeFileSync(fakeAgy, `#!/bin/sh\necho $$ > ${pidFile}\nexec sleep 120\n`);
-chmodSync(fakeAgy, 0o755);
+const fakeCodex = join(scratch, 'codex');
+writeFileSync(fakeCodex, `#!/bin/sh\necho $$ > ${pidFile}\nexec sleep 120\n`);
+chmodSync(fakeCodex, 0o755);
 
 async function until(fn: () => boolean, label: string): Promise<void> {
   for (let i = 0; i < 300; i++) { if (fn()) return; await new Promise((r) => setTimeout(r, 20)); }
@@ -33,12 +33,13 @@ const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catc
 
 test('a running picture can be cancelled, its painter is killed, and the queue moves on', async () => {
   setConfig('image_gen.enabled', 'true');
-  setConfig('image_gen.backend', 'antigravity');
+  setConfig('image_gen.backend', 'codex');
   setConfig('image_gen.fallback_chain', '');
-  setConfig('image_gen.antigravity_bin', fakeAgy);
+  setConfig('image_gen.codex_bin', fakeCodex);
+  setConfig('image_gen.codex_home', scratch);
   const failures: string[] = [];
-  const first = startGenerateJob({ prompt: 'A pumpkin on a porch.', backend: 'antigravity' }, undefined, (e) => { failures.push(e); });
-  const second = startGenerateJob({ prompt: 'Another pumpkin.', backend: 'antigravity' });
+  const first = startGenerateJob({ prompt: 'A pumpkin on a porch.', backend: 'codex' }, undefined, (e) => { failures.push(e); });
+  const second = startGenerateJob({ prompt: 'Another pumpkin.', backend: 'codex' });
   await until(() => getJobStatus(first)?.status === 'running' && existsSync(pidFile), 'first job running');
   const pid = Number(readFileSync(pidFile, 'utf8').trim());
   rmSync(pidFile);
@@ -51,19 +52,11 @@ test('a running picture can be cancelled, its painter is killed, and the queue m
   assert.deepEqual(failures, ['Cancelled.'], 'a caller keeping its own record hears it');
 
   // A pending job is skipped when its turn comes; cancel the running one too.
-  const third = startGenerateJob({ prompt: 'A third.', backend: 'antigravity' });
+  const third = startGenerateJob({ prompt: 'A third.', backend: 'codex' });
   assert.equal(cancelImageJob(third).ok, true);
   assert.equal(cancelImageJob(second).ok, true);
   await new Promise((r) => setTimeout(r, 200));
   assert.equal(getJobStatus(third)!.status, 'cancelled', 'never started');
   assert.equal(existsSync(pidFile) && alive(Number(readFileSync(pidFile, 'utf8'))), false, 'no painter left running');
   assert.equal(cancelImageJob(first).ok, false, 'a finished job cannot be cancelled twice');
-});
-
-test('Antigravity gets two and a half minutes unless they say otherwise, held between half a minute and ten', () => {
-  assert.equal(antigravityTimeoutMs(undefined), 150_000);
-  assert.equal(antigravityTimeoutMs('90'), 90_000);
-  assert.equal(antigravityTimeoutMs('5'), 30_000);
-  assert.equal(antigravityTimeoutMs('9999'), 600_000);
-  assert.equal(antigravityTimeoutMs('nonsense'), 150_000);
 });

@@ -7,7 +7,6 @@ test('the cap only applies to the metered backend, and only when their person se
   assert.equal(budgetApplies('openai', 5), true);
   assert.equal(budgetApplies('openai', 0), false, 'no figure means no cap');
   assert.equal(budgetApplies('codex', 5), false, 'codex is free');
-  assert.equal(budgetApplies('antigravity', 5), false);
   assert.equal(budgetApplies('openart', 5), false);
 });
 

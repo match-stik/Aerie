@@ -60,21 +60,6 @@ router.get('/usage/codex', async (req, res) => {
   }
 });
 
-// Antigravity model quota. Read by asking the CLI's own /usage
-// slash command headlessly; it costs no model turn and answers in under a
-// second. Same shape as the Codex reader: ask the tool what it already knows
-// rather than asking the provider ourselves.
-router.get('/usage/antigravity', async (req, res) => {
-  try {
-    const { getAntigravityUsage } = await import('../../services/antigravity-usage.js');
-    res.json(await getAntigravityUsage());
-  } catch (error) {
-    res.status(502).json({
-      error: error instanceof Error ? error.message : 'Antigravity usage unavailable',
-    });
-  }
-});
-
 // Painter credits — OpenArt credits and Mage gems, each read on its own so one
 // failing still shows the other. Cached 60s.
 router.get('/usage/images', async (_req, res) => {

@@ -23,23 +23,6 @@ export const CODEX_MODELS = [
   // upgrade), so none of the three is offered here any more.
 ];
 
-// Hand-typed, and it must match ANTIGRAVITY_MODELS in the backend's
-// image-gen.ts — a model the backend does not recognise is silently ignored
-// and the request quietly runs on the default instead. Refreshed Sep 5 2026;
-// the 3.5 family was retired upstream and had been dead in here for months.
-// Trimmed Nov 6 2026 to what `agy models` lists: 3.8 Flash only; 3.7, 3.6 and
-// 3.1 Pro are gone upstream.
-export const ANTIGRAVITY_MODELS = [
-  { id: 'Gemini 3.8 Flash (High)', name: 'Flash 3.8 High', desc: 'Best Quality' },
-  { id: 'Gemini 3.8 Flash (Medium)', name: 'Flash 3.8 Med', desc: 'Balanced' },
-  { id: 'Gemini 3.8 Flash (Low)', name: 'Flash 3.8 Low', desc: 'Fastest' },
-];
-
-/** The backend's default too (settings.ts); 3.1 Pro had sat here after agy
- *  dropped it. Also the recovery value for a phone still holding a retired
- *  model in localStorage. */
-export const ANTIGRAVITY_DEFAULT_MODEL = 'Gemini 3.8 Flash (High)';
-
 // OpenArt models — key is the picker value (kling-3-omni appears twice, once
 // per media). Credit costs are list price at default config; MCP-originated
 // generations get the account's 10% discount.

@@ -26,7 +26,7 @@ test('the bell asks for the same model Studio falls back to, and a fresh install
 });
 
 test('another backend is named, and the codex-only key does not ride along', () => {
-  assert.equal(imageBackendClause('antigravity'), 'backend:"antigravity", ');
+  assert.equal(imageBackendClause('mage'), 'backend:"mage", ');
   assert.doesNotMatch(imageBackendClause('openart'), /codexModel/);
 });
 

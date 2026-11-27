@@ -372,17 +372,6 @@ export async function initCcRoutes() {
   }
 }
 
-router.get('/usage/antigravity', async (req, res) => {
-  try {
-    const { getAntigravityUsage } = await import('../services/antigravity-usage.js');
-    res.json(await getAntigravityUsage());
-  } catch (error) {
-    res.status(502).json({
-      error: error instanceof Error ? error.message : 'Antigravity usage unavailable',
-    });
-  }
-});
-
 // Wipe cached TTS audio. With no body, clears every cached file —
 // useful when the splitter changed and you want existing messages
 // re-generated under the new rules. With { messageId }, clears one.

@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { apiFetch } from '../aerie';
-import { usedFromRemaining } from '../lib/antigravity-meter';
 
 interface ClaudeLimitRow {
   kind: string;
@@ -63,19 +62,6 @@ interface CodexUsage {
   limitReached: string | null;
 }
 
-interface AntigravityLimitRow {
-  group: string;
-  label: string;
-  /** As the CLI reports it: percent REMAINING, not used. */
-  remainingPercent: number;
-  resetsAt: string | null;
-}
-
-interface AntigravityUsage {
-  limits: AntigravityLimitRow[];
-  readAt: string | null;
-}
-
 interface PainterBalance {
   balance: number;
   unit: 'credits' | 'gems';
@@ -113,21 +99,6 @@ function windowLabel(minutes: number | null): string {
   return 'window';
 }
 
-/**
- * Keep the CLI's own order while collecting each group's rows together.
- * A Map preserves insertion order, so Gemini stays above Claude/GPT exactly
- * as `agy` printed them rather than being sorted into something tidier.
- */
-function antigravityGroups(rows: AntigravityLimitRow[]): Array<[string, AntigravityLimitRow[]]> {
-  const groups = new Map<string, AntigravityLimitRow[]>();
-  for (const row of rows) {
-    const existing = groups.get(row.group);
-    if (existing) existing.push(row);
-    else groups.set(row.group, [row]);
-  }
-  return [...groups.entries()];
-}
-
 function severityColor(severity: string, accent: string): string {
   if (severity === 'critical' || severity === 'exceeded' || severity === 'blocked') return '#ef4444';
   if (severity !== 'normal') return '#f59e0b';
@@ -162,8 +133,6 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
   const [claudeError, setClaudeError] = useState<string | null>(null);
   const [codex, setCodex] = useState<CodexUsage | null>(null);
   const [codexError, setCodexError] = useState<string | null>(null);
-  const [antigravity, setAntigravity] = useState<AntigravityUsage | null>(null);
-  const [antigravityError, setAntigravityError] = useState<string | null>(null);
   const [images, setImages] = useState<ImageCredits | null>(null);
   const [imagesError, setImagesError] = useState<string | null>(null);
 
@@ -270,39 +239,6 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
         setCodexError(null);
       } catch (err) {
         if (!cancelled) setCodexError(err instanceof Error ? err.message : 'Codex usage unavailable.');
-      }
-    })();
-    (async () => {
-      try {
-        const res = await apiFetch('/api/usage/antigravity');
-        const data = await res.json().catch(() => null) as (Partial<AntigravityUsage> & { error?: unknown }) | null;
-        if (cancelled) return;
-        if (!res.ok) {
-          throw new Error(typeof data?.error === 'string' && data.error ? data.error : `load failed (${res.status})`);
-        }
-        if (!Array.isArray(data?.limits)) {
-          setAntigravityError(WAITING_NOTE);
-          return;
-        }
-        const limits: AntigravityLimitRow[] = data.limits
-          .filter((l): l is AntigravityLimitRow =>
-            !!l && typeof l === 'object'
-            && typeof (l as AntigravityLimitRow).label === 'string'
-            && typeof (l as AntigravityLimitRow).remainingPercent === 'number')
-          .map((l) => ({
-            group: typeof l.group === 'string' ? l.group : '',
-            label: l.label,
-            remainingPercent: l.remainingPercent,
-            resetsAt: typeof l.resetsAt === 'string' ? l.resetsAt : null,
-          }));
-        if (!limits.length) {
-          setAntigravityError('Antigravity answered with no readable limits.');
-          return;
-        }
-        setAntigravity({ limits, readAt: typeof data.readAt === 'string' ? data.readAt : null });
-        setAntigravityError(null);
-      } catch (err) {
-        if (!cancelled) setAntigravityError(err instanceof Error ? err.message : 'Antigravity usage unavailable.');
       }
     })();
     (async () => {
@@ -501,48 +437,6 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
         )}
       </div>
 
-      <div className={cn('rounded-2xl border p-3 mb-3', colors.panelBg, colors.panelBorder)}>
-        <div className={cn('text-[11px] font-bold uppercase tracking-[0.12em] mb-2', colors.textMuted)}>
-          Antigravity usage
-        </div>
-        {antigravity ? (
-          <>
-            {antigravityGroups(antigravity.limits).map(([group, rows]) => (
-              <div key={group} className="mb-2 last:mb-0">
-                {group ? (
-                  <div className={cn('text-[10px] mb-1', colors.textMuted)}>{group}</div>
-                ) : null}
-                {rows.map((row) => {
-                  const used = usedFromRemaining(row.remainingPercent);
-                  return (
-                    <div key={`${group}-${row.label}`} className="mb-1.5 last:mb-0">
-                      <div className={cn('h-1.5 rounded-full overflow-hidden mb-1', barTrack)}>
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${Math.max(2, used)}%`, backgroundColor: colors.accent }}
-                        />
-                      </div>
-                      <div className={cn('text-[11px]', colors.textMain)}>
-                        {row.label.replace(/\s*Remaining$/i, '')} {used}% used
-                        {row.resetsAt ? (
-                          <span className={cn('ml-1', colors.textMuted)}>· resets {formatReset(row.resetsAt)}</span>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-            {antigravity.readAt ? (
-              <div className={cn('text-[10px] mt-0.5', colors.textMuted)}>
-                as of {formatReset(antigravity.readAt)}
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <p className={cn('text-[10px] italic', colors.textMuted)}>{antigravityError || 'Loading…'}</p>
-        )}
-      </div>
       <div className={cn('rounded-2xl border p-3 mb-3', colors.panelBg, colors.panelBorder)}>
         <div className={cn('text-[11px] font-bold uppercase tracking-[0.12em] mb-2', colors.textMuted)}>
           Painter credits
