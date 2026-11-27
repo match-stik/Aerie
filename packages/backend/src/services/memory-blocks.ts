@@ -94,6 +94,37 @@ export function deleteBlock(scope: string, label: string): void {
   getDb().prepare('DELETE FROM memory_blocks WHERE scope = ? AND label = ?').run(scope, label);
 }
 
+// Walls the house reads by name, so they keep the names it looks for.
+export const FIXED_LABELS: readonly string[] = ['persona', 'human', 'status'];
+
+/** A wall name as this house writes one: lowercase words joined by _ or -. */
+export function cleanLabel(raw: string): string {
+  return String(raw || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/_+/g, '_').replace(/^[_-]+|[_-]+$/g, '').slice(0, 60);
+}
+
+/**
+ * Give a wall a new name. Its words, description and
+ * load setting move with it. Never onto a wall that already exists, and never
+ * away from a name the house reads by name.
+ */
+export function renameBlock(scope: string, from: string, toRaw: string): string {
+  const to = cleanLabel(toRaw);
+  if (!to) throw new Error('Give it a name.');
+  if (to === from) return to;
+  const block = getBlock(scope, from);
+  if (!block) throw new Error(`There is no wall ${scope}/${from}.`);
+  if (FIXED_LABELS.includes(from)) throw new Error(`${from} is a name the house reads by, so it keeps it.`);
+  if (getBlock(scope, to)) throw new Error(`${scope}/${to} already exists. Pick another name, or add the words to it instead.`);
+  const db = getDb();
+  db.transaction(() => {
+    db.prepare("UPDATE memory_blocks SET label = ?, updated_at = datetime('now') WHERE scope = ? AND label = ?").run(to, scope, from);
+    const mode = wallLoad(scope, from);
+    setWallLoad(scope, from, 'always');
+    setWallLoad(scope, to, mode);
+  })();
+  return to;
+}
+
 // Append a line to a block, creating the block if it doesn't exist
 export function appendToBlock(scope: string, label: string, content: string): string {
   const block = getBlock(scope, label);

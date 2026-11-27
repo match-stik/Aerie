@@ -34,7 +34,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'image', label: 'Images' },
   { id: 'audio', label: 'Audio' },
   { id: 'file', label: 'Files' },
-  { id: 'orphan', label: 'Orphans' },
+  { id: 'orphan', label: 'Unused' },
 ];
 
 function formatSize(bytes: number): string {
@@ -261,7 +261,7 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
           {orphanCount > 0 && (
             <>
               <span>·</span>
-              <span style={{ color: colors.accent }}>{orphanCount} orphan{orphanCount === 1 ? '' : 's'}</span>
+              <span style={{ color: colors.accent }}>{orphanCount} unused</span>
             </>
           )}
         </div>
@@ -273,7 +273,7 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
               style={{ color: colors.accent, borderColor: colors.accent }}
               title="Delete every file not referenced by any message"
             >
-              Clean orphans
+              Clear unused
             </button>
           )}
           {filter !== 'all' && filtered.length > 0 && (
@@ -293,7 +293,7 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
         <div className={cn('rounded-xl border p-3 mb-3', colors.panelBg)} style={{ borderColor: `${colors.accent}50` }}>
           <p className={cn('text-xs font-medium mb-2', colors.textMain)}>
             {bulkConfirm === 'orphans'
-              ? `Delete ${orphanCount} orphan file${orphanCount === 1 ? '' : 's'}? Files not referenced by any message will be removed from disk.`
+              ? `Delete ${orphanCount} unused file${orphanCount === 1 ? '' : 's'}? Nothing in the house points at them anymore, so they'll be removed from the server.`
               : `Delete all ${filtered.length} ${filter} file${filtered.length === 1 ? '' : 's'} currently visible? This cannot be undone.`}
           </p>
           <div className="flex gap-2">
@@ -333,7 +333,7 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
         <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>Loading files…</div>
       ) : filtered.length === 0 ? (
         <div className={cn('rounded-2xl border', colors.panelBg, colors.panelBorder, 'text-xs py-6 text-center', colors.textMuted)}>
-          {filter === 'orphan' ? 'No orphaned files.' : filter === 'all' ? 'No files uploaded yet.' : `No ${filter} files.`}
+          {filter === 'orphan' ? 'No unused files.' : filter === 'all' ? 'No files uploaded yet.' : `No ${filter} files.`}
         </div>
       ) : (
         <div className="space-y-2">
@@ -364,7 +364,7 @@ export function FilesApp({ onClose, themeConfig, themeMode, embedded }: FilesApp
                 </div>
                 <div className={cn('text-[11px] mt-1', colors.textMuted)}>
                   {formatSize(file.size)} · {formatDate(file.createdAt)}
-                  {!file.inUse && <span style={{ color: colors.accent }}> · orphan</span>}
+                  {!file.inUse && <span style={{ color: colors.accent }}> · unused</span>}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   {/* Images, audio and now anything readable open in-app.

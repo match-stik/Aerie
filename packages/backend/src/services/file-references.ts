@@ -11,6 +11,13 @@
  */
 import type Database from 'better-sqlite3';
 
+const LINKED_FILE = /(?:\/api\/files|data\/files)\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/gi;
+
+/** Every stored-file id a piece of text names, by link or by path. */
+export function addLinkedIds(text: string, into: Set<string>): void {
+  for (const match of text.matchAll(LINKED_FILE)) into.add(match[1].toLowerCase());
+}
+
 export function fileIdsInUse(db: Database.Database): Set<string> {
   const usedFileIds = new Set<string>();
 
@@ -28,13 +35,29 @@ export function fileIdsInUse(db: Database.Database): Set<string> {
     } catch { /* skip malformed metadata */ }
   }
 
-  // Also scan message content for /api/files/<id> links
+  // Also scan message content for links to a stored file. Two spellings count:
+  // /api/files/<id> (a link the phone or a reply made) and data/files/<id> (the
+  // path the Inbox app hands them to paste).
   const contentRows = db.prepare('SELECT content FROM messages WHERE content IS NOT NULL AND deleted_at IS NULL').all() as Array<{ content: string }>;
-  const fileIdPattern = /\/api\/files\/([a-f0-9-]{36})/gi;
-  for (const row of contentRows) {
-    let match;
-    while ((match = fileIdPattern.exec(row.content)) !== null) {
-      usedFileIds.add(match[1]);
+  for (const row of contentRows) addLinkedIds(row.content, usedFileIds);
+
+  // The memory walls name files too (a report they dropped in, kept on a wall
+  // by its path), and a wall is read every session, so what it names stays.
+  // An artifact's code can show stored pictures, and Cortex's local copy
+  // of a memory can name a file they kept. Both are read like a message.
+  for (const table of ['artifacts:code', 'cortex_memory_embeddings:content']) {
+    const [name, col] = table.split(':');
+    if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name)) continue;
+    for (const row of db.prepare(`SELECT ${col} AS text FROM ${name} WHERE ${col} IS NOT NULL`).all() as Array<{ text: string }>) {
+      if (typeof row.text === 'string') addLinkedIds(row.text, usedFileIds);
+    }
+  }
+
+  // The table is made the first time memory is touched, so a house that has
+  // never opened it has none, which is not an error.
+  if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'memory_blocks'").get()) {
+    for (const row of db.prepare('SELECT content FROM memory_blocks WHERE content IS NOT NULL').all() as Array<{ content: string }>) {
+      addLinkedIds(row.content, usedFileIds);
     }
   }
 

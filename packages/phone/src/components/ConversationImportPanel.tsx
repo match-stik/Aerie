@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-// The Memory app's Import tab, second half: old chats back word for word.
+// The Memory app's Import tab, first half: old chats back word for word.
 // A ChatGPT or Claude data export (the zip they email, or the conversations.json
 // inside it) goes to the house, which cuts it into passages on its own machine,
 // with no model reading it and no key, so the whisper can hand an old line back
@@ -67,10 +67,10 @@ export function ConversationImportPanel({ colors }: Props) {
       <div className="text-sm space-y-1">
         <div className="font-medium">Bring old chats back, word for word</div>
         <div className={cn('text-xs', colors.textMuted)}>
-          Pick a ChatGPT, Claude or Grok data export (the zip they email you, or the conversations.json inside it, or Grok's prod-grok-backend.json), a Copilot activity export (the CSV), or Gemini's: from Google Takeout, tick only My Activity with just Gemini Apps inside it, and pick the zip or the MyActivity.json in it. The house cuts every chat into passages on its own machine, with no model reading them and no key needed, so the exact words can come back in conversation. Running the same export twice adds nothing. If the zip is very big and won't send, unzip it and pick just the conversations.json inside. A very large export (around 100MB of chats) still takes a lot of the house's memory while it reads, so if the house restarts partway through, split it into smaller files and import them one at a time; chats already in are skipped.
+          Pick a ChatGPT, Claude or Grok data export (the zip they email you, or the conversations.json inside it, or Grok's prod-grok-backend.json), a Copilot activity export (the CSV), or Gemini's: from Google Takeout, tick only My Activity with just Gemini Apps inside it, and pick the zip or the MyActivity.json in it. From Letta: in your user folder, open .letta; zip the transcripts folder (the Letta app) or the lc-local-backend folder (Letta running on your own computer) and pick the zip, or pick one conversation's transcript.jsonl or messages.jsonl. The house cuts every chat into passages on its own machine, with no model reading them and no key needed, so the exact words can come back in conversation. Running the same export twice adds nothing. If the zip is very big and won't send, unzip it and pick just the conversations.json inside. A very large export (around 100MB of chats) still takes a lot of the house's memory while it reads, so if the house restarts partway through, split it into smaller files and import them one at a time; chats already in are skipped.
         </div>
       </div>
-      <input ref={inputRef} type="file" accept=".zip,.json,.csv,application/zip,application/json,text/csv" className="hidden" onChange={(e) => { void onPick(e.target.files); e.target.value = ''; }} />
+      <input ref={inputRef} type="file" accept=".zip,.json,.jsonl,.csv,application/zip,application/json,text/csv" className="hidden" onChange={(e) => { void onPick(e.target.files); e.target.value = ''; }} />
       <button
         onClick={() => inputRef.current?.click()}
         disabled={sending || RUNNING(job)}

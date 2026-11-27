@@ -2,7 +2,7 @@
 import { promises as fs } from 'fs';
 import { join, extname, basename } from 'path';
 import { GALLERY_DIR, IMAGE_EXTS, VIDEO_EXTS, codexHome, getImageGenSettings } from './settings.js';
-import { GenerateInput, GenerateResult, ImageGenError, MAX_REFS_PER_SUBJECT, newGalleryName, resolveAllRefs, resolveSize } from './common.js';
+import { GenerateInput, GenerateResult, ImageGenError, MAX_REFS_PER_SUBJECT, newGalleryName, referencePreamble, resolveLabelledRefs, resolveSize, subjectBuildNotes } from './common.js';
 
 /** OpenArt model ids that produce video. kling-3-omni does both; the
  *  request's openartMedia decides which mode family it runs in. */
@@ -115,6 +115,13 @@ async function openartCall(name: string, args: Record<string, unknown>): Promise
   return text;
 }
 
+/** Them OpenArt account as the house's own login sees it: the plan and the
+ *  credits left. The raw reply goes to
+ *  parseOpenArtAccount in image-credits.ts. */
+export async function openartAccountText(): Promise<string> {
+  return openartCall('openart_account_get', {});
+}
+
 /** Tool replies mix a JSON payload with prose instructions; dig the JSON out. */
 function parseFirstJson(text: string): Record<string, unknown> | null {
   try { return JSON.parse(text); } catch { /* fall through to per-line */ }
@@ -213,7 +220,8 @@ export async function generateViaOpenArt(input: GenerateInput): Promise<Generate
   // Seedance treat one person as two visual elements (and sometimes reject
   // visualRef outright); it also let I2V models choose the weaker likeness as
   // their opening frame.
-  const refs = await resolveAllRefs(input, media === 'video' ? 1 : MAX_REFS_PER_SUBJECT);
+  const labelled = await resolveLabelledRefs(input, media === 'video' ? 1 : MAX_REFS_PER_SUBJECT);
+  const refs = labelled.map((r) => r.path);
   if (OPENART_I2V_ONLY.has(model) && refs.length === 0) {
     throw new ImageGenError(`${model} is image-to-video only — select at least one reference subject.`);
   }
@@ -267,7 +275,7 @@ export async function generateViaOpenArt(input: GenerateInput): Promise<Generate
   // Ask the form what this model/mode takes and fill it deterministically.
   const form = parseFirstJson(await openartCall('openart_model_form_get', { model, mode }));
   const { props, required } = collectFormProps(form, mode);
-  const params: Record<string, unknown> = { prompt: input.prompt };
+  const params: Record<string, unknown> = { prompt: openartPrompt(input.prompt, media, labelled.map((r) => r.label), input.subjects) };
   if (props.imageCount) params.imageCount = 1;
   if (props.aspectRatio) params.aspectRatio = closestAspect(props.aspectRatio.enum, apiSize);
   if (props.visualReferences) {
@@ -341,4 +349,22 @@ export async function generateViaOpenArt(input: GenerateInput): Promise<Generate
     durationMs: Date.now() - start,
     costUsd: 0,
   };
+}
+
+/**
+ * The prompt OpenArt is sent: for a picture, the same reference preamble the
+ * Codex painter has always carried (common.ts, referencePreamble), then theirs.
+ * A video keeps its bare prompt, since its one reference is a start frame,
+ * not a face to keep.
+ */
+export function openartPrompt(
+  prompt: string,
+  media: 'image' | 'video',
+  labels: Array<string | null>,
+  subjects: string[] | undefined,
+  builds = subjectBuildNotes(subjects),
+): string {
+  if (media === 'video') return prompt;
+  const preamble = referencePreamble(labels, subjects, builds);
+  return preamble ? `${preamble}\n\n${prompt}` : prompt;
 }

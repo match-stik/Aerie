@@ -26,7 +26,7 @@ There are three kinds of lane, and they hold a conversation in different ways.
 
 ## Claude Code lanes
 
-**Which model.** `agent.model` for messages and `agent.model_autonomous` for scheduled wakes. Keep them the same: a wake on a different model than the chat restarts the lane at every bell and back again.
+**Which model.** The picker lists the models your Claude account offers, read from Anthropic with the same sign-in Claude Code uses, at most once an hour. If it can't read them (signed out, offline), it shows the last list it read. `agent.model` is for messages and `agent.model_autonomous` for scheduled wakes. Keep them the same: a wake on a different model than the chat restarts the lane at every bell and back again.
 
 **How big the room can get.** The 4-series Claude models (Opus, Sonnet and Haiku 4.x) have a 200k window. Add `[1m]` to the model id (for example `claude-opus-4-6[1m]`) for the 1M window where your plan offers it. The 5-series models and Fable open with the large window already.
 
@@ -47,6 +47,10 @@ The flag is read when a lane launches, so a change reaches a lane at its next re
 **How big the room can get, and when it squashes.** Codex sizes the room from the model's context window in that same list and compacts on its own. Aerie does not set this; if you want to change it, it is Codex's own configuration (`~/.codex/config.toml`), described in Codex's docs.
 
 **Whose instructions win.** `codex.instructions_slot`: `base` (the default) puts your companion's identity in place of OpenAI's per-model instructions; `developer` keeps OpenAI's and lays yours on top. A resumed Codex room keeps the slot it started with, so test a change in a fresh room.
+
+## A provider Aerie doesn't know yet
+
+If you want a companion on something not listed here, it can usually come in one of two ways. If it offers an OpenAI-compatible API (most hosted providers do), point the `openai` provider at it in `aerie.yaml` (`providers.openai.base_url` set to its address, `api_key` to your key); it then runs as an API router lane, described next. If it only comes as its own CLI on a subscription, the way Claude Code and Codex do, it needs a lane of its own written for it; the two in `packages/backend/src/services/runtimes/` show what one has to do (keep a conversation, hand over what's new, return the reply and the card, refuse what a guest may not do).
 
 ## API router lanes
 

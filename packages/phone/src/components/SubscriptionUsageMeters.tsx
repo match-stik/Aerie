@@ -76,6 +76,20 @@ interface AntigravityUsage {
   readAt: string | null;
 }
 
+interface PainterBalance {
+  balance: number;
+  unit: 'credits' | 'gems';
+  plan: string | null;
+}
+
+interface ImageCredits {
+  openart: PainterBalance | null;
+  openartError: string | null;
+  mage: PainterBalance | null;
+  mageError: string | null;
+  readAt: string | null;
+}
+
 interface SubscriptionUsageMetersProps {
   themeConfig: ThemeConfig;
   themeMode: 'light' | 'dark';
@@ -150,6 +164,8 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
   const [codexError, setCodexError] = useState<string | null>(null);
   const [antigravity, setAntigravity] = useState<AntigravityUsage | null>(null);
   const [antigravityError, setAntigravityError] = useState<string | null>(null);
+  const [images, setImages] = useState<ImageCredits | null>(null);
+  const [imagesError, setImagesError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -287,6 +303,30 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
         setAntigravityError(null);
       } catch (err) {
         if (!cancelled) setAntigravityError(err instanceof Error ? err.message : 'Antigravity usage unavailable.');
+      }
+    })();
+    (async () => {
+      try {
+        const res = await apiFetch('/api/usage/images');
+        const data = await res.json().catch(() => null) as (Partial<ImageCredits> & { error?: unknown }) | null;
+        if (cancelled) return;
+        if (!res.ok) {
+          throw new Error(typeof data?.error === 'string' && data.error ? data.error : `load failed (${res.status})`);
+        }
+        const balance = (b: unknown): PainterBalance | null =>
+          b && typeof b === 'object' && typeof (b as PainterBalance).balance === 'number'
+            ? { balance: (b as PainterBalance).balance, unit: (b as PainterBalance).unit === 'gems' ? 'gems' : 'credits', plan: typeof (b as PainterBalance).plan === 'string' ? (b as PainterBalance).plan : null }
+            : null;
+        setImages({
+          openart: balance(data?.openart),
+          openartError: typeof data?.openartError === 'string' ? data.openartError : null,
+          mage: balance(data?.mage),
+          mageError: typeof data?.mageError === 'string' ? data.mageError : null,
+          readAt: typeof data?.readAt === 'string' ? data.readAt : null,
+        });
+        setImagesError(null);
+      } catch (err) {
+        if (!cancelled) setImagesError(err instanceof Error ? err.message : 'Painter credits unavailable.');
       }
     })();
     };
@@ -501,6 +541,38 @@ export function SubscriptionUsageMeters({ themeConfig, themeMode }: Subscription
           </>
         ) : (
           <p className={cn('text-[10px] italic', colors.textMuted)}>{antigravityError || 'Loading…'}</p>
+        )}
+      </div>
+      <div className={cn('rounded-2xl border p-3 mb-3', colors.panelBg, colors.panelBorder)}>
+        <div className={cn('text-[11px] font-bold uppercase tracking-[0.12em] mb-2', colors.textMuted)}>
+          Painter credits
+        </div>
+        {images ? (
+          <>
+            {([
+              ['OpenArt', images.openart, images.openartError],
+            ] as Array<[string, PainterBalance | null, string | null]>).map(([name, b, err]) => (
+              <div key={name} className="mb-1.5 last:mb-0">
+                {b ? (
+                  <div className={cn('text-sm', colors.textMain)}>
+                    {name} {b.balance.toLocaleString()} {b.unit} left
+                    {b.plan ? <span className={cn('ml-1', colors.textMuted)}>· {b.plan} plan</span> : null}
+                  </div>
+                ) : (
+                  <div className={cn('text-[11px] italic', colors.textMuted)}>
+                    {name}: {err || 'no reading yet.'}
+                  </div>
+                )}
+              </div>
+            ))}
+            {images.readAt ? (
+              <div className={cn('text-[10px] mt-0.5', colors.textMuted)}>
+                as of {formatReset(images.readAt)}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className={cn('text-[10px] italic', colors.textMuted)}>{imagesError || 'Loading…'}</p>
         )}
       </div>
     </>

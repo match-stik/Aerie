@@ -243,3 +243,80 @@ test('an answer\'s markup comes out whole, even a tag hidden inside another', ()
   assert.doesNotMatch(htmlToText('<scr<i>ipt>x'), /<script/i);
   assert.equal(htmlToText('&lt;b&gt; is how you write bold'), '<b> is how you write bold');
 });
+
+// Letta (Nov 27 2026), shapes read off a real Letta Code 0.34.71 agent.
+const LETTA_JSONL = [
+  JSON.stringify({ type: 'session', version: 3, id: 'local-conv-1', timestamp: '2026-11-27T09:07:57.264Z', cwd: '/x' }),
+  JSON.stringify({ type: 'message', id: 'a', parentId: null, timestamp: '2026-11-27T09:07:57.454Z', message: { id: 'ui-msg-1', role: 'user', content: [{ type: 'text', text: '<system-reminder>\nDevice Information\n</system-reminder>\nHi! My cats are Pepper and Moss.' }] } }),
+  JSON.stringify({ type: 'message', id: 'b', parentId: 'a', timestamp: '2026-11-27T09:07:58.250Z', message: { id: 'ui-msg-2', role: 'assistant', content: [{ type: 'text', text: 'Great to meet you, Sam!' }, { type: 'tool_use', name: 'Write' }] } }),
+  JSON.stringify({ type: 'message', id: 'c', parentId: 'b', timestamp: '2026-11-27T09:07:59.000Z', message: { id: 'ui-msg-3', role: 'tool', content: [{ type: 'text', text: 'wrote MEMORY.md' }] } }),
+].join('\n');
+
+test('a Letta messages.jsonl comes in as one conversation, their words without Letta\'s reminders, tool lines left out', () => {
+  const [conv] = parseExport(LETTA_JSONL, { person: 'Sam' });
+  assert.equal(conv.house, 'letta');
+  assert.equal(conv.sourceId, 'letta:local-conv-1');
+  assert.deepEqual(conv.messages.map((m) => [m.speaker, m.text, m.date]), [
+    ['Sam', 'Hi! My cats are Pepper and Moss.', '2026-11-27'],
+    ['Letta', 'Great to meet you, Sam!', '2026-11-27'],
+  ]);
+});
+
+test('a zipped .letta folder brings every conversation, named for its agent', () => {
+  const agentId = 'agent-local-1';
+  const zip = zipSync({
+    '.letta/lc-local-backend/agents/QQ.json': strToU8(JSON.stringify({ id: agentId, name: 'Juniper' })),
+    '.letta/lc-local-backend/conversations/Y1/conversation.json': strToU8(JSON.stringify({ id: 'local-conv-1', agent_id: agentId, summary: null })),
+    '.letta/lc-local-backend/conversations/Y1/messages.jsonl': strToU8(LETTA_JSONL),
+    '.letta/lc-local-backend/conversations/Y2/conversation.json': strToU8(JSON.stringify({ id: 'local-conv-2', agent_id: agentId, summary: 'The cats' })),
+    '.letta/lc-local-backend/conversations/Y2/messages.jsonl': strToU8(LETTA_JSONL.replace('local-conv-1', 'local-conv-2')),
+    '.letta/lc-local-backend/providers/auth.json': strToU8('{"key":"never read"}'),
+  });
+  const convs = parseExport(readExportFile(zip, 'letta.zip'), { person: 'Sam' });
+  assert.equal(convs.length, 2);
+  assert.deepEqual(convs.map((c) => c.messages[1].speaker), ['Juniper', 'Juniper']);
+  assert.deepEqual(convs.map((c) => c.title).sort(), ['Juniper, 2026-11-27', 'The cats']);
+});
+
+test('what `letta messages list` prints is grouped back into its conversations', () => {
+  const list = [
+    { id: '2', date: '2026-11-27T09:08:02Z', conversation_id: 'c1', message_type: 'assistant_message', role: 'assistant', content: [{ type: 'text', text: 'Saved them.' }] },
+    { id: '1', date: '2026-11-27T09:07:57Z', conversation_id: 'c1', message_type: 'user_message', role: 'user', content: [{ type: 'text', text: 'Remember my cats.' }] },
+    { id: '3', date: '2026-11-27T09:07:59Z', conversation_id: 'c1', message_type: 'reasoning_message', role: 'assistant', reasoning: 'hmm' },
+  ];
+  const [conv] = parseExport(JSON.stringify(list), { person: 'Sam' });
+  assert.deepEqual(conv.messages.map((m) => [m.speaker, m.text]), [['Sam', 'Remember my cats.'], ['Letta', 'Saved them.']]);
+});
+
+// The Letta desktop app:
+// one folder per conversation, conv-<id>/transcript.jsonl beside a state.json,
+// each line {kind: user|assistant|reasoning|tool_call, text, captured_at}.
+const LETTA_TRANSCRIPT = [
+  { kind: 'user', text: '<system-reminder>\nUser\'s account name: "Someone"\n</system-reminder>\nHi there', captured_at: '2026-11-23T04:43:30.000Z', source_line_id: 'm1', source_message_id: 'm1' },
+  { kind: 'reasoning', text: '**Thinking about it**', captured_at: '2026-11-23T04:43:34.000Z', source_line_id: 'm2', source_message_id: 'm2' },
+  { kind: 'tool_call', name: 'Skill', argsText: '{}', resultText: 'ok', resultOk: true, captured_at: '2026-11-23T04:43:34.000Z', source_line_id: 'c1' },
+  { kind: 'assistant', text: 'Hey, there you are.', captured_at: '2026-11-23T04:43:35.503Z', source_line_id: 'm3', source_message_id: 'm3' },
+].map((r) => JSON.stringify(r)).join('\n');
+
+test('the Letta app\'s zipped transcripts folder brings each conversation, their words without reminders, thinking and tools left out', () => {
+  const zip = zipSync({
+    'transcripts/conv-aaa/state.json': strToU8('{"schema_version":"v3_assistant_steps"}'),
+    'transcripts/conv-aaa/transcript.jsonl': strToU8(LETTA_TRANSCRIPT),
+    'transcripts/conv-bbb/transcript.jsonl': strToU8(LETTA_TRANSCRIPT.replace('Hi there', 'Second one')),
+  });
+  const convs = parseExport(readExportFile(zip, 'lettachats.zip'), { person: 'Sam' });
+  assert.equal(convs.length, 2);
+  const a = convs.find((c) => c.sourceId === 'letta:conv-aaa')!;
+  assert.equal(a.house, 'letta');
+  assert.deepEqual(a.messages.map((m) => [m.speaker, m.text, m.date]), [
+    ['Sam', 'Hi there', '2026-11-23'],
+    ['Letta', 'Hey, there you are.', '2026-11-23'],
+  ]);
+  assert.ok(convs.some((c) => c.sourceId === 'letta:conv-bbb' && c.messages[0].text === 'Second one'));
+});
+
+test('one Letta app transcript.jsonl picked on its own reads too', () => {
+  const convs = parseExport(LETTA_TRANSCRIPT, { person: 'Sam' });
+  assert.equal(convs.length, 1);
+  assert.deepEqual(convs[0].messages.map((m) => m.speaker), ['Sam', 'Letta']);
+});

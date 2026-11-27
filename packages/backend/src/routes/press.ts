@@ -16,7 +16,8 @@ import type {
 } from '@aerie/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import { getDb } from '../services/db.js';
-import { getFile, saveFile, savePressSourceFile } from '../services/files.js';
+import { deleteFile, getFile, saveFile, savePressSourceFile } from '../services/files.js';
+import { fileIdsInUse } from '../services/file-references.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -334,6 +335,17 @@ router.post('/issues/:id/spreads', (req, res) => {
   }
 });
 
+/**
+ * The shelf picture a save replaced, if nothing else still uses it, so it can be
+ * removed rather than left behind.
+ * inUse is asked last and only when there is an old picture, because it reads
+ * the whole house; a picture still named anywhere stays.
+ */
+export function replacedThumbnail(previous: string | null | undefined, next: string | null, inUse: () => Set<string>): string | null {
+  if (!previous || previous === next) return null;
+  return inUse().has(previous) ? null : previous;
+}
+
 /** Whether a spread's shelf picture is behind its scene after a PATCH. */
 export function nextThumbnailStale(change: { previous: number; pictureSent: boolean; sceneChanged: boolean }): number {
   if (change.pictureSent) return 0;
@@ -401,6 +413,12 @@ router.patch('/spreads/:id', (req, res) => {
       `).run(title, sceneJson, thumbnail, stale, now, spread.id);
       db.prepare('UPDATE press_issues SET updated_at = ? WHERE id = ?').run(now, spread.issue_id);
     })();
+    try {
+      const retired = replacedThumbnail(spread.thumbnail_file_id, thumbnail, () => fileIdsInUse(db));
+      if (retired) deleteFile(retired);
+    } catch (err) {
+      console.warn('[Press] Could not remove the replaced shelf picture:', (err as Error).message);
+    }
     res.json({ spread: spreadById(spread.id) });
   } catch (error) {
     console.error('[Press] Update spread failed:', error);

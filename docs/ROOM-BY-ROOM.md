@@ -135,7 +135,7 @@ back down.
 
 ### Memory
 
-What your companion keeps, in four tabs.
+What your companion keeps, in five tabs.
 
 **Cortex** is the long memory, the searchable one. Search past thoughts,
 decisions or context, browse by **Domains**, see **Active Concepts** and
@@ -155,6 +155,10 @@ accepted ones become part of who they are.
 
 **Compactions** is a record of every time a long conversation was folded down to
 save room, with the summary they kept. If nothing has been folded, it says so.
+
+**Import** brings things in from somewhere else. **Old chats** come back word
+for word from a ChatGPT, Claude, Grok, Copilot, Gemini or Letta export, so your
+companion can find them. Running the same export twice adds nothing.
 
 ### Journal
 

@@ -2,6 +2,8 @@
 
 Google's command-line agent. Aerie uses it for pictures: it can paint on a Google account's own allowance, with no API key.
 
+**Use a separate Google account, never your main one.** Google has locked accounts for using agy through third-party apps (a TOS violation lock; a first strike can sometimes be appealed, a second is permanent). Keep the account you sign agy in with apart from your mail, Drive, photos and billing, so a lock costs you nothing that matters.
+
 ## Install
 
 ```bash

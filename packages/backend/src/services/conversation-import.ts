@@ -22,7 +22,7 @@ import { copyFileSync, existsSync, renameSync, unlinkSync } from 'node:fs';
 import { unzipSync, strFromU8 } from 'fflate';
 import { ARCHIVE_INDEX_PATH, resetArchiveIndex } from './archive-index.js';
 
-export type ExportHouse = 'gpt' | 'claude' | 'copilot' | 'grok' | 'gemini';
+export type ExportHouse = 'gpt' | 'claude' | 'copilot' | 'grok' | 'gemini' | 'letta';
 
 export interface ImportedMessage {
   speaker: string;
@@ -210,6 +210,165 @@ export function parseGrok(data: unknown, names: { person: string; assistant: str
   return out;
 }
 
+// ── Letta. Read off a real Letta Code 0.34.71 agent, three shapes:
+//   - its own folder: when Letta runs on the person's computer it keeps
+//     everything under .letta/lc-local-backend, one folder per conversation in
+//     conversations/ with a messages.jsonl ({type:'session'} first, then
+//     {type:'message', message:{role, content:[{type:'text', text}]}}), and
+//     each agent's name in agents/<id>.json. Zipping that folder is the whole
+//     export; the zip reader gathers every conversation and agent name in it.
+//   - one messages.jsonl picked on its own.
+//   - what `letta messages list` prints: a JSON array of messages, each with
+//     conversation_id, message_type and role.
+// Only their words and the agent's spoken words come over; reasoning, tool
+// calls and approvals are left out, and the <system-reminder> blocks Letta
+// puts into their turns are cut. ────────────────────────────────────────────
+
+const LETTA_REMINDER = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
+
+function lettaText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((part) => (part && typeof part === 'object' && (part as { type?: unknown }).type === 'text' ? String((part as { text?: unknown }).text ?? '') : ''))
+    .join('\n');
+}
+
+function lettaMessage(role: unknown, content: unknown, when: unknown, names: { person: string; assistant: string }): ImportedMessage | null {
+  if (role !== 'user' && role !== 'assistant') return null;
+  let text = lettaText(content);
+  if (role === 'user') text = text.replace(LETTA_REMINDER, '');
+  text = text.trim();
+  if (!text) return null;
+  const t = typeof when === 'string' ? Date.parse(when) : NaN;
+  return { speaker: role === 'user' ? names.person : names.assistant, date: Number.isNaN(t) ? null : isoDay(t), text };
+}
+
+/** One Letta messages.jsonl, as a conversation. Null when it is not one. */
+export function parseLettaJsonl(text: string, names: { person: string; assistant: string }, title?: string): ImportedConversation | null {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return null;
+  let head: { type?: unknown; id?: unknown } | null = null;
+  try { head = JSON.parse(lines[0]); } catch { return null; }
+  if (!head || head.type !== 'session') return null;
+  const messages: ImportedMessage[] = [];
+  for (const line of lines.slice(1)) {
+    let row: { type?: unknown; timestamp?: unknown; message?: { role?: unknown; content?: unknown } } | null = null;
+    try { row = JSON.parse(line); } catch { continue; }
+    if (!row || row.type !== 'message' || !row.message) continue;
+    const m = lettaMessage(row.message.role, row.message.content, row.timestamp, names);
+    if (m) messages.push(m);
+  }
+  if (!messages.length) return null;
+  const id = String(head.id || hashOf(JSON.stringify(messages.slice(0, 3))));
+  return { sourceId: `letta:${id}`, house: 'letta', title: title || `Letta, ${messages[0].date ?? id}`, messages };
+}
+
+// The Letta desktop app keeps its chats in .letta/transcripts instead: one conv-<id> folder per conversation, a
+// state.json beside a transcript.jsonl, each line
+// {kind: 'user'|'assistant'|'reasoning'|'tool_call', text, captured_at}.
+// It carries no agent name, so the speaker is Letta.
+function isLettaTranscriptLine(line: string): boolean {
+  try {
+    const r = JSON.parse(line) as { kind?: unknown; captured_at?: unknown };
+    return !!r && typeof r.kind === 'string' && 'captured_at' in r;
+  } catch { return false; }
+}
+
+/** One Letta app transcript.jsonl, as a conversation. Null when it is not one. */
+export function parseLettaTranscript(text: string, names: { person: string; assistant: string }, id?: string): ImportedConversation | null {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length || !isLettaTranscriptLine(lines[0])) return null;
+  const messages: ImportedMessage[] = [];
+  for (const line of lines) {
+    let row: { kind?: unknown; text?: unknown; captured_at?: unknown } | null = null;
+    try { row = JSON.parse(line); } catch { continue; }
+    if (!row) continue;
+    const m = lettaMessage(row.kind, typeof row.text === 'string' ? row.text : '', row.captured_at, names);
+    if (m) messages.push(m);
+  }
+  if (!messages.length) return null;
+  const key = id || hashOf(JSON.stringify(messages.slice(0, 3)));
+  return { sourceId: `letta:${key}`, house: 'letta', title: `Letta, ${messages[0].date ?? key}`, messages };
+}
+
+/** What `letta messages list` prints, grouped back into its conversations. */
+export function parseLettaMessageList(data: unknown[], names: { person: string; assistant: string }): ImportedConversation[] {
+  const byConv = new Map<string, ImportedMessage[]>();
+  const rows = data
+    .filter((d): d is Record<string, unknown> => !!d && typeof d === 'object')
+    .slice()
+    .sort((a, b) => String(a.date ?? a.created_at ?? '').localeCompare(String(b.date ?? b.created_at ?? '')));
+  for (const r of rows) {
+    if (r.message_type !== 'user_message' && r.message_type !== 'assistant_message') continue;
+    const m = lettaMessage(r.role ?? (r.message_type === 'user_message' ? 'user' : 'assistant'), r.content, r.date ?? r.created_at, names);
+    if (!m) continue;
+    const key = String(r.conversation_id ?? r.agent_id ?? 'letta');
+    if (!byConv.has(key)) byConv.set(key, []);
+    byConv.get(key)!.push(m);
+  }
+  return [...byConv.entries()].map(([id, messages]) => ({ sourceId: `letta:${id}`, house: 'letta' as const, title: `Letta, ${messages[0].date ?? id}`, messages }));
+}
+
+export function isLettaMessageRow(item: unknown): boolean {
+  return !!item && typeof item === 'object' && 'message_type' in item && ('conversation_id' in item || 'agent_id' in item);
+}
+
+// A zipped .letta folder, carried to parseExport as one small envelope so the
+// rest of the import does not have to know about zips with many files in them.
+const LETTA_ENVELOPE = 'aerie-letta-folder';
+
+function readLettaFolder(files: Record<string, Uint8Array>): string | null {
+  const convs = Object.keys(files).filter((f) => /(^|\/)conversations\/[^/]+\/messages\.jsonl$/i.test(f));
+  // The desktop app's transcripts folder: the folder name is the conversation.
+  const transcripts = Object.keys(files).filter((f) => /(^|\/)[^/]+\/transcript\.jsonl$/i.test(f));
+  if (!convs.length && transcripts.length) {
+    return JSON.stringify({ [LETTA_ENVELOPE]: transcripts.map((f) => ({
+      shape: 'transcript',
+      id: f.split('/').slice(-2, -1)[0],
+      agent: null,
+      title: null,
+      text: strFromU8(files[f]),
+    })) });
+  }
+  if (!convs.length) return null;
+  const agents: Record<string, string> = {};
+  for (const f of Object.keys(files).filter((k) => /(^|\/)agents\/[^/]+\.json$/i.test(k))) {
+    try {
+      const a = JSON.parse(strFromU8(files[f])) as { id?: unknown; name?: unknown };
+      if (typeof a.id === 'string' && typeof a.name === 'string') agents[a.id] = a.name;
+    } catch { /* an agent file that does not read keeps its default name */ }
+  }
+  const conversations = convs.map((f) => {
+    const dir = f.slice(0, f.length - 'messages.jsonl'.length);
+    let meta: { agent_id?: unknown; summary?: unknown } = {};
+    try { const c = files[`${dir}conversation.json`]; if (c) meta = JSON.parse(strFromU8(c)); } catch { /* none */ }
+    return {
+      agent: typeof meta.agent_id === 'string' ? agents[meta.agent_id] ?? null : null,
+      title: typeof meta.summary === 'string' && meta.summary.trim() ? meta.summary.trim() : null,
+      text: strFromU8(files[f]),
+    };
+  });
+  return JSON.stringify({ [LETTA_ENVELOPE]: conversations });
+}
+
+function parseLettaEnvelope(data: unknown, person: string): ImportedConversation[] | null {
+  const list = data && typeof data === 'object' && !Array.isArray(data) ? (data as Record<string, unknown>)[LETTA_ENVELOPE] : null;
+  if (!Array.isArray(list)) return null;
+  const out: ImportedConversation[] = [];
+  for (const c of list as { shape?: string; id?: string; agent?: string | null; title?: string | null; text?: string }[]) {
+    const names = { person, assistant: c?.agent || 'Letta' };
+    const conv = c?.shape === 'transcript'
+      ? parseLettaTranscript(String(c?.text ?? ''), names, c?.id || undefined)
+      : parseLettaJsonl(String(c?.text ?? ''), names, c?.title || undefined);
+    if (conv) {
+      if (!c?.title && c?.agent) conv.title = `${c.agent}, ${conv.messages[0].date ?? ''}`.replace(/, $/, '');
+      out.push(conv);
+    }
+  }
+  return out;
+}
+
 // ── Gemini: Google keeps no conversations, only activity. Takeout's My
 // Activity, Gemini Apps, MyActivity.json is a flat list, newest first, one row
 // per prompt: {header: 'Gemini Apps', title: 'Prompted <their words>', time,
@@ -312,6 +471,16 @@ export function parseExport(text: string, opts: { person?: string } = {}): Impor
     return parseCopilotCsv(text, { person: (opts.person || 'You').trim(), assistant: 'Copilot' });
   }
   const person = (opts.person || 'You').trim();
+  // One Letta conversation file on its own: a messages.jsonl, session line first.
+  if (/^\{\s*"type"\s*:\s*"session"/.test(text.slice(0, 200).replace(/^\uFEFF/, ''))) {
+    const one = parseLettaJsonl(text, { person, assistant: 'Letta' });
+    if (one) return [one];
+  }
+  // One transcript.jsonl from the Letta desktop app.
+  if (/^\{\s*"kind"\s*:/.test(text.slice(0, 200).replace(/^\uFEFF/, ''))) {
+    const one = parseLettaTranscript(text, { person, assistant: 'Letta' });
+    if (one) return [one];
+  }
   // A ChatGPT or Claude export is one big array. Parsing it whole holds every
   // conversation's full tree (ids, metadata, branches) in memory at once, and
   // Rose's 97MB Claude export took her house past its memory limit mid-import
@@ -322,6 +491,8 @@ export function parseExport(text: string, opts: { person?: string } = {}): Impor
   if (streamed) return streamed;
   let data: unknown;
   try { data = JSON.parse(text); } catch { throw new Error('That file is not a chat export this house can read (a ChatGPT or Claude conversations.json, Grok\'s prod-grok-backend.json, or a Copilot activity CSV).'); }
+  const letta = parseLettaEnvelope(data, person);
+  if (letta) return letta;
   if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray((data as { conversations?: unknown }).conversations)) {
     return parseGrok(data, { person, assistant: 'Grok' });
   }
@@ -331,6 +502,7 @@ export function parseExport(text: string, opts: { person?: string } = {}): Impor
   if ('mapping' in sample) return parseChatGPT(data, { person, assistant: 'ChatGPT' });
   if ('chat_messages' in sample) return parseClaude(data, { person, assistant: 'Claude' });
   if (isGeminiActivity(sample)) return parseGemini(data, { person, assistant: 'Gemini' });
+  if (isLettaMessageRow(sample)) return parseLettaMessageList(data, { person, assistant: 'Letta' });
   throw new Error('Not a ChatGPT or Claude export this house knows how to read.');
 }
 
@@ -377,7 +549,7 @@ function parseArrayExport(text: string, person: string): ImportedConversation[] 
   if (!head.startsWith('[')) return null;
   const out: ImportedConversation[] = [];
   const geminiRows: unknown[] = [];
-  let kind: 'gpt' | 'claude' | 'gemini' | null = null;
+  let kind: 'gpt' | 'claude' | 'gemini' | 'letta' | null = null;
   try {
     for (const slice of topLevelElements(text)) {
       if (!slice) continue;
@@ -387,11 +559,14 @@ function parseArrayExport(text: string, person: string): ImportedConversation[] 
         if ('mapping' in item) kind = 'gpt';
         else if ('chat_messages' in item) kind = 'claude';
         else if (isGeminiActivity(item)) kind = 'gemini';
+        else if (isLettaMessageRow(item)) kind = 'letta';
         else throw new Error('Not a ChatGPT or Claude export this house knows how to read.');
       }
       // A Gemini row is one prompt, not one conversation, so they are gathered
       // first and grouped once every row is in.
-      if (kind === 'gemini') { geminiRows.push(item); continue; }
+      // Gemini rows are prompts and Letta rows single messages, so both are
+      // gathered first and grouped once every row is in.
+      if (kind === 'gemini' || kind === 'letta') { geminiRows.push(item); continue; }
       const got = kind === 'gpt'
         ? parseChatGPT([item], { person, assistant: 'ChatGPT' })
         : parseClaude([item], { person, assistant: 'Claude' });
@@ -402,6 +577,7 @@ function parseArrayExport(text: string, person: string): ImportedConversation[] 
     return null; // not walkable: let the whole-file parse speak for it
   }
   if (kind === 'gemini') return parseGemini(geminiRows, { person, assistant: 'Gemini' });
+  if (kind === 'letta') return parseLettaMessageList(geminiRows, { person, assistant: 'Letta' });
   return out;
 }
 
@@ -409,9 +585,12 @@ function parseArrayExport(text: string, person: string): ImportedConversation[] 
 export function readExportFile(bytes: Uint8Array, name = ''): string {
   const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b;
   if (!isZip) return strFromU8(bytes);
+  // A zipped .letta folder holds many conversations, each its own messages.jsonl.
+  const letta = readLettaFolder(unzipSync(bytes, { filter: (f) => /(^|\/)(conversations\/[^/]+\/(messages\.jsonl|conversation\.json)|agents\/[^/]+\.json|[^/]+\/transcript\.jsonl)$/i.test(f.name) }));
+  if (letta) return letta;
   const files = unzipSync(bytes, { filter: (f) => /(^|\/)(conversations\.json|prod-grok-backend\.json|[^/]*activity[^/]*\.csv|Gemini Apps\/MyActivity\.json)$/i.test(f.name) });
   const key = Object.keys(files)[0];
-  if (!key) throw new Error(`No conversations.json (or Grok's prod-grok-backend.json, a Copilot activity CSV, or Gemini's MyActivity.json) in ${name || 'that zip'}.`);
+  if (!key) throw new Error(`No conversations.json (or Grok's prod-grok-backend.json, a Copilot activity CSV, Gemini's MyActivity.json, or a Letta folder) in ${name || 'that zip'}.`);
   return strFromU8(files[key]);
 }
 
@@ -458,7 +637,7 @@ export function conversationMarkdown(conv: ImportedConversation): string {
   return conv.messages.map((m) => `### ${m.speaker} — ${m.date ?? 'undated'}\n${m.text}`).join('\n\n');
 }
 
-const HOUSE_NAME: Record<ExportHouse, string> = { gpt: 'ChatGPT', claude: 'Claude', copilot: 'Copilot', grok: 'Grok', gemini: 'Gemini' };
+const HOUSE_NAME: Record<ExportHouse, string> = { gpt: 'ChatGPT', claude: 'Claude', copilot: 'Copilot', grok: 'Grok', gemini: 'Gemini', letta: 'Letta' };
 
 export interface ImportDeps {
   embed: (text: string) => Promise<Float32Array>;

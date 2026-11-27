@@ -36,7 +36,9 @@ router.post('/files', uploadRateLimiter, upload.single('file'), (req, res) => {
     // Security: sanitize filename (basename + character filter + length cap)
     const rawName = req.file.originalname || 'unnamed';
     const safeName = basename(rawName).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 255);
-    const fileMeta = saveFile(req.file.buffer, safeName, req.file.mimetype);
+    // The same bytes sent twice (a picture re-picked after a refresh) come back
+    // as the copy already stored, so the first pick is not left an orphan.
+    const fileMeta = saveFile(req.file.buffer, safeName, req.file.mimetype, undefined, { reuseIdentical: true });
     res.json(fileMeta);
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Upload failed';

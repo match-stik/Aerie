@@ -105,13 +105,45 @@ function forgetFilename(fileId: string): void {
   } catch {}
 }
 
-export function saveFile(buffer: Buffer, originalFilename: string, mimeType: string, maxBytes = MAX_FILE_SIZE): FileMetadata {
+/**
+ * The id of a stored file with exactly these bytes and this extension, or null.
+ * Only files of the same size are read, so most uploads hash nothing.
+ */
+export function findIdenticalFile(buffer: Buffer, ext: string, dir = FILES_DIR): string | null {
+  if (!existsSync(dir)) return null;
+  let digest: string | null = null;
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith(ext)) continue;
+    const id = name.slice(0, -ext.length);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) continue;
+    const path = join(dir, name);
+    try {
+      if (statSync(path).size !== buffer.length) continue;
+      digest ??= crypto.createHash('sha256').update(buffer).digest('hex');
+      if (crypto.createHash('sha256').update(readFileSync(path)).digest('hex') === digest) return id;
+    } catch { /* a file that vanished mid-scan is not a match */ }
+  }
+  return null;
+}
+
+/**
+ * Save an upload. With reuseIdentical, bytes the store already holds hand back
+ * the stored file instead of a second copy.
+ */
+export function saveFile(buffer: Buffer, originalFilename: string, mimeType: string, maxBytes = MAX_FILE_SIZE, opts: { reuseIdentical?: boolean } = {}): FileMetadata {
   if (buffer.length > maxBytes) throw new Error(`File exceeds ${maxBytes / 1024 / 1024}MB limit`);
   mimeType = resolveMimeType(originalFilename, mimeType);
   if (!isAllowedMime(mimeType)) throw new Error(`File type ${mimeType} not allowed`);
   ensureFilesDir();
-  const fileId = crypto.randomUUID();
   const ext = ALLOWED_TYPES[mimeType];
+  if (opts.reuseIdentical) {
+    const existing = findIdenticalFile(buffer, ext);
+    if (existing) {
+      if (!rememberedFilename(existing)) rememberFilename(existing, originalFilename);
+      return { fileId: existing, filename: originalFilename, mimeType, size: buffer.length, contentType: getContentTypeFromMime(mimeType), url: `/api/files/${existing}` };
+    }
+  }
+  const fileId = crypto.randomUUID();
   writeFileSync(join(FILES_DIR, `${fileId}${ext}`), buffer);
   rememberFilename(fileId, originalFilename);
   return { fileId, filename: originalFilename, mimeType, size: buffer.length, contentType: getContentTypeFromMime(mimeType), url: `/api/files/${fileId}` };

@@ -233,7 +233,7 @@ export function RoomTalk({ lines, companions, sides, empty, typing = false, typi
         pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < PIN_SLACK_PX;
         onScroll?.(e);
       }}
-      className={cn('min-h-0 overflow-y-auto overflow-x-hidden px-2 scrollbar-hide', className)}
+      className={cn('min-h-0 overflow-y-auto overflow-x-hidden px-2 scrollbar-hide aerie-room-talk', className)}
     >
       <div ref={inner}>
         {lines.length === 0 && !typing && empty}

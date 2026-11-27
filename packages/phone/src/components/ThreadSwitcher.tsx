@@ -541,6 +541,10 @@ export function ThreadSwitcher({ isOpen, onClose, themeConfig, themeMode, compan
             exit={{ x: fromRight ? '100%' : '-100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className={cn('pointer-events-auto absolute inset-y-0 z-40 flex w-[85%] max-w-sm flex-col', fromRight ? 'right-0 border-l' : 'left-0 border-r', colors.panelBg, colors.panelBorder)}
+            // A full-height drawer keeps only its accent edge down the side. The
+            // panel's own wash (brightest at the top corner) and light top line
+            // read as a glow pressed against the app's header; the drop shadow stays.
+            style={{ backgroundImage: 'none', boxShadow: '0 12px 28px rgba(0, 0, 0, 0.3)' }}
           >
             <div className="flex items-center justify-between px-4 pb-2" style={{ paddingTop: 'calc(var(--sat) + 0.75rem)' }}>
               <h2 className={cn('text-base font-semibold', colors.textMain)}>Threads</h2>

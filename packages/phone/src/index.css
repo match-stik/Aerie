@@ -1313,6 +1313,50 @@ select:not([class*="rounded"]):focus-visible {
   scrollbar-width: none;
 }
 
+/* Baby scroll arrows on the laptop (lib/desk-scroll.ts installDeskArrows): no bar and no rectangle, just a bare arrow riding a
+   list's right edge at whichever end has more. Placed on the page by the
+   script, clear of the chat's jump-to-latest button. */
+.aerie-scroll-arrows button {
+  position: fixed;
+  z-index: 9000;
+  width: 12px;
+  height: 16px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--aerie-text, #e4e4e7);
+  opacity: 0.55;
+  cursor: pointer;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+  transition: opacity 120ms ease;
+}
+.aerie-scroll-arrows button:hover {
+  opacity: 1;
+}
+
+/* A table's talk leaves room on its right for the baby arrows where there is
+   a mouse, as the main chat's margin does. The phone keeps its narrow margin. */
+@media (any-pointer: fine) {
+  .aerie-room-talk {
+    padding-right: 16px;
+  }
+}
+
+/* A wall in the Memory app, shown formatted (MemoryBlocksApp). Spacing kept
+   tight so a plain wall reads as it always did. */
+.aerie-wall-text h1, .aerie-wall-text h2, .aerie-wall-text h3 { font-weight: 700; margin: 0.6em 0 0.25em; }
+.aerie-wall-text h1 { font-size: 1.15em; }
+.aerie-wall-text h2 { font-size: 1.05em; }
+.aerie-wall-text h3 { font-size: 1em; }
+.aerie-wall-text p { margin: 0 0 0.6em; }
+.aerie-wall-text ul, .aerie-wall-text ol { margin: 0 0 0.6em; padding-left: 1.2em; }
+.aerie-wall-text ul { list-style: disc; }
+.aerie-wall-text ol { list-style: decimal; }
+.aerie-wall-text li { margin: 0.1em 0; }
+.aerie-wall-text code { font-size: 0.9em; opacity: 0.85; }
+
 /* Inline code wrapping — prevents long URLs/paths from overflowing bubbles */
 .prose code:not(pre code) {
   word-break: break-all;

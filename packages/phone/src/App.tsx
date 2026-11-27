@@ -54,7 +54,7 @@ import { DEFAULT_THEME, readSavedTheme, useCustomThemeStyles, useThemeFrame } fr
 import { applyThemeUpdate } from './lib/wallpaper-mode';
 import { DESK_DOCK_MAX, DESK_SEEDED, chatShown, deskDockIdsOf, deskDockOf, stageAfterMessages, deskScreenTheme, foldDeskView, seedDeskScreen, deskAppView, routeDeskAppUpdate, seedDeskApp, deskFaceSizeOf } from './lib/desk';
 import { setOwnerAvatarLive } from './lib/house';
-import { installDeskScroll } from './lib/desk-scroll';
+import { installDeskArrows, installDeskKeys, installDeskScroll, useHasMouse } from './lib/desk-scroll';
 import { useDesk } from './lib/use-desk';
 import { nextSlide, slideshowSecondsOf } from './lib/slideshow';
 import {
@@ -1622,6 +1622,14 @@ export default function App() {
   const textScale = houseFonts.scale;
   // Sideways rows of tabs follow the wheel and a mouse drag on the laptop.
   useEffect(() => (desk.on ? installDeskScroll() : undefined), [desk.on]);
+  // The arrow keys scroll the list under the mouse, no click first, and a list
+  // with more above or below shows a baby arrow at that end. They follow the
+  // mouse, not the layout: a laptop window squeezed narrow enough to get the
+  // phone's layout still has a mouse, and a phone never
+  // has one, so it never gets either.
+  const hasMouse = useHasMouse();
+  useEffect(() => (hasMouse ? installDeskKeys() : undefined), [hasMouse]);
+  useEffect(() => (hasMouse ? installDeskArrows() : undefined), [hasMouse]);
   // The pickers open on the page itself, outside .aerie-root, so the layout
   // marks the page too and they can sit over the conversation (index.css).
   useEffect(() => {
@@ -2125,16 +2133,6 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1 sm:gap-2">
                 {/* Beside a room there is nothing behind the conversation to go back to. */}
-                {tableOnDesk && (
-                <button
-                  onClick={() => sideTable.showChat(false)}
-                  className={cn("p-2 -ml-2 rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10", colors.textMuted)}
-                  aria-label="Back to the table talk"
-                  title="Back to the table talk"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                )}
                 {desk.chat === null && !tableOnDesk && (
                 <button
                   onClick={() => { setOsState(messagesReturnTo); setMessagesReturnTo('home'); }}
@@ -2335,6 +2333,19 @@ export default function App() {
           />
         )}
       </header>
+        {/* The way back to a game's table talk, a full-width bar under the
+            header that says where it goes. */}
+        {tableOnDesk && (
+          <button
+            type="button"
+            onClick={() => sideTable.showChat(false)}
+            className={cn('relative z-10 flex w-full items-center justify-center gap-1.5 border-b py-1.5 text-[11px] font-semibold uppercase tracking-[.14em] transition active:opacity-80', colors.panelBorder, colors.textMain)}
+            style={{ backgroundColor: 'var(--aerie-header, #000)' }}
+            aria-label="Back to the table talk"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" /> Back to the table
+          </button>
+        )}
 
       <CompactionBanner themeConfig={activeTheme} themeMode={theme.mode} />
 
@@ -2418,7 +2429,11 @@ export default function App() {
         // not the newest message, so the arrow stays up until the thread is
         // back to its latest.
         isAtBottom={isAtBottom && !ksIsViewingAround}
-        onJumpToLatest={() => {
+        // Not on a device with a mouse:
+        // End and the baby arrow at the bottom edge take you down there. It
+        // stays after a search jump, the one time it does what End cannot,
+        // reload the thread's newest messages.
+        onJumpToLatest={hasMouse && !ksIsViewingAround ? undefined : () => {
           // The arrow outranks a search hit still being held.
           jumpHoldStopRef.current?.();
           if (ksIsViewingAround && ksActiveThreadId) {

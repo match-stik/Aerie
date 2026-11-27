@@ -1,5 +1,8 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { Layers, Plus, Edit3, Trash2, Check, X, RefreshCw, ChevronRight, RotateCcw } from 'lucide-react';
 import { AppShell } from './AppShell';
 import { ArchivistSettings } from './ArchivistSettings';
@@ -8,7 +11,6 @@ import { Paginator, usePaged } from './Paginator';
 import { cn } from '../lib/utils';
 import { useBackHandler } from '../lib/use-back-handler';
 import { HouseSelect } from './HouseSelect';
-import { ConversationImportPanel } from './ConversationImportPanel';
 import { askConfirm } from '../lib/ask-confirm';
 
 interface MemoryBlocksAppProps {
@@ -18,7 +20,7 @@ interface MemoryBlocksAppProps {
   embedded?: boolean;
 }
 
-type Tab = 'blocks' | 'create' | 'operations' | 'import';
+type Tab = 'blocks' | 'create' | 'operations';
 
 interface MemoryBlock {
   scope: string;
@@ -69,6 +71,9 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
   const [loadBudget, setLoadBudget] = useState<string>('');
   const [archivistStatus, setArchivistStatus] = useState<ArchivistStatus | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
+  // Renaming a wall: the name being typed, or null.
+  const [renameTo, setRenameTo] = useState<string | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
 
   // Create state
@@ -187,6 +192,27 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
     }
   };
 
+  const handleRename = async (block: MemoryBlock) => {
+    const to = (renameTo || '').trim();
+    if (!to || to === block.label) { setRenameTo(null); return; }
+    setRenameError(null);
+    try {
+      const res = await fetch(`${blockUrl(block.scope, block.label)}/rename`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.label) { setRenameError(body?.error || 'The house needs its restart before it can rename a wall.'); return; }
+      setRenameTo(null);
+      setSelectedBlock({ ...block, label: body.label });
+      await fetchBlocks();
+    } catch (err) {
+      setRenameError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const handleDelete = async (block: MemoryBlock) => {
     if (!(await askConfirm(`Delete block "${block.scope}/${block.label}"?`))) return;
     try {
@@ -272,7 +298,6 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
     { id: 'blocks', label: 'Blocks' },
     { id: 'create', label: 'Create' },
     { id: 'operations', label: 'Ops' },
-    { id: 'import', label: 'Import' },
   ];
 
   const setLoad = async (block: MemoryBlock, mode: WallLoad) => {
@@ -375,7 +400,7 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
           ) : selectedBlock ? (
             <div className={cn('p-4 rounded-lg border', colors.panelBorder, colors.panelBg)}>
               <div className="flex items-center justify-between mb-3">
-                <button onClick={() => setSelectedBlock(null)} className="text-xs opacity-60 hover:opacity-100">
+                <button onClick={() => { setSelectedBlock(null); setRenameTo(null); setRenameError(null); }} className="text-xs opacity-60 hover:opacity-100">
                   &larr; Back
                 </button>
                 <div className="flex gap-1">
@@ -385,15 +410,39 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
                   >
                     <Edit3 size={14} />
                   </button>
+                  {!['persona', 'human', 'status'].includes(selectedBlock.label) && (
+                    <button
+                      onClick={() => { setRenameTo(selectedBlock.label); setRenameError(null); }}
+                      className={cn('px-2 py-0.5 rounded-[var(--shape-chip)] border text-xs hover:bg-white/10', colors.panelBorder)}
+                      aria-label="Rename this wall"
+                    >
+                      Rename
+                    </button>
+                  )}
                   <button onClick={() => handleDelete(selectedBlock)} className="p-1 rounded hover:bg-white/10" style={{ color: colors.accent }}>
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-bold text-lg">{selectedBlock.label}</h3>
+                {renameTo !== null ? (
+                  <form className="flex items-center gap-1" onSubmit={(e) => { e.preventDefault(); void handleRename(selectedBlock); }}>
+                    <input
+                      autoFocus
+                      value={renameTo}
+                      onChange={(e) => setRenameTo(e.target.value)}
+                      className={cn('px-2 py-1 rounded-[var(--shape-control)] border bg-transparent text-base font-bold w-44', colors.panelBorder)}
+                      aria-label="New name for this wall"
+                    />
+                    <button type="submit" className="p-1 rounded hover:bg-white/10" aria-label="Save the new name"><Check size={14} /></button>
+                    <button type="button" onClick={() => { setRenameTo(null); setRenameError(null); }} className="p-1 rounded hover:bg-white/10" aria-label="Keep the old name"><X size={14} /></button>
+                  </form>
+                ) : (
+                  <h3 className="font-bold text-lg">{selectedBlock.label}</h3>
+                )}
                 {scopeBadge(selectedBlock.scope)}
               </div>
+              {renameError && <p className="text-xs mb-2" style={{ color: colors.accent }}>{renameError}</p>}
               {selectedBlock.description && <p className="text-xs opacity-60 mb-3">{selectedBlock.description}</p>}
               <div className="mb-3">
                 <div className="text-xs opacity-60 mb-1">When a new room opens</div>
@@ -434,7 +483,13 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
                 // A path or a line of code has no spaces to break at, so it is
                 // allowed to break anywhere; otherwise it widens the whole
                 // panel past the screen.
-                <pre className="text-sm whitespace-pre-wrap select-text [overflow-wrap:anywhere] min-w-0 font-[family-name:var(--font-body,var(--font-sans))] leading-relaxed opacity-90">{selectedBlock.content || '(empty)'}</pre>
+                // A wall written in markdown (an imported Letta companion's #
+                // headings and **bold**) shows formatted, not as symbols. Plain walls read the same as before.
+                <div className="aerie-wall-text text-sm select-text [overflow-wrap:anywhere] min-w-0 font-[family-name:var(--font-body,var(--font-sans))] leading-relaxed opacity-90">
+                  {selectedBlock.content ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{selectedBlock.content}</ReactMarkdown>
+                  ) : '(empty)'}
+                </div>
               )}
               <div className="mt-3 pt-2 border-t border-white/10 text-xs opacity-50">
                 Updated: {new Date(selectedBlock.updated_at).toLocaleString()}
@@ -623,12 +678,6 @@ export function MemoryBlocksApp({ onClose, themeConfig, themeMode, embedded }: M
         </div>
       )}
 
-      {/* Bring old chats back, word for word */}
-      {tab === 'import' && (
-        <div className="space-y-4">
-          <ConversationImportPanel colors={colors} />
-        </div>
-      )}
     </AppShell>
   );
 }

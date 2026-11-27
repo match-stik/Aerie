@@ -101,6 +101,28 @@ export function pairwiseDistinctions(
     .join('\n');
 }
 
+/**
+ * What every painter is told about the references before the prompt: which
+ * attachment is who, to take a face from a reference and nothing else (natural
+ * poses and head position come from the prompt, never copied out of the photo), the pair that must not be blended,
+ * and each drawer's build note. Written for Codex first; the OpenArt painter
+ * once sent the bare prompt and none of this.
+ */
+export function referencePreamble(
+  labels: Array<string | null>,
+  subjects: string[] | undefined,
+  builds: string,
+): string {
+  if (labels.length === 0) return builds;
+  const roster = labels.map((label, i) => `  ${i + 1}. ${label ?? 'unnamed reference'}`).join('\n');
+  const pairs = pairwiseDistinctions(subjects);
+  return `Reference images are attached in this order:\n${roster}\n`
+    + 'Match each named person in the prompt to THEIR OWN reference above. Never move one person\'s face, tattoos, scars, facial hair or hair onto another.\n'
+    + 'REFERENCE USAGE — IDENTITY ONLY: use a reference for face, build, skin, hair and permanent marks. Do NOT inherit its pose, head angle, gaze, expression, wardrobe, crop, camera angle or lighting — the prompt decides all of those.'
+    + (pairs ? `\n${pairs}` : '')
+    + (builds ? `\n${builds}` : '');
+}
+
 /** The Codex model a picture is drawn on when the request names none, and the
  *  one every bell is told to ask for. Terra on purpose: which Codex model a
  *  house draws on is a fact about its owner's own plan, and Astra needs Codex

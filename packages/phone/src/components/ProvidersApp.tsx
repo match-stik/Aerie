@@ -109,7 +109,8 @@ export function ProvidersApp({ onClose, themeConfig, themeMode, embedded }: Prov
         body: JSON.stringify({ providers: providerUpdates }),
       });
       const data = await res.json();
-      if (res.ok) setMessage('Saved. Restart the server for changes to take effect.');
+      // The house says what is live now and what waits for a restart; say what it said.
+      if (res.ok) setMessage(typeof data.message === 'string' && data.message ? data.message : 'Saved.');
       else setError(data.error || 'Failed to save');
     } catch {
       setError('Failed to save provider settings');

@@ -6,6 +6,7 @@ import { CortexApp } from './CortexApp';
 import { MemoryBlocksApp } from './MemoryBlocksApp';
 import { SelfKnowledgeApp } from './SelfKnowledgeApp';
 import { CompactionsApp } from './CompactionsApp';
+import { MemoryImportTab } from './MemoryImportTab';
 import { ThemeConfig } from '../lib/theme';
 import { cn } from '../lib/utils';
 
@@ -15,17 +16,18 @@ interface MemoryAppProps {
   themeMode: 'light' | 'dark';
 }
 
-type Tab = 'cortex' | 'blocks' | 'selfknowledge' | 'compactions';
+type Tab = 'cortex' | 'blocks' | 'selfknowledge' | 'compactions' | 'import';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'cortex', label: 'Cortex' },
   { id: 'blocks', label: 'Blocks' },
   { id: 'selfknowledge', label: 'Self-Knowledge' },
   { id: 'compactions', label: 'Compactions' },
+  { id: 'import', label: 'Import' },
 ];
 
 // One roof over everything the house remembers: Cortex (the searchable
 // archive, its own tabs intact), the live core-memory Blocks, and the
-// Self-Knowledge drawers. Each keeps its full flow — this shell only holds
+// Self-Knowledge drawers, the Compactions record, and Import (old chats). Each keeps its full flow — this shell only holds
 // the doors. Journal deliberately stays its own app.
 export function MemoryApp({ onClose, themeConfig, themeMode }: MemoryAppProps) {
   const colors = themeConfig[themeMode];
@@ -52,6 +54,7 @@ export function MemoryApp({ onClose, themeConfig, themeMode }: MemoryAppProps) {
       {tab === 'blocks' && <MemoryBlocksApp embedded onClose={onClose} themeConfig={themeConfig} themeMode={themeMode} />}
       {tab === 'selfknowledge' && <SelfKnowledgeApp embedded onClose={onClose} themeConfig={themeConfig} themeMode={themeMode} />}
       {tab === 'compactions' && <CompactionsApp themeConfig={themeConfig} themeMode={themeMode} />}
+      {tab === 'import' && <MemoryImportTab themeConfig={themeConfig} themeMode={themeMode} />}
     </AppShell>
   );
 }

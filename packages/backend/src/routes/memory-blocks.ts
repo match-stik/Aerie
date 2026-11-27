@@ -175,6 +175,18 @@ router.put('/memory/blocks/:scope/:label', (req, res) => {
   res.json({ success: true });
 });
 
+// Rename a wall: { to }. Its words, description and load setting move with it.
+router.post('/memory/blocks/:scope/:label/rename', (req, res) => {
+  const scope = checkScope(req.params.scope, res);
+  if (!scope) return;
+  try {
+    const label = memoryBlocks.renameBlock(scope, req.params.label, String(req.body?.to ?? ''));
+    res.json({ success: true, scope, label });
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 router.delete('/memory/blocks/:scope/:label', (req, res) => {
   memoryBlocks.deleteBlock(req.params.scope, req.params.label);
   res.json({ success: true });

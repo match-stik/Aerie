@@ -85,3 +85,37 @@ test('a picture their person\'s settings point at is kept, wherever in the setti
     '33333333-3333-4333-8333-333333333333',
   ]) assert.ok(kept.has(id), id);
 });
+
+test('a file their message names by its Inbox path, or a wall names, is kept', () => {
+  const db = getDb();
+  // The Inbox hands them data/files/<id>.<ext> to paste, and the walls keep
+  // paths the same way.
+  const inbox = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa';
+  const walled = 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb';
+  db.pragma('foreign_keys = OFF');
+  const row: Record<string, unknown> = { id: 'm-inbox', role: 'user', platform: 'web', content: `here it is data/files/${inbox}.md` };
+  for (const c of db.prepare("PRAGMA table_info('messages')").all() as Array<{ name: string; notnull: number; dflt_value: unknown }>) {
+    if (!(c.name in row) && c.notnull && c.dflt_value === null) row[c.name] = c.name.endsWith('_at') ? '2026-11-25T00:00:00Z' : 'x';
+  }
+  const keys = Object.keys(row);
+  db.prepare(`INSERT INTO messages (${keys.join(',')}) VALUES (${keys.map(() => '?').join(',')})`).run(...keys.map(k => row[k]));
+  db.exec("CREATE TABLE IF NOT EXISTS memory_blocks (scope TEXT NOT NULL DEFAULT 'shared', label TEXT NOT NULL, content TEXT NOT NULL DEFAULT '', description TEXT, updated_at TEXT, PRIMARY KEY (scope, label))");
+  db.prepare("INSERT OR REPLACE INTO memory_blocks (scope, label, content) VALUES ('shared', 'status', ?)").run(`their inbox file data/files/${walled}.md`);
+  const kept = fileIdsInUse(db);
+  assert.ok(kept.has(inbox), 'a path in a message');
+  assert.ok(kept.has(walled), 'a path on a wall');
+});
+
+test('a picture an artifact shows is kept', () => {
+  const db = getDb();
+  // An artifact page can show pictures from the file store by link.
+  const shown = 'cccccccc-3333-4333-8333-cccccccccccc';
+  db.pragma('foreign_keys = OFF');
+  const row: Record<string, unknown> = { id: 'artifact-myspace', name: 'MySpace', code: `const photos = [{ src: '/api/files/${shown}' }]` };
+  for (const c of db.prepare("PRAGMA table_info('artifacts')").all() as Array<{ name: string; notnull: number; dflt_value: unknown }>) {
+    if (!(c.name in row) && c.notnull && c.dflt_value === null) row[c.name] = c.name.endsWith('_at') ? '2026-11-25T00:00:00Z' : 'x';
+  }
+  const keys = Object.keys(row);
+  db.prepare(`INSERT INTO artifacts (${keys.join(',')}) VALUES (${keys.map(() => '?').join(',')})`).run(...keys.map(k => row[k]));
+  assert.ok(fileIdsInUse(db).has(shown));
+});

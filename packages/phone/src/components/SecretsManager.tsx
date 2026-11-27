@@ -216,7 +216,7 @@ export function SecretsManager({ themeConfig, themeMode }: SecretsManagerProps) 
 
       {orphanVoiceIds.length > 0 && (
         <section className={cn('rounded-2xl border p-3 backdrop-blur-md', colors.panelBg, colors.panelBorder)}>
-          <h3 className={cn('text-[11px] font-bold uppercase tracking-[0.12em] mb-2', colors.textMuted)} style={{ color: colors.accent }}>Orphan voice IDs</h3>
+          <h3 className={cn('text-[11px] font-bold uppercase tracking-[0.12em] mb-2', colors.textMuted)} style={{ color: colors.accent }}>Unused voice IDs</h3>
           <p className={cn('text-[10px] leading-relaxed mb-3', colors.textMuted)}>
             These voice IDs belong to companions that aren't registered anymore.
             Safe to delete — they aren't routing to anything.
@@ -233,7 +233,7 @@ export function SecretsManager({ themeConfig, themeMode }: SecretsManagerProps) 
                       disabled={rowBusy}
                       className={cn('rounded-md p-1.5', 'hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-40')}
                       style={{ color: colors.accent }}
-                      title="Delete orphan voice ID"
+                      title="Delete unused voice ID"
                     >
                       {rowBusy ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={12} />}
                     </button>

@@ -7,7 +7,7 @@ import { join, extname } from 'path';
 import { homedir } from 'os';
 import { codexHold, codexHoldMessage, holdCodex, holdFromText, CODEX_DEFAULT_HOLD_MS } from '../codex-breaker.js';
 import { GALLERY_DIR, IMAGE_EXTS, codexBin, codexHome, getImageGenSettings } from './settings.js';
-import { DEFAULT_CODEX_IMAGE_MODEL, GenerateInput, GenerateResult, ImageGenError, newGalleryName, pairwiseDistinctions, resolveLabelledRefs, resolveSize, subjectBuildNotes } from './common.js';
+import { DEFAULT_CODEX_IMAGE_MODEL, GenerateInput, GenerateResult, ImageGenError, newGalleryName, referencePreamble, resolveLabelledRefs, resolveSize, subjectBuildNotes } from './common.js';
 import { onRunningJobCancel } from './cancel.js';
 import { openSync, readSync, closeSync } from 'fs';
 
@@ -86,25 +86,14 @@ export async function generateViaCodex(input: GenerateInput): Promise<GenerateRe
   const labelled = await resolveLabelledRefs(input);
   const refs = labelled.map((r) => r.path);
 
-  // Name each attachment in the order it is sent. Without this the renderer
-  // gets N unnamed faces and a prompt full of names, and pairs them by guess.
-  const refRoster = labelled
-    .map((r, i) => `  ${i + 1}. ${r.label ?? 'unnamed reference'}`)
-    .join('\n');
-
-  const refLine =
-    refs.length > 0
-      ? `Reference images are attached in this order:\n${refRoster}\n` +
-        `Match each named person in the prompt to THEIR OWN reference above. Never move one person's face, tattoos, scars, facial hair or hair onto another.\n` +
-        `REFERENCE USAGE — IDENTITY ONLY: use a reference for face, build, skin, hair and permanent marks. Do NOT inherit its pose, head angle, gaze, expression, wardrobe, crop, camera angle or lighting — the prompt decides all of those.` +
-        (pairwiseDistinctions(input.subjects) ? `\n${pairwiseDistinctions(input.subjects)}` : '')
-      : '';
-
-  const builds = subjectBuildNotes(input.subjects);
+  // Each attachment is named in the order it is sent (referencePreamble).
+  // Without this the renderer gets N unnamed faces and a prompt full of
+  // names, and pairs them by guess.
+  const preamble = referencePreamble(labelled.map((r) => r.label), input.subjects, subjectBuildNotes(input.subjects));
 
   const instruction =
     `Generate ONE image with your built-in image_gen tool.${sizeGuidance ? ' ' + sizeGuidance : ''}${qualityLine ? ' ' + qualityLine : ''}\n` +
-    `${refLine}${builds ? `\n${builds}` : ''}\n` +
+    `${preamble}\n` +
     `Use ONLY the built-in image_gen tool. Do NOT use any CLI, API, or OPENAI_API_KEY path.\n\n` +
     `--- PROMPT ---\n${input.prompt}\n--- END PROMPT ---\n\n` +
     `After it is saved, output as the final line exactly: RESULT_PATH=<absolute path>`;

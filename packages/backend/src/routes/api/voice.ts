@@ -75,6 +75,19 @@ router.get('/usage/antigravity', async (req, res) => {
   }
 });
 
+// Painter credits — OpenArt credits and Mage gems, each read on its own so one
+// failing still shows the other. Cached 60s.
+router.get('/usage/images', async (_req, res) => {
+  try {
+    const { getImageCredits } = await import('../../services/image-credits.js');
+    res.json(await getImageCredits());
+  } catch (error) {
+    res.status(502).json({
+      error: error instanceof Error ? error.message : 'Painter credits unavailable',
+    });
+  }
+});
+
 // Wipe cached TTS audio. With no body, clears every cached file —
 // useful when the splitter changed and you want existing messages
 // re-generated under the new rules. With { messageId }, clears one.
