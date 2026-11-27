@@ -106,8 +106,11 @@ function rememberedFilename(fileId: string): string | null {
 
 function forgetFilename(fileId: string): void {
   if (!FILE_ID_RE.test(fileId)) return;
+  // The name to remove is taken from the folder's own listing, never built from
+  // the request, so nothing a caller sends can point the delete elsewhere.
   try {
-    if (existsSync(sidecarPath(fileId))) unlinkSync(sidecarPath(fileId));
+    const sidecar = readdirSync(FILES_DIR).find((n) => n === `${fileId}${NAME_SIDECAR_EXT}`);
+    if (sidecar) unlinkSync(join(FILES_DIR, sidecar));
   } catch {}
 }
 
