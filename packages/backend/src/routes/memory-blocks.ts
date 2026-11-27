@@ -13,6 +13,8 @@ import { PROJECT_ROOT, getAerieConfig } from '../config.js';
 import { importConversations, parseExport, readExportFile, type ImportProgress } from '../services/conversation-import.js';
 import { embed, vectorToBuffer } from '../services/embeddings.js';
 import { saveConversation } from '../services/cortex.js';
+import { importLetta, slugForNewCompanion, type LettaChoice, type LettaDoor } from '../services/letta-import.js';
+import { createCompanion } from '../services/db/companions.js';
 
 const router = Router();
 
@@ -96,6 +98,58 @@ interface ConversationImportJob {
   error: string | null;
 }
 let conversationJob: ConversationImportJob | null = null;
+
+// Bring a Letta companion's memory in: the files of a `letta memory export`
+// folder (the phone unzips it and sends the markdown), which door (`new`, a
+// companion of their own; `merge`, onto someone here with a pick per memory;
+// `drawer`, onto someone here as Cortex notes only), and dryRun to see where
+// everything would land first. On the new door the companion is made only on
+// the real run, after the person has seen the plan.
+const LETTA_DOORS: LettaDoor[] = ['new', 'merge', 'drawer'];
+const LETTA_CHOICES: LettaChoice[] = ['add', 'wall', 'drawer', 'skip'];
+
+router.post('/memory/import/letta', async (req, res) => {
+  const { companion, files, dryRun, door: rawDoor, choices: rawChoices, humanTo: rawHumanTo } = req.body ?? {};
+  if (!Array.isArray(files) || files.length === 0) return res.status(400).json({ error: 'No files. Send the markdown files from a Letta memory export.' });
+  const door: LettaDoor = LETTA_DOORS.includes(rawDoor) ? rawDoor : 'merge';
+  const choices: Record<string, LettaChoice> = {};
+  if (rawChoices && typeof rawChoices === 'object') {
+    for (const [path, c] of Object.entries(rawChoices as Record<string, unknown>)) {
+      if (LETTA_CHOICES.includes(c as LettaChoice)) choices[path] = c as LettaChoice;
+    }
+  }
+  const humanTo = rawHumanTo === 'companion' ? 'companion' : 'shared';
+  const name = String(companion ?? '').trim();
+  try {
+    if (door === 'new' && !dryRun) {
+      const slug = slugForNewCompanion(name);
+      if (!slug || memoryBlocks.resolveScope(slug)) {
+        return res.status(400).json({ error: slug ? `There's already someone called ${slug} here.` : 'Give them a name first.' });
+      }
+      const cfg = getAerieConfig();
+      if (!cfg.agent.claude_md_path || !cfg.agent.mcp_json_path) {
+        return res.status(400).json({ error: 'This house has no default CLAUDE.md or .mcp.json path set, so a new companion cannot be made here yet.' });
+      }
+      createCompanion({ slug, displayName: name.slice(0, 60), claudeMdPath: cfg.agent.claude_md_path, mcpJsonPath: cfg.agent.mcp_json_path });
+      try {
+        const vs = req.app.locals.voiceService as { refresh?: () => void } | undefined;
+        vs?.refresh?.();
+      } catch { /* non-fatal */ }
+    }
+    const result = await importLetta(
+      files.map((f: { path?: unknown; text?: unknown }) => ({ path: String(f?.path ?? ''), text: String(f?.text ?? '') })),
+      name,
+      { dryRun: Boolean(dryRun), door, choices, humanTo },
+    );
+    if (door === 'new' && !dryRun) {
+      // A Letta export with no persona still leaves the new companion a wall that says who they are.
+      memoryBlocks.ensureCompanionBlocks([{ slug: result.companion, display_name: name.slice(0, 60) }]);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
 
 router.post('/memory/import/conversations', exportUpload.single('file'), (req, res) => {
   const file = req.file;

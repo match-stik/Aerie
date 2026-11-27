@@ -158,7 +158,10 @@ save room, with the summary they kept. If nothing has been folded, it says so.
 
 **Import** brings things in from somewhere else. **Old chats** come back word
 for word from a ChatGPT, Claude, Grok, Copilot, Gemini or Letta export, so your
-companion can find them. Running the same export twice adds nothing.
+companion can find them. Running the same export twice adds nothing. **Bring a
+companion over from Letta** reads a Letta companion's memory and lets you
+choose: someone new with walls of their own, added to someone already here, or
+kept findable only. Nothing already here is overwritten.
 
 ### Journal
 

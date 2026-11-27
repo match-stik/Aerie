@@ -27,7 +27,8 @@ const TABS: { id: Tab; label: string }[] = [
 
 // One roof over everything the house remembers: Cortex (the searchable
 // archive, its own tabs intact), the live core-memory Blocks, and the
-// Self-Knowledge drawers, the Compactions record, and Import (old chats). Each keeps its full flow — this shell only holds
+// Self-Knowledge drawers, the Compactions record, and Import (old chats and a
+// Letta companion's memory). Each keeps its full flow — this shell only holds
 // the doors. Journal deliberately stays its own app.
 export function MemoryApp({ onClose, themeConfig, themeMode }: MemoryAppProps) {
   const colors = themeConfig[themeMode];
