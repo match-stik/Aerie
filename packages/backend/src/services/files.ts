@@ -74,7 +74,11 @@ export function resolveMimeType(originalFilename: string, browserMime: string): 
 // The name the user gave a file is kept in a sidecar beside it — see file-names.ts
 // for why a sidecar rather than a table, and for the sanitising rules.
 
+const FILE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A stored file's name sidecar. Only a real file id makes a path (alerts #98, #99). */
 function sidecarPath(fileId: string): string {
+  if (!FILE_ID_RE.test(fileId)) throw new Error('not a file id');
   return join(FILES_DIR, `${fileId}${NAME_SIDECAR_EXT}`);
 }
 

@@ -9,18 +9,6 @@
 import { existsSync, realpathSync } from 'fs';
 import { dirname, isAbsolute, resolve, sep, extname } from 'path';
 
-/** Where a path really lands: the file itself if it exists, else its folder plus its name. */
-function landing(path: string): string | null {
-  try {
-    if (existsSync(path)) return realpathSync(path);
-    const dir = dirname(path);
-    if (!existsSync(dir)) return null;
-    return resolve(realpathSync(dir), path.slice(dir.length + 1));
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Why a companion file path is refused, or null when it is allowed. kind is
  * 'identity' (a .md file) or 'mcp' (a .json file); root is the house folder.
@@ -39,7 +27,17 @@ export function companionPathRefusal(path: unknown, kind: 'identity' | 'mcp', ro
   try { home = realpathSync(root); } catch { home = lexicalHome; }
   // Written out inline (no helper) so the scanner can see the guard.
   if (!absolute.startsWith(lexicalHome + sep) && !absolute.startsWith(home + sep)) return 'a companion file must live inside the house folder';
-  const where = landing(absolute);
+  // Where the path really lands once links are followed: the file itself if
+  // it exists, else its folder plus its name. Inline, after the guard above,
+  // so code scanning sees the check before the disk is touched (#95, #96).
+  let where: string | null = null;
+  try {
+    if (existsSync(absolute)) where = realpathSync(absolute);
+    else {
+      const dir = dirname(absolute);
+      if (existsSync(dir)) where = resolve(realpathSync(dir), absolute.slice(dir.length + 1));
+    }
+  } catch { where = null; }
   if (!where || !where.startsWith(home + sep)) return 'a companion file must live inside the house folder';
   return null;
 }

@@ -276,7 +276,17 @@ export function planLettaImport(entries: LettaEntry[], companion: string, opts: 
 
 // A new companion's name as this house writes a slug.
 export function slugForNewCompanion(name: string): string {
-  return String(name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  return trimEdges(String(name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'), '-').slice(0, 40);
+}
+
+// Edge trimming by hand rather than by an anchored regex, which code scanning
+// reads as slow on a long run of the trimmed character (alert #100).
+function trimEdges(s: string, chars: string): string {
+  let a = 0;
+  let b = s.length;
+  while (a < b && chars.includes(s[a])) a++;
+  while (b > a && chars.includes(s[b - 1])) b--;
+  return s.slice(a, b);
 }
 
 function stamp(now: Date): string {

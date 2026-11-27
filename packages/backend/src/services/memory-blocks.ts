@@ -99,7 +99,14 @@ export const FIXED_LABELS: readonly string[] = ['persona', 'human', 'status'];
 
 /** A wall name as this house writes one: lowercase words joined by _ or -. */
 export function cleanLabel(raw: string): string {
-  return String(raw || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/_+/g, '_').replace(/^[_-]+|[_-]+$/g, '').slice(0, 60);
+  const s = String(raw || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/_+/g, '_');
+  // The edges are trimmed by hand: an anchored regex here reads to code
+  // scanning as slow on a long run of _ or - (alert #97).
+  let a = 0;
+  let b = s.length;
+  while (a < b && (s[a] === '_' || s[a] === '-')) a++;
+  while (b > a && (s[b - 1] === '_' || s[b - 1] === '-')) b--;
+  return s.slice(a, b).slice(0, 60);
 }
 
 /**
