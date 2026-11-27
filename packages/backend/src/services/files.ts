@@ -96,6 +96,7 @@ function rememberFilename(fileId: string, originalFilename: string): void {
 }
 
 function rememberedFilename(fileId: string): string | null {
+  if (!FILE_ID_RE.test(fileId)) return null;
   try {
     return safeDisplayName(readFileSync(sidecarPath(fileId), 'utf8')) || null;
   } catch {
@@ -104,6 +105,7 @@ function rememberedFilename(fileId: string): string | null {
 }
 
 function forgetFilename(fileId: string): void {
+  if (!FILE_ID_RE.test(fileId)) return;
   try {
     if (existsSync(sidecarPath(fileId))) unlinkSync(sidecarPath(fileId));
   } catch {}

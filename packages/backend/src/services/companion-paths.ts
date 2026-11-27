@@ -17,7 +17,7 @@ export function companionPathRefusal(path: unknown, kind: 'identity' | 'mcp', ro
   if (path === undefined) return null;
   if (typeof path !== 'string' || !path.trim()) return `${kind === 'identity' ? 'claudeMdPath' : 'mcpJsonPath'} must be a file path`;
   const wanted = kind === 'identity' ? '.md' : '.json';
-  const absolute = isAbsolute(path) ? resolve(path) : resolve(root, path);
+  let absolute = isAbsolute(path) ? resolve(path) : resolve(root, path);
   if (extname(absolute).toLowerCase() !== wanted) return `a companion's ${kind === 'identity' ? 'identity file must be a .md file' : 'MCP file must be a .json file'}`;
   // Inside the house by its name first, before anything on disk is touched
   // with it (code scanning, Nov 24 2026: the request's path reached the file
@@ -25,8 +25,11 @@ export function companionPathRefusal(path: unknown, kind: 'identity' | 'mcp', ro
   const lexicalHome = resolve(root);
   let home: string;
   try { home = realpathSync(root); } catch { home = lexicalHome; }
-  // Written out inline (no helper) so the scanner can see the guard.
-  if (!absolute.startsWith(lexicalHome + sep) && !absolute.startsWith(home + sep)) return 'a companion file must live inside the house folder';
+  // A path written through the real folder is read as the same path through
+  // the house's own name, so one plain guard covers both (code scanning reads
+  // a single startsWith as the check; it did not see the two-part one).
+  if (home !== lexicalHome && absolute.startsWith(home + sep)) absolute = lexicalHome + absolute.slice(home.length);
+  if (!absolute.startsWith(lexicalHome + sep)) return 'a companion file must live inside the house folder';
   // Where the path really lands once links are followed: the file itself if
   // it exists, else its folder plus its name. Inline, after the guard above,
   // so code scanning sees the check before the disk is touched (#95, #96).
