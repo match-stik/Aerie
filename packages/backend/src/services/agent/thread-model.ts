@@ -97,6 +97,16 @@ export function threadWallOverride(threadId: string | null | undefined): ((scope
 }
 
 /** The marker in a lane key that says the room belongs to one thread. */
+/**
+ * The wall scopes a thread's room can open: the shared walls and the walls of
+ * whoever is in the thread, or everyone's when nobody is assigned. The same
+ * rule the room loads by (agent-dispatch.ts), so the thread's Walls list never
+ * shows a wall the room cannot open.
+ */
+export function threadWallScopes(threadSlugs: string[], allSlugs: string[]): string[] {
+  return ['shared', ...(threadSlugs.length > 0 ? threadSlugs : allSlugs)];
+}
+
 export function threadRoomTag(threadId: string): string {
   return `--t-${threadId.replace(/[^a-zA-Z0-9-_]/g, '_')}`;
 }

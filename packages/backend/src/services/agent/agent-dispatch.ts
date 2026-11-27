@@ -1,5 +1,5 @@
 // Copyright 2026 Aerie Systems. Licensed under the Apache License 2.0. Porting code from here? Keep this line, and credit Aerie in your NOTICE file for this and anything ported before.
-import { readThreadModel, readThreadOwnRoom, threadTurnModel, threadLaneKey, threadWallOverride } from './thread-model.js';
+import { readThreadModel, readThreadOwnRoom, threadTurnModel, threadLaneKey, threadWallOverride, threadWallScopes } from './thread-model.js';
 import { SHARED_LANE_KEY } from '../heartbeat/lane-dir.js';
 import type { ImageBlockParam } from './claude-types.js';
 import { getMessages, getThread } from '../db.js';
@@ -331,9 +331,7 @@ export async function dispatchAgentTurn(
   // Shared blocks + the personal blocks of every companion in this thread.
   // Threads with no assigned companions see everyone's blocks.
   try {
-    const memoryScopes = threadCompanionSlugs.length > 0
-      ? [SHARED_SCOPE, ...threadCompanionSlugs]
-      : [SHARED_SCOPE, ...listCompanions().map(c => c.slug)];
+    const memoryScopes = threadWallScopes(threadCompanionSlugs, listCompanions().map(c => c.slug));
     // A thread with its own room may load its own walls (thread-model.ts).
     const coreMemory = formatBlocksForPrompt(memoryScopes, isAutonomous ? undefined : threadWallOverride(threadId));
     if (coreMemory) effectiveClaudeMd += '\n\n---\n' + coreMemory;

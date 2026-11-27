@@ -10,7 +10,8 @@ import { deleteFile } from '../../services/files.js';
 import { registry } from '../../services/ws.js';
 import { getAerieConfig, PROJECT_ROOT } from '../../config.js';
 import { readdirSync } from 'fs';
-import { threadRoomTag, readThreadOwnRoom, readThreadWallLoad, writeThreadWallLoad } from '../../services/agent/thread-model.js';
+import { threadRoomTag, readThreadOwnRoom, readThreadWallLoad, writeThreadWallLoad, threadWallScopes } from '../../services/agent/thread-model.js';
+import { getThreadCompanions, listCompanions } from '../../services/db/companions.js';
 import { getAllBlocks, getBlock, wallLoad } from '../../services/memory-blocks.js';
 import { getHeartbeatSession } from '../../services/heartbeat/supervisor.js';
 
@@ -393,9 +394,11 @@ router.get('/threads/:id/wall-load', (req, res) => {
   const thread = getThread(req.params.id);
   if (!thread) { res.status(404).json({ error: 'Thread not found' }); return; }
   const mine = readThreadWallLoad(req.params.id);
+  const scopes = threadWallScopes(getThreadCompanions(req.params.id).map((c) => (c as unknown as { slug: string }).slug), listCompanions().map((c) => c.slug));
   res.json({
     ownRoom: readThreadOwnRoom(req.params.id),
-    walls: getAllBlocks().map((b) => ({
+    // Only the walls this room can open: shared, and whoever is in the thread.
+    walls: getAllBlocks().filter((b) => scopes.includes(b.scope)).map((b) => ({
       scope: b.scope,
       label: b.label,
       chars: b.content.length,

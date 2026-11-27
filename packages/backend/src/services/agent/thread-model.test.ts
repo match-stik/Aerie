@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, statSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { threadTurnModel, modelLaneKey, modelLanesBeside, seedModelLaneTools, threadLaneKey, threadRoomTag, parseThreadWallLoad } from './thread-model.js';
+import { threadTurnModel, modelLaneKey, modelLanesBeside, seedModelLaneTools, threadLaneKey, threadRoomTag, parseThreadWallLoad, threadWallScopes } from './thread-model.js';
 
 test('a thread with no model of its own rides the house model', () => {
   assert.equal(threadTurnModel(null, false, 'claude-opus-5'), 'claude-opus-5');
@@ -93,4 +93,10 @@ test('a thread room\'s wall dial keeps only real modes, and a broken value reads
   assert.deepEqual(parseThreadWallLoad('{"shared/lore":"search","shared/status":"room","x/y":"sometimes"}'), { 'shared/lore': 'search', 'shared/status': 'room' });
   assert.deepEqual(parseThreadWallLoad('not json'), {});
   assert.deepEqual(parseThreadWallLoad(null), {});
+});
+
+// A thread's Walls list shows only what that room can open.
+test('a thread with companions lists the shared walls and theirs; a thread with none lists everyone', () => {
+  assert.deepEqual(threadWallScopes(['birch', 'willow'], ['birch', 'willow', 'cedar', 'juniper']), ['shared', 'birch', 'willow']);
+  assert.deepEqual(threadWallScopes([], ['birch', 'juniper']), ['shared', 'birch', 'juniper']);
 });
