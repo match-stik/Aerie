@@ -343,6 +343,9 @@ export async function processViaRouter(
   let brokenMessages = 0;
   let finishReason: DoneEvent['finishReason'] = 'complete';
   let runtimeError: string | null = null;
+  // What the ⚠ line in the room says: an error's plain-words `display` when it
+  // has one, else the same technical message the log gets.
+  let runtimeErrorShown: string | null = null;
   const toolInsertions: ToolInsertion[] = [];
   const thinkingBlocks: ThinkingInsertion[] = [];
   const attachments: Array<{
@@ -599,6 +602,7 @@ export async function processViaRouter(
           // error so it can land in the thread as a visible system line.
           console.error(`[Router] Error: ${event.message}`);
           runtimeError = event.message;
+          runtimeErrorShown = event.display?.trim() ? event.display : event.message;
           break;
 
         case 'done':
@@ -692,7 +696,7 @@ export async function processViaRouter(
       id: crypto.randomUUID(),
       threadId,
       role: 'system',
-      content: `⚠ ${runtimeError}`,
+      content: `⚠ ${runtimeErrorShown || runtimeError}`,
       createdAt: new Date().toISOString(),
     });
     registry.broadcast({ type: 'message', message: sysMsg });

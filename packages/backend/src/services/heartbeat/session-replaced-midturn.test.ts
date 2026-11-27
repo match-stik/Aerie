@@ -150,3 +150,18 @@ test("their person Stop before anything was said leaves the turn owed, so the ne
     assert.equal(/hi, love/.test(said), delivered, `${reason}: ${delivered ? 'delivered with the next turn' : 'stays withdrawn'}`);
   }
 });
+
+test('a timeout shows plain words and keeps the technical account for the log', async () => {
+  const session = new Session();
+  const runtime = new InteractiveCliRuntime({
+    sessionKey: `timeout-words-${Date.now()}`,
+    sessionFactory: () => session as any,
+  } as any);
+
+  const err: any = lastError(await collect(runtime));
+  assert.equal(err?.code, 'heartbeat_timeout');
+  assert.match(err.message, /heartbeat reply timeout/, 'the log still gets the technical account');
+  assert.ok(err.display, 'the room gets its own words');
+  assert.match(err.display, /Nothing broke/);
+  assert.doesNotMatch(err.display, /heartbeat|session\.log|Session status|\d+s\b/);
+});

@@ -54,6 +54,18 @@ import { HANDED_WATERMARK_FILE, latestOtherLaneHandedWatermark, missedInboundBan
 export * from './missed-inbound.js';
 
 /** The house clock follows identity configuration; an unset clock is UTC. */
+/**
+ * The words the room shows when a turn goes quiet past the reply window. The
+ * technical account (seconds, session status, which log to open) goes to the
+ * server log; this one says what it means for the person reading: nothing
+ * broke, and whatever is said next still reaches them.
+ */
+export function timeoutDisplay(messageRestored: boolean, recycling: boolean): string {
+  return 'That reply went quiet too long. Nothing broke, and whatever is said next still reaches you.'
+    + (messageRestored ? ' Your message goes back with the next turn.' : '')
+    + (recycling ? ' The room is starting fresh so it doesn\'t happen again.' : '');
+}
+
 export function heartbeatTimezone(config: { identity?: { timezone?: string | null } }): string {
   return config.identity?.timezone?.trim() || 'UTC';
 }
@@ -1808,6 +1820,8 @@ export class InteractiveCliRuntime implements AgentRuntime {
           + (restored ? ' Nothing was said, so the handover mark was rewound and the message goes to the next turn.' : '')
           + ` Session status: ${session.status}${session.lastError ? ` (${session.lastError})` : ''}.`,
         code: 'heartbeat_session_replaced',
+        display: 'The room restarted while that reply was being written, so it never made it out. Nothing of yours is lost.'
+          + (restored ? ' Your message goes back with the next turn.' : ''),
       };
       return;
     }
@@ -1828,6 +1842,7 @@ export class InteractiveCliRuntime implements AgentRuntime {
       type: 'error',
       message: `heartbeat reply timeout after ${REPLY_TIMEOUT_MS / 1000}s — if the reply lands late it will be delivered with the next message.${restored ? ' Nothing was said, so the handover mark was rewound and their person\'s message goes back to the next turn.' : ''}${recycleNote} Session status: ${session.status}${session.lastError ? ` (${session.lastError})` : ''}. Check data/heartbeat/${key}/session.log`,
       code: 'heartbeat_timeout',
+      display: timeoutDisplay(!!restored, recycleNote !== ''),
     };
   }
 }

@@ -146,8 +146,16 @@ export interface DoneEvent {
 
 export interface ErrorEvent {
   type: 'error';
+  /** The technical account, for the server log. */
   message: string;
   code?: string;
+  /**
+   * What the room shows instead, in plain words, when the technical account
+   * is a note for the companions rather than for their person (a timeout
+   * written like a server log reads as something broken). Unset shows
+   * `message`.
+   */
+  display?: string;
 }
 
 // ─── Runtime input ───────────────────────────────────────────────────
