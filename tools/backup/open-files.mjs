@@ -14,7 +14,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { createInterface } from 'node:readline';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 
 const [, , inDir, outDir] = process.argv;
@@ -28,7 +28,7 @@ if (!existsSync(lib)) {
   console.error('Build the backend first (npm run build in packages/backend).');
   process.exit(2);
 }
-const { keysFromPhrase, openSealed } = await import(lib);
+const { keysFromPhrase, openSealed } = await import(pathToFileURL(lib).href);
 const rl = createInterface({ input: process.stdin, output: process.stderr, terminal: true });
 const phrase = await new Promise((resolve) => rl.question('Backup phrase: ', (a) => { rl.close(); resolve(a); }));
 const { privateKey } = keysFromPhrase(phrase);

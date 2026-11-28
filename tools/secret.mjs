@@ -13,7 +13,7 @@
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const name = process.argv[2];
 if (!name) {
@@ -26,7 +26,7 @@ if (!existsSync(lib)) {
   console.error('Build the backend first (npm run build in packages/backend).');
   process.exit(2);
 }
-const { loadSecretsKey, openValue } = await import(lib);
+const { loadSecretsKey, openValue } = await import(pathToFileURL(lib).href);
 const Database = createRequire(join(root, 'packages', 'backend', 'package.json'))('better-sqlite3');
 const db = new Database(process.env.AERIE_DB_PATH || join(root, 'data', 'aerie.db'), { readonly: true, fileMustExist: true });
 const row = db.prepare('SELECT value FROM config WHERE key = ?').get(`secret:${name}`);
